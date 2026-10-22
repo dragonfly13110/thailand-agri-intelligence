@@ -43,6 +43,8 @@ Linux/macOS ใช้ `.venv/bin/python` แทน `.venv/Scripts/python.exe` �
 ./.venv/Scripts/python.exe -m tadih discover --source doae --limit 100 --max-pages 2
 ./.venv/Scripts/python.exe -m tadih discover --source oae --limit 100 --max-pages 2
 ./.venv/Scripts/python.exe -m tadih oae-rice
+./.venv/Scripts/python.exe -m tadih doae-production
+./.venv/Scripts/python.exe -m tadih commodities --source nabc_monthly --year-th 2569
 ./.venv/Scripts/python.exe -m tadih status
 ./.venv/Scripts/python.exe -m tadih build --audience internal --period 2026-09
 ```
@@ -76,4 +78,6 @@ Backfill ตรวจ checksum แล้วข้ามปีที่ดึง�
 
 ยังไม่มี polygon อำเภอ/ตำบล, การถ่วงน้ำหนักกริดทั้งประเทศ, น้ำ/NDVI ที่เชื่อมจริง, หน้า Power BI ที่เปิดทดสอบแล้ว หรือ forecast ราคา/ผลผลิตที่ผ่านข้อมูลจริงครบเกณฑ์ การเพิ่มข้อมูลต้องคงระดับพื้นที่ หน่วย ตลาด ฤดู และเวลาเผยแพร่ตามต้นทาง
 
-GitHub ถูกเตรียมเฉพาะ repository ในเครื่อง ยังไม่มี remote, push หรือ schedule ที่รันจริง งาน 14 วันต่อเนื่องและสิทธิ์ Fabric/Power BI tenant ต้องตรวจในสภาพแวดล้อมใช้งานจริง
+โค้ดอยู่ใน [GitHub Public repo](https://github.com/dragonfly13110/thailand-agri-intelligence) ตามที่เจ้าของงานอนุมัติ CI และ workflow ตรวจ DOAE/OAE catalog รันผ่านบน GitHub แล้ว raw และข้อมูลสิทธิ์ pending อยู่ในเครื่อง Artifact ของ catalog มีเฉพาะสถานะ/checksum งาน 14 วันต่อเนื่องยังต้องติดตามจริง
+
+เพิ่ม staging ผลผลิต DOAE 50,103 แถว/537 commodity identities, inventory ราคาสินค้า NABC ปี 2569 จำนวน 44 identities และ geography snapshot ปี 2023 ระดับอำเภอ/ตำบลแล้ว ดู [production](docs/production.md), [commodities](docs/commodities.md), [geography](docs/geography.md) แต่ยังไม่อ้างว่าเป็น facts ที่ผ่านการรวมพื้นที่หรือรหัสปี 2026 ปัจจุบัน

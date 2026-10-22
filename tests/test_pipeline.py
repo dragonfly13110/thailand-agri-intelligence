@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tadih.publish import build_exports, verify_exports
+from tadih.publish import build_exports, verify_exports, write_coverage_view
 from tadih.quality import validate_observation
 from tadih.transform import weather_observations
 from tadih.warehouse import connect, ingest_rows
@@ -80,6 +80,20 @@ class PipelineTests(unittest.TestCase):
             self.assertFalse(metadata["redistribution_allowed"])
             with (snapshot / "fact_observation.csv").open(encoding="utf-8-sig", newline="") as handle:
                 self.assertEqual(next(csv.DictReader(handle))["license_status"], "pending")
+            with self.assertRaises(ValueError):
+                write_coverage_view(snapshot, Path(directory) / "must-not-publish.csv")
+
+    def test_coverage_view_retains_unknown_and_geographic_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot, _ = build_exports(self.db, directory)
+            path = Path(directory) / "coverage.csv"
+            result = write_coverage_view(snapshot, path)
+            with path.open(encoding="utf-8-sig", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual(result["rows"], 77*15)
+            self.assertEqual(len({r["province_code"] for r in rows}), 77)
+            self.assertEqual({r["coverage_status"] for r in rows}, {"UNVERIFIED"})
+            self.assertTrue(any(r["province_name"] == "กรุงเทพมหานคร" for r in rows))
 
     def test_snapshot_covers_all_categories_without_inventing_data(self):
         ingest_rows(self.db, [observation(area_code=None, spatial_support="grid_point", location_id="fixture-point")])

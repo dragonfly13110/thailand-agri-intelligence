@@ -2,20 +2,24 @@
 
 ช่วงนี้ทำฐานระบบ Thailand Core ตาม PART IV เป็นลำดับแรก ไม่ได้ถือว่าแผน 59 วันเสร็จแล้ว
 
+อัปเดต: Public repo สร้างตามเจ้าของงานอนุมัติแล้ว [CI](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39744137784) และ [DOAE/OAE live catalog probe](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39744139935) สำเร็จ ไม่มี raw สิทธิ์ pending ใน repo/artifacts
+
 | งาน | หลักฐาน | สถานะ |
 |---|---|---|
 | พื้นที่ 77 จังหวัด | config/provinces.csv + tests | รหัส/ชื่อพร้อม; ไม่มี geometry |
 | Registry ไทยและบริการพื้นที่ไทย 15 แหล่ง | config/sources.json | รายการพร้อม; สิทธิ์ราย resource ยัง pending |
 | DOAE/OAE discovery | data/local/probes, raw checksum | เชื่อม metadata จริง; แบ่งหน้าได้ |
 | ราคาข้าว OAE/NABC | 189 เดือน, ม.ค. 2011 ถึง ก.ย. 2026 | เข้า DuckDB จริง ระดับประเทศ ใช้สำรวจภายใน |
-| ผลผลิต DOAE | ตรวจ CSV 8,192 bytes / 35 แถวสมบูรณ์ | schema/หน่วยพบจริง; ยังไม่เข้าตาราง fact |
+| ผลผลิต DOAE | CSV เต็ม 50,103 records /77 ชื่อจังหวัด/537 commodity identities | staging จริง; ยังไม่รวมพื้นที่เป็น fact |
+| พื้นที่ระดับย่อย | DOPA snapshot2023:928 อำเภอ/7,436 ตำบล, retired1,584 | แยก active/retired; ไม่อ้าง current2026 |
+| Commodity inventory NABC | ปี2569:387 price records/44 identities/4pages | full returned year partition; cross-provider mapping ยังไม่ทำ |
 | อากาศ ERA5 | 1 จุดไทย / 3,653 วัน ปี 2016 ถึง 2025 / 3 ตัวแปร | ดึงจริง 10 partitions; ตรวจ resume ไม่เรียก API ซ้ำ |
 | Data quality + revision | unittest + JSON schemas | รันได้; ข้อมูลขาดเป็น null |
 | Coverage 77 × 20 | export CSV | พร้อมสถานะ UNVERIFIED; ไม่มีการแต่งข้อมูล |
 | Decision workflows น้ำ/ตลาด | CLI + evidence rules/tests | prototype; ขาด evidence จริงที่เชื่อมครบ |
 | Forecast/backtest | release-aware daily baselines/tests | prototype; ยังไม่มี forecast ปฏิบัติงาน |
 | Power BI | M queries / DAX / theme / page plan | รอนำเข้าและตรวจ render ใน Desktop |
-| GitHub Actions | workflows สองชุด | เตรียมไฟล์แล้ว; ยังไม่มี remote/run จริง |
+| GitHub Actions | workflows สองชุด | CI และ catalog probe ผ่านจริง; schedule รายสัปดาห์ |
 
 ## ผลตรวจรับฐานระบบ
 

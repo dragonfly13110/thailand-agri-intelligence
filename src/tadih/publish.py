@@ -115,3 +115,26 @@ def verify_exports(snapshot):
                 or path.stat().st_size != record.get("bytes") or hashlib.sha256(path.read_bytes()).hexdigest() != record["sha256"]):
             raise ValueError(f"snapshot integrity failure: {record['name']}")
     return metadata
+
+
+def write_coverage_view(snapshot, output_path):
+    """One coverage fact with display labels for the browser CSV connector."""
+    snapshot = Path(snapshot)
+    metadata = verify_exports(snapshot)
+    if metadata.get("audience") != "public":
+        raise ValueError("coverage view for public hosting requires a public snapshot")
+    provinces = {row["area_code"]: row for row in load_provinces()}
+    sources = {row["source_id"]: row for row in load_sources()}
+    with (snapshot / "fact_data_coverage.csv").open(encoding="utf-8-sig", newline="") as handle:
+        rows = [{"country": "Thailand", "province_code": r["area_code"], "province_name": provinces[r["area_code"]]["name_th"],
+            "source_id": r["source_dataset_id"], "source_name": sources[r["source_dataset_id"]]["name"],
+            "period": r["period"], "coverage_status": r["status"],
+            "approved_observation_count": int(r["actual_count"]), "freshness_status": r["freshness_status"],
+            "snapshot_generated_at": metadata["generated_at"],
+            "coverage_note": "UNVERIFIED = ยังไม่ยืนยันข้อมูลรายจังหวัด; จำนวนแถวที่อนุมัติเผยแพร่ไม่ใช่ปริมาณผลผลิต"}
+            for r in csv.DictReader(handle)]
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _csv(output_path, list(rows[0]), rows)
+    return {"path": str(output_path.resolve()), "rows": len(rows), "audience": "public",
+            "sha256": hashlib.sha256(output_path.read_bytes()).hexdigest()}

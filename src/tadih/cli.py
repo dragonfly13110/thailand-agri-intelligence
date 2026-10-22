@@ -25,6 +25,9 @@ def parser():
     ingest.add_argument("file")
     verify = commands.add_parser("verify", help="Verify export checksums")
     verify.add_argument("snapshot")
+    coverage = commands.add_parser("coverage-view", help="Flatten verified public coverage labels for Power BI CSV import")
+    coverage.add_argument("snapshot")
+    coverage.add_argument("--output", default="exports/public/small/coverage.csv")
     discover = commands.add_parser("discover", help="Probe CKAN metadata, not measurement data")
     discover.add_argument("--source", choices=("doae", "oae"), required=True)
     discover.add_argument("--limit", type=int, default=5)
@@ -43,6 +46,20 @@ def parser():
     rice = commands.add_parser("oae-rice", help="Fetch national monthly rice prices; pending licence stays local")
     rice.add_argument("--output", default="data/local/raw")
     rice.add_argument("--max-pages", type=int, default=5)
+    production = commands.add_parser("doae-production", help="Download and stage the verified DOAE CSV without inventing rollups")
+    production.add_argument("--output", default="data/local/production")
+    production.add_argument("--refresh", action="store_true")
+    products = commands.add_parser("commodities", help="Stage all returned source commodity identities without cross-provider merging")
+    products.add_argument("--source", choices=("nabc_monthly", "nabc_monthly_names", "nabc_weekly", "nabc_daily", "nabc_production", "moc"), default="nabc_monthly")
+    products.add_argument("--year-th", type=int)
+    products.add_argument("--page-size", type=int, default=100)
+    products.add_argument("--max-pages", type=int, default=10)
+    products.add_argument("--start-page", type=int, default=1)
+    products.add_argument("--output", default="data/local/raw")
+    geography = commands.add_parser("geography", help="Stage the reviewed DOPA hierarchy and optional DDPM display boundary")
+    geography.add_argument("workbook")
+    geography.add_argument("--boundary")
+    geography.add_argument("--output", default="data/local/geography/staged")
     archive = commands.add_parser("weather-backfill", help="Checkpoint completed years at one approved Thai grid point")
     archive.add_argument("--latitude", type=float, required=True)
     archive.add_argument("--longitude", type=float, required=True)
@@ -62,10 +79,16 @@ def parser():
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     args = parser().parse_args(argv)
     try:
         if args.command == "verify":
             output = verify_exports(args.snapshot)
+        elif args.command == "coverage-view":
+            from .publish import write_coverage_view
+            output = write_coverage_view(args.snapshot, args.output)
         elif args.command == "discover":
             from .ingestion import discover_ckan_pages, save_snapshot
             base = {"doae": "https://ckan.doae.go.th", "oae": "https://catalog.oae.go.th"}[args.source]
@@ -77,6 +100,24 @@ def main(argv=None):
             from .decisions import evaluate_market, evaluate_water_risk
             evidence = json.loads(Path(args.file).read_text(encoding="utf-8-sig"))
             output = (evaluate_water_risk if args.workflow == "water" else evaluate_market)(evidence)
+        elif args.command == "doae-production":
+            from .production import fetch_doae_production, stage_doae_production
+            raw = fetch_doae_production(args.output, refresh=args.refresh)
+            output = {"raw_snapshot": raw, "staging": stage_doae_production(raw["path"], Path(args.output) / "staged")}
+        elif args.command == "geography":
+            from .geography import stage_geography
+            output = stage_geography(args.workbook, args.output, args.boundary)
+        elif args.command == "commodities":
+            from .commodities import discover_commodities
+            from .ingestion import save_snapshot
+            envelope = discover_commodities(args.source, year_th=args.year_th, page_size=args.page_size,
+                max_pages=args.max_pages, start_page=args.start_page)
+            partition = f"commodities-{args.source}-{args.year_th or 'master'}-page{args.start_page}"
+            output = save_snapshot(envelope, envelope["source_id"], args.output, partition)
+            output.update(access_status=envelope["status"], pagination=envelope["pagination"])
+            if envelope["status"] != "ok":
+                print(json.dumps(output, ensure_ascii=False, indent=2))
+                return 1
         elif args.command == "forecast":
             from .forecast import forecast
             records = json.loads(Path(args.file).read_text(encoding="utf-8-sig"))

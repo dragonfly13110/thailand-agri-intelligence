@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+  "scope": "Thailand",
+  "sources": {
+    "nabc_monthly": {
+      "source_id": "oae",
+      "endpoint": "https://agriapi.nabc.go.th/api/monthly-prices/year-month",
+      "documentation_url": "https://agriapi.nabc.go.th/home/endpoint/monthly-prices-product",
+      "discovery_evidence_url": "https://agriapi.nabc.go.th/main.eb4045b9bd8a7631.js",
+      "year_required": true,
+      "pagination": "page_limit",
+      "price_type": "farm_gate",
+      "license_status": "pending",
+      "access_note": "Live response without credentials verified for year_th=2569. This does not establish anonymous access to every NABC service."
+    },
+    "nabc_monthly_names": {
+      "source_id": "oae",
+      "endpoint": "https://agriapi.nabc.go.th/api/monthly-prices/product-names",
+      "documentation_url": "https://agriapi.nabc.go.th/",
+      "discovery_evidence_url": "https://agriapi.nabc.go.th/main.eb4045b9bd8a7631.js",
+      "year_required": true,
+      "pagination": "not_exposed",
+      "price_type": "farm_gate",
+      "license_status": "pending"
+    },
+    "nabc_weekly": {
+      "source_id": "oae",
+      "endpoint": "https://agriapi.nabc.go.th/api/weekly-prices/product-names",
+      "documentation_url": "https://agriapi.nabc.go.th/",
+      "discovery_evidence_url": "https://agriapi.nabc.go.th/main.eb4045b9bd8a7631.js",
+      "year_required": true,
+      "pagination": "not_exposed",
+      "price_type": "farm_gate",
+      "license_status": "pending"
+    },
+    "nabc_daily": {
+      "source_id": "oae",
+      "endpoint": "https://agriapi.nabc.go.th/api/daily-prices/product-names",
+      "documentation_url": "https://agriapi.nabc.go.th/",
+      "discovery_evidence_url": "https://agriapi.nabc.go.th/main.eb4045b9bd8a7631.js",
+      "year_required": false,
+      "pagination": "not_exposed",
+      "price_type": null,
+      "license_status": "pending"
+    },
+    "nabc_production": {
+      "source_id": "oae",
+      "endpoint": "https://agriapi.nabc.go.th/api/production/commods",
+      "documentation_url": "https://agriapi.nabc.go.th/",
+      "discovery_evidence_url": "https://agriapi.nabc.go.th/main.eb4045b9bd8a7631.js",
+      "year_required": false,
+      "pagination": "not_exposed",
+      "price_type": null,
+      "license_status": "pending",
+      "access_note": "This endpoint supplies commodity groups only, not a complete species/variety master."
+    },
+    "moc": {
+      "source_id": "moc",
+      "endpoint": "https://dataapi.moc.go.th/gis-products",
+      "documentation_url": "https://data.moc.go.th/OpenData/GISProducts",
+      "year_required": false,
+      "pagination": "not_exposed",
+      "price_type": null,
+      "license_status": "pending",
+      "access_note": "Official documentation supplies keyword/sell_type filters and array response. No key requirement is stated there. Runtime timeouts must remain failures, not empty inventories."
+    }
+  }
+}

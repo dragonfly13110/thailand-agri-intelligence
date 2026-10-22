@@ -276,12 +276,13 @@ def save_snapshot(payload, source_id, output_dir, partition_key="probe"):
     if not artifact.exists():
         _write_json(artifact, payload)
     record = {
-        "source_id": source_id, "partition_key": partition_key, "status": "success",
+        "source_id": source_id, "partition_key": partition_key,
+        "status": "success" if payload.get("status") in (None, "ok", "success") else "failed",
         "checksum": checksum, "checksum_basis": "canonical_json_utf8",
         "artifact": artifact.name, "retrieved_at": payload.get("retrieved_at"),
         "request_url": payload.get("request_url"),
     }
-    _write_json(directory / "manifest.json", record)
+    _write_json(directory / ("manifest.json" if record["status"] == "success" else "last_failed_attempt.json"), record)
     return record
 
 
