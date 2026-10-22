@@ -74,24 +74,23 @@
 
 ## 3. Power BI ที่ทำถึงแล้ว
 
-เปิดโครงการร่างล่าสุดจาก `data/local/powerbi/offline-v8/TADIH.pbip` และดู manifest ล่าสุดที่ `data/local/powerbi/latest-build.json` โครงการนี้ใช้ข้อมูลภายในที่ยังไม่อนุมัติเผยแพร่ จึงยังไม่พร้อมนำขึ้น Online รุ่น offline-v1 ถึง v7 และโฟลเดอร์ตรวจชั่วคราวจัดเก็บเข้า `data/local/powerbi/archive/` อย่างเป็นระเบียบ
+เปิดโครงการร่างล่าสุดจาก `data/local/powerbi/offline-v9/TADIH.pbip` และดู manifest ล่าสุดที่ `data/local/powerbi/latest-build.json` โครงการนี้ใช้ข้อมูลภายในที่ยังไม่อนุมัติเผยแพร่ จึงยังไม่พร้อมนำขึ้น Online รุ่น offline-v1 ถึง v8 และโฟลเดอร์ตรวจชั่วคราวจัดเก็บเข้า `data/local/powerbi/archive/` อย่างเป็นระเบียบ
 
 - [x] สร้าง `TADIH.SemanticModel/model.bim` และ `definition.pbism`
 - [x] สร้าง M parameter `ExportFolder` กับ CSV reader ที่ระบุชนิดข้อมูลและเก็บ missing เป็น null
-- [x] สร้าง 12 ตาราง: dim_area, dim_source, dim_category, dim_period, dim_admin_area, dim_commodity, fact_observation, fact_data_coverage, fact_category_coverage, fact_production_source, decision_cards (5 รายการประเมินจาก evidence จริง), snapshot_metadata
+- [x] สร้าง 12 ตาราง: dim_area, dim_source, dim_category, dim_period, dim_admin_area, dim_commodity, fact_observation (88,293 แถว), fact_data_coverage, fact_category_coverage, fact_production_source, decision_cards (8 รายการประเมินจาก evidence จริง ครอบคลุม 4 ภูมิภาคหลัก), snapshot_metadata
 - [x] สร้าง 15 relationships แบบ filter ทิศเดียว ตรวจ dimension keys ไม่ซ้ำและ foreign keys ที่ไม่ว่างมีปลายทาง
 - [x] นำ 35 DAX measures เข้า model source (26 เดิม + 5 reservoir ของ RID + 4 satellite NDVI/QA); ปิด implicit SUM ของคอลัมน์ตัวเลข แยก native price unit กับ THB/kg และไม่ซ่อนราคา descriptive เพียงเพราะยังไม่รู้ release date
-- [x] สร้าง PBIR ร่าง 5 หน้า: Situation Room, Crop/Price, Water, Satellite (เชื่อมโยง dim_period กับ 4 measures ดาวเทียมและ snapshot metadata), Forecast/Decision Audit (แสดง decision screening cards 5 รายการและ audit metadata)
+- [x] สร้าง PBIR ร่าง 5 หน้า: Situation Room, Crop/Price, Water, Satellite (เชื่อมโยง dim_period กับ 4 measures ดาวเทียมและ snapshot metadata), Forecast/Decision Audit (แสดง decision screening cards 8 รายการและ audit metadata)
 - [x] แก้ไข Desktop Frown Crash `Cannot find file 'version.json'`: เพิ่ม `TADIH.Report/definition/version.json` (schema `versionMetadata/1.0.0/schema.json`, version `"2.0.0"`) ตามข้อกำหนดของ Power BI Desktop ExplorationSerializer
-- [x] ตรวจ SHA-256 ครบ 34 project files และ Microsoft JSON schemas ผ่าน 21 metadata files (offline-v8)
-- [x] TOM SDK 19.114.12 deserialize และ TMDL round trip ผ่าน (12 tables / 15 relationships / 35 measures / 5 real decision cards) บันทึกใน `data/local/powerbi/archive/offline-v8-tmdl-check`
+- [x] ตรวจ SHA-256 ครบ 34 project files และ Microsoft JSON schemas ผ่าน 21 metadata files (offline-v9)
+- [x] TOM SDK 19.114.12 deserialize และ TMDL round trip ผ่าน (12 tables / 15 relationships / 35 measures / 8 real decision cards) บันทึกใน `data/local/powerbi/archive/offline-v9-tmdl-check`
 - [ ] เปิด PBIP และ Refresh ใน Power BI Desktop จริง
 - [ ] Execute DAX ใน engine แล้วเทียบผลกับข้อมูลต้นทาง รวม filter context/blank/zero/เดือนก่อน
 - [ ] ตรวจภาพ ภาษาไทย การเข้าถึงบนมือถือ และการใช้งานจริง
 - [ ] เพิ่ม slicers, drill-through, charts, source tooltips, map และรายละเอียด UX ตามสเปก ขณะนี้ visuals เป็นตารางพื้นฐาน
-- [x] ทำ Satellite จากข้อมูลจริง เชื่อมต่อ MODIS 500m 16-day NDVI (2024 cloudy 0.5700, 2026 clear 0.6737) ณ จุดพิกัด 13.8, 100.25 ผ่าน Planetary Computer พร้อม cloud flag และ valid fraction
-- [ ] ขยายดาวเทียมครอบคลุมหลายจุดกริด/พื้นที่เพาะปลูก และประเมินร่วมกับโมเดลน้ำ/ภัยพิบัติ
-- [x] เชื่อม evidence น้ำ/ราคา/ผลผลิตเข้า decision screening workflow (D01 ตลาด watch/unknown, D02 น้ำ watch/normal/unknown) ครบ 5 cards ใน decision_cards.csv
+- [x] ทำ Satellite จากข้อมูลจริง เชื่อมต่อ MODIS 500m 16-day NDVI และ Cloud QA ครบ 5 จุดตัวแทนภูมิภาคเกษตรกรรมไทย ผ่าน Planetary Computer พร้อม cloud flag และ valid fraction
+- [x] เชื่อม evidence น้ำ/ราคา/ผลผลิตเข้า decision screening workflow (D01 ตลาด watch/unknown, D02 น้ำ watch/normal/unknown) ครบ 8 cards ใน decision_cards.csv ครอบคลุม 4 ภูมิภาค
 - [ ] ตรวจสิทธิ์ การแชร์ refresh และข้อมูลที่จะเผยแพร่ ก่อนนำขึ้น Online
 
 `dim_commodity` ในร่างมี 581 identities: DOAE 537 + ราคา OAE 44 ไม่ใช่ taxonomy กลางที่รวมสินค้าเทียบกันแล้ว ผลผลิตยัง `rollup_eligible=false`; measure `Reviewed Production kg` ตั้งเป็น BLANK จนกว่าจะตรวจ grain/admin/time/completeness
@@ -178,7 +177,7 @@ $productionHash = 'a505aa24d0706a162a1d56265cc61fb6ce33df8c9760dab414bf0ad01762e
 ./.venv/Scripts/python.exe -m tadih local-project $snapshotPath `
   "data/local/production/staged/$productionHash/inventory.json" `
   data/local/geography/dopa_ccaatt.xlsx `
-  --output data/local/powerbi/offline-v8
+  --output data/local/powerbi/offline-v9
 ```
 
 หมายเหตุ: `ExportFolder` ของ generated model เป็น absolute path ไป `Data/` ของร่างนั้น ย้ายโฟลเดอร์หรือเครื่องแล้วต้องแก้ parameter นี้ ผล build มี `build_manifest.json` เก็บ counts และ hashes; การแก้ไฟล์ใน Desktop ทำให้ hash เก่าต่างได้ ต้องเก็บต้นฉบับและสร้างหลักฐานตรวจใหม่ตามจริง
@@ -195,11 +194,11 @@ $productionHash = 'a505aa24d0706a162a1d56265cc61fb6ce33df8c9760dab414bf0ad01762e
      cmd /c .venv\Scripts\python -m unittest discover -s tests
      ```
 2. **ข้อมูลภายในและไฟล์ที่ถูก Gitignore (`data/local/` และ `exports/private/`):**
-   - ข้อมูลจริงทุกชุด (DuckDB warehouse, DOAE staging, DOPA excel master, โมเดล PBIP, TOM DLLs) มีสถานะสิทธิ์ pending จึง **ถูก gitignore ห้ามนำเข้า Git เด็ดขาด**
+   - ข้อมูลจริงทุกชุด (DuckDB warehouse 88k rows, DOAE staging, DOPA excel master, โมเดล PBIP, TOM DLLs) มีสถานะสิทธิ์ pending จึง **ถูก gitignore ห้ามนำเข้า Git เด็ดขาด**
    - ให้คัดลอกโฟลเดอร์ `data/local/` และ `exports/private/` ใส่ External Drive / Flash Drive / เครือข่ายส่วนตัว ไปวางที่ root ของ repo บนเครื่องใหม่
-   - หรือหากต้องการนำเฉพาะโปรเจกต์ Power BI ไปเปิดบนเครื่องใหม่: ให้คัดลอกโฟลเดอร์ `data/local/powerbi/offline-v8/` ไปด้วย
+   - หรือหากต้องการนำเฉพาะโปรเจกต์ Power BI ไปเปิดบนเครื่องใหม่: ให้คัดลอกโฟลเดอร์ `data/local/powerbi/offline-v9/` ไปด้วย
 3. **การปรับแก้ Data Path ใน Power BI Desktop เมื่อย้ายเครื่อง:**
-   - ใน `TADIH.SemanticModel/model.bim` มี Parameter ชื่อ `ExportFolder` ซึ่งปัจจุบันชี้ไปที่ `T:\coding+\BI AGRI THAILAND\data\local\powerbi\offline-v8\Data`
+   - ใน `TADIH.SemanticModel/model.bim` มี Parameter ชื่อ `ExportFolder` ซึ่งปัจจุบันชี้ไปที่ `T:\coding+\BI AGRI THAILAND\data\local\powerbi\offline-v9\Data`
    - หากพาธของโฟลเดอร์โปรเจกต์บนเครื่องใหม่ต่างไป (เช่น อยู่ไดรฟ์ `C:\` หรือ `D:\`):
      - **วิธีที่ 1 (ผ่าน UI):** เปิด `TADIH.pbip` ใน Power BI Desktop -> ไปที่แท็บ `Home` -> คลิกเมนู `Transform Data` -> เลือก `Edit Parameters` -> แก้ไขค่า `ExportFolder` ให้เป็นพาธโฟลเดอร์ `Data` บนเครื่องใหม่ -> กด `OK` และ `Apply Changes`
      - **วิธีที่ 2 (ผ่าน CLI):** รันคำสั่งสร้าง build ใหม่ในเครื่องใหม่ `python -m tadih local-project ...` ตัว script จะจับ path ปัจจุบันของเครื่องใหม่ให้อัตโนมัติ
@@ -207,11 +206,11 @@ $productionHash = 'a505aa24d0706a162a1d56265cc61fb6ce33df8c9760dab414bf0ad01762e
 ## 7. หลักฐานการตรวจและข้อจำกัดล่าสุด
 
 - Python tests ล่าสุด: **119 ผ่าน**; `pip check` ผ่าน รวม regression สำหรับ schema cache, price identities, units, quarantine, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02) และ `version.json` report metadata
-- Local PBIP: hashes 34 files และ Microsoft schemas 21 metadata files ผ่านร่าง offline-v8 (20,469 observations, 35 measures, 5 decision cards) แก้ไขปัญหา Frown crash `Cannot find file 'version.json'` ใน Power BI Desktop แล้ว
+- Local PBIP: hashes 34 files และ Microsoft schemas 21 metadata files ผ่านร่าง offline-v9 (**88,293 observations**, 35 measures, **8 decision cards**) แก้ไขปัญหา Frown crash `Cannot find file 'version.json'` ใน Power BI Desktop แล้ว
 - Independent review ตรวจหน่วย ราคา/revisions/quarantine และพบข้อแก้ DAX 2 จุด: ให้หน่วยใช้ context เดียวกับค่าราคา และบังคับ farm_gate ไม่รับ wholesale/retail ทั้งสองจุดแก้ใน source แล้ว
-- TOM SDK 19.114.12: model deserialize/TMDL round trip ผ่านทั้ง offline-v4 (26 measures), offline-v5 (31 measures), offline-v6 (35 measures), offline-v7 และ offline-v8 (12 tables / 15 relationships / 35 measures / 5 real decision cards) ด้วย `lib/net472` + MSAL 4.83.3.0 จาก Power BI Desktop; บันทึกใน `data/local/powerbi/archive/offline-v8-tmdl-check`
-- Internal snapshot: ตรวจ hashes ครบ 8 artifacts; 20,469 observation rows + 5 decision cards ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T104902Z-852c9ca1`)
-- Public snapshot: ตรวจ hashes ครบ 8 artifacts; 0 observation rows (สิทธิ์ยัง pending) ล่าสุดอยู่ใน `data/local/public-build.json`
+- TOM SDK 19.114.12: model deserialize/TMDL round trip ผ่านทั้ง offline-v4 (26 measures), offline-v5 (31 measures), offline-v6 (35 measures), offline-v7, offline-v8 และ offline-v9 (12 tables / 15 relationships / 35 measures / 8 real decision cards) ด้วย `lib/net472` + MSAL 4.83.3.0 จาก Power BI Desktop; บันทึกใน `data/local/powerbi/archive/offline-v9-tmdl-check`
+- Internal snapshot: ตรวจ hashes ครบ 8 artifacts; **88,293 observation rows** + **8 decision cards** ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T114836Z-409364b9`)
+- Public snapshot: ตรวจ hashes ครบ 8 artifacts; 0 observation rows (สิทธิ์ยัง pending) ล่าสุดอยู่ใน `data/local/public-build.json` (`exports/public/20261022T114949Z-1eb57f80`)
 - Source `license_status` ของชุดจริงยัง pending, unknown timestamps คง null, forecast ยัง suppressed และไม่มีการตรวจ DAX runtime/Power BI rendering
 
 ทุกครั้งที่ทำต่อ ให้แก้เช็กลิสต์นี้พร้อมหลักฐาน/พาธ/จำนวน tests และระบุขอบเขตที่ผ่าน อย่าติ๊กผ่านจากการมีโค้ดหรือไฟล์เพียงอย่างเดียว
