@@ -21,16 +21,16 @@
 | น้ำ RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง × 14 วันต่อเนื่อง (9–22 ต.ค. 2569) รวม 25,816 observations | ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ; percent calibration mismatch = 0; spatial_support=reservoir; สิทธิ์ pending |
 | ดาวเทียม MODIS NDVI/QA | 28 observations (5 จุดภูมิภาคเกษตรไทย 2024-09-29 และ 2026-09-30) | ดึงและ normalize ผ่าน Planetary Computer ณ 5 จุดพิกัดเดียวกับ ERA5; scale 0.0001; cloud flags; spatial_support=grid_point; สิทธิ์ pending |
 | Data quality + revision | unittest + JSON schemas | รันได้; ข้อมูลขาดเป็น null; รองรับ spatial_support=reservoir และ grid_point |
-| Coverage 77 × 20 | export CSV | พร้อมสถานะ UNVERIFIED (1,232 provider×province entries); ไม่มีการแต่งข้อมูล |
+| Coverage 77 × 20 | export CSV พร้อมสัญญา coverage.schema.json | รองรับ USABLE_QUALITY_FLAGS, missing reason ซื่อสัตย์ราย resource, DOAE 77 จังหวัด AVAILABLE ในรอบปี 2023-12 |
 | Decision workflows น้ำ/ตลาด | CLI + 8 real evidence cards + tests | ผ่านการทดสอบ ครอบคลุม 4 ภูมิภาคหลัก (D01 watch/unknown, D02 watch/normal/unknown รวม 8 cards) |
 | Forecast/backtest | release-aware daily baselines/tests | prototype; ยังไม่มี forecast ปฏิบัติงาน |
-| Power BI | local PBIP v8/v9: 12 ตาราง/15 relationships/35 measures/ร่าง 5 หน้า | schema 21 files / hashes 34 files / TOM 19.114.12 ผ่าน 100%; แก้ crash Desktop `version.json`; ร่างเก่าจัดเก็บใน archive/ |
+| Power BI | local PBIP offline-v10: 12 ตาราง/15 relationships/35 measures/109,144 fact rows | schema 21 files / hashes 34 files / TOM 19.114.12 ผ่าน 100%; ร่างเก่าจัดเก็บใน archive/ |
 | ทะเบียนสิทธิ์ราย resource | config/resource_licenses.json + docs/source-license-register.md | ตรวจ 8 ชุดพร้อมหลักฐาน ทุกชุดยัง pending (รวม MODIS ผ่าน Planetary Computer) |
 | GitHub Actions | workflows สองชุด | CI และ catalog probe ผ่านจริง; schedule รายสัปดาห์ |
 
 ## ผลตรวจรับฐานระบบ
 
-- Tests 120 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety), PBIR `version.json` metadata และ DOAE provincial gold aggregation (weighted yield, unmatched isolation)
+- Tests 121 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety), PBIR `version.json` metadata, DOAE provincial gold aggregation (weighted yield, unmatched isolation) และ B4 coverage inventory verification
 - Warehouse ใน `data/local/tadih.duckdb` มีข้อมูลล่าสุด **109,144 แถว** (revision 109,148 แถว ขนาดเพียง 44.76 MB): ราคาประเทศ 7,658 ค่า, อากาศ 5 ภูมิภาค 54,795 ค่า, อ่างเก็บน้ำ RID 461 แห่ง 14 วัน 25,816 ค่า, ดาวเทียม MODIS 5 ภูมิภาค 24 ค่า และผลผลิตและพื้นที่ระดับจังหวัด DOAE 20,851 ค่า (77 จังหวัด)
 - Decision Workflows D01 (ตลาด/ผลผลิต) และ D02 (น้ำ/ภัยพิบัติ) ขยายทดสอบกับ evidence จริงครบ 8 cards ครอบคลุม 4 ภูมิภาค:
   - D02 Watch (กทม./ปริมณฑล): ฝน percentile 0.10 + ฟ้าเปิด NDVI 0.6737 + ระดับน้ำ 2.45m -> `watch`

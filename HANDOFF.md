@@ -74,17 +74,17 @@
 
 ## 3. Power BI ที่ทำถึงแล้ว
 
-เปิดโครงการร่างล่าสุดจาก `data/local/powerbi/offline-v9/TADIH.pbip` และดู manifest ล่าสุดที่ `data/local/powerbi/latest-build.json` โครงการนี้ใช้ข้อมูลภายในที่ยังไม่อนุมัติเผยแพร่ จึงยังไม่พร้อมนำขึ้น Online รุ่น offline-v1 ถึง v8 และโฟลเดอร์ตรวจชั่วคราวจัดเก็บเข้า `data/local/powerbi/archive/` อย่างเป็นระเบียบ
+เปิดโครงการร่างล่าสุดจาก `data/local/powerbi/offline-v10/TADIH.pbip` และดู manifest ล่าสุดที่ `data/local/powerbi/latest-build.json` โครงการนี้ใช้ข้อมูลภายในที่ยังไม่อนุมัติเผยแพร่ จึงยังไม่พร้อมนำขึ้น Online รุ่น offline-v1 ถึง v9 และโฟลเดอร์ตรวจชั่วคราวจัดเก็บเข้า `data/local/powerbi/archive/` อย่างเป็นระเบียบ
 
 - [x] สร้าง `TADIH.SemanticModel/model.bim` และ `definition.pbism`
 - [x] สร้าง M parameter `ExportFolder` กับ CSV reader ที่ระบุชนิดข้อมูลและเก็บ missing เป็น null
-- [x] สร้าง 12 ตาราง: dim_area, dim_source, dim_category, dim_period, dim_admin_area, dim_commodity, fact_observation (88,293 แถว), fact_data_coverage, fact_category_coverage, fact_production_source, decision_cards (8 รายการประเมินจาก evidence จริง ครอบคลุม 4 ภูมิภาคหลัก), snapshot_metadata
+- [x] สร้าง 12 ตาราง: dim_area, dim_source, dim_category, dim_period, dim_admin_area, dim_commodity, fact_observation (109,144 แถว), fact_data_coverage, fact_category_coverage, fact_production_source, decision_cards (8 รายการประเมินจาก evidence จริง ครอบคลุม 4 ภูมิภาคหลัก), snapshot_metadata
 - [x] สร้าง 15 relationships แบบ filter ทิศเดียว ตรวจ dimension keys ไม่ซ้ำและ foreign keys ที่ไม่ว่างมีปลายทาง
 - [x] นำ 35 DAX measures เข้า model source (26 เดิม + 5 reservoir ของ RID + 4 satellite NDVI/QA); ปิด implicit SUM ของคอลัมน์ตัวเลข แยก native price unit กับ THB/kg และไม่ซ่อนราคา descriptive เพียงเพราะยังไม่รู้ release date
 - [x] สร้าง PBIR ร่าง 5 หน้า: Situation Room, Crop/Price, Water, Satellite (เชื่อมโยง dim_period กับ 4 measures ดาวเทียมและ snapshot metadata), Forecast/Decision Audit (แสดง decision screening cards 8 รายการและ audit metadata)
 - [x] แก้ไข Desktop Frown Crash `Cannot find file 'version.json'`: เพิ่ม `TADIH.Report/definition/version.json` (schema `versionMetadata/1.0.0/schema.json`, version `"2.0.0"`) ตามข้อกำหนดของ Power BI Desktop ExplorationSerializer
-- [x] ตรวจ SHA-256 ครบ 34 project files และ Microsoft JSON schemas ผ่าน 21 metadata files (offline-v9)
-- [x] TOM SDK 19.114.12 deserialize และ TMDL round trip ผ่าน (12 tables / 15 relationships / 35 measures / 8 real decision cards) บันทึกใน `data/local/powerbi/archive/offline-v9-tmdl-check`
+- [x] ตรวจ SHA-256 ครบ 34 project files และ Microsoft JSON schemas ผ่าน 21 metadata files (offline-v10)
+- [x] TOM SDK 19.114.12 deserialize และ TMDL round trip ผ่าน (12 tables / 15 relationships / 35 measures / 8 real decision cards / 109,144 fact rows) บันทึกใน `data/local/powerbi/archive/offline-v10-tmdl-check`
 - [ ] เปิด PBIP และ Refresh ใน Power BI Desktop จริง
 - [ ] Execute DAX ใน engine แล้วเทียบผลกับข้อมูลต้นทาง รวม filter context/blank/zero/เดือนก่อน
 - [ ] ตรวจภาพ ภาษาไทย การเข้าถึงบนมือถือ และการใช้งานจริง
@@ -118,7 +118,7 @@
 - [ ] **B1 สิทธิ์และเวลาเผยแพร่:** ปิดเงื่อนไขที่ยังค้างในทะเบียน 7 resources (DOAE, OAE ข้าว, DOPA, DDPM, Open-Meteo archive/forecast, RID อ่างเก็บน้ำขนาดกลาง) และเพิ่มสิทธิ์รายสินค้า/endpoint ที่ยังไม่ได้ตรวจ พร้อม historical earliest/latest; อย่าแก้ `pending` เป็น `approved_public` โดยไม่มีหลักฐาน
 - [ ] **B2 สินค้าและราคา:** monthly 44 histories normalize แล้ว; ยังต้องตรวจรายชื่อสินค้าในอดีตที่ไม่อยู่ใน inventory ปี 2569, daily/weekly/production, taxonomy ข้าม provider, release lineage และ conflict 1 เดือน; MOC เคย timeout ยังไม่ถือว่าเชื่อมสำเร็จ
 - [x] **B3 พื้นที่และผลผลิต:** ตรวจ 2 records บางบอนที่ยัง unmatched (`บางบอน*` แขวงที่ถูกยกเลิกใน DOPA 2023) เก็บแยกไว้ใน audit ไม่เดารหัสตำบล; ตรวจสอบ 50,103 source rows ไม่มี subtotal แฝงและไม่มี duplicate identity; สร้าง provincial gold aggregates 6,696 กลุ่ม (50,101 rows matched snapshot); คำนวณ derived weighted yield (sum(production)/sum(harvested)) ห้าม average; ingest 20,851 observations เข้า DuckDB warehouse สำเร็จ ผ่าน 120 unit tests 100%
-- [ ] **B4 Coverage จริง:** เปลี่ยนจาก provider readiness เป็น resource×geo×period×metric inventory พร้อมหลักฐาน expected/observed/missing reason; `UNVERIFIED` ไม่เท่ากับ `NOT_PUBLISHED`
+- [x] **B4 Coverage จริง:** ปรับปรุง Coverage matrix และ Category coverage โดยใช้ USABLE_QUALITY_FLAGS ครอบคลุม gold_provincial_aggregate, partial_unmatched_subdistrict, percent_calibration_consistent, release_unknown; กำหนด missing reason และ data grain ซื่อสัตย์ราย resource (แยก grid_point, reservoir, national ชัดเจน); เมื่อเลือก period 2023-12 แสดง DOAE ระดับจังหวัดเป็น AVAILABLE ครบ 77 จังหวัด; ผ่านสัญญา coverage.schema.json และ unit tests 121 ผ่าน 100%
 - [x] **B5 อากาศระดับประเทศ:** ขยายเก็บอากาศ 5 จุดตัวแทนเกษตรกรรมไทย (นครปฐม กลาง, เชียงใหม่ เหนือ, ขอนแก่น อีสานบน, อุบลราชธานี อีสานล่าง, สุราษฎร์ธานี ใต้) ย้อนหลัง 10 ปี (2016–2025) รวม 54,795 observations; คำนวณ rainfall percentiles ย้อนหลัง 10 ปีสำหรับเกณฑ์ตัดสินใจฝนแล้งได้แล้ว; ตรวจสอบพิกัดตกในขอบเขตจังหวัด DDPM ครบถ้วน
 - [x] **B6 น้ำและดาวเทียม:** ขยาย RID อ่างเก็บน้ำขนาดกลาง 461 แห่งย้อนหลัง 14 วันต่อเนื่อง (25,816 observations, percent calibration mismatch = 0) และขยายดาวเทียม MODIS 500m 16-day NDVI/QA ครบ 5 จุดตัวแทนเกษตรกรรมไทย (28 observations) พร้อมระบบตรวจจับเมฆบังอัตโนมัติ
 - [ ] **B7 หมวดอื่นตามสเปก:** พัฒนาข้อมูลดิน ภัยพิบัติ ปศุสัตว์ ประมง ต้นทุน/นโยบายตามลำดับ P1/P2 พร้อมนิยามพื้นที่และสิทธิ์ของแต่ละ source; registry อย่างเดียวไม่ใช่การเชื่อมสำเร็จ

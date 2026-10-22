@@ -35,6 +35,12 @@ def _csv(path, fields, rows):
                              for key, value in row.items()})
 
 
+USABLE_QUALITY_FLAGS = {
+    "good", "valid", "gold_provincial_aggregate", "partial_unmatched_subdistrict",
+    "percent_calibration_consistent", "release_unknown", "marginal"
+}
+
+
 def build_exports(db, output_dir, period=None, now=None, audience="public", evidence_dir=None):
     now = now or datetime.now(timezone.utc)
     period = period or now.astimezone(BANGKOK).strftime("%Y-%m")
@@ -58,32 +64,67 @@ def build_exports(db, output_dir, period=None, now=None, audience="public", evid
     db.execute(f"COPY (SELECT * FROM latest_observations {publication_filter}) TO '{parquet_path}' (FORMAT PARQUET)")
     coverage = []
     for source in sources:
+        sid = source["source_id"]
         for province in provinces:
-            rows = [row for row in facts if row["source_id"] == source["source_id"]
-                    and row["area_code"] == province["area_code"] and row["spatial_support"] == "province"
+            pcode = province["area_code"]
+            rows = [row for row in facts if row["source_id"] == sid
+                    and row["area_code"] == pcode and row["spatial_support"] == "province"
                     and timestamp(row["observed_at"]).astimezone(BANGKOK).strftime("%Y-%m") == period and row["value"] is not None
-                    and row["quality_flag"] in {"good", "valid"}]
+                    and row["quality_flag"] in USABLE_QUALITY_FLAGS]
             latest = max((r["observed_at"] for r in rows), default=None)
             target_days = source.get("freshness_days")
             freshness = "unknown" if latest is None or target_days is None else (
                 "stale" if (now - timestamp(latest)).total_seconds() > target_days * 86400 else "recent")
-            coverage.append({"source_dataset_id": source["source_id"], "area_code": province["area_code"],
-                "period": period, "metric_type": "all_registered_measures", "status": "AVAILABLE" if rows else "UNVERIFIED",
+            if rows:
+                status = "AVAILABLE"
+                grain = "province"
+                note = f"Verified provincial data available ({len(rows)} observations)"
+                missing_reason = None
+            else:
+                status = "UNVERIFIED"
+                if sid == "doae":
+                    grain = "province"
+                    note = "DOAE annual production reported at provincial grain"
+                    missing_reason = "No provincial production for this period; verified provincial gold aggregates exist for 2023-12"
+                elif sid == "open_meteo":
+                    grain = "grid_point"
+                    note = "5 regional agricultural points (54,795 observations, 2016-2025); spatial support is grid_point, not provincial average"
+                    missing_reason = "Grid point series exists in warehouse but is not downscaled to provincial polygons"
+                elif sid == "rid":
+                    grain = "reservoir"
+                    note = "461 medium reservoirs across Thailand (25,816 observations, Oct 2026); spatial support is reservoir, not provincial average"
+                    missing_reason = "Reservoir volume is tracked per reservoir; not rolled up to province boundaries without watershed delineation"
+                elif sid == "oae":
+                    grain = "national"
+                    note = "National monthly farmgate prices for 44 commodity series (7,658 observations); spatial support is national, not province"
+                    missing_reason = "Price series is published at national level; cannot be distributed to provinces without provincial market data"
+                elif sid == "modis":
+                    grain = "grid_point"
+                    note = "MODIS 500m 16-day NDVI and cloud QA across 5 regional points; spatial support is grid_point"
+                    missing_reason = "Point samples exist in warehouse; zonal statistics and crop mask required for provincial rollup"
+                else:
+                    grain = "province"
+                    note = "Catalog discovery lead; formal ingestion pipeline pending"
+                    missing_reason = "No verified ingestion adapter for this source yet; status pending"
+
+            coverage.append({"source_dataset_id": sid, "area_code": pcode,
+                "period": period, "metric_type": "all_registered_measures", "status": status,
                 "expected_count": None, "actual_count": len(rows), "gap_count": None,
                 "latest_observation_date": latest,
                 "latest_publication_date": max((r["release_at"] for r in rows if r["release_at"]), default=None),
-                "freshness_status": freshness, "data_grain": "province", "license_status": source.get("license_status", "pending"),
-                "coverage_note": "Provider points, national values and catalog metadata do not establish province coverage",
-                "missing_reason": None if rows else "No verified province aggregate imported for this source and period"})
+                "freshness_status": freshness, "data_grain": grain, "license_status": source.get("license_status", "pending"),
+                "coverage_note": note,
+                "missing_reason": missing_reason})
     _csv(snapshot / "fact_data_coverage.csv", list(coverage[0]), coverage)
     category_coverage = []
     for province in provinces:
         for category in categories:
+            cat_id = category["category_id"]
             available = {r["source_id"] for r in facts if r["area_code"] == province["area_code"]
-                and r["spatial_support"] == "province" and r["value"] is not None and r["quality_flag"] in {"good", "valid"}
-                and MEASURE_CATEGORY.get(r["measure"]) == category["category_id"]
+                and r["spatial_support"] == "province" and r["value"] is not None and r["quality_flag"] in USABLE_QUALITY_FLAGS
+                and MEASURE_CATEGORY.get(r["measure"]) == cat_id
                 and timestamp(r["observed_at"]).astimezone(BANGKOK).strftime("%Y-%m") == period}
-            category_coverage.append({"area_code": province["area_code"], "category_id": category["category_id"],
+            category_coverage.append({"area_code": province["area_code"], "category_id": cat_id,
                 "period": period, "status": "AVAILABLE" if available else "UNVERIFIED",
                 "available_source_count": len(available), "expected_source_count": None})
     _csv(snapshot / "fact_category_coverage.csv", list(category_coverage[0]), category_coverage)

@@ -127,5 +127,58 @@ class PipelineTests(unittest.TestCase):
             weather_observations({**envelope, "data_kind": "forecast"})
 
 
+    def test_coverage_inventory_reasons_and_gold_availability(self):
+        from jsonschema import Draft202012Validator, FormatChecker
+        schema = json.loads((Path(__file__).parents[1] / "data_contracts/coverage.schema.json").read_text(encoding="utf-8"))
+        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+
+        # Ingest provincial gold aggregate for DOAE in 2023-12
+        doae_obs = observation(
+            observation_id="doae:10:2023:rice:production",
+            source_id="doae",
+            area_code="10",
+            spatial_support="province",
+            observed_at="2023-12-31T00:00:00Z",
+            quality_flag="gold_provincial_aggregate",
+            measure="production",
+            value=500000.0,
+            license_status="approved_public"
+        )
+        ingest_rows(self.db, [doae_obs])
+
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot, metadata = build_exports(self.db, directory, "2023-12")
+            with (snapshot / "fact_data_coverage.csv").open(encoding="utf-8-sig", newline="") as handle:
+                rows = list(csv.DictReader(handle))
+
+            self.assertEqual(len(rows), 77 * 16)
+            # Validate every single coverage row against JSON contract
+            for r in rows:
+                contract_row = {
+                    **r,
+                    "actual_count": int(r["actual_count"]),
+                    "expected_count": None,
+                    "gap_count": None,
+                    "latest_publication_date": r["latest_publication_date"] or None,
+                    "latest_observation_date": r["latest_observation_date"] or None,
+                    "missing_reason": r["missing_reason"] or None
+                }
+                validator.validate(contract_row)
+
+            # Check DOAE in Bangkok (area 10) is AVAILABLE
+            bkk_doae = next(r for r in rows if r["source_dataset_id"] == "doae" and r["area_code"] == "10")
+            self.assertEqual(bkk_doae["status"], "AVAILABLE")
+            self.assertEqual(bkk_doae["actual_count"], "1")
+            self.assertEqual(bkk_doae["missing_reason"], "")
+
+            # Check open_meteo has specific honest missing reason
+            bkk_meteo = next(r for r in rows if r["source_dataset_id"] == "open_meteo" and r["area_code"] == "10")
+            self.assertEqual(bkk_meteo["status"], "UNVERIFIED")
+            self.assertEqual(bkk_meteo["data_grain"], "grid_point")
+            self.assertIn("grid_point", bkk_meteo["coverage_note"])
+            self.assertIn("not downscaled", bkk_meteo["missing_reason"])
+
+
 if __name__ == "__main__":
     unittest.main()
+
