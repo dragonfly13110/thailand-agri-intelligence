@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "observation",
+  "type": "object",
+  "properties": {
+    "observation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "area_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        null
+      ]
+    },
+    "spatial_support": {
+      "enum": [
+        "province",
+        "station",
+        "grid_point",
+        "national"
+      ]
+    },
+    "location_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commodity_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "release_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "retrieved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "measure": {
+      "type": "string",
+      "minLength": 1
+    },
+    "value": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_kind": {
+      "enum": [
+        "observed",
+        "official",
+        "estimated",
+        "unknown"
+      ]
+    },
+    "revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quality_flag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/@]+(?:/|$)"
+    },
+    "license_status": {
+      "enum": [
+        "approved_public",
+        "restricted",
+        "pending"
+      ]
+    },
+    "market_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "price_type": {
+      "enum": [
+        "farm_gate",
+        "wholesale",
+        "retail",
+        null
+      ]
+    },
+    "grade": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "season": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    }
+  },
+  "required": [
+    "observation_id",
+    "source_id",
+    "area_code",
+    "spatial_support",
+    "location_id",
+    "commodity_id",
+    "observed_at",
+    "release_at",
+    "retrieved_at",
+    "measure",
+    "value",
+    "unit",
+    "data_kind",
+    "revision_id",
+    "quality_flag",
+    "source_url",
+    "license_status"
+  ],
+  "additionalProperties": false,
+  "description": "Core validated observations only. Forecasts and scenarios use separate contracts. Runtime quality.py additionally enforces finite values, known source IDs, code grain, chronology, price keys and no credentials in provenance URLs."
+}

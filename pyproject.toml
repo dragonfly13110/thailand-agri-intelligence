@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tadih"
+version = "0.1.0"
+description = "Thailand-first agricultural decision intelligence data pipeline"
+requires-python = ">=3.11"
+dependencies = ["duckdb>=1.4,<2", "jsonschema>=4.23,<5"]
+
+[project.scripts]
+tadih = "tadih.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

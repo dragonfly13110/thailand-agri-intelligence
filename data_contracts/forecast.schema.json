@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "forecast",
+  "type": "object",
+  "properties": {
+    "forecast_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "area_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        null
+      ]
+    },
+    "location_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commodity_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "target_variable": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issue_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "horizon_days": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "point_estimate": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "p10": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "p50": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "p90": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_kind": {
+      "const": "forecast"
+    },
+    "backtest_score": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/@]+(?:/|$)"
+    },
+    "license_status": {
+      "enum": [
+        "approved_public",
+        "restricted",
+        "pending"
+      ]
+    }
+  },
+  "required": [
+    "forecast_id",
+    "area_code",
+    "location_id",
+    "commodity_id",
+    "target_variable",
+    "issue_at",
+    "valid_at",
+    "horizon_days",
+    "model_id",
+    "model_version",
+    "source_id",
+    "point_estimate",
+    "p10",
+    "p50",
+    "p90",
+    "unit",
+    "data_kind",
+    "backtest_score",
+    "source_url",
+    "license_status"
+  ],
+  "additionalProperties": false,
+  "description": "Provider/model forecasts stay separate from observations. Local model publication additionally requires scorecard gate and leakage-safe release cutoff."
+}

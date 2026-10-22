@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "risk_signal",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "decision_id": {
+      "enum": ["D01", "D02"]
+    },
+    "headline": {
+      "type": "string"
+    },
+    "signal": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "unknown",
+        "normal",
+        "watch",
+        "review"
+      ]
+    },
+    "classification": {
+      "enum": [
+        "Unknown",
+        "Derived Indicator",
+        "Watch Signal"
+      ]
+    },
+    "confidence": {
+      "const": "provisional"
+    },
+    "area_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commodity_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evaluated_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "rule_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "object"
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "indicators": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "coverage": {
+      "type": [
+        "object",
+        "number",
+        "null"
+      ]
+    },
+    "freshness": {
+      "type": "object"
+    },
+    "source_links": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "recommended_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "automatic_action": {
+      "const": false
+    },
+    "limitations": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference": {
+      "type": "object"
+    }
+  },
+  "description": "Provisional screening card, not a formal disaster declaration or an automatic instruction. Unknown is retained when compatible evidence is missing.",
+  "required": [
+    "decision_id",
+    "status",
+    "classification",
+    "confidence",
+    "area_code",
+    "commodity_id",
+    "evaluated_at",
+    "rule_version",
+    "evidence",
+    "reasons",
+    "indicators",
+    "coverage",
+    "freshness",
+    "source_links",
+    "recommended_action",
+    "owner",
+    "automatic_action",
+    "limitations"
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {"category_id":"AG01","name_th":"ทะเบียนเกษตรกรและโครงสร้าง"},
+  {"category_id":"AG02","name_th":"พืชและผลผลิต"},
+  {"category_id":"AG03","name_th":"ราคาพืช"},
+  {"category_id":"AG04","name_th":"ปศุสัตว์"},
+  {"category_id":"AG05","name_th":"ประมง"},
+  {"category_id":"AG06","name_th":"ปัจจัยการผลิต"},
+  {"category_id":"AG07","name_th":"ภูมิอากาศ"},
+  {"category_id":"AG08","name_th":"น้ำ"},
+  {"category_id":"AG09","name_th":"ภัยพิบัติ"},
+  {"category_id":"AG10","name_th":"ภาพดาวเทียม"},
+  {"category_id":"AG11","name_th":"ดัชนีดาวเทียม"},
+  {"category_id":"AG12","name_th":"ดินและการใช้ที่ดิน"},
+  {"category_id":"AG13","name_th":"ศัตรูพืชและโรค"},
+  {"category_id":"AG14","name_th":"การค้าของไทย"},
+  {"category_id":"AG15","name_th":"เศรษฐกิจ"},
+  {"category_id":"AG16","name_th":"โลจิสติกส์และตลาด"},
+  {"category_id":"AG17","name_th":"ทรัพยากรและสิ่งแวดล้อม"},
+  {"category_id":"AG18","name_th":"นโยบายและงบประมาณ"},
+  {"category_id":"AG19","name_th":"วิจัยและคำแนะนำ"},
+  {"category_id":"AG20","name_th":"การวิเคราะห์"}
+]

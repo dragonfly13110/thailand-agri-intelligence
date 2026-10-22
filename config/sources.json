@@ -1,0 +1,534 @@
+{
+  "version": "1.0.0",
+  "scope": "Thailand First",
+  "updated_at": "2026-10-22",
+  "metadata_note": "Registry documents candidate access paths; runtime success and redistribution rights must be verified separately per resource.",
+  "sources": [
+    {
+      "id": "doae",
+      "source_id": "doae",
+      "owner": "กรมส่งเสริมการเกษตร",
+      "name": "DOAE Open Data",
+      "category": "crop",
+      "domains": [
+        "AG01",
+        "AG02"
+      ],
+      "priority": "P0",
+      "url": "https://ckan.doae.go.th",
+      "base_url": "https://ckan.doae.go.th",
+      "type": "ckan",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "province",
+        "district",
+        "subdistrict"
+      ],
+      "license_status": "pending",
+      "auth_status": "resource_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/api/3/action/package_search",
+      "topics": [
+        "crop",
+        "production",
+        "registration"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "oae",
+      "source_id": "oae",
+      "owner": "สำนักงานเศรษฐกิจการเกษตร",
+      "name": "OAE Catalog",
+      "category": "production",
+      "domains": [
+        "AG02",
+        "AG03",
+        "AG06"
+      ],
+      "priority": "P0",
+      "url": "https://catalog.oae.go.th",
+      "base_url": "https://catalog.oae.go.th",
+      "type": "ckan",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "national",
+        "province"
+      ],
+      "license_status": "pending",
+      "auth_status": "resource_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/api/3/action/package_search",
+      "topics": [
+        "production",
+        "price",
+        "cost"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "moc",
+      "source_id": "moc",
+      "owner": "กระทรวงพาณิชย์ / กรมการค้าภายใน",
+      "name": "MOC Agricultural Prices",
+      "category": "price",
+      "domains": [
+        "AG03",
+        "AG16"
+      ],
+      "priority": "P0",
+      "url": "https://dataapi.moc.go.th",
+      "base_url": "https://dataapi.moc.go.th",
+      "type": "rest_json",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "market"
+      ],
+      "license_status": "pending",
+      "auth_status": "needs_preflight_check",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Keep wholesale / retail / farm-gate, market, grade, date and unit separate. MOC surveyed min/max are not automatically farm-gate prices.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/gis-product-price",
+      "discovery_endpoint": "/gis-products",
+      "topics": [
+        "price",
+        "market"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "tmd",
+      "source_id": "tmd",
+      "owner": "กรมอุตุนิยมวิทยา",
+      "name": "TMD Data Services",
+      "category": "weather",
+      "domains": [
+        "AG07"
+      ],
+      "priority": "P0",
+      "url": "https://www.tmd.go.th/service/tmdData",
+      "base_url": "https://www.tmd.go.th/service/tmdData",
+      "type": "service_catalog",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "station",
+        "grid"
+      ],
+      "license_status": "pending",
+      "auth_status": "service_specific_registration",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "topics": [
+        "weather",
+        "forecast"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "open_meteo",
+      "source_id": "open_meteo",
+      "owner": "Open-Meteo",
+      "name": "Open-Meteo Thailand Weather",
+      "category": "weather",
+      "domains": [
+        "AG07"
+      ],
+      "priority": "P0",
+      "url": "https://api.open-meteo.com",
+      "base_url": "https://api.open-meteo.com",
+      "type": "rest_json",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "grid_point"
+      ],
+      "license_status": "pending",
+      "auth_status": "none_for_noncommercial_free_api",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Model grid point weather or provider forecast at approved Thai sample coordinates. Not an official provincial aggregate.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/v1/forecast",
+      "archive_base_url": "https://archive-api.open-meteo.com",
+      "archive_endpoint": "/v1/archive",
+      "documentation_url": "https://open-meteo.com/en/docs",
+      "terms_url": "https://open-meteo.com/en/terms",
+      "documented_license": "CC BY 4.0 data attribution; free hosted API restricted to non-commercial use",
+      "spatial_scope_note": "A bounding box does not prove a point is in Thailand; use approved Thai points or a verified boundary.",
+      "topics": [
+        "weather",
+        "forecast"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "rid",
+      "source_id": "rid",
+      "owner": "กรมชลประทาน",
+      "name": "RID Open Data / SWOC",
+      "category": "water",
+      "domains": [
+        "AG07",
+        "AG08"
+      ],
+      "priority": "P1",
+      "url": "https://opendata.rid.go.th",
+      "base_url": "https://opendata.rid.go.th",
+      "type": "catalog",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "station",
+        "reservoir",
+        "basin"
+      ],
+      "license_status": "pending",
+      "auth_status": "resource_specific_jwt_for_some_services",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "api_documentation_url": "https://swoc-api-service.rid.go.th/api/docs/",
+      "topics": [
+        "water",
+        "rainfall"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "onwr",
+      "source_id": "onwr",
+      "owner": "สำนักงานทรัพยากรน้ำแห่งชาติ",
+      "name": "ONWR Water Information",
+      "category": "water",
+      "domains": [
+        "AG08"
+      ],
+      "priority": "P1",
+      "url": "https://www.onwr.go.th",
+      "base_url": "https://www.onwr.go.th",
+      "type": "discovery",
+      "status": "discovery_required",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "basin",
+        "reservoir"
+      ],
+      "license_status": "pending",
+      "auth_status": "unverified",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "topics": [
+        "water"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "ldd",
+      "source_id": "ldd",
+      "owner": "กรมพัฒนาที่ดิน",
+      "name": "LDD Data Catalog",
+      "category": "soil",
+      "domains": [
+        "AG12"
+      ],
+      "priority": "P1",
+      "url": "https://lddcatalog.ldd.go.th",
+      "base_url": "https://lddcatalog.ldd.go.th",
+      "type": "ckan",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "polygon",
+        "grid"
+      ],
+      "license_status": "pending",
+      "auth_status": "resource_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/api/3/action/package_search",
+      "topics": [
+        "soil",
+        "land_use"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "gistda",
+      "source_id": "gistda",
+      "owner": "สำนักงานพัฒนาเทคโนโลยีอวกาศและภูมิสารสนเทศ",
+      "name": "GISTDA Thailand Satellite Products",
+      "category": "satellite",
+      "domains": [
+        "AG09",
+        "AG10",
+        "AG11",
+        "AG17"
+      ],
+      "priority": "P1",
+      "url": "https://www.gistda.or.th",
+      "base_url": "https://www.gistda.or.th",
+      "type": "discovery",
+      "status": "discovery_required",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "grid",
+        "polygon"
+      ],
+      "license_status": "pending",
+      "auth_status": "product_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "topics": [
+        "ndvi",
+        "ndmi",
+        "disaster"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "ddpm",
+      "source_id": "ddpm",
+      "owner": "กรมป้องกันและบรรเทาสาธารณภัย",
+      "name": "DDPM Disaster Information",
+      "category": "disaster",
+      "domains": [
+        "AG09"
+      ],
+      "priority": "P1",
+      "url": "https://www.disaster.go.th",
+      "base_url": "https://www.disaster.go.th",
+      "type": "discovery",
+      "status": "discovery_required",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "province",
+        "district",
+        "subdistrict"
+      ],
+      "license_status": "pending",
+      "auth_status": "unverified",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "topics": [
+        "disaster"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "dld",
+      "source_id": "dld",
+      "owner": "กรมปศุสัตว์",
+      "name": "DLD Data Catalog",
+      "category": "livestock",
+      "domains": [
+        "AG04",
+        "AG13"
+      ],
+      "priority": "P2",
+      "url": "https://dld.gdcatalog.go.th",
+      "base_url": "https://dld.gdcatalog.go.th",
+      "type": "catalog",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "national",
+        "province"
+      ],
+      "license_status": "pending",
+      "auth_status": "resource_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "topics": [
+        "livestock"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "dof",
+      "source_id": "dof",
+      "owner": "กรมประมง",
+      "name": "DOF Data Catalog",
+      "category": "fisheries",
+      "domains": [
+        "AG05"
+      ],
+      "priority": "P2",
+      "url": "https://catalog.fisheries.go.th",
+      "base_url": "https://catalog.fisheries.go.th",
+      "type": "ckan",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "province",
+        "port",
+        "fishery_zone"
+      ],
+      "license_status": "pending",
+      "auth_status": "resource_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/api/3/action/package_search",
+      "topics": [
+        "fisheries",
+        "aquaculture"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "nasa_power",
+      "source_id": "nasa_power",
+      "owner": "NASA POWER",
+      "name": "NASA POWER Thailand Weather",
+      "category": "weather",
+      "domains": [
+        "AG07"
+      ],
+      "priority": "P1",
+      "url": "https://power.larc.nasa.gov",
+      "base_url": "https://power.larc.nasa.gov",
+      "type": "rest_json",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "grid_point"
+      ],
+      "license_status": "pending",
+      "auth_status": "needs_preflight_check",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": "/api/temporal/daily/point",
+      "documentation_url": "https://power.larc.nasa.gov/docs/services/api/",
+      "topics": [
+        "weather",
+        "climate"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "chirps",
+      "source_id": "chirps",
+      "owner": "Climate Hazards Center / UC Santa Barbara",
+      "name": "CHIRPS Thailand Rainfall",
+      "category": "weather",
+      "domains": [
+        "AG07"
+      ],
+      "priority": "P1",
+      "url": "https://www.chc.ucsb.edu/data/chirps",
+      "base_url": "https://www.chc.ucsb.edu/data/chirps",
+      "type": "file_catalog",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "grid"
+      ],
+      "license_status": "pending",
+      "auth_status": "needs_preflight_check",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "topics": [
+        "rainfall",
+        "climate"
+      ],
+      "freshness_days": null
+    },
+    {
+      "id": "sentinel",
+      "source_id": "sentinel",
+      "owner": "Copernicus / European Union",
+      "name": "Sentinel Thailand Crop Watch",
+      "category": "satellite",
+      "domains": [
+        "AG10",
+        "AG11"
+      ],
+      "priority": "P1",
+      "url": "https://dataspace.copernicus.eu",
+      "base_url": "https://dataspace.copernicus.eu",
+      "type": "service_catalog",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "grid"
+      ],
+      "license_status": "pending",
+      "auth_status": "registration_and_token_for_selected_services",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Dataset-specific definition and temporal coverage require resource inspection.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 3, 4, 48",
+      "license_review_required": true,
+      "endpoint": null,
+      "spatial_scope_note": "Thailand intersecting tiles only; publish area summaries, not raw raster archives in Git.",
+      "topics": [
+        "ndvi",
+        "ndmi"
+      ],
+      "freshness_days": null
+    }
+  ],
+  "deferred_sources": [
+    {
+      "id": "global_agriculture",
+      "status": "Deferred",
+      "reason": "Agricultural statistics for other countries and global comparisons are outside Thailand Core."
+    },
+    {
+      "id": "global_trade_and_prices",
+      "status": "Deferred",
+      "reason": "Activate only approved external drivers explaining Thai agriculture after domestic foundation."
+    }
+  ]
+}

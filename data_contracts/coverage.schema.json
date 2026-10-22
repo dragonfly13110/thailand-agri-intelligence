@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "coverage",
+  "type": "object",
+  "properties": {
+    "area_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        null
+      ]
+    },
+    "period": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metric_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "AVAILABLE",
+        "NOT_PUBLISHED",
+        "NOT_APPLICABLE",
+        "PIPELINE_ERROR",
+        "UNVERIFIED"
+      ]
+    },
+    "latest_publication_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "freshness_status": {
+      "enum": [
+        "recent",
+        "stale",
+        "unknown"
+      ]
+    },
+    "data_grain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license_status": {
+      "enum": [
+        "approved_public",
+        "restricted",
+        "pending"
+      ]
+    },
+    "missing_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "source_dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "actual_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gap_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "latest_observation_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "area_code",
+    "period",
+    "metric_type",
+    "status",
+    "latest_publication_date",
+    "freshness_status",
+    "data_grain",
+    "coverage_note",
+    "license_status",
+    "missing_reason",
+    "source_dataset_id",
+    "expected_count",
+    "actual_count",
+    "gap_count",
+    "latest_observation_date"
+  ],
+  "additionalProperties": false,
+  "description": "Source x province x period coverage. UNVERIFIED does not mean not published. Actual count may be zero imported rows; expected/gap counts remain null until known. Never turn a missing measurement into zero."
+}

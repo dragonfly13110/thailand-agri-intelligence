@@ -1,0 +1,16 @@
+{
+  "name": "Thailand Agricultural Intelligence",
+  "dataColors": ["#24634A", "#6A9B80", "#7698AD", "#D3AB4C", "#A12F35", "#8D7B69", "#677269"],
+  "background": "#FFFDF7",
+  "foreground": "#213C30",
+  "tableAccent": "#24634A",
+  "good": "#24634A",
+  "neutral": "#8C6517",
+  "bad": "#A12F35",
+  "textClasses": {
+    "title": {"fontFace": "Leelawadee UI", "fontSize": 24, "color": "#213C30"},
+    "header": {"fontFace": "Leelawadee UI", "fontSize": 16, "color": "#213C30"},
+    "label": {"fontFace": "Leelawadee UI", "fontSize": 13, "color": "#213C30"},
+    "callout": {"fontFace": "Leelawadee UI", "fontSize": 28, "color": "#213C30"}
+  }
+}

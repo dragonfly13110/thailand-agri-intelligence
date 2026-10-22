@@ -1,0 +1,47 @@
+# คู่มือปฏิบัติงาน
+
+## โครงสร้างและการรัน
+
+ติดตั้งจาก README แล้วใช้ `python -m tadih --help` ไฟล์ฐานข้อมูลเริ่มต้น `data/local/tadih.duckdb` เปลี่ยนได้ด้วย `--db` ก่อนชื่อคำสั่ง เช่น `python -m tadih --db data/local/check.duckdb build`
+
+ขั้นตอนรับข้อมูล: ดึง raw → เก็บ checksum/checkpoint → แปลงตาม data contract → ตรวจ schema/เวลา/หน่วย/พื้นที่ → เพิ่ม revision ลง DuckDB → สร้าง immutable export → ตรวจ checksum → Import เข้า Power BI
+
+รับ JSON ที่แปลงเป็น observation contract แล้วด้วย `python -m tadih ingest path/to/observations.json` ต้องเป็น array และใช้รหัสพื้นที่ที่ตรวจแล้ว ไม่มีการเติมช่องว่างเป็นศูนย์ ถ้าแถวใดผิดจะยกเลิกทั้งชุดก่อนบันทึก หรือ rollback transaction เมื่อ revision ชนกัน
+
+`observation_id` ต้องคงเอกลักษณ์ source/พื้นที่/สถานที่/สินค้า/เวลา/metric/หน่วย/ตลาด/เกรด/ฤดู การแก้ค่าต้องมี `revision_id` ใหม่ การเรียกข้อมูลซ้ำ revision เดิมทำซ้ำได้โดยไม่เพิ่มแถว แต่เนื้อหา revision เดิมเปลี่ยนไม่ได้
+
+## ความหมายของ coverage
+
+`fact_data_coverage.csv` แสดง 1 แถวต่อ provider × จังหวัด × เดือน × กลุ่ม metric ที่นำเข้า เป็น readiness ขั้นแรก ยังไม่ใช่ inventory ครบทุก resource ของหน่วยงาน `expected_count` และ `gap_count` ว่างจนกว่าจะรู้จำนวนที่ควรมี
+
+`fact_category_coverage.csv` มี 77 × 20 แถว ใช้ metric ที่นำเข้าจริงในการกำหนดหมวด ไม่ใช้รายชื่อหมวดที่ provider อาจให้บริการ ข้อมูลระดับประเทศ จุด หรือสถานีไม่ทำให้จังหวัดมีสถานะ AVAILABLE เดือนคำนวณตามเวลาไทย UTC+7 แม้ข้อมูลในฐานเก็บเวลา UTC
+
+- `AVAILABLE`: มีค่าไม่ว่างของจังหวัดนั้น ผ่าน quality flag และสิทธิ์ตาม audience
+- `UNVERIFIED`: ยังไม่มีข้อมูลจังหวัดผ่านเกณฑ์ ไม่ได้บอกว่าต้นทางไม่เผยแพร่
+- `NOT_PUBLISHED`, `NOT_APPLICABLE`, `PIPELINE_ERROR`: นิยามเตรียมไว้ใน schema ต้องมีหลักฐานราย dataset ก่อนใช้งาน รุ่นนี้ยังไม่อนุมานสถานะเหล่านี้
+
+ความสดแสดง `unknown` ถ้าไม่รู้รอบเผยแพร่ของ provider ไม่ตั้ง SLA ขึ้นเอง การมีข้อมูล 1 metric ไม่ได้ยืนยันว่าทุกสินค้าหรือทุกช่วงเวลาครบ
+
+## กู้ข้อมูลและสำรอง
+
+หยุดงานที่เขียน DuckDB ก่อนสำรอง `data/local/tadih.duckdb`, raw snapshot ทั้งหมด, manifest และ export metadata ไปพื้นที่องค์กรที่อนุมัติ ทดสอบเปิดสำเนาฐานและ `tadih verify` ที่ snapshot สำเนา ไม่ใช้ Git เก็บ raw จำนวนมาก
+
+ตรวจ `snapshot_complete` ก่อนข้าม partition ย้อนหลัง manifest เก็บเฉพาะความสำเร็จล่าสุดใน partition; ไฟล์ checksum รุ่นเก่ายังคงอยู่ ต้องมีผู้เขียนเพียงงานเดียวต่อ partition งาน refresh ข้อมูลเดิมต้องตรวจ revision ต้นทางอีกครั้ง ไม่ใช้ checkpoint เป็นเหตุผลข้ามข้อมูลแก้ไขตลอดไป
+
+Export แต่ละ run อยู่คนละโฟลเดอร์ ไม่ทับ run เดิม หาก build ล้มเหลวระหว่างทาง จะไม่มี metadata สำเร็จ ห้าม import โฟลเดอร์นั้น ตัวตรวจ hash ตรวจความครบและการเปลี่ยนไฟล์ ไม่ใช่ลายเซ็นยืนยันตัวผู้เผยแพร่
+
+## GitHub Actions
+
+`ci.yml` รัน tests และสร้าง export ว่างที่อธิบายสถานะจริงบน push/PR ไม่มี network ingest ส่วน `discover-sources.yml` ทดลอง catalog รายสัปดาห์ เวลา cron เป็น UTC อาจล่าช้าหรือข้ามรอบได้ ขั้นตอนล้มเหลวทำให้ workflow ล้มเหลว ดู Actions logs และรับผิดชอบ retry โดยผู้ดูแล repository
+
+ทั้งสอง workflow ใช้ `contents: read` ไม่มี secrets และไม่มีขั้นตอน push กลับ repository ไม่มีบริการส่งข้อความ/อีเมลจากโค้ดนี้ Artifact เก็บ 14 วันเพื่อใช้ตรวจงาน ไม่ใช่คลังข้อมูลถาวร ข้อมูลภายในและข้อมูลที่สิทธิ์ยัง pending ไม่อยู่ใน public CI exports
+
+หลังสร้าง remote และ push โดยเจ้าของงาน ให้ตรวจ Actions เปิดใช้งาน ดูผลรันจริง และกำหนดพื้นที่สำรองก่อนเพิ่ม scheduled ingest การขยายเก็บย้อนหลังต้องกำหนดงบ request/พื้นที่เก็บ และใช้ partition ปี × จุด/พื้นที่ ไม่ยิงทุกจังหวัดทุกปีพร้อมกัน
+
+## เมื่อระบบหยุด
+
+HTTP 401/403: หยุดและตรวจสิทธิ์/endpoint ไม่วน retry ขออนุญาตแบบไม่มีขอบเขต HTTP 429/5xx: retry แบบจำกัดและเก็บ raw เดิมไว้ ตรวจ pagination เมื่อเรียกซ้ำ TLS error: แก้ trust chain หรือใช้ trusted transport ที่ตรวจใบรับรองตามปกติ ห้ามใช้ insecure context
+
+Schema/หน่วยเปลี่ยน: หยุดนำเข้าเก็บตัวอย่าง raw ตรวจ contract และเพิ่ม regression test ก่อนเปิดใหม่ แถวที่ไม่มีวันเผยแพร่ไม่เข้าสู่ backtest ที่ต้องใช้ as-of
+
+กฎความเสี่ยงเป็นเกณฑ์ทดลอง เจ้าหน้าที่ต้องตรวจ evidence และติดตามผลจริงก่อนตัดสินใจ งบประมาณ/ประกาศภัย/การจ่ายช่วยเหลือไม่ถูกดำเนินการอัตโนมัติ

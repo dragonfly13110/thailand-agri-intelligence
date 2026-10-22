@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "geography",
+  "type": "object",
+  "properties": {
+    "area_code": {
+      "type": "string",
+      "pattern": "^[0-9]{2}$"
+    },
+    "province_code": {
+      "type": "string",
+      "pattern": "^[0-9]{2}$"
+    },
+    "name_th": {
+      "type": "string",
+      "minLength": 1
+    },
+    "admin_level": {
+      "const": "province"
+    },
+    "geom_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/@]+(?:/|$)"
+    },
+    "source_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "verification_status": {
+      "const": "code_name_verified_geometry_not_supplied"
+    }
+  },
+  "required": [
+    "area_code",
+    "province_code",
+    "name_th",
+    "admin_level",
+    "geom_version",
+    "source_url",
+    "source_version",
+    "verified_at",
+    "verification_status"
+  ],
+  "additionalProperties": false,
+  "description": "Province code/name reference only. Empty CSV geom_version means no boundary geometry supplied; never infer district or subdistrict coverage."
+}

@@ -1,0 +1,77 @@
+// Create each expression below as a separate measure. This is not a DAX query script.
+// Counts are source-provider x province x period entries, NOT a count of resource datasets.
+
+Supported Provinces = DISTINCTCOUNT(dim_area[area_code])
+
+Verified Coverage Entries =
+CALCULATE(
+    COUNTROWS(fact_data_coverage),
+    REMOVEFILTERS(fact_data_coverage[status]),
+    fact_data_coverage[status] IN {"AVAILABLE", "NOT_PUBLISHED", "PIPELINE_ERROR"}
+)
+
+Available Coverage Entries =
+COALESCE(
+    CALCULATE(
+        COUNTROWS(fact_data_coverage),
+        REMOVEFILTERS(fact_data_coverage[status]),
+        fact_data_coverage[status] = "AVAILABLE"
+    ),
+    0
+)
+
+Verified Coverage Rate = DIVIDE([Available Coverage Entries], [Verified Coverage Entries])
+
+Coverage Label =
+IF(
+    ISBLANK([Verified Coverage Entries]) || [Verified Coverage Entries] = 0,
+    "ยังไม่ตรวจสอบความครอบคลุม",
+    FORMAT([Verified Coverage Rate], "0.0%")
+)
+
+Unverified Entries =
+COALESCE(
+    CALCULATE(
+        COUNTROWS(fact_data_coverage),
+        REMOVEFILTERS(fact_data_coverage[status]),
+        fact_data_coverage[status] = "UNVERIFIED"
+    ),
+    0
+)
+
+Provinces With Verified Source Data =
+CALCULATE(
+    DISTINCTCOUNT(fact_data_coverage[area_code]),
+    REMOVEFILTERS(fact_data_coverage[status]),
+    fact_data_coverage[status] = "AVAILABLE"
+)
+
+Latest Observation UTC = MAX(fact_observation[observed_at])
+
+Latest Publication UTC = MAX(fact_observation[release_at])
+
+Observation Rows = COUNTROWS(fact_observation)
+
+Observation Value (single row) =
+IF(COUNTROWS(fact_observation) = 1, MAX(fact_observation[value]), BLANK())
+
+Observation Kind (single row) =
+IF(COUNTROWS(fact_observation) = 1, SELECTEDVALUE(fact_observation[data_kind]), BLANK())
+
+Observation Unit (single row) =
+IF(COUNTROWS(fact_observation) = 1, SELECTEDVALUE(fact_observation[unit]), BLANK())
+
+Coverage Status Color =
+SWITCH(
+    SELECTEDVALUE(fact_data_coverage[status]),
+    "AVAILABLE", "#24634A",
+    "NOT_PUBLISHED", "#8C6517",
+    "PIPELINE_ERROR", "#A12F35",
+    "NOT_APPLICABLE", "#7D857C",
+    "#677269"
+)
+
+// No default SUM/AVERAGE(value): prices, rainfall, production, NDVI and estimates
+// have incompatible grains. Keep value set to "Do not summarize" in the model.
+// Add a domain-specific aggregate only after commodity, unit, definition, season,
+// source, non-overlapping area/time and subtotal rules have been validated.

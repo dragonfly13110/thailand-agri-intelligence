@@ -1,0 +1,12 @@
+{
+  "rule_version": "pilot-0.1",
+  "status": "provisional_not_official",
+  "max_age_days": 7,
+  "max_age_days_by_metric": {"ndvi_valid_fraction": 30, "current_production": 550},
+  "minimum_rain_reference_years": 5,
+  "rain_percentile_watch": 0.2,
+  "ndvi_minimum_valid_fraction": 0.7,
+  "price_change_watch_fraction": 0.2,
+  "production_change_watch_fraction": 0.15,
+  "warning": "Experimental screening thresholds. Require historical validation and expert review before operational use."
+}
