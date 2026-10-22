@@ -17,3 +17,9 @@ Staging มี 50,103 records พบชื่อจังหวัดครบ 7
 ไฟล์ records.jsonl, commodity_registry.csv และ inventory.json อยู่ใน data/local/production/staged/<source-hash>/ ตรวจ hash เมื่อใช้ checkpoint เดิม และยกเลิก staging ทั้งชุดถ้ามีแถวผิด
 
 `rollup_eligible=false` ทุกแถวจนกว่าจะตรวจ administrative crosswalk และความหมายเดือน/รอบปลูก/การนับยอดกับเจ้าของชุดข้อมูล ห้ามรวมราคา/ผลผลิตต่อไร่ด้วย SUM หรือรวมยอดจังหวัดซ้ำกับระดับตำบล ใบอนุญาตต้นทางระบุ Open Data Common แต่ยังไม่ทราบ variant ที่แน่นอน จึงไม่อัปโหลด raw หรือค่าผลผลิตไป Public repo
+
+## Provincial source-period aggregates (internal screening)
+
+`python -m tadih doae-provincial-aggregate <records.jsonl> <admin_crosswalk.csv> --output data/local/production/provincial-source-period-v2 --ingest` creates 10,682 groups at province × source year × source month × commodity × planting round. The month-first timestamp is a period marker; the CKAN catalog describes annual production and does not define harvest timing for each source month. Do not sum these period groups into an official annual total or merge them with source subdistrict rows. `planting_round:0/1/2` is a source label, not an inferred crop season.
+
+Each additive measure is null if any matched input is missing; yield is `sum(production_kg) / sum(harvested_area_rai)` only when both are complete and area is positive. Two unmapped Bang Bon rows remain in the audit. Null observations are emitted so a later revision cannot leave an old value in the latest view. The new ID prefix is `doae-prov-period:`. CLI ingestion refuses a warehouse containing legacy `doae-prov:` annual IDs; back up and rebuild a separate database from verified raw checkpoints. Redistribution permission and period semantics remain pending.

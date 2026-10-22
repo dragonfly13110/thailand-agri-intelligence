@@ -31,7 +31,7 @@ Captured on 22 October 2026: 461 reservoirs per report (1,844 observations/day) 
 ## Planetary Computer MODIS satellite (`tadih.satellite`)
 
 - `fetch_modis_point(latitude, longitude, item_id=None, collection="modis-13A1-061", timeout=15)`: fetches point pixel bands from Microsoft Planetary Computer Data API. If `item_id` is omitted, searches STAC for the latest composite tile intersecting the coordinates.
-- `normalize_modis_point(envelope, license_status="pending")`: emits `spatial_support="grid_point"` observations with `location_id="point:<lat>:<lon>"` and `area_code=null`. Decodes `500m_16_days_NDVI` scaled by 0.0001 (fill -3000 becomes `null`), `500m_16_days_pixel_reliability` (0=good, 1=marginal, 2=snow_ice, 3=cloud_contaminated), `ndvi_valid_pixel_fraction` (1.0 if clear/marginal, 0.0 if cloudy/snow/fill), and `500m_16_days_VI_Quality`.
+- `normalize_modis_point(envelope, license_status="pending")`: emits `spatial_support="grid_point"` observations with `location_id="point:<lat>:<lon>"` and `area_code=null`. Decodes `500m_16_days_NDVI` scaled by 0.0001 (fill -3000 becomes `null`), `500m_16_days_pixel_reliability` (0=good, 1=marginal, 2=snow_ice, 3=cloud_contaminated), `ndvi_valid_pixel_fraction` (1.0 if clear/marginal, 0.0 if cloudy/snow, null if QA is missing), and `500m_16_days_VI_Quality`.
 - CLI: `python -m tadih modis-ndvi [--file <path> | --latitude <lat> --longitude <lon> [--item <item_id>]] [--ingest]` — supports point capture, normalization, and local DuckDB warehouse ingestion.
 
 Captured on 22 October 2026: point 13.8, 100.25 (matching the ERA5 grid coordinate) with two 16-day composite samples (2024-09-29 cloudy and 2026-09-30 clear sky). Rights review is `pending` in `config/resource_licenses.json`.
@@ -77,3 +77,5 @@ The initial bounded OAE scan completed **189 distinct monthly observations from 
 Checked official [forecast documentation](https://open-meteo.com/en/docs), [historical documentation](https://open-meteo.com/en/docs/historical-weather-api), and [terms](https://open-meteo.com/en/terms) on 22 October 2026. Free API service is restricted to non-commercial use. Data requires CC BY 4.0 attribution; operational users must recheck applicable plan, quotas and underlying attribution. Licensed commercial access is not implemented by these public probes. CKAN dataset licences require review per resource before any measurement export.
 
 The probe deliberately omits bulk CKAN resource downloads, credentials, province aggregation, nationwide backfill and auto-publication. Those require data contracts, licence approval and quota/storage planning first.
+
+MODIS `end_datetime` is the end of a 16-day image composite, not a verified publication date. Normalized observations keep `release_at=null`; `retrieved_at` is only the capture time. Repeated identical item/value/quality captures keep the same revision ID. These observations cannot enter as-of historical forecast tests without provider release evidence.

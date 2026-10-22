@@ -127,19 +127,19 @@ class PipelineTests(unittest.TestCase):
             weather_observations({**envelope, "data_kind": "forecast"})
 
 
-    def test_coverage_inventory_reasons_and_gold_availability(self):
+    def test_coverage_inventory_reasons_and_source_period_availability(self):
         from jsonschema import Draft202012Validator, FormatChecker
         schema = json.loads((Path(__file__).parents[1] / "data_contracts/coverage.schema.json").read_text(encoding="utf-8"))
         validator = Draft202012Validator(schema, format_checker=FormatChecker())
 
-        # Ingest provincial gold aggregate for DOAE in 2023-12
+        # Source-period sums indicate data presence, not verified annual totals.
         doae_obs = observation(
             observation_id="doae:10:2023:rice:production",
             source_id="doae",
             area_code="10",
             spatial_support="province",
             observed_at="2023-12-31T00:00:00Z",
-            quality_flag="gold_provincial_aggregate",
+            quality_flag="source_period_provincial_aggregate",
             measure="production",
             value=500000.0,
             license_status="approved_public"

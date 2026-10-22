@@ -230,296 +230,137 @@ def stage_doae_production(path, output_dir=None):
     return report
 
 
+PROVINCIAL_MEASURES = {
+    "planted_area_rai": ("planted_area", "rai"),
+    "damaged_area_rai": ("damaged_area", "rai"),
+    "harvested_area_rai": ("harvested_area", "rai"),
+    "production_kg": ("production", "kg"),
+    "weighted_yield_kg_per_rai": ("yield", "kg/rai"),
+}
 PROVINCIAL_AGGREGATE_FIELDS = (
-    "province_code", "province_name", "year_ad", "commodity_id", "crop_group", "crop_type", "variety_name",
-    "planted_area_rai", "damaged_area_rai", "harvested_area_rai", "production_kg", "weighted_yield_kg_per_rai",
+    "province_code", "province_name", "year_ad", "month", "planting_round", "commodity_id",
+    "crop_group", "crop_type", "variety_name", *PROVINCIAL_MEASURES,
     "record_count", "matched_record_count", "unmatched_record_count", "subdistrict_completeness",
-    "temporal_status", "rollup_status",
+    "temporal_status", "rollup_status", "source_revision",
 )
 
 
 def aggregate_provincial_production(records_path, crosswalk_path, *, output_dir=None):
-    """Aggregate DOAE subdistrict production into verified provincial gold aggregates.
+    """Spatial sums within the exact source year/month/round, never annual totals.
 
-    Rules enforced:
-    - Yield MUST be derived as SUM(production_kg) / SUM(harvested_area_rai), NEVER an unweighted average.
-    - Records without matched subdistricts (e.g. Bang Bon retired subdistrict) are tracked in audit,
-      excluded from subdistrict sums to maintain integrity, and flagged as partial_unmatched_subdistrict.
-    - Missing measures remain None/null, never filled with zero.
+    A missing component makes that measure's sum null. Yield requires complete
+    paired production/harvested area. Unmatched areas stay in a separate audit.
+    Source month meaning and historical administrative boundaries remain unverified.
     """
-    records_path = Path(records_path)
-    crosswalk_path = Path(crosswalk_path)
-    if not records_path.is_file() or not crosswalk_path.is_file():
-        raise ValueError("records_path and crosswalk_path must be existing files")
-
-    crosswalk = {}
-    with crosswalk_path.open("r", encoding="utf-8-sig") as stream:
-        for row in csv.DictReader(stream):
-            key = (row["province_name"], row["district_name"], row["subdistrict_name"])
-            crosswalk[key] = row
-
-    groups = {}
-    unmatched_audit = []
-    total_records = 0
-
-    with records_path.open("r", encoding="utf-8") as stream:
+    records_path, crosswalk_path = Path(records_path), Path(crosswalk_path)
+    source_revision = hashlib.sha256((_digest(records_path) + _digest(crosswalk_path)).encode()).hexdigest()
+    with crosswalk_path.open(encoding="utf-8-sig", newline="") as stream:
+        crosswalk = {(r["province_name"], r["district_name"], r["subdistrict_name"]): r
+                     for r in csv.DictReader(stream)}
+    groups, seen, unmatched_audit = {}, set(), []
+    metrics = tuple(PROVINCIAL_MEASURES)[:-1]
+    with records_path.open(encoding="utf-8") as stream:
         for line in stream:
             row = json.loads(line)
-            total_records += 1
-            key = (row["province_name"], row["district_name"], row["subdistrict_name"])
-            cw = crosswalk.get(key)
-            province_code = cw.get("province_code") if cw else None
-            if not province_code:
-                raise ValueError(f"Unknown province in production record {row.get('source_record_number')}: {row.get('province_name')}")
-
-            grp_key = (province_code, int(row["year_ad"]), row["commodity_id"])
-            if grp_key not in groups:
-                groups[grp_key] = {
-                    "province_code": province_code,
-                    "province_name": row["province_name"],
-                    "year_ad": int(row["year_ad"]),
-                    "commodity_id": row["commodity_id"],
-                    "crop_group": row["crop_group"],
-                    "crop_type": row["crop_type"],
-                    "variety_name": row["variety_name"],
-                    "planted_area_rai": None,
-                    "damaged_area_rai": None,
-                    "harvested_area_rai": None,
-                    "production_kg": None,
-                    "_sum_planted": 0.0,
-                    "_has_planted": False,
-                    "_sum_damaged": 0.0,
-                    "_has_damaged": False,
-                    "_sum_harvested": 0.0,
-                    "_has_harvested": False,
-                    "_sum_production": 0.0,
-                    "_has_production": False,
-                    "record_count": 0,
-                    "matched_record_count": 0,
-                    "unmatched_record_count": 0,
-                    "unmatched_details": [],
+            year, month, planting_round = row["year_ad"], row["month"], row["planting_round"]
+            if (type(year) is not int or year not in {2023, 2024} or type(month) is not int
+                    or not 1 <= month <= 12 or not isinstance(planting_round, str) or not planting_round.strip()):
+                raise ValueError("production source year/month/planting_round is invalid")
+            area = tuple(row[k] for k in ("province_name", "district_name", "subdistrict_name"))
+            cw = crosswalk.get(area)
+            if not cw or not cw.get("province_code"):
+                raise ValueError(f"Unknown province in production record {row.get('source_record_number')}")
+            identity = (*area, year, month, row["commodity_id"], planting_round)
+            if identity in seen:
+                raise ValueError("duplicate production source identity; resolve before aggregation")
+            seen.add(identity)
+            key = (cw["province_code"], year, month, row["commodity_id"], planting_round)
+            if key not in groups:
+                groups[key] = {
+                    **{k: row[k] for k in ("province_name", "year_ad", "month", "planting_round",
+                                          "commodity_id", "crop_group", "crop_type", "variety_name")},
+                    "province_code": cw["province_code"], "record_count": 0,
+                    "matched_record_count": 0, "unmatched_record_count": 0,
+                    "sums": {m: Decimal(0) for m in metrics}, "missing": {m: 0 for m in metrics},
                 }
-            grp = groups[grp_key]
-            grp["record_count"] += 1
-
-            is_matched = bool(cw and cw.get("mapping_status") == "matched_snapshot")
-            if is_matched:
-                grp["matched_record_count"] += 1
-                if row.get("planted_area_rai") is not None:
-                    grp["_sum_planted"] += float(row["planted_area_rai"])
-                    grp["_has_planted"] = True
-                if row.get("damaged_area_rai") is not None:
-                    grp["_sum_damaged"] += float(row["damaged_area_rai"])
-                    grp["_has_damaged"] = True
-                if row.get("harvested_area_rai") is not None:
-                    grp["_sum_harvested"] += float(row["harvested_area_rai"])
-                    grp["_has_harvested"] = True
-                if row.get("production_kg") is not None:
-                    grp["_sum_production"] += float(row["production_kg"])
-                    grp["_has_production"] = True
-            else:
-                grp["unmatched_record_count"] += 1
-                audit_entry = {
-                    "source_record_number": row.get("source_record_number"),
-                    "province_name": row["province_name"],
-                    "district_name": row["district_name"],
-                    "subdistrict_name": row["subdistrict_name"],
-                    "crop_group": row["crop_group"],
-                    "crop_type": row["crop_type"],
-                    "commodity_id": row["commodity_id"],
-                    "planted_area_rai": row.get("planted_area_rai"),
-                    "production_kg": row.get("production_kg"),
-                    "reason": "unmatched_subdistrict_in_master_snapshot"
-                }
-                grp["unmatched_details"].append(audit_entry)
-                unmatched_audit.append(audit_entry)
-
+            group = groups[key]
+            group["record_count"] += 1
+            if cw.get("mapping_status") != "matched_snapshot":
+                group["unmatched_record_count"] += 1
+                unmatched_audit.append({**row, "reason": "unmatched_subdistrict_in_master_snapshot"})
+                continue
+            group["matched_record_count"] += 1
+            for metric in metrics:
+                value = row.get(metric)
+                if value is None:
+                    group["missing"][metric] += 1
+                elif isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                    raise ValueError("production measures must be finite nonnegative numbers or null")
+                else:
+                    group["sums"][metric] += Decimal(str(value))
     aggregates = []
-    for grp in sorted(groups.values(), key=lambda g: (g["province_code"], g["year_ad"], g["commodity_id"])):
-        planted = round(grp["_sum_planted"], 2) if grp["_has_planted"] else None
-        damaged = round(grp["_sum_damaged"], 2) if grp["_has_damaged"] else None
-        harvested = round(grp["_sum_harvested"], 2) if grp["_has_harvested"] else None
-        production = round(grp["_sum_production"], 2) if grp["_has_production"] else None
-
-        weighted_yield = (
-            round(grp["_sum_production"] / grp["_sum_harvested"], 2)
-            if (grp["_has_production"] and grp["_has_harvested"] and grp["_sum_harvested"] > 0)
-            else None
-        )
-
-        completeness = "complete" if grp["unmatched_record_count"] == 0 else "partial_unmatched_subdistrict"
-
-        agg_row = {
-            "province_code": grp["province_code"],
-            "province_name": grp["province_name"],
-            "year_ad": grp["year_ad"],
-            "commodity_id": grp["commodity_id"],
-            "crop_group": grp["crop_group"],
-            "crop_type": grp["crop_type"],
-            "variety_name": grp["variety_name"],
-            "planted_area_rai": planted,
-            "damaged_area_rai": damaged,
-            "harvested_area_rai": harvested,
-            "production_kg": production,
-            "weighted_yield_kg_per_rai": weighted_yield,
-            "record_count": grp["record_count"],
-            "matched_record_count": grp["matched_record_count"],
-            "unmatched_record_count": grp["unmatched_record_count"],
-            "subdistrict_completeness": completeness,
-            "temporal_status": "snapshot_match_not_period_boundary_verification",
-            "rollup_status": "provincial_gold_aggregate",
-        }
-        aggregates.append(agg_row)
-
+    missing_counts = {m: 0 for m in metrics}
+    for key in sorted(groups):
+        group = groups[key]
+        sums, missing = group.pop("sums"), group.pop("missing")
+        for metric in metrics:
+            missing_counts[metric] += missing[metric]
+            group[metric] = (float(round(sums[metric], 2))
+                             if group["matched_record_count"] and missing[metric] == 0 else None)
+        group["weighted_yield_kg_per_rai"] = (
+            float(round(sums["production_kg"] / sums["harvested_area_rai"], 2))
+            if group["production_kg"] is not None and group["harvested_area_rai"] is not None
+            and sums["harvested_area_rai"] > 0 else None)
+        group.update(
+            subdistrict_completeness="partial_unmatched_subdistrict" if group["unmatched_record_count"] else "complete",
+            temporal_status="source_month_meaning_and_period_boundaries_unverified",
+            rollup_status="source_period_spatial_aggregate_not_annual_total", source_revision=source_revision)
+        aggregates.append(group)
     report = {
-        "source_records": total_records,
-        "provincial_groups": len(aggregates),
+        "source_records": len(seen), "provincial_groups": len(aggregates),
         "total_matched_records": sum(a["matched_record_count"] for a in aggregates),
-        "total_unmatched_records": len(unmatched_audit),
-        "unmatched_records_audit": unmatched_audit,
-        "aggregates": aggregates,
+        "total_unmatched_records": len(unmatched_audit), "unmatched_records_audit": unmatched_audit,
+        "source_records_sha256": _digest(records_path), "crosswalk_sha256": _digest(crosswalk_path),
+        "missing_measure_counts": missing_counts, "aggregates": aggregates,
+        "grain": ["province_code", "year_ad", "month", "commodity_id", "planting_round"],
+        "aggregation_version": "source-period-v2",
     }
-
     if output_dir:
-        out_path = Path(output_dir)
-        out_path.mkdir(parents=True, exist_ok=True)
-        csv_path = out_path / "provincial_production.csv"
+        output = Path(output_dir)
+        output.mkdir(parents=True, exist_ok=True)
+        csv_path = output / "provincial_production.csv"
         with csv_path.open("w", encoding="utf-8-sig", newline="") as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(PROVINCIAL_AGGREGATE_FIELDS))
+            writer = csv.DictWriter(stream, fieldnames=PROVINCIAL_AGGREGATE_FIELDS)
             writer.writeheader()
             writer.writerows(aggregates)
-        manifest_path = out_path / "provincial_production_inventory.json"
-        inv_payload = {
-            "source_records": total_records,
-            "provincial_groups": len(aggregates),
-            "total_matched_records": sum(a["matched_record_count"] for a in aggregates),
-            "total_unmatched_records": len(unmatched_audit),
-            "unmatched_records_audit": unmatched_audit,
-            "csv_path": str(csv_path.resolve()),
-            "sha256": _digest(csv_path),
-        }
-        _json(manifest_path, inv_payload)
-        report["csv_path"] = str(csv_path.resolve())
-        report["manifest_path"] = str(manifest_path.resolve())
-
+        manifest_path = output / "provincial_production_inventory.json"
+        _json(manifest_path, {k: v for k, v in report.items() if k != "aggregates"} |
+              {"csv_path": str(csv_path.resolve()), "sha256": _digest(csv_path)})
+        report.update(csv_path=str(csv_path.resolve()), manifest_path=str(manifest_path.resolve()))
     return report
 
 
 def provincial_production_observations(aggregates, *, source_url=SOURCE_URL, retrieved_at=None, license_status="pending"):
-    """Convert provincial production aggregates to warehouse observations."""
+    """Derived source-period sums; null revisions retire previously known values."""
     from .quality import timestamp
-    retrieved = (
-        timestamp(retrieved_at).isoformat()
-        if retrieved_at is not None
-        else datetime.now(timezone.utc).isoformat()
-    )
+    retrieved = timestamp(retrieved_at).isoformat() if retrieved_at is not None else datetime.now(timezone.utc).isoformat()
     observations = []
     for agg in aggregates:
-        pcode = agg["province_code"]
-        year = agg["year_ad"]
-        cid = agg["commodity_id"]
-        obs_date = f"{year}-12-31T00:00:00+07:00"
-        quality = "gold_provincial_aggregate" if agg["unmatched_record_count"] == 0 else "partial_unmatched_subdistrict"
-
-        if agg["planted_area_rai"] is not None:
+        revision = hashlib.sha256(json.dumps(agg, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+        quality = ("partial_unmatched_subdistrict" if agg["unmatched_record_count"]
+                   else "source_period_provincial_aggregate")
+        for field, (measure, unit) in PROVINCIAL_MEASURES.items():
+            identity = [agg[k] for k in ("province_code", "year_ad", "month", "commodity_id", "planting_round")] + [measure]
             observations.append({
-                "observation_id": f"doae-prov:{pcode}:{year}:{cid}:planted_area",
-                "source_id": "doae",
-                "area_code": pcode,
-                "spatial_support": "province",
-                "location_id": pcode,
-                "commodity_id": cid,
-                "observed_at": obs_date,
-                "release_at": None,
-                "retrieved_at": retrieved,
-                "measure": "planted_area",
-                "value": float(agg["planted_area_rai"]),
-                "unit": "rai",
-                "data_kind": "official",
-                "revision_id": "doae-prov-gold-v1",
-                "quality_flag": quality,
-                "source_url": source_url,
-                "license_status": license_status,
-                "market_id": None,
-                "price_type": None,
-                "grade": None,
-                "season": None,
+                "observation_id": "doae-prov-period:" + hashlib.sha256(json.dumps(identity).encode()).hexdigest(),
+                "source_id": "doae", "area_code": agg["province_code"], "spatial_support": "province",
+                "location_id": agg["province_code"], "commodity_id": agg["commodity_id"],
+                "observed_at": f"{agg['year_ad']}-{agg['month']:02d}-01T00:00:00+07:00",
+                "release_at": None, "retrieved_at": retrieved, "measure": measure, "value": agg[field], "unit": unit,
+                "data_kind": "estimated" if agg[field] is not None else "unknown", "revision_id": revision,
+                "quality_flag": quality if agg[field] is not None else "missing",
+                "source_url": source_url, "license_status": license_status,
+                "market_id": None, "price_type": None, "grade": None,
+                "season": "planting_round:" + agg["planting_round"],
             })
-
-        if agg["harvested_area_rai"] is not None:
-            observations.append({
-                "observation_id": f"doae-prov:{pcode}:{year}:{cid}:harvested_area",
-                "source_id": "doae",
-                "area_code": pcode,
-                "spatial_support": "province",
-                "location_id": pcode,
-                "commodity_id": cid,
-                "observed_at": obs_date,
-                "release_at": None,
-                "retrieved_at": retrieved,
-                "measure": "harvested_area",
-                "value": float(agg["harvested_area_rai"]),
-                "unit": "rai",
-                "data_kind": "official",
-                "revision_id": "doae-prov-gold-v1",
-                "quality_flag": quality,
-                "source_url": source_url,
-                "license_status": license_status,
-                "market_id": None,
-                "price_type": None,
-                "grade": None,
-                "season": None,
-            })
-
-        if agg["production_kg"] is not None:
-            observations.append({
-                "observation_id": f"doae-prov:{pcode}:{year}:{cid}:production",
-                "source_id": "doae",
-                "area_code": pcode,
-                "spatial_support": "province",
-                "location_id": pcode,
-                "commodity_id": cid,
-                "observed_at": obs_date,
-                "release_at": None,
-                "retrieved_at": retrieved,
-                "measure": "production",
-                "value": float(agg["production_kg"]),
-                "unit": "kg",
-                "data_kind": "official",
-                "revision_id": "doae-prov-gold-v1",
-                "quality_flag": quality,
-                "source_url": source_url,
-                "license_status": license_status,
-                "market_id": None,
-                "price_type": None,
-                "grade": None,
-                "season": None,
-            })
-
-        if agg["weighted_yield_kg_per_rai"] is not None:
-            observations.append({
-                "observation_id": f"doae-prov:{pcode}:{year}:{cid}:yield",
-                "source_id": "doae",
-                "area_code": pcode,
-                "spatial_support": "province",
-                "location_id": pcode,
-                "commodity_id": cid,
-                "observed_at": obs_date,
-                "release_at": None,
-                "retrieved_at": retrieved,
-                "measure": "yield",
-                "value": float(agg["weighted_yield_kg_per_rai"]),
-                "unit": "kg/rai",
-                "data_kind": "official",
-                "revision_id": "doae-prov-gold-v1",
-                "quality_flag": quality,
-                "source_url": source_url,
-                "license_status": license_status,
-                "market_id": None,
-                "price_type": None,
-                "grade": None,
-                "season": None,
-            })
-
     return observations
-

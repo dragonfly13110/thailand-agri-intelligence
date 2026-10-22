@@ -1,7 +1,9 @@
 """Small versioned DuckDB warehouse; no spatial downscaling or implicit joins."""
 
+import csv
 import json
 from pathlib import Path
+import tempfile
 
 import duckdb
 
@@ -58,8 +60,19 @@ def ingest_rows(db, rows):
                 versions[key] = row
                 additions.append([row[field] for field in FIELDS])
         if additions:
-            placeholders = ",".join("?" for _ in FIELDS)
-            db.executemany(f"INSERT INTO observations VALUES ({placeholders})", additions)
+            # ponytail: DuckDB COPY is far faster than one Python execute per row; keep the validated batch local.
+            batch_dir = Path(__file__).resolve().parents[2] / "data/local/tmp"
+            batch_dir.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="", suffix=".csv", dir=batch_dir, delete=False) as stream:
+                batch = Path(stream.name)
+                writer = csv.writer(stream)
+                writer.writerow(FIELDS)
+                writer.writerows(additions)
+            try:
+                safe_path = batch.as_posix().replace("'", "''")
+                db.execute(f"COPY observations FROM '{safe_path}' (HEADER TRUE, NULL '')")
+            finally:
+                batch.unlink(missing_ok=True)
         db.execute("COMMIT")
     except Exception:
         db.execute("ROLLBACK")

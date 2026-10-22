@@ -49,11 +49,11 @@ def parser():
     production = commands.add_parser("doae-production", help="Download and stage the verified DOAE CSV without inventing rollups")
     production.add_argument("--output", default="data/local/production")
     production.add_argument("--refresh", action="store_true")
-    prov_agg = commands.add_parser("doae-provincial-aggregate", help="Aggregate DOAE staged records into provincial gold aggregates")
+    prov_agg = commands.add_parser("doae-provincial-aggregate", help="Spatial sums within source month/planting round; not annual totals")
     prov_agg.add_argument("records", help="Path to staged records.jsonl")
     prov_agg.add_argument("crosswalk", help="Path to admin_crosswalk.csv")
     prov_agg.add_argument("--output", default="data/local/production/provincial", help="Output directory for CSV and inventory manifest")
-    prov_agg.add_argument("--ingest", action="store_true", help="Ingest provincial gold observations into DuckDB warehouse")
+    prov_agg.add_argument("--ingest", action="store_true", help="Ingest derived source-period observations into DuckDB warehouse")
     prov_agg.add_argument("--license-status", choices=("pending", "approved_public", "restricted"), default="pending")
     products = commands.add_parser("commodities", help="Stage all returned source commodity identities without cross-provider merging")
     products.add_argument("--source", choices=("nabc_monthly", "nabc_monthly_names", "nabc_weekly", "nabc_daily", "nabc_production", "moc"), default="nabc_monthly")
@@ -156,6 +156,8 @@ def main(argv=None):
             if args.ingest:
                 obs = provincial_production_observations(rep["aggregates"], license_status=args.license_status)
                 with connect(args.db) as db:
+                    if db.execute("SELECT count(*) FROM observations WHERE observation_id LIKE 'doae-prov:%'").fetchone()[0]:
+                        raise ValueError("legacy annual DOAE aggregates exist; back up and rebuild a separate warehouse before ingesting source-period aggregates")
                     output["validated_input_rows"] = ingest_rows(db, obs)
         elif args.command == "geography":
             from .geography import stage_geography

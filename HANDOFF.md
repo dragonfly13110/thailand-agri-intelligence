@@ -2,17 +2,29 @@
 
 อัปเดต 22 ตุลาคม 2569 (Asia/Bangkok) จากไฟล์และผลรันในเครื่องนี้
 
+## งานข้อมูลรอบ 22 ต.ค. 2569 บน `D:\code\thailand-agri-intelligence`
+
+กำลังสร้างฐานใหม่จาก raw/checkpoints ใน `data/local/` ของเครื่องนี้ เพราะ checkout ไม่มีข้อมูลจาก `T:\coding+\BI AGRI THAILAND`; ตัวเลข warehouse/PBIP รุ่นเก่าด้านล่างเป็นหลักฐานของเครื่องเดิม ไม่ใช่ผลตรวจใน checkout นี้ ให้ดูผลล่าสุดที่ `data/local/probes/warehouse-rebuild.json` และ snapshot manifest ก่อนใช้งาน
+
+- แก้ DOAE provincial aggregate ให้คง `จังหวัด × ปี × เดือนต้นทาง × สินค้า × รอบปลูก` และไม่เรียกยอดนี้ว่ายอดปี; ยอดราย metric ที่มีองค์ประกอบ missing คง null, yield คิดจากผลผลิตรวม/พื้นที่เก็บเกี่ยวรวมเมื่อครบทั้งคู่, 2 แถวบางบอนอยู่ใน audit. รุ่นใหม่ `source-period-v2` มี 10,682 กลุ่มจาก 50,103 แถว ตรวจกับ `data/local/production/provincial-source-period-v2/provincial_production_inventory.json`; ไม่ใช้ฐานเก่าที่มี `doae-prov:` ปนกับรุ่นใหม่
+- ตรวจรายการชื่อสินค้า NABC รายปี 2554–2569: union 44 ชื่อ ไม่มีชื่อที่เกิน inventory 2569; ขอบเขตคือ endpoint product-names ที่ตรวจ ไม่ใช่หลักฐานว่าราคาทุกเดือนครบ. Daily 41 ชื่อ, weekly ปี 2569 44 ชื่อ, production master 5 กลุ่ม; endpoint ไม่ส่ง total จึงคง `complete=null`. MOC ยัง unreachable. หลักฐานอยู่ `data/local/probes/`
+- ดึง DOPA snapshot 2023, ขอบเขตจังหวัด DDPM 77, ERA5 5 จุด × 2016–2025, RID 14 วัน, MODIS 5 จุด และราคา 44 histories กลับมาใน `data/local/` สิทธิ์ยัง pending. แก้ MODIS ให้ `release_at=null` เมื่อทราบเพียงวันจบรอบภาพ และการดึงซ้ำ payload เดิมใช้ revision เดิม
+- ฐานใหม่ `data/local/tadih.duckdb` มี 141,699 latest/revision rows: DOAE 53,410 (25,973 ค่าไม่ว่าง), ERA5 54,795, RID 25,816 (25,752 ไม่ว่าง), OAE 7,658 (7,657 ไม่ว่าง), MODIS 20. แยก spatial grain ตรงแหล่ง (DOAE province, OAE national, ERA5/MODIS grid_point, RID reservoir). ทุกแถว pending; `release_at` ของ MODIS เป็น null; ไม่มี `doae-prov:` รุ่นเก่าและไม่มี ID ซ้ำ. ดู `data/local/probes/warehouse-audit.json`
+- ตรวจ checksum raw 113 partitions ผ่าน `data/local/probes/checkpoint-verification.json`; Python unittest 122 ผ่าน และ `pip check` ผ่าน. Internal snapshot `exports/private/20261022T145736Z-cf1e49b9` 141,699 แถว, public snapshot `exports/public/20261022T145919Z-dfea41a7` 0 แถว; ตรวจ SHA-256 ครบชุดละ 8 ไฟล์ `data/local/probes/snapshot-verification.json`. Coverage เดือน 2023-01 ในชุดภายในขึ้น AVAILABLE 77 provider×province เฉพาะ DOAE ไม่ใช่การรับรองยอดปีหรือ coverage ทุกเดือน
+- งานต่อด้านข้อมูล: ตรวจความหมายเดือน/รอบปลูกและช่วงเวลาพื้นที่กับ DOAE, ยืนยันสิทธิ์ 7 resources/วันเผยแพร่ราคา, ตรวจสินค้าและข้อมูล daily/weekly จริง, เพิ่ม P1/P2 ตามสเปก, ทำ backtest เมื่อมี issue/release lineage; ห้ามใช้ snapshot นี้เป็น historical as-of certified forecast. ฐานเก่าที่หยุดกลางทางเก็บใน `data/local/backups/partial-before-bulk.duckdb*` เพื่อสอบสวน ไม่ใช่ฐานใช้งาน
+- ช่วงนี้พัก BI ตามคำสั่งล่าสุด: **ทำข้อมูลก่อน**. ยังไม่ทดสอบ Desktop/DAX หรืออัปโหลด Online
+
 ## อ่านตรงนี้ก่อนเริ่ม
 
 โครงการอยู่ระหว่างพัฒนา Thailand Core มี pipeline ที่รันได้ ข้อมูลจริงบางชุด และ Power BI Project ร่างในเครื่อง ยังไม่ผ่านเกณฑ์จบโครงการตามสเปก v1.4 และยังไม่มีรายงานพร้อมใช้งานครบประเทศ
 
 คำสั่งล่าสุดของเจ้าของงาน: **ดึงและเตรียมข้อมูล ทำโมเดล ความสัมพันธ์ Power Query และ DAX ในเครื่องก่อน ตรวจผล แล้วค่อยอัปโหลด Power BI Online เมื่อพร้อม** หยุดการจัด visual ผ่าน browser ไว้แล้ว
 
-- Workspace: `T:\coding+\BI AGRI THAILAND`
+- Workspace ปัจจุบัน: `D:\code\thailand-agri-intelligence`; `T:\coding+\BI AGRI THAILAND` เป็นเครื่องเดิม
 - สเปกหลัก: [Thailand First v1.4](Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ให้ยึด PART IV เป็นลำดับแรก และคงข้อกำหนด historical/forecast ของ PART III
 - Repository: [dragonfly13110/thailand-agri-intelligence](https://github.com/dragonfly13110/thailand-agri-intelligence), public ตามที่เจ้าของงานอนุมัติ เก็บเฉพาะโค้ดและข้อมูลที่อนุญาตเผยแพร่
 - Source snapshot ที่เผยแพร่แล้ว: `e7ad054` รวม PBIP generator, crosswalk, ราคา 44 สินค้า, DAX, tests และเอกสาร; ดู `git log` สำหรับ revision เอกสารที่อาจใหม่กว่า
-- Python: `.venv/Scripts/python.exe` รุ่น 3.14 ในเครื่องนี้; CI ใช้ 3.12; package ติดตั้งแบบ editable
+- Python: `.venv/Scripts/python.exe` รุ่น 3.12 ใน checkout นี้; รุ่น 3.14 ในบันทึกเก่าเป็นอีกเครื่อง; package ติดตั้งแบบ editable
 - ข้อมูล raw, DuckDB, exports ภายใน, SDK และ PBIP ที่มีข้อมูลจริง **ถูก gitignore** การ clone repository อย่างเดียวไม่ได้ข้อมูลเหล่านี้กลับมา
 - Agent ที่เคยติด usage limit กลับมาทำงานต่อได้แล้ว: geography_registry ส่งทะเบียนสิทธิ์ 6 resources, ingestion ส่ง price backfill และ tests งานที่ระบุในเอกสารนี้เป็นผลที่ส่งคืนแล้ว ไม่ต้องรอ agent ค้าง
 
@@ -117,12 +129,12 @@
 
 - [ ] **B1 สิทธิ์และเวลาเผยแพร่:** ปิดเงื่อนไขที่ยังค้างในทะเบียน 7 resources (DOAE, OAE ข้าว, DOPA, DDPM, Open-Meteo archive/forecast, RID อ่างเก็บน้ำขนาดกลาง) และเพิ่มสิทธิ์รายสินค้า/endpoint ที่ยังไม่ได้ตรวจ พร้อม historical earliest/latest; อย่าแก้ `pending` เป็น `approved_public` โดยไม่มีหลักฐาน
 - [ ] **B2 สินค้าและราคา:** monthly 44 histories normalize แล้ว; ยังต้องตรวจรายชื่อสินค้าในอดีตที่ไม่อยู่ใน inventory ปี 2569, daily/weekly/production, taxonomy ข้าม provider, release lineage และ conflict 1 เดือน; MOC เคย timeout ยังไม่ถือว่าเชื่อมสำเร็จ
-- [x] **B3 พื้นที่และผลผลิต:** ตรวจ 2 records บางบอนที่ยัง unmatched (`บางบอน*` แขวงที่ถูกยกเลิกใน DOPA 2023) เก็บแยกไว้ใน audit ไม่เดารหัสตำบล; ตรวจสอบ 50,103 source rows ไม่มี subtotal แฝงและไม่มี duplicate identity; สร้าง provincial gold aggregates 6,696 กลุ่ม (50,101 rows matched snapshot); คำนวณ derived weighted yield (sum(production)/sum(harvested)) ห้าม average; ingest 20,851 observations เข้า DuckDB warehouse สำเร็จ ผ่าน 120 unit tests 100%
+- [ ] **B3 พื้นที่และผลผลิต (ช่วงก่อนบนเครื่องเดิม; ต้องทบทวนเวลา):** ตรวจ 2 records บางบอนที่ยัง unmatched (`บางบอน*` แขวงที่ถูกยกเลิกใน DOPA 2023) เก็บแยกไว้ใน audit ไม่เดารหัสตำบล; ตรวจสอบ 50,103 source rows ไม่มี subtotal แฝงและไม่มี duplicate identity; เคยสร้าง annual aggregates 6,696 กลุ่ม (50,101 rows matched snapshot); คำนวณ derived weighted yield (sum(production)/sum(harvested)) ห้าม average; ingest 20,851 observations เข้า DuckDB warehouse สำเร็จ ผ่าน 120 unit tests 100%
 - [x] **B4 Coverage จริง:** ปรับปรุง Coverage matrix และ Category coverage โดยใช้ USABLE_QUALITY_FLAGS ครอบคลุม gold_provincial_aggregate, partial_unmatched_subdistrict, percent_calibration_consistent, release_unknown; กำหนด missing reason และ data grain ซื่อสัตย์ราย resource (แยก grid_point, reservoir, national ชัดเจน); เมื่อเลือก period 2023-12 แสดง DOAE ระดับจังหวัดเป็น AVAILABLE ครบ 77 จังหวัด; ผ่านสัญญา coverage.schema.json และ unit tests 121 ผ่าน 100%
 - [x] **B5 อากาศระดับประเทศ:** ขยายเก็บอากาศ 5 จุดตัวแทนเกษตรกรรมไทย (นครปฐม กลาง, เชียงใหม่ เหนือ, ขอนแก่น อีสานบน, อุบลราชธานี อีสานล่าง, สุราษฎร์ธานี ใต้) ย้อนหลัง 10 ปี (2016–2025) รวม 54,795 observations; คำนวณ rainfall percentiles ย้อนหลัง 10 ปีสำหรับเกณฑ์ตัดสินใจฝนแล้งได้แล้ว; ตรวจสอบพิกัดตกในขอบเขตจังหวัด DDPM ครบถ้วน
 - [x] **B6 น้ำและดาวเทียม:** ขยาย RID อ่างเก็บน้ำขนาดกลาง 461 แห่งย้อนหลัง 14 วันต่อเนื่อง (25,816 observations, percent calibration mismatch = 0) และขยายดาวเทียม MODIS 500m 16-day NDVI/QA ครบ 5 จุดตัวแทนเกษตรกรรมไทย (28 observations) พร้อมระบบตรวจจับเมฆบังอัตโนมัติ
 - [ ] **B7 หมวดอื่นตามสเปก:** พัฒนาข้อมูลดิน ภัยพิบัติ ปศุสัตว์ ประมง ต้นทุน/นโยบายตามลำดับ P1/P2 พร้อมนิยามพื้นที่และสิทธิ์ของแต่ละ source; registry อย่างเดียวไม่ใช่การเชื่อมสำเร็จ
-- [x] **B8 Decision workflows:** ขยายทดสอบ D01 ตลาด/ผลผลิต และ D02 น้ำกับ evidence จริงครอบคลุม 4 ภูมิภาคหลัก รวม 8 cards (Watch 2, Normal 3, Unknown 3 จาก cloud safety และ spatial mismatch); รวมเข้า snapshot ภายใน 88,293 observations แล้ว พร้อม unit tests 119 ผ่าน 100%
+- [x] **B8 Decision workflows:** ขยายทดสอบ D01 ตลาด/ผลผลิต และ D02 น้ำกับ evidence จริงครอบคลุม 4 ภูมิภาคหลัก รวม 8 cards (Watch 2, Normal 3, Unknown 3 จาก cloud safety และ spatial mismatch); เคยรวมเข้า snapshot ภายใน 88,293 observations บนเครื่องเดิม พร้อม unit tests 119 ผ่าน 100%
 - [ ] **B9 Forecast:** จัดโมเดลให้ตรงความถี่ข้อมูลจริง สร้าง walk-forward backtest/seasonal naïve/scorecard/calibration; ห้ามเอาราคารายเดือนมาเติมเป็นรายวัน หรือใช้ retrieved_at แทน release_at/issue_at
 
 ### C. ตรวจ Power BI ในเครื่องแล้วจึงขึ้น Online

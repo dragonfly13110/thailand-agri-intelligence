@@ -1,5 +1,9 @@
 # สถานะโครงการ 22 ตุลาคม 2569
 
+งานข้อมูลใน checkout `D:\code\thailand-agri-intelligence` วันที่ 22 ต.ค. 2569: ดึง raw/checkpoints ใหม่ใน `data/local/` และแก้การรวม DOAE ให้คงเดือนกับรอบปลูกตามต้นทาง (10,682 กลุ่ม); ราคา historical names ปี 2554–2569 รวม 44 ชื่อ, daily master 41, weekly 44, production 5 กลุ่ม, MOC ยัง unreachable. MODIS คงวันเผยแพร่เป็น null ตามหลักฐานที่มี. บันทึกผลและข้อจำกัดใน [HANDOFF.md](../HANDOFF.md) และไฟล์ `data/local/probes/`; งดงาน BI ตามคำสั่งล่าสุด
+
+ผลตรวจในเครื่องนี้: DuckDB 141,699 latest observations จาก 5 แหล่ง (DOAE 53,410; ERA5 54,795; RID 25,816; OAE 7,658; MODIS 20) ตรวจ 113 raw checkpoints และ 122 unit tests ผ่าน. ชุดภายใน `exports/private/20261022T145736Z-cf1e49b9` มี 141,699 แถว ชุด public `exports/public/20261022T145919Z-dfea41a7` มี 0 แถว เพราะสิทธิ์ยัง pending; ตรวจ hash 8 ไฟล์ต่อชุดแล้ว. หลักฐาน `data/local/probes/warehouse-audit.json`, `checkpoint-verification.json`, `snapshot-verification.json`. ยังต้องตรวจนิยามเดือน DOAE และวันเผยแพร่ก่อนใช้พยากรณ์ย้อนหลัง
+
 ช่วงนี้ทำฐานระบบ Thailand Core ตาม PART IV เป็นลำดับแรก ไม่ได้ถือว่าแผน 59 วันเสร็จแล้ว
 
 เช็กลิสต์ส่งต่องานและไฟล์ทั้งหมด: [HANDOFF.md](../HANDOFF.md) เป็นจุดเริ่มสำหรับ AI ตัวถัดไป มีคำสั่งตรวจ พาธข้อมูลจริง และงานต่อ B1–D5
@@ -14,7 +18,7 @@
 | Registry ไทยและบริการพื้นที่ไทย 16 แหล่ง | config/sources.json | รายการพร้อม; สิทธิ์ราย resource ยัง pending |
 | DOAE/OAE discovery | data/local/probes, raw checksum | เชื่อม metadata จริง; แบ่งหน้าได้ |
 | ราคา OAE/NABC | 44 histories; ราคาไม่ขัดแย้ง 7,657 เดือน ช่วงรวม ม.ค. 2011 ถึง ก.ย. 2026 | ระดับประเทศ; อีก 1 เดือน Unknown จาก source conflict |
-| ผลผลิต DOAE | 50,103 records staging -> provincial gold aggregates 6,696 กลุ่ม (50,101 แถว matched, 2 แถว unmatched บางบอน แยก audit ชัดเจน ไม่เดารหัส); ingest 20,851 observations เข้า DuckDB | ผ่านการทดสอบ; คำนวณ weighted yield (sum(production)/sum(harvested)) ห้าม average |
+| ผลผลิต DOAE | 50,103 records staging -> source-period spatial aggregates 10,682 กลุ่มใน checkout ปัจจุบัน (6,696 กลุ่มเป็นรุ่นรวมปีเครื่องเดิม) (50,101 แถว matched, 2 แถว unmatched บางบอน แยก audit ชัดเจน ไม่เดารหัส); ตัวเลข ingest 20,851 observations เป็นฐานเก่า | ผ่านการทดสอบ; คำนวณ weighted yield (sum(production)/sum(harvested)) ห้าม average |
 | พื้นที่ระดับย่อย | DOPA snapshot2023:928 อำเภอ/7,436 ตำบล, retired1,584 | แยก active/retired; ไม่อ้าง current2026 |
 | Commodity inventory NABC | ปี2569:raw387/unique376/duplicates11; 44 identities/4pages | normalize แล้ว; product histories 44 captures; taxonomy ข้าม provider ยังไม่ทำ |
 | อากาศ ERA5 | 5 จุดภูมิภาคเกษตรไทย / จุดละ 3,653 วัน ปี 2016 ถึง 2025 / 3 ตัวแปร | ดึงจริง 50 partitions (นครปฐม, เชียงใหม่, ขอนแก่น, อุบลฯ, สุราษฎร์ฯ) รวม 54,795 observations; คำนวณ 10-year percentile รายจุดได้ |
@@ -31,7 +35,7 @@
 ## ผลตรวจรับฐานระบบ
 
 - Tests 121 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety), PBIR `version.json` metadata, DOAE provincial gold aggregation (weighted yield, unmatched isolation) และ B4 coverage inventory verification
-- Warehouse ใน `data/local/tadih.duckdb` มีข้อมูลล่าสุด **109,144 แถว** (revision 109,148 แถว ขนาดเพียง 44.76 MB): ราคาประเทศ 7,658 ค่า, อากาศ 5 ภูมิภาค 54,795 ค่า, อ่างเก็บน้ำ RID 461 แห่ง 14 วัน 25,816 ค่า, ดาวเทียม MODIS 5 ภูมิภาค 24 ค่า และผลผลิตและพื้นที่ระดับจังหวัด DOAE 20,851 ค่า (77 จังหวัด)
+- Warehouse บนเครื่องเดิมเคยมีข้อมูล **109,144 แถว** (revision 109,148 แถว ขนาดเพียง 44.76 MB): ราคาประเทศ 7,658 ค่า, อากาศ 5 ภูมิภาค 54,795 ค่า, อ่างเก็บน้ำ RID 461 แห่ง 14 วัน 25,816 ค่า, ดาวเทียม MODIS 5 ภูมิภาค 24 ค่า และผลผลิตและพื้นที่ระดับจังหวัด DOAE 20,851 ค่า (77 จังหวัด)
 - Decision Workflows D01 (ตลาด/ผลผลิต) และ D02 (น้ำ/ภัยพิบัติ) ขยายทดสอบกับ evidence จริงครบ 8 cards ครอบคลุม 4 ภูมิภาค:
   - D02 Watch (กทม./ปริมณฑล): ฝน percentile 0.10 + ฟ้าเปิด NDVI 0.6737 + ระดับน้ำ 2.45m -> `watch`
   - D02 Normal (กทม./ปริมณฑล): ฝน percentile 0.65 -> `normal`
@@ -42,7 +46,7 @@
   - D01 Watch: ราคาลดลง 24% และผลผลิตเปลี่ยน 6.7% -> `watch`
   - D01 Unknown: ส่งราคา grain ประเทศ (TH) เข้าประเมินระดับจังหวัด (10) -> ปฏิเสธ fail-closed `incompatible_spatial_grain` ป้องกันการปะปน grain ข้ามระดับ
 - Crosswalk ผลผลิต DOAE จับคู่ชื่อภายใต้ parent hierarchy ได้ 50,101 จาก 50,103 records เหลือ 1 ชุดชื่อพื้นที่/2 records ที่ยังไม่ match ไม่เดารหัสแทน ใช้ DOPA snapshot2023 จึงยังไม่รับรอง boundary ของทุกช่วงเวลา
-- Snapshot ภายในมี 88,293 แถว และ decision cards 8 ใบ พร้อม CSV/Parquet และ metadata `redistribution_allowed=false` ผล build ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T114836Z-409364b9`)
+- Snapshot ภายในจากเครื่องเดิมมี 88,293 แถว และ decision cards 8 ใบ พร้อม CSV/Parquet และ metadata `redistribution_allowed=false` ผล build ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T114836Z-409364b9`)
 - Snapshot สาธารณะมีข้อมูลวัด 0 แถว เพราะสิทธิ์ resource ยัง pending ผล build ล่าสุดอยู่ใน `data/local/public-build.json` (`exports/public/20261022T114949Z-1eb57f80`)
 - NABC history raw 7,669 แถว: exact duplicates 10, conflict 1 เดือน/2 แถว ไม่มีการเลือกราคาใดแทนกัน ใช้ quality revision ค่า null; หลักฐาน `data/local/probes/monthly-price-backfill.json` และ `monthly-price-import.json`
 - แก้ price IDs ที่เคยผูกกับค่าให้คง source/product/unit/month/area และเก็บค่าที่เปลี่ยนเป็น revision สำรองฐานเดิมก่อน migration; raw/export snapshots เก่าไม่ถูกแก้

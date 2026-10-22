@@ -141,11 +141,8 @@ def normalize_modis_point(envelope: dict, license_status: str = "pending") -> di
     location_id = f"point:{lat}:{lon}"
 
     start_iso = envelope.get("start_datetime")
-    end_iso = envelope.get("end_datetime")
-    if not start_iso or not end_iso:
-        calc_start, calc_end = _parse_modis_item_dates(item_id)
-        start_iso = start_iso or calc_start
-        end_iso = end_iso or calc_end
+    if not start_iso:
+        start_iso = _parse_modis_item_dates(item_id)[0]
 
     if not start_iso:
         raise ValueError(f"Cannot determine observation timestamp for item {item_id}")
@@ -159,7 +156,7 @@ def normalize_modis_point(envelope: dict, license_status: str = "pending") -> di
     if raw_rel is None or raw_rel == -1.0:
         rel_val = None
         rel_flag = "missing"
-        valid_fraction = 0.0
+        valid_fraction = None
     else:
         rel_val = float(raw_rel)
         if rel_val == 0.0:
@@ -204,7 +201,7 @@ def normalize_modis_point(envelope: dict, license_status: str = "pending") -> di
     observations = []
     for measure, val, unit, flag in obs_specs:
         obs_id = f"modis:{location_id}:{obs_date}:{measure}"
-        rev_id = hashlib.sha256(f"{obs_id}:{val}:{retrieved_at}".encode("utf-8")).hexdigest()[:16]
+        rev_id = hashlib.sha256(f"{obs_id}:{val}:{flag}:{item_id}".encode("utf-8")).hexdigest()[:16]
         row = {
             "observation_id": obs_id,
             "source_id": "modis",
@@ -213,7 +210,7 @@ def normalize_modis_point(envelope: dict, license_status: str = "pending") -> di
             "location_id": location_id,
             "commodity_id": None,
             "observed_at": start_iso,
-            "release_at": end_iso,
+            "release_at": None,  # Composite end is not the provider publication time.
             "retrieved_at": retrieved_at,
             "measure": measure,
             "value": val,

@@ -48,6 +48,10 @@ class SatelliteTests(unittest.TestCase):
         self.assertEqual("point:13.8:100.25", result["location_id"])
 
         obs = {o["measure"]: o for o in result["observations"]}
+        self.assertTrue(all(o["release_at"] is None for o in obs.values()))
+        later = {**self.sample_envelope, "retrieved_at": "2026-10-23T09:32:33Z"}
+        repeated = {o["measure"]: o for o in normalize_modis_point(later)["observations"]}
+        self.assertEqual(obs["ndvi"]["revision_id"], repeated["ndvi"]["revision_id"])
         self.assertIn("ndvi", obs)
         self.assertIn("ndvi_valid_pixel_fraction", obs)
         self.assertIn("pixel_reliability", obs)
@@ -102,7 +106,7 @@ class SatelliteTests(unittest.TestCase):
         }
         result = normalize_modis_point(env)
         self.assertIsNone(result["ndvi"])
-        self.assertEqual(0.0, result["valid_fraction"])
+        self.assertIsNone(result["valid_fraction"])
         obs = {o["measure"]: o for o in result["observations"]}
         self.assertIsNone(obs["ndvi"]["value"])
         self.assertEqual("fill_no_data", obs["ndvi"]["quality_flag"])

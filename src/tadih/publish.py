@@ -37,7 +37,7 @@ def _csv(path, fields, rows):
 
 USABLE_QUALITY_FLAGS = {
     "good", "valid", "gold_provincial_aggregate", "partial_unmatched_subdistrict",
-    "percent_calibration_consistent", "release_unknown", "marginal"
+    "percent_calibration_consistent", "release_unknown", "marginal", "source_period_provincial_aggregate"
 }
 
 

@@ -33,6 +33,71 @@ class Response(io.BytesIO):
 
 
 class ProductionTests(unittest.TestCase):
+    def test_provincial_period_round_missing_and_revisions(self):
+        from tadih.production import aggregate_provincial_production, provincial_production_observations
+        from tadih.warehouse import connect, ingest_rows
+
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            crosswalk = directory / "crosswalk.csv"
+            crosswalk.write_text(
+                "province_name,district_name,subdistrict_name,province_code,mapping_status\n"
+                "กรุงเทพมหานคร,เขตหนองจอก,กระทุ่มราย,10,matched_snapshot\n"
+                "กรุงเทพมหานคร,เขตหนองจอก,คลองสิบ,10,matched_snapshot\n", encoding="utf-8")
+            rows = [parse_production_row(source_row(), 1),
+                    parse_production_row(source_row(เดือน="6"), 2),
+                    parse_production_row(source_row(รอบการปลูก="2"), 3),
+                    parse_production_row(source_row(**{"ตำบล": "คลองสิบ"}), 4)]
+            rows[-1]["production_kg"] = None
+            records = directory / "records.jsonl"
+
+            def aggregate():
+                records.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+                return aggregate_provincial_production(records, crosswalk)
+
+            result = aggregate()
+            self.assertEqual(result["provincial_groups"], 3)
+            partial = next(r for r in result["aggregates"] if r["month"] == 5 and r["planting_round"] == "1")
+            self.assertIsNone(partial["production_kg"])
+            self.assertIsNone(partial["weighted_yield_kg_per_rai"])
+            self.assertEqual(partial["harvested_area_rai"], 9680)
+            first = provincial_production_observations(result["aggregates"])
+            self.assertEqual({r["observed_at"][:7] for r in first}, {"2023-05", "2023-06"})
+            self.assertEqual({r["season"] for r in first}, {"planting_round:1", "planting_round:2"})
+            self.assertEqual(len({r["observation_id"] for r in first}), len(first))
+            with connect() as db:
+                ingest_rows(db, first)
+                ingest_rows(db, first)
+                before = db.execute("SELECT count(*) FROM observations").fetchone()[0]
+                rows[1]["production_kg"] += 1
+                revised = provincial_production_observations(aggregate()["aggregates"])
+                ingest_rows(db, revised)
+                self.assertGreater(db.execute("SELECT count(*) FROM observations").fetchone()[0], before)
+                self.assertEqual(db.execute("SELECT count(*) FROM latest_observations").fetchone()[0], before)
+                rows[1]["production_kg"] = None
+                missing = provincial_production_observations(aggregate()["aggregates"])
+                ingest_rows(db, missing)
+                june_id = next(r["observation_id"] for r in missing
+                               if r["measure"] == "production" and r["observed_at"].startswith("2023-06"))
+                value = db.execute("SELECT value FROM latest_observations WHERE observation_id=?", [june_id]).fetchall()
+                self.assertEqual(value, [(None,)])
+            from contextlib import redirect_stderr
+            from tadih.cli import main
+            legacy_db = directory / "legacy.duckdb"
+            with connect(legacy_db) as db:
+                ingest_rows(db, [{**first[0], "observation_id": "doae-prov:legacy"}])
+            error = io.StringIO()
+            with redirect_stderr(error):
+                status = main(["--db", str(legacy_db), "doae-provincial-aggregate", str(records),
+                               str(crosswalk), "--output", str(directory / "output"), "--ingest"])
+            self.assertEqual(status, 1)
+            self.assertIn("legacy annual DOAE", error.getvalue())
+            with connect(legacy_db) as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM observations").fetchone()[0], 1)
+            rows.append(rows[0].copy())
+            with self.assertRaisesRegex(ValueError, "duplicate"):
+                aggregate()
+
     def test_parser_units_missing_be_year_and_spillover_year(self):
         row = parse_production_row(source_row(), 1)
         self.assertEqual(row["year_ad"], 2023)
@@ -140,7 +205,7 @@ class ProductionTests(unittest.TestCase):
             rows = [
                 # Row 1: 1000 rai, 600,000 kg -> 600 kg/rai
                 {
-                    "source_record_number": 1, "year_ad": 2023, "province_name": "กรุงเทพมหานคร",
+                    "source_record_number": 1, "year_ad": 2023, "month": 5, "planting_round": "1", "province_name": "กรุงเทพมหานคร",
                     "district_name": "เขตหนองจอก", "subdistrict_name": "กระทุ่มราย", "crop_group": "ข้าว",
                     "crop_type": "ข้าวนาปี", "variety_name": "กข 41", "commodity_id": cid,
                     "planted_area_rai": 1000.0, "damaged_area_rai": None, "harvested_area_rai": 1000.0,
@@ -148,7 +213,7 @@ class ProductionTests(unittest.TestCase):
                 },
                 # Row 2: 2000 rai, 1,600,000 kg -> 800 kg/rai
                 {
-                    "source_record_number": 2, "year_ad": 2023, "province_name": "กรุงเทพมหานคร",
+                    "source_record_number": 2, "year_ad": 2023, "month": 5, "planting_round": "1", "province_name": "กรุงเทพมหานคร",
                     "district_name": "เขตลาดกระบัง", "subdistrict_name": "ลาดกระบัง", "crop_group": "ข้าว",
                     "crop_type": "ข้าวนาปี", "variety_name": "กข 41", "commodity_id": cid,
                     "planted_area_rai": 2000.0, "damaged_area_rai": None, "harvested_area_rai": 2000.0,
@@ -156,7 +221,7 @@ class ProductionTests(unittest.TestCase):
                 },
                 # Row 3 (unmatched subdistrict): 500 rai, 400,000 kg
                 {
-                    "source_record_number": 3, "year_ad": 2023, "province_name": "กรุงเทพมหานคร",
+                    "source_record_number": 3, "year_ad": 2023, "month": 5, "planting_round": "1", "province_name": "กรุงเทพมหานคร",
                     "district_name": "เขตบางบอน", "subdistrict_name": "บางบอน*", "crop_group": "ข้าว",
                     "crop_type": "ข้าวนาปี", "variety_name": "กข 41", "commodity_id": cid,
                     "planted_area_rai": 500.0, "damaged_area_rai": None, "harvested_area_rai": 500.0,
@@ -195,12 +260,12 @@ class ProductionTests(unittest.TestCase):
 
             # Convert to observations and validate against JSON contract
             observations = provincial_production_observations(result["aggregates"])
-            self.assertEqual(len(observations), 4)  # planted_area, harvested_area, production, yield
+            self.assertEqual(len(observations), 5)  # Includes explicit missing damaged area.
             for obs in observations:
                 validate_observation(obs)
                 self.assertEqual(obs["area_code"], "10")
                 self.assertEqual(obs["spatial_support"], "province")
-                self.assertEqual(obs["quality_flag"], "partial_unmatched_subdistrict")
+                self.assertEqual(obs["quality_flag"], "missing" if obs["value"] is None else "partial_unmatched_subdistrict")
 
 
 if __name__ == "__main__":
