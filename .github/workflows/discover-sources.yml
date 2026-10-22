@@ -22,13 +22,15 @@ jobs:
       - run: python -m pip install -r requirements.lock
       - run: python -m pip install --no-deps -e .
       - name: DOAE catalog metadata
-        run: python -m tadih discover --source doae --limit 100 --max-pages 2
+        run: python -m tadih discover --source doae --limit 100 --max-pages 2 > doae-status.json
       - name: OAE catalog metadata
         if: always()
-        run: python -m tadih discover --source oae --limit 100 --max-pages 2
+        run: python -m tadih discover --source oae --limit 100 --max-pages 2 > oae-status.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: tadih-catalog-probes
-          path: data/local/raw/
+          path: |
+            doae-status.json
+            oae-status.json
           retention-days: 14
