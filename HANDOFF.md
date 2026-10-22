@@ -11,7 +11,7 @@
 - Workspace: `T:\coding+\BI AGRI THAILAND`
 - สเปกหลัก: [Thailand First v1.4](Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ให้ยึด PART IV เป็นลำดับแรก และคงข้อกำหนด historical/forecast ของ PART III
 - Repository: [dragonfly13110/thailand-agri-intelligence](https://github.com/dragonfly13110/thailand-agri-intelligence), public ตามที่เจ้าของงานอนุมัติ เก็บเฉพาะโค้ดและข้อมูลที่อนุญาตเผยแพร่
-- Commit ล่าสุดที่เผยแพร่ก่อนเอกสารนี้: `5dcf130` ไม่รวมงาน PBIP/crosswalk และเอกสารล่าสุดที่ยังอยู่ใน working tree
+- Source snapshot ที่เผยแพร่แล้ว: `e7ad054` รวม PBIP generator, crosswalk, ราคา 44 สินค้า, DAX, tests และเอกสาร; ดู `git log` สำหรับ revision เอกสารที่อาจใหม่กว่า
 - Python: `.venv/Scripts/python.exe` รุ่น 3.14 ในเครื่องนี้; CI ใช้ 3.12; package ติดตั้งแบบ editable
 - ข้อมูล raw, DuckDB, exports ภายใน, SDK และ PBIP ที่มีข้อมูลจริง **ถูก gitignore** การ clone repository อย่างเดียวไม่ได้ข้อมูลเหล่านี้กลับมา
 - Agent ที่เคยติด usage limit กลับมาทำงานต่อได้แล้ว: geography_registry ส่งทะเบียนสิทธิ์ 6 resources, ingestion ส่ง price backfill และ tests งานที่ระบุในเอกสารนี้เป็นผลที่ส่งคืนแล้ว ไม่ต้องรอ agent ค้าง
@@ -135,7 +135,7 @@
 - [ ] **D2 ต่อเนื่อง 14 วัน:** เก็บหลักฐานรันจริงและการจัดการ failure ครบ 14 วัน ผล CI สำเร็จครั้งเดียวไม่ใช่หลักฐานข้อนี้
 - [ ] **D3 Backup/restore:** สำรอง DuckDB/raw/manifests/local PBIP ไปพื้นที่องค์กรที่อนุมัตินอก trial แล้วทดสอบ restore จริง; Git ไม่มีข้อมูล ignored เหล่านี้
 - [ ] **D4 ส่งมอบ:** จัด data dictionary/source-license register/model scorecard/cost/quota/runbook ฉบับใช้งานจริง และทดสอบทำงานต่อโดยไม่พึ่ง Fabric trial
-- [ ] **D5 Git:** review/diff/test แล้ว commit และ push งานล่าสุดที่อนุญาตเผยแพร่ ตอนเขียนเอกสารนี้ local project generator, crosswalk, DAX และเอกสารใหม่ยังไม่อยู่ใน remote commit `5dcf130`
+- [x] **D5 Git:** review/diff/test และ commit/push source ที่อนุญาตเผยแพร่แล้วใน `e7ad054`; raw, DuckDB, SDK และ PBIP ที่มีข้อมูลจริงยังถูก ignore ไม่อยู่บน remote
 
 ไม่กำหนดเปอร์เซ็นต์เสร็จทั้งโครงการจากจำนวนไฟล์หรือจำนวนแถว ให้ตรวจเกณฑ์ข้อ 46 และ 53 ของสเปกทีละข้อ
 
@@ -180,10 +180,11 @@ $productionHash = 'a505aa24d0706a162a1d56265cc61fb6ce33df8c9760dab414bf0ad01762e
 
 - Python tests ล่าสุด: **101 ผ่าน**; `pip check` ผ่าน รวม regression สำหรับ schema cache, price identities, units, quarantine และ no-network resume
 - Local PBIP: hashes 32 files และ Microsoft schemas 19 metadata files ผ่าน ขอบเขตนี้ไม่ execute M/DAX และไม่ render visual
+- Independent review ตรวจหน่วย ราคา/revisions/quarantine และพบข้อแก้ DAX 2 จุด: ให้หน่วยใช้ context เดียวกับค่าราคา และบังคับ farm_gate ไม่รับ wholesale/retail ทั้งสองจุดแก้ใน source และร่าง offline-v4 แล้ว ยังต้องยืนยันด้วย engine ใน C2
 - TOM SDK 19.114.12: model deserialize/TMDL round trip ผ่านซ้ำในรอบตรวจส่งต่องาน; ไม่มีการเปลี่ยน model source ระหว่างทำเอกสารนี้
 - หลักฐานตรวจรอบนี้อยู่ใน `data/local/verification/handoff-2026-10-22.json` รวมผล tests, pip check, metadata validation, TOM และ snapshot verification ไฟล์นี้อยู่ในเครื่องและถูก gitignore
 - Internal/public snapshot: ตรวจ hashes ครบ snapshot ละ 8 artifacts; 18,617 / 0 observation rows ตามลำดับ
-- [CI ล่าสุดของ commit 5dcf130](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39746425920): success
+- [CI ของ source commit e7ad054](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39755251646): success; ไม่ใช้ผล CI แทน Desktop runtime
 - [Live catalog probe](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39744139935): success ไม่ใช่การดึงข้อมูลครบทุก source
 - Source `license_status` ของชุดจริงยัง pending, unknown timestamps คง null, forecast ยัง suppressed และไม่มีการตรวจ DAX runtime/Power BI rendering
 
