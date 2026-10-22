@@ -180,6 +180,8 @@ def normalize_modis_point(envelope: dict, license_status: str = "pending") -> di
     if raw_ndvi is None or raw_ndvi == MOD13A1_FILL_VALUE or raw_ndvi < -2000.0 or raw_ndvi > 10000.0:
         ndvi_val = None
         ndvi_flag = "fill_no_data"
+        if valid_fraction is not None:
+            valid_fraction = 0.0
     else:
         ndvi_val = round(raw_ndvi * LPDAAC_MOD13A1_SCALE, 4)
         ndvi_flag = rel_flag

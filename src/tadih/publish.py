@@ -1,6 +1,7 @@
 """Immutable, checksummed CSV/Parquet snapshots for Power BI Import."""
 
 import csv
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -62,15 +63,20 @@ def build_exports(db, output_dir, period=None, now=None, audience="public", evid
     _csv(snapshot / "fact_observation.csv", FIELDS, facts)
     parquet_path = str(snapshot / "fact_observation.parquet").replace("'", "''")
     db.execute(f"COPY (SELECT * FROM latest_observations {publication_filter}) TO '{parquet_path}' (FORMAT PARQUET)")
+    provincial = defaultdict(list)
+    category_sources = defaultdict(set)
+    for row in facts:
+        if (row["spatial_support"] == "province" and row["value"] is not None
+                and row["quality_flag"] in USABLE_QUALITY_FLAGS
+                and timestamp(row["observed_at"]).astimezone(BANGKOK).strftime("%Y-%m") == period):
+            provincial[row["source_id"], row["area_code"]].append(row)
+            category_sources[row["area_code"], MEASURE_CATEGORY.get(row["measure"])].add(row["source_id"])
     coverage = []
     for source in sources:
         sid = source["source_id"]
         for province in provinces:
             pcode = province["area_code"]
-            rows = [row for row in facts if row["source_id"] == sid
-                    and row["area_code"] == pcode and row["spatial_support"] == "province"
-                    and timestamp(row["observed_at"]).astimezone(BANGKOK).strftime("%Y-%m") == period and row["value"] is not None
-                    and row["quality_flag"] in USABLE_QUALITY_FLAGS]
+            rows = provincial[sid, pcode]
             latest = max((r["observed_at"] for r in rows), default=None)
             target_days = source.get("freshness_days")
             freshness = "unknown" if latest is None or target_days is None else (
@@ -78,30 +84,30 @@ def build_exports(db, output_dir, period=None, now=None, audience="public", evid
             if rows:
                 status = "AVAILABLE"
                 grain = "province"
-                note = f"Verified provincial data available ({len(rows)} observations)"
+                note = f"Usable provincial observations in selected audience/period ({len(rows)} observations)"
                 missing_reason = None
             else:
                 status = "UNVERIFIED"
                 if sid == "doae":
                     grain = "province"
-                    note = "DOAE annual production reported at provincial grain"
-                    missing_reason = "No provincial production for this period; verified provincial gold aggregates exist for 2023-12"
+                    note = "DOAE source-period spatial aggregates; annual and source-month semantics require review"
+                    missing_reason = "No usable provincial production in selected audience and period"
                 elif sid == "open_meteo":
                     grain = "grid_point"
-                    note = "5 regional agricultural points (54,795 observations, 2016-2025); spatial support is grid_point, not provincial average"
-                    missing_reason = "Grid point series exists in warehouse but is not downscaled to provincial polygons"
+                    note = "ERA5 archive uses grid_point grain, not provincial averages"
+                    missing_reason = "Grid point observations are not downscaled to provincial polygons"
                 elif sid == "rid":
                     grain = "reservoir"
-                    note = "461 medium reservoirs across Thailand (25,816 observations, Oct 2026); spatial support is reservoir, not provincial average"
+                    note = "RID medium reservoir reports use reservoir grain, not provincial averages"
                     missing_reason = "Reservoir volume is tracked per reservoir; not rolled up to province boundaries without watershed delineation"
                 elif sid == "oae":
                     grain = "national"
-                    note = "National monthly farmgate prices for 44 commodity series (7,658 observations); spatial support is national, not province"
+                    note = "NABC monthly farmgate price adapter uses national grain, not province"
                     missing_reason = "Price series is published at national level; cannot be distributed to provinces without provincial market data"
                 elif sid == "modis":
                     grain = "grid_point"
-                    note = "MODIS 500m 16-day NDVI and cloud QA across 5 regional points; spatial support is grid_point"
-                    missing_reason = "Point samples exist in warehouse; zonal statistics and crop mask required for provincial rollup"
+                    note = "MODIS 500m 16-day NDVI and QA adapter uses grid_point grain"
+                    missing_reason = "Zonal statistics and crop mask required for provincial rollup"
                 else:
                     grain = "province"
                     note = "Catalog discovery lead; formal ingestion pipeline pending"
@@ -120,10 +126,7 @@ def build_exports(db, output_dir, period=None, now=None, audience="public", evid
     for province in provinces:
         for category in categories:
             cat_id = category["category_id"]
-            available = {r["source_id"] for r in facts if r["area_code"] == province["area_code"]
-                and r["spatial_support"] == "province" and r["value"] is not None and r["quality_flag"] in USABLE_QUALITY_FLAGS
-                and MEASURE_CATEGORY.get(r["measure"]) == cat_id
-                and timestamp(r["observed_at"]).astimezone(BANGKOK).strftime("%Y-%m") == period}
+            available = category_sources[province["area_code"], cat_id]
             category_coverage.append({"area_code": province["area_code"], "category_id": cat_id,
                 "period": period, "status": "AVAILABLE" if available else "UNVERIFIED",
                 "available_source_count": len(available), "expected_source_count": None})

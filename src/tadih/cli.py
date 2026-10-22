@@ -1,6 +1,7 @@
 """Repository-oriented CLI. Network calls are always explicit."""
 
 import argparse
+import hashlib
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -17,6 +18,10 @@ def parser():
     p = argparse.ArgumentParser(description="TADIH: Thailand-first data pipeline")
     p.add_argument("--db", default="data/local/tadih.duckdb")
     commands = p.add_subparsers(dest="command", required=True)
+    livestock = commands.add_parser("dld-livestock-value", help="Capture national livestock value; local staging only")
+    livestock.add_argument("--output", default="data/local/raw")
+    fisheries = commands.add_parser("dof-production", help="Capture national fisheries quantity/value; local staging only")
+    fisheries.add_argument("--output", default="data/local/raw")
     build = commands.add_parser("build", help="Build immutable CSV/Parquet export; no network")
     build.add_argument("--output", help="Snapshot directory; defaults to exports/build or exports/private")
     build.add_argument("--period", help="Coverage month YYYY-MM")
@@ -133,6 +138,24 @@ def main(argv=None):
             partition = f"catalog-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}-start{args.start}"
             output = save_snapshot(envelope, args.source, args.output, partition)
             output["pagination"] = envelope.get("pagination")
+        elif args.command == "dof-production":
+            from .fisheries import capture_fisheries
+            captured = capture_fisheries(args.output)
+            digest = hashlib.sha256("".join(c["checksum"] for c in captured["captures"]).encode()).hexdigest()
+            staged = Path(args.output) / "dof" / (digest + "-staged.json")
+            staged.write_text(json.dumps(captured["rows"], ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+            output = {"captures": captured["captures"], "staged_path": str(staged.resolve()),
+                      "source_values": len(captured["rows"]), "license_status": "pending",
+                      "warehouse_status": "not_imported_reference_period_unverified"}
+        elif args.command == "dld-livestock-value":
+            from .livestock import capture_livestock_value
+            captured = capture_livestock_value(args.output)
+            manifest = captured["manifest"]
+            staged = Path(args.output) / "dld/livestock-value" / (manifest["checksum"] + "-staged.json")
+            staged.write_text(json.dumps(captured["rows"], ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+            output = {"manifest": manifest, "staged_path": str(staged.resolve()),
+                      "source_rows": len(captured["rows"]), "license_status": "pending",
+                      "warehouse_status": "not_imported_reference_period_unverified"}
         elif args.command == "decision":
             from .decisions import evaluate_market, evaluate_water_risk
             evidence = json.loads(Path(args.file).read_text(encoding="utf-8-sig"))

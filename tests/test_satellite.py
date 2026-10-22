@@ -119,6 +119,13 @@ class SatelliteTests(unittest.TestCase):
             self.assertEqual("planetary_computer", manifest["source"])
             self.assertEqual(meta["sha256"], manifest["sha256"])
 
+    def test_fill_ndvi_is_not_a_valid_pixel_despite_good_reliability(self):
+        env = {**self.sample_envelope, "payload": {
+            **self.sample_envelope["payload"], "values": [MOD13A1_FILL_VALUE, 0.0, 2116.0]}}
+        result = normalize_modis_point(env)
+        self.assertIsNone(result["ndvi"])
+        self.assertEqual(0.0, result["valid_fraction"])
+
 
 if __name__ == "__main__":
     unittest.main()

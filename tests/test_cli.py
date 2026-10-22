@@ -10,6 +10,22 @@ from tadih.ingestion import save_snapshot, snapshot_complete
 
 
 class CliTests(unittest.TestCase):
+    def test_livestock_stages_without_opening_warehouse(self):
+        from contextlib import redirect_stdout
+        import io
+        from unittest.mock import patch
+        from tadih.cli import main
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory) / "dld/livestock-value"
+            folder.mkdir(parents=True)
+            capture = {"manifest": {"checksum": "a" * 64}, "rows": [{"value": None, "license_status": "pending"}]}
+            output = io.StringIO()
+            with patch("tadih.livestock.capture_livestock_value", return_value=capture), patch("tadih.cli.connect", side_effect=AssertionError("staging must not open warehouse")), redirect_stdout(output):
+                self.assertEqual(main(["dld-livestock-value", "--output", directory]), 0)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result["source_rows"], 1)
+            self.assertIsNone(json.loads(Path(result["staged_path"]).read_text(encoding="utf-8"))[0]["value"])
+
     def test_machine_json_is_utf8_even_when_windows_pipe_encoding_is_ascii(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "evidence.json"

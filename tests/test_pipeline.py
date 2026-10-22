@@ -22,6 +22,13 @@ def observation(**changes):
 
 
 class PipelineTests(unittest.TestCase):
+    def test_empty_coverage_does_not_claim_old_measurement_inventory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot, _ = build_exports(self.db, directory, "2026-01")
+            text = (snapshot / "fact_data_coverage.csv").read_text(encoding="utf-8-sig")
+            for stale in ("54,795", "25,816", "7,658", "gold aggregates exist", "exists in warehouse"):
+                self.assertNotIn(stale, text)
+
     def setUp(self):
         self.db = connect()
         self.addCleanup(self.db.close)
@@ -29,6 +36,23 @@ class PipelineTests(unittest.TestCase):
     def test_zero_is_real_missing_is_null(self):
         ingest_rows(self.db, [observation(), observation(observation_id="missing", value=None, quality_flag="missing")])
         self.assertEqual(self.db.execute("SELECT value FROM observations ORDER BY observation_id DESC").fetchall(), [(0.0,), (None,)])
+
+    def test_bulk_copy_preserves_text_and_nullable_fields(self):
+        text = 'ข้าว, "นาปี"\nรอบ 1'
+        ingest_rows(self.db, [observation(grade=text, season="NA", value=None, release_at=None)])
+        self.assertEqual(self.db.execute(
+            "SELECT grade, season, value, release_at, market_id FROM observations").fetchone(),
+            (text, "NA", None, None, None))
+        ingest_rows(self.db, [observation(grade=text, season="NA", value=None, release_at=None)])
+        self.assertEqual(self.db.execute("SELECT count(*) FROM observations").fetchone()[0], 1)
+
+    def test_copy_failure_rolls_back_and_database_remains_usable(self):
+        self.db.execute("CREATE UNIQUE INDEX one_grade ON observations (grade)")
+        with self.assertRaises(Exception):
+            ingest_rows(self.db, [observation(grade="same"), observation(observation_id="other", grade="same")])
+        self.assertEqual(self.db.execute("SELECT count(*) FROM observations").fetchone()[0], 0)
+        ingest_rows(self.db, [observation(grade="same")])
+        self.assertEqual(self.db.execute("SELECT count(*) FROM observations").fetchone()[0], 1)
 
     def test_untrusted_rows_rejected_before_any_write(self):
         for updates in ({"farmer_name": "private"}, {"value": float("nan")}, {"value": True},
