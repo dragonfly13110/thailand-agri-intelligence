@@ -56,10 +56,26 @@ def parser():
     products.add_argument("--max-pages", type=int, default=10)
     products.add_argument("--start-page", type=int, default=1)
     products.add_argument("--output", default="data/local/raw")
+    monthly = commands.add_parser("nabc-monthly", help="Import all units/products from a verified local NABC monthly snapshot")
+    monthly.add_argument("snapshot", help="Raw oae partition directory containing manifest.json")
+    price_history = commands.add_parser("price-backfill", help="Checkpoint monthly histories for every product in a verified NABC inventory")
+    price_history.add_argument("inventory_snapshot")
+    price_history.add_argument("--output", default="data/local/raw")
+    price_history.add_argument("--max-pages", type=int, default=10)
+    price_history.add_argument("--refresh", action="store_true")
     geography = commands.add_parser("geography", help="Stage the reviewed DOPA hierarchy and optional DDPM display boundary")
     geography.add_argument("workbook")
     geography.add_argument("--boundary")
     geography.add_argument("--output", default="data/local/geography/staged")
+    crosswalk = commands.add_parser("production-crosswalk", help="Match DOAE administrative labels within DOPA parent hierarchy")
+    crosswalk.add_argument("records")
+    crosswalk.add_argument("workbook")
+    crosswalk.add_argument("--output", default="data/local/production/admin_crosswalk.csv")
+    local = commands.add_parser("local-project", help="Build an offline PBIP model/report from verified local snapshots")
+    local.add_argument("snapshot")
+    local.add_argument("production_inventory")
+    local.add_argument("workbook")
+    local.add_argument("--output", required=True, help="New directory under data/local; source rights are still pending")
     archive = commands.add_parser("weather-backfill", help="Checkpoint completed years at one approved Thai grid point")
     archive.add_argument("--latitude", type=float, required=True)
     archive.add_argument("--longitude", type=float, required=True)
@@ -107,6 +123,12 @@ def main(argv=None):
         elif args.command == "geography":
             from .geography import stage_geography
             output = stage_geography(args.workbook, args.output, args.boundary)
+        elif args.command == "production-crosswalk":
+            from .geography import production_crosswalk
+            output = production_crosswalk(args.records, args.workbook, args.output)
+        elif args.command == "local-project":
+            from .local_project import build_local_project
+            output = build_local_project(args.snapshot, args.production_inventory, args.workbook, args.output)
         elif args.command == "commodities":
             from .commodities import discover_commodities
             from .ingestion import save_snapshot
@@ -118,6 +140,12 @@ def main(argv=None):
             if envelope["status"] != "ok":
                 print(json.dumps(output, ensure_ascii=False, indent=2))
                 return 1
+        elif args.command == "price-backfill":
+            from .price_backfill import backfill_monthly_prices
+            records = backfill_monthly_prices(args.inventory_snapshot, args.output, args.refresh, args.max_pages)
+            output = {"partitions": records, "product_count": len(records),
+                      "complete_products": sum(r["complete"] for r in records), "license_status": "pending",
+                      "scope": "Histories for products in the supplied inventory; not a complete historical provider taxonomy"}
         elif args.command == "forecast":
             from .forecast import forecast
             records = json.loads(Path(args.file).read_text(encoding="utf-8-sig"))
@@ -146,6 +174,11 @@ def main(argv=None):
                     output = save_snapshot(envelope, "oae", args.output, "national-rice-monthly")
                     output["validated_input_rows"] = ingest_rows(db, normalize_oae_rice_prices(envelope))
                     output["pagination"] = envelope.get("pagination")
+                elif args.command == "nabc-monthly":
+                    from .prices import load_nabc_monthly_snapshot, normalize_nabc_monthly
+                    output = normalize_nabc_monthly(load_nabc_monthly_snapshot(args.snapshot))
+                    rows = output.pop("observations") + output.pop("blocked_observations")
+                    output["validated_input_rows"] = ingest_rows(db, rows)
                 elif args.command == "weather-backfill":
                     from .ingestion import backfill_weather
                     from .transform import weather_observations

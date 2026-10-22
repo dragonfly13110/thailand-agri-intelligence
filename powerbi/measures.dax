@@ -71,6 +71,128 @@ SWITCH(
     "#677269"
 )
 
+// Descriptive prices can show release_unknown; forecast/backtests still require release_at.
+National Farmgate Price Native Unit =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "oae",
+        fact_observation[spatial_support] = "national",
+        fact_observation[measure] = "price",
+        KEEPFILTERS(fact_observation[price_type] = "farm_gate"),
+        fact_observation[data_kind] = "official",
+        fact_observation[quality_flag] IN {"good", "valid", "release_unknown"}
+    )
+RETURN
+IF(
+    NOT ISCROSSFILTERED(dim_area[area_code]) &&
+    NOT ISCROSSFILTERED(dim_admin_area[area_code]) &&
+    HASONEVALUE(dim_period[period]) && COUNTROWS(SeriesRows) = 1,
+    MAXX(SeriesRows, fact_observation[value]),
+    BLANK()
+)
+
+National Farmgate Price Unit =
+IF(
+    NOT ISBLANK([National Farmgate Price Native Unit]),
+    CALCULATE(
+        SELECTEDVALUE(fact_observation[unit]),
+        fact_observation[source_id] = "oae",
+        fact_observation[spatial_support] = "national",
+        fact_observation[measure] = "price",
+        KEEPFILTERS(fact_observation[price_type] = "farm_gate"),
+        fact_observation[data_kind] = "official",
+        fact_observation[quality_flag] IN {"good", "valid", "release_unknown"}
+    ),
+    BLANK()
+)
+
+National Farmgate Price THB per kg =
+CALCULATE([National Farmgate Price Native Unit], KEEPFILTERS(fact_observation[unit] = "THB/kg"))
+
+National Price Previous Month THB per kg =
+VAR PreviousMonth = EDATE(MAX(dim_period[month_start]), -1)
+RETURN
+IF(
+    HASONEVALUE(dim_period[period]) && NOT ISBLANK([National Farmgate Price THB per kg]),
+    CALCULATE(
+        [National Farmgate Price THB per kg],
+        REMOVEFILTERS(dim_period),
+        TREATAS({PreviousMonth}, dim_period[month_start])
+    ),
+    BLANK()
+)
+
+National Price Month Change Pct =
+VAR CurrentPrice = [National Farmgate Price THB per kg]
+VAR PreviousPrice = [National Price Previous Month THB per kg]
+RETURN
+IF(
+    NOT ISBLANK(CurrentPrice) && NOT ISBLANK(PreviousPrice),
+    DIVIDE(CurrentPrice - PreviousPrice, PreviousPrice),
+    BLANK()
+)
+
+Grid Point Rainfall mm =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "open_meteo",
+        fact_observation[spatial_support] = "grid_point",
+        fact_observation[measure] = "rainfall",
+        fact_observation[unit] = "mm",
+        fact_observation[data_kind] = "estimated",
+        fact_observation[quality_flag] IN {"good", "valid"}
+    )
+VAR Locations = DISTINCT(SELECTCOLUMNS(SeriesRows, "Location", fact_observation[location_id]))
+VAR Days = DISTINCT(SELECTCOLUMNS(SeriesRows, "Day", fact_observation[observed_at]))
+RETURN
+IF(
+    COUNTROWS(Locations) = 1 && COUNTROWS(Days) = COUNTROWS(SeriesRows),
+    SUMX(SeriesRows, fact_observation[value]),
+    BLANK()
+)
+
+Rainfall Valid Days =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "open_meteo",
+        fact_observation[spatial_support] = "grid_point",
+        fact_observation[measure] = "rainfall",
+        fact_observation[unit] = "mm",
+        fact_observation[data_kind] = "estimated",
+        fact_observation[quality_flag] IN {"good", "valid"}
+    )
+RETURN
+IF(NOT ISBLANK([Grid Point Rainfall mm]), COUNTROWS(FILTER(SeriesRows, NOT ISBLANK(fact_observation[value]))), BLANK())
+
+Grid Point Mean Daily Tmax C =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "open_meteo",
+        fact_observation[spatial_support] = "grid_point",
+        fact_observation[measure] = "temperature_max",
+        fact_observation[unit] = "°C",
+        fact_observation[data_kind] = "estimated",
+        fact_observation[quality_flag] IN {"good", "valid"}
+    )
+VAR Locations = DISTINCT(SELECTCOLUMNS(SeriesRows, "Location", fact_observation[location_id]))
+VAR Days = DISTINCT(SELECTCOLUMNS(SeriesRows, "Day", fact_observation[observed_at]))
+RETURN
+IF(COUNTROWS(Locations) = 1 && COUNTROWS(Days) = COUNTROWS(SeriesRows), AVERAGEX(SeriesRows, fact_observation[value]), BLANK())
+
+Production Source Rows = COUNTROWS(fact_production_source)
+
+Production Matched Rows =
+CALCULATE(COUNTROWS(fact_production_source), fact_production_source[mapping_status] = "matched_snapshot")
+
+Reported Production kg Single Row =
+IF(COUNTROWS(fact_production_source) = 1, MAX(fact_production_source[production_kg]), BLANK())
+
+Reviewed Production kg = BLANK()
+
 // No default SUM/AVERAGE(value): prices, rainfall, production, NDVI and estimates
 // have incompatible grains. Keep value set to "Do not summarize" in the model.
 // Add a domain-specific aggregate only after commodity, unit, definition, season,

@@ -1,0 +1,390 @@
+{
+  "schema_version": "1.0.0",
+  "reviewed_at": "2026-10-22",
+  "scope": "Exact resources currently investigated for Thailand Core",
+  "review_kind": "read_only_official_metadata_and_terms",
+  "automatic_approval": false,
+  "status_note": "pending means project-specific licence review remains open; this register does not change warehouse/source flags or grant rights. Public access, a generic licence list, or another dataset licence cannot approve an exact resource.",
+  "resources": [
+    {
+      "resource_key": "doae_production_subdistrict_2023",
+      "source_id": "doae",
+      "resource_id": "f9ab6055-6364-4f78-812e-15989e300979",
+      "dataset_id": "6cc09797-a60e-43ce-a646-65364a1333c3",
+      "name": "ภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2566",
+      "resource_url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/f9ab6055-6364-4f78-812e-15989e300979/download/1.-01-open01-2023-new.csv",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "license_variant_and_redistribution_terms_unresolved",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_url": null,
+        "version": null,
+        "scope": "dataset_metadata; no resource-level override found"
+      },
+      "access_evidence": {
+        "dataset_private": false,
+        "dataset_accessible_condition": "ไม่มีการจำกัดการเข้าถึงข้อมูล",
+        "resource_accessible_condition": "ไม่มี",
+        "resource_metadata_modified": "2026-09-01T12:23:29.356652"
+      },
+      "rights_facts": [
+        "Dataset and resource are publicly accessible.",
+        "The declared label does not select ODC-PDDL, ODC-By or ODbL. The provider licence list contains multiple ODC licences, but no exact entry for the label assigned to this dataset."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact licence variant and version or equivalent express reuse terms",
+        "Attribution and any database share-alike requirements",
+        "Permission covering republication of this exact resource and derived tables"
+      ],
+      "next_action": "Obtain an exact licence URL or written clarification from the DOAE dataset maintainer; retain the resource ID and review its metadata again before export.",
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/resource_show?id=f9ab6055-6364-4f78-812e-15989e300979",
+          "kind": "live_resource_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "56c4ba3f14c12254d435bf7ca6ae47d558aa074abbeeabc84c11180c38619ccc"
+        },
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=production_doae",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "4e981197ea7eb60f6949cd8daa6c943d4b0ae9319b1952f17803bdf92466eeb9"
+        },
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/license_list",
+          "kind": "live_provider_license_list",
+          "reviewed_at": "2026-10-22",
+          "sha256": "3e908c705be1a4ce048982942416fc6d6c270ddc8e3b8cc53aaf54a1d8f51452"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/production_doae",
+          "kind": "live_dataset_page",
+          "reviewed_at": "2026-10-22",
+          "sha256": "f844f5a0711b47693647f5048cd8dbd3c21147ac301112d481854a35534aed2e"
+        }
+      ]
+    },
+    {
+      "resource_key": "oae_nabc_monthly_jasmine_paddy_price",
+      "source_id": "oae",
+      "resource_id": "4570daca-e727-4036-bde9-35fd84d0ffd4",
+      "dataset_id": "93ac1a96-7933-4653-a21e-91b0c42a8216",
+      "name": "ราคาที่เกษตรกรขายได้รายเดือน ข้าวเปลือกเจ้าหอมมะลิ เฉลี่ยประเทศ",
+      "resource_url": "https://agriapi.nabc.go.th/api/monthly-prices/product?product_name=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%80%E0%B8%9B%E0%B8%A5%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%AB%E0%B8%AD%E0%B8%A1%E0%B8%A1%E0%B8%B0%E0%B8%A5%E0%B8%B4%20%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%8A%E0%B8%B7%E0%B9%89%E0%B8%99%2015&page=1",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "noncommercial_label_documented_exact_version_and_project_use_unresolved",
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_id_other": "Creative Commons Attributions Non-Commercial",
+        "license_url": null,
+        "version": null,
+        "scope": "OAE monthly_prices_rice dataset and its single linked NABC resource"
+      },
+      "access_evidence": {
+        "dataset_private": false,
+        "dataset_accessible_condition": "",
+        "resource_accessible_condition": "",
+        "resource_metadata_modified": "2026-08-18T02:18:13.502327"
+      },
+      "rights_facts": [
+        "The assigned licence label includes a non-commercial condition.",
+        "The generic CKAN cc-nc list entry links to version 2.0, but this dataset uses the different ID อื่นๆ; that list entry does not establish this resource licence version.",
+        "The rice dataset declaration does not establish rights for every NABC product or endpoint."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact Creative Commons licence version and URL",
+        "Whether the intended project use satisfies the declared non-commercial condition",
+        "Required attribution and separate terms of linked NABC endpoints"
+      ],
+      "next_action": "Confirm the exact licence and permitted project use with the OAE/NABC dataset maintainer. Review other monthly-price resources individually before importing their rights decision.",
+      "evidence": [
+        {
+          "url": "https://catalog.oae.go.th/api/3/action/resource_show?id=4570daca-e727-4036-bde9-35fd84d0ffd4",
+          "kind": "live_resource_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "c471bd6db3ffc7f2094dcd435221b109903e42065f9a33cf7bbbd1a9eb0c3fe8"
+        },
+        {
+          "url": "https://catalog.oae.go.th/api/3/action/package_show?id=monthly_prices_rice",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "bcb98a3af880ab4eb09a2be9af3939858c9e6a9cb31b9d9b25b696e619ce5305"
+        },
+        {
+          "url": "https://catalog.oae.go.th/api/3/action/license_list",
+          "kind": "live_provider_license_list",
+          "reviewed_at": "2026-10-22",
+          "sha256": "8a722b7f4a4a316be2a9bdbec42c9a50636462b6cf187268e7911ef7711510d7"
+        },
+        {
+          "url": "https://catalog.oae.go.th/dataset/monthly_prices_rice",
+          "kind": "live_dataset_page",
+          "reviewed_at": "2026-10-22",
+          "sha256": "f00b7df33ca88d2c63281f8603cc91e6a0328d048cc0577922768ee2cb755f1b"
+        },
+        {
+          "url": "https://agriapi.nabc.go.th/",
+          "kind": "live_api_landing_page",
+          "reviewed_at": "2026-10-22",
+          "sha256": "3acc0486b66503eca4e81b2f796cf3e3ec2f8f6bc3598c363ed69d630dc873cd"
+        }
+      ]
+    },
+    {
+      "resource_key": "dopa_ccaatt_hierarchy",
+      "source_id": "dopa",
+      "resource_id": "ccaatt.xlsx",
+      "dataset_id": null,
+      "name": "ทำเนียบท้องที่ จังหวัด อำเภอ/เขต ตำบล/แขวง",
+      "resource_url": "https://stat.bora.dopa.go.th/dload/ccaatt.xlsx",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "exact_resource_reuse_licence_not_found",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "exact XLSX resource"
+      },
+      "access_evidence": {
+        "public_download_tested": true,
+        "file_internal_snapshot_date": "2023-09-01",
+        "download_page_update_label_be": "08/07/2560",
+        "workbook_sha256": "5977e39e689d229668dabb2ff47f1a1a4bec341bd1efa0792cb45cad8e16d6e9"
+      },
+      "rights_facts": [
+        "The DOPA download page supplies the official XLSX and explains retired-code markers.",
+        "No explicit licence URL or reuse grant was found on the reviewed download page or in the examined workbook header.",
+        "Licences attached to other DOPA resources on data.go.th do not automatically apply to this XLSX."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Reuse and redistribution permission for ccaatt.xlsx and derived hierarchy tables",
+        "Required attribution and commercial-use conditions"
+      ],
+      "next_action": "Confirm the exact resource reuse terms with DOPA/BORA before including the workbook or extracted hierarchy in public outputs.",
+      "evidence": [
+        {
+          "url": "https://stat.bora.dopa.go.th/dload/fccaa.htm",
+          "kind": "live_download_page_cp874",
+          "reviewed_at": "2026-10-22",
+          "sha256": "2927bff535f03493be9010806210104d8bcefecacb3e4c449c22336ddeb8435a"
+        },
+        {
+          "url": "https://stat.bora.dopa.go.th/dload/ccaatt.xlsx",
+          "kind": "live_official_workbook",
+          "reviewed_at": "2026-10-22",
+          "sha256": "5977e39e689d229668dabb2ff47f1a1a4bec341bd1efa0792cb45cad8e16d6e9"
+        },
+        {
+          "url": "https://www.bora.dopa.go.th/",
+          "kind": "live_official_homepage",
+          "reviewed_at": "2026-10-22",
+          "sha256": "651d9aa8ea76376e8540dc7835c889f13d44b15c61f70371b5cd7fddfbad863b"
+        }
+      ]
+    },
+    {
+      "resource_key": "ddpm_province_boundaries",
+      "source_id": "ddpm",
+      "resource_id": "MapDX/DPM_TH_Boundary/FeatureServer/1",
+      "dataset_id": "7de09c697313497fa54ce4697db2a89a",
+      "name": "DDPM ขอบเขตจังหวัด 77 จังหวัด",
+      "resource_url": "https://gis-portal.disaster.go.th/arcgis/rest/services/MapDX/DPM_TH_Boundary/FeatureServer/1",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "public_arcgis_access_but_blank_reuse_terms",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "exact DDPM province boundary layer and parent portal item"
+      },
+      "access_evidence": {
+        "portal_access": "public",
+        "licenseInfo": "",
+        "accessInformation": "",
+        "layer_copyrightText": "",
+        "item_modified_epoch_ms": 1773909493532,
+        "record_count": 77,
+        "service_capabilities": [
+          "Query",
+          "Extract"
+        ]
+      },
+      "rights_facts": [
+        "The official service supports public query/extract and EPSG:4326 polygons.",
+        "The parent ArcGIS item licenseInfo and accessInformation fields are empty; the layer copyright field is also empty.",
+        "Public access and extraction capability alone do not specify redistribution terms."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Reuse and redistribution permission for original and simplified geometry",
+        "Required source attribution and geometry-version notice",
+        "Commercial/public-dashboard use conditions"
+      ],
+      "next_action": "Obtain explicit layer reuse terms or an alternative official boundary product with a stated licence before public distribution.",
+      "evidence": [
+        {
+          "url": "https://gis-portal.disaster.go.th/portal/sharing/rest/content/items/7de09c697313497fa54ce4697db2a89a?f=pjson",
+          "kind": "live_arcgis_portal_item",
+          "reviewed_at": "2026-10-22",
+          "sha256": "4dda733f85920af6037263418cef7428884c8ec78f82314d969b7351deb9493e"
+        },
+        {
+          "url": "https://gis-portal.disaster.go.th/arcgis/rest/services/MapDX/DPM_TH_Boundary/FeatureServer/1?f=pjson",
+          "kind": "live_arcgis_layer_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "d34152b63772f095d204f0c4f57d714824adfa7753f2148d46d4827c6719fc84"
+        }
+      ]
+    },
+    {
+      "resource_key": "open_meteo_thailand_era5_archive",
+      "source_id": "open_meteo",
+      "resource_id": "https://archive-api.open-meteo.com/v1/archive",
+      "dataset_id": null,
+      "name": "Open-Meteo Thailand ERA5 reanalysis",
+      "resource_url": "https://archive-api.open-meteo.com/v1/archive",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "data_cc_by_4_0_confirmed_project_service_use_and_attribution_not_signed_off",
+      "declared_license": {
+        "license_id": "CC-BY-4.0",
+        "license_id_other": null,
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "version": "4.0",
+        "scope": "API data under provider licence page; hosted API access has separate service terms"
+      },
+      "access_evidence": {
+        "free_api_noncommercial_only": true,
+        "free_api_rate_limits": {
+          "daily_less_than": 10000,
+          "hourly_less_than": 5000,
+          "per_minute_less_than": 600
+        },
+        "geographic_scope": "approved Thailand coordinates only"
+      },
+      "rights_facts": [
+        "API data are CC BY 4.0; sharing and adaptation require attribution.",
+        "Free hosted API is non-commercial only.",
+        "Display linked provider credit, licence link and changes notice."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": "Weather data by Open-Meteo.com",
+      "attribution_url": "https://open-meteo.com/",
+      "unresolved": [
+        "Confirm non-commercial project use or suitable subscription",
+        "Apply attribution and transformation notices"
+      ],
+      "next_action": "Record API-use classification and complete attribution before approving public outputs.",
+      "evidence": [
+        {
+          "url": "https://open-meteo.com/en/licence",
+          "kind": "official_provider_licence_page",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        },
+        {
+          "url": "https://open-meteo.com/en/terms",
+          "kind": "live_official_provider_terms",
+          "reviewed_at": "2026-10-22",
+          "sha256": "5317fe6807d04a87b5e5a2f0e12baf30fed489c6267b7b973ce8c79ee75fdb11"
+        },
+        {
+          "url": "https://open-meteo.com/en/docs/historical-weather-api",
+          "kind": "official_product_documentation",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        },
+        {
+          "url": "https://creativecommons.org/licenses/by/4.0/",
+          "kind": "official_licence_deed",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "resource_key": "open_meteo_thailand_forecast",
+      "source_id": "open_meteo",
+      "resource_id": "https://api.open-meteo.com/v1/forecast",
+      "dataset_id": null,
+      "name": "Open-Meteo Thailand provider forecast",
+      "resource_url": "https://api.open-meteo.com/v1/forecast",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "data_cc_by_4_0_confirmed_project_service_use_and_attribution_not_signed_off",
+      "declared_license": {
+        "license_id": "CC-BY-4.0",
+        "license_id_other": null,
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "version": "4.0",
+        "scope": "API data under provider licence page; hosted API access has separate service terms"
+      },
+      "access_evidence": {
+        "free_api_noncommercial_only": true,
+        "free_api_rate_limits": {
+          "daily_less_than": 10000,
+          "hourly_less_than": 5000,
+          "per_minute_less_than": 600
+        },
+        "geographic_scope": "approved Thailand coordinates only"
+      },
+      "rights_facts": [
+        "Shared data licence and service conditions follow the ERA5 resource review."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": "Weather data by Open-Meteo.com",
+      "attribution_url": "https://open-meteo.com/",
+      "unresolved": [
+        "Complete the shared project-use and attribution review"
+      ],
+      "next_action": "Record API-use classification and complete attribution before approving public outputs.",
+      "evidence": [
+        {
+          "url": "https://open-meteo.com/en/licence",
+          "kind": "official_provider_licence_page",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        },
+        {
+          "url": "https://open-meteo.com/en/terms",
+          "kind": "live_official_provider_terms",
+          "reviewed_at": "2026-10-22",
+          "sha256": "5317fe6807d04a87b5e5a2f0e12baf30fed489c6267b7b973ce8c79ee75fdb11"
+        },
+        {
+          "url": "https://open-meteo.com/en/docs",
+          "kind": "official_product_documentation",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        },
+        {
+          "url": "https://creativecommons.org/licenses/by/4.0/",
+          "kind": "official_licence_deed",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        }
+      ],
+      "shared_terms_resource_key": "open_meteo_thailand_era5_archive"
+    }
+  ]
+}

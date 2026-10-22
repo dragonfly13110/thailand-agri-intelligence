@@ -140,3 +140,56 @@ def stage_geography(workbook_path, output_dir, boundary_path=None):
         (temporary / "inventory.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         temporary.rename(destination)
     return report
+
+
+def match_admin_names(province, district, subdistrict, master_rows):
+    """Match each label within its real parent; never guess through ambiguous names."""
+    values = (("province", province, "จังหวัด"), ("district", district, "เขต"), ("subdistrict", subdistrict, "แขวง"))
+    parent, matched = None, {}
+    for level, label, bangkok_prefix in values:
+        prefixes = {"province": (bangkok_prefix,), "district": (bangkok_prefix, "อำเภอ"), "subdistrict": (bangkok_prefix, "ตำบล")}[level]
+        def canonical(value):
+            value = value.strip()
+            for prefix in prefixes:
+                if value.startswith(prefix):
+                    return value[len(prefix):].strip()
+            return value
+        candidates = [row for row in master_rows if not row["retired"] and row["admin_level"] == level
+                      and row["parent_code"] == parent and canonical(row["name_th"]) == canonical(label)]
+        if len(candidates) != 1:
+            return {**matched, "mapping_status": "ambiguous" if candidates else "unmatched", "unmatched_level": level}
+        parent = candidates[0]["area_code"]
+        matched[level + "_code"] = parent
+    return {**matched, "mapping_status": "matched_snapshot", "unmatched_level": None}
+
+
+def production_crosswalk(records_path, workbook_path, output_path):
+    master = parse_dopa_workbook(workbook_path)
+    areas, record_counts = {}, {}
+    with Path(records_path).open(encoding="utf-8") as stream:
+        for line in stream:
+            row = json.loads(line)
+            if row.get("source_id") != "doae":
+                raise ValueError("crosswalk input must be DOAE production staging")
+            labels = tuple(row[key] for key in ("province_name", "district_name", "subdistrict_name"))
+            record_counts[labels] = record_counts.get(labels, 0) + 1
+            if labels not in areas:
+                areas[labels] = match_admin_names(*labels, master)
+    if not areas:
+        raise ValueError("production staging contains no administrative labels")
+    fields = ("province_name", "district_name", "subdistrict_name", "province_code", "district_code", "subdistrict_code",
+              "mapping_status", "unmatched_level", "source_record_count", "master_version", "temporal_status", "rollup_eligible")
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8-sig", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        for labels, result in areas.items():
+            writer.writerow({**dict(zip(fields[:3], labels)), **result, "source_record_count": record_counts[labels],
+                "master_version": SOURCE_VERSION, "temporal_status": "snapshot_match_not_period_boundary_verification", "rollup_eligible": False})
+    return {"path": str(output_path.resolve()), "area_label_tuples": len(areas), "source_records": sum(record_counts.values()),
+        "matched_records": sum(record_counts[key] for key, value in areas.items() if value["mapping_status"] == "matched_snapshot"),
+        "unresolved_area_tuples": sum(value["mapping_status"] != "matched_snapshot" for value in areas.values()),
+        "master_version": SOURCE_VERSION, "rollup_eligible": False,
+        "source_records_sha256": hashlib.sha256(Path(records_path).read_bytes()).hexdigest(),
+        "master_sha256": hashlib.sha256(Path(workbook_path).read_bytes()).hexdigest()}

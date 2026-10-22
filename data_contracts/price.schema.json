@@ -134,7 +134,7 @@
       ]
     },
     "unit": {
-      "const": "THB/kg"
+      "enum": ["THB/kg", "THB/head", "THB/100_eggs", "THB/100_fruit"]
     },
     "source_url": {
       "type": "string",

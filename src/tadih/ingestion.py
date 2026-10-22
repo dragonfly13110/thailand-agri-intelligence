@@ -215,34 +215,18 @@ def normalize_oae_rice_prices(envelope):
     """Map this provider series only; retain raw BE year/value/unit in snapshot."""
     if envelope.get("source_id") != "oae":
         raise ValueError("expected OAE envelope")
+    from .prices import monthly_price_observation
     rows, seen = [], set()
     for raw in envelope["payload"]["data"]:
         if raw.get("province_code") != "TH00" or raw.get("product_name") != OAE_RICE_PRODUCT:
             raise ValueError("OAE sample is not the verified national rice series")
         if raw.get("unit") != "บาท/ตัน":
             raise ValueError("OAE sample unit changed; expected THB/tonne")
-        year = int(raw["year_th"]) - 543
-        month = int(raw["month"])
-        observed = date(year, month, 1).isoformat() + "T00:00:00+07:00"
-        if observed in seen:
+        row = monthly_price_observation(raw, envelope["retrieved_at"])
+        if row["observation_id"] in seen:
             raise ValueError("duplicate monthly OAE observation; inspect source revisions")
-        seen.add(observed)
-        token = "" if raw.get("value") is None else str(raw["value"]).strip()
-        value = None if token in {"", "-", "..", "N/A", "null"} else float(token.replace(",", "")) / 1000
-        if value is not None and (not math.isfinite(value) or value < 0):
-            raise ValueError("OAE price must be finite and non-negative or missing")
-        revision = hashlib.sha256(json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
-        rows.append({
-            "observation_id": "oae-rice-" + str(year) + "-" + str(month).zfill(2) + "-" + revision[:16],
-            "source_id": "oae", "area_code": None, "spatial_support": "national", "location_id": "TH",
-            "commodity_id": "oae:" + OAE_RICE_PRODUCT,
-            "observed_at": observed, "release_at": None, "retrieved_at": envelope["retrieved_at"],
-            "measure": "price", "value": value, "unit": "THB/kg", "data_kind": "official",
-            "revision_id": revision, "quality_flag": "missing" if value is None else "release_unknown",
-            "source_url": envelope["request_url"], "license_status": "pending",
-            "market_id": "oae_national_monthly_farm_gate", "price_type": "farm_gate",
-            "grade": OAE_RICE_PRODUCT, "season": "month-" + str(month).zfill(2),
-        })
+        seen.add(row["observation_id"])
+        rows.append(row)
     return rows
 
 

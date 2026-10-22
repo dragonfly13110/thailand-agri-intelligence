@@ -1,5 +1,13 @@
 # คู่มือปฏิบัติงาน
 
+## ลำดับการทำงานที่เจ้าของงานกำหนด
+
+ทำข้อมูล โมเดล ความสัมพันธ์ Power Query และ DAX ในเครื่องก่อน จากนั้นตรวจผลคำนวณและหน้ารายงาน แล้วจึงอัปโหลดชุดที่พร้อมไป Power BI Online เป็นรอบเดียว ไม่ใช้การแก้ผ่าน browser ทีละ visual เป็นวิธีพัฒนาหลัก
+
+ไฟล์ DAX เป็น source code ของมาตรวัด เขียนและจัดการเวอร์ชันในเครื่องได้ แต่ Python tests และการตรวจชื่อคอลัมน์ยังไม่ใช่หลักฐานว่า DAX รันถูก ต้องตรวจใน Power BI Desktop/Tabular engine ก่อนถือว่าพร้อมเผยแพร่ การเขียนโมเดลเป็นไฟล์ PBIP/TMDL ทำในเครื่องได้ตามรูปแบบที่ Microsoft รองรับ ไม่อ้างว่าสร้าง PBIX binary ได้โดยตรงจาก Python
+
+ณ วันที่ 22 ตุลาคม 2569 เคยเริ่ม semantic model Coverage ทดลองบน Online แล้ว แต่ยังไม่ใช่รายงานปลายทาง หยุดพัฒนาบนเว็บตามคำสั่งล่าสุดของเจ้าของงาน และไม่เปลี่ยนหรือลบรายการนั้นระหว่างเตรียมงานในเครื่อง
+
 ## โครงสร้างและการรัน
 
 ติดตั้งจาก README แล้วใช้ `python -m tadih --help` ไฟล์ฐานข้อมูลเริ่มต้น `data/local/tadih.duckdb` เปลี่ยนได้ด้วย `--db` ก่อนชื่อคำสั่ง เช่น `python -m tadih --db data/local/check.duckdb build`
@@ -9,6 +17,10 @@
 รับ JSON ที่แปลงเป็น observation contract แล้วด้วย `python -m tadih ingest path/to/observations.json` ต้องเป็น array และใช้รหัสพื้นที่ที่ตรวจแล้ว ไม่มีการเติมช่องว่างเป็นศูนย์ ถ้าแถวใดผิดจะยกเลิกทั้งชุดก่อนบันทึก หรือ rollback transaction เมื่อ revision ชนกัน
 
 `observation_id` ต้องคงเอกลักษณ์ source/พื้นที่/สถานที่/สินค้า/เวลา/metric/หน่วย/ตลาด/เกรด/ฤดู การแก้ค่าต้องมี `revision_id` ใหม่ การเรียกข้อมูลซ้ำ revision เดิมทำซ้ำได้โดยไม่เพิ่มแถว แต่เนื้อหา revision เดิมเปลี่ยนไม่ได้
+
+ราคาข้าวรุ่นต้นเคยผูก observation ID กับค่าราคา ข้อมูลในเครื่องถูก migrate แล้วโดยสำรองฐานเดิมก่อนเปลี่ยน ดู `data/local/verification/price-identity-migration-2026-10-22.json` ถ้าใช้ฐานรุ่นก่อน migration อย่านำ normalizer รุ่นใหม่เข้าไปผสมโดยตรง ต้องสำรองและเทียบทุก historical revision ก่อนย้าย IDs และ canonical source URLs
+
+ราคาหลายค่าขัดแย้งใน source/month เดียวกันจะเก็บ raw ทั้งหมดใน snapshot แต่ไม่เลือกค่ามาเป็น actual ใช้ derived unknown/null quality revision เพื่อบล็อกค่าเก่าด้วย การปลด quarantine ต้องมีหลักฐานและ quality-resolution revision ใหม่ การรัน raw revision เดิมซ้ำไม่แก้ประวัติหรือปลดบล็อกเอง
 
 ## ความหมายของ coverage
 

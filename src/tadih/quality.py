@@ -93,6 +93,6 @@ def validate_observation(row):
             raise ValueError("price requires farm_gate/wholesale/retail type")
         if any(not row.get(k) for k in ("market_id", "grade", "commodity_id")):
             raise ValueError("price requires market_id, grade, commodity_id")
-        if row["unit"] != "THB/kg":
-            raise ValueError("normalize price to THB/kg with documented conversion before import")
+        if row["unit"] not in {"THB/kg", "THB/head", "THB/100_eggs", "THB/100_fruit"}:
+            raise ValueError("price requires a reviewed mass/count unit; normalize tonnes to kg and never infer animal/egg/fruit weights")
     return {key: row.get(key) for key in FIELDS}

@@ -2,7 +2,7 @@ import copy
 import unittest
 
 from tadih.catalog import PROVINCE_CODES
-from tadih.geography import parse_admin_rows, validate_province_boundaries
+from tadih.geography import match_admin_names, parse_admin_rows, validate_province_boundaries
 
 
 class GeographyTests(unittest.TestCase):
@@ -37,6 +37,17 @@ class GeographyTests(unittest.TestCase):
             mutate(invalid)
             with self.assertRaises(ValueError):
                 validate_province_boundaries(invalid)
+
+    def test_name_matching_never_leaves_parent_and_ignores_retired_codes(self):
+        master = parse_admin_rows([{"A": "10000000", "B": "กรุงเทพมหานคร"},
+            {"A": "10010000", "B": "เขตพระนคร"}, {"A": "10010100", "B": "ชื่อซ้ำ"},
+            {"A": "10020000", "B": "เขตดุสิต"}, {"A": "10020100", "B": "ชื่อซ้ำ"},
+            {"A": "10020200", "B": "เก่า*", "D": "25490101"}], require_national=False)
+        match = match_admin_names("กรุงเทพมหานคร", "พระนคร", "ชื่อซ้ำ", master)
+        self.assertEqual(match["subdistrict_code"], "100101")
+        self.assertEqual(match_admin_names("กรุงเทพมหานคร", "เขตดุสิต", "เก่า", master)["mapping_status"], "unmatched")
+        duplicate = {**master[2], "area_code": "100103"}
+        self.assertEqual(match_admin_names("กรุงเทพมหานคร", "พระนคร", "ชื่อซ้ำ", master+[duplicate])["mapping_status"], "ambiguous")
 
 
 if __name__ == "__main__":

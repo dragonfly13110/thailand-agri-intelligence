@@ -1,6 +1,12 @@
 # Power BI Import handoff
 
-ไฟล์ชุดนี้เป็น Power Query, DAX และ theme สำหรับนำเข้าข้อมูลส่งออกจริง ยังไม่มี PBIX/PBIP หรือหน้ารายงานที่เปิดและตรวจภาพใน Power BI Desktop แล้ว
+วิธีทำงานปัจจุบัน: เตรียมข้อมูล โมเดล และ DAX ในเครื่องให้เสร็จ ตรวจด้วย Power BI Desktop/Tabular engine แล้วค่อยอัปโหลด Online การสร้าง/จัด visual ผ่าน browser ถูกหยุดตามคำสั่งเจ้าของงาน
+
+มีร่าง PBIP ล่าสุดที่ `data/local/powerbi/offline-v4/TADIH.pbip` พร้อม `Data/`, `TADIH.SemanticModel/model.bim` และ PBIR ร่าง 5 หน้า รวม 12 ตาราง 15 relationships 26 measures และราคา 44 สินค้า ตรวจ Microsoft schemas และ TOM round trip ผ่าน ยังไม่มี PBIX หรือหลักฐานเปิด/Refresh/execute DAX/ตรวจภาพใน Desktop ข้อมูลจริงในร่างยังสิทธิ์ pending จึงใช้ในเครื่องและยังไม่นำขึ้น Online
+
+ดูรายการไฟล์ คำสั่งสร้าง/ตรวจ และเช็กลิสต์ทำต่อใน [HANDOFF.md](../HANDOFF.md) Generated PBIP มี M partitions และ parameter ของตัวเอง ขั้นตอน manual ด้านล่างเป็นฐานเดิม 9 ตารางสำหรับ coverage/single-observation measures หากใช้ domain DAX ใหม่ที่อ้าง `dim_admin_area`, `fact_production_source` หรือ `dim_period[month_start]` ให้ใช้ generated model ซึ่งมี schema ครบ
+
+ราคา descriptive ยอมรับ flag `release_unknown` พร้อมป้ายว่าไม่ทราบเวลาเผยแพร่ ไม่ใช้ flag นี้เปิด forecast/backtest ราคาที่ต้นทางให้หลายค่าขัดแย้งในเดือนเดียวเป็น Unknown/null และไม่อยู่ใน measures ราคา รักษาหน่วย `THB/kg`, `THB/head`, `THB/100_eggs`, `THB/100_fruit` แยกกัน ตารางหน้าราคาแสดงสินค้าและหน่วยคู่กับตัวเลข ไม่รวมสินค้าทุกหน่วยเป็นราคาเดียว
 
 ## นำเข้า snapshot
 
@@ -33,7 +39,7 @@ Power Query อ่าน UTF-8 CSV โดยไม่ใช้การเดา
 | `dim_period[period]` | `fact_data_coverage[period]` |
 | `dim_period[period]` | `fact_category_coverage[period]` |
 
-`decision_cards` และ `snapshot_metadata` เป็นตารางข้อมูลประกอบที่ยังไม่สร้าง relationship เพราะ card เริ่มต้นมีพื้นที่เป็น null และ metadata เป็นระดับ snapshot `decision_id` D01 คือราคา/ผลผลิต และ D02 คือเฝ้าระวังฝน จุดอากาศหรือข้อมูลระดับประเทศที่ `area_code` เป็น null อยู่ใน blank member ไม่ถือว่ามีข้อมูลเฉลี่ยจังหวัด ชุดราคาข้าวระดับประเทศ 189 รายการห้ามกระจายให้แต่ละจังหวัดหรืออ้างว่าใช้ province slicer ดูราคาประจำจังหวัดได้
+`decision_cards` และ `snapshot_metadata` เป็นตารางข้อมูลประกอบที่ยังไม่สร้าง relationship เพราะ card เริ่มต้นมีพื้นที่เป็น null และ metadata เป็นระดับ snapshot `decision_id` D01 คือราคา/ผลผลิต และ D02 คือเฝ้าระวังฝน จุดอากาศหรือข้อมูลระดับประเทศที่ `area_code` เป็น null อยู่ใน blank member ไม่ถือว่ามีข้อมูลเฉลี่ยจังหวัด ชุดราคาประเทศ 44 สินค้าห้ามกระจายให้แต่ละจังหวัดหรืออ้างว่าใช้ province slicer ดูราคาประจำจังหวัดได้
 
 `release_at=null` หมายถึงยังไม่รู้วันเผยแพร่จริง ไม่ใช่วันที่สืบค้น ห้ามใช้รายการนี้เป็นข้อมูลที่พิสูจน์ว่าโมเดลรู้แล้ว ณ วันออกพยากรณ์ย้อนหลัง Forecast API ปฏิเสธ input ที่ไม่มี release_at
 

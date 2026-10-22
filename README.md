@@ -4,17 +4,21 @@
 
 สถานะ: ฐานระบบที่รันได้พร้อมข้อมูลจริงตัวอย่าง ยังไม่ใช่รายงาน Power BI สำเร็จรูปหรือระบบเตือนภัยที่ผ่านการรับรอง
 
+**เริ่มทำงานต่อที่ [เช็กลิสต์และเอกสารส่งต่องาน](HANDOFF.md)** มีรายการไฟล์ งานที่เสร็จ หลักฐานทดสอบ งานค้าง และคำสั่งเริ่มต่อสำหรับ AI อัปเดต 22 ตุลาคม 2569
+
 ## สิ่งที่มีแล้ว
 
 - รหัสจังหวัดครบ 77 แห่ง รวมกรุงเทพมหานครและบึงกาฬ พร้อมที่มา แยกจากการมีข้อมูลจริง
 - Registry 15 แหล่ง และ Coverage Matrix 77 จังหวัด × 20 หมวด แสดง `UNVERIFIED` จนกว่าจะมีหลักฐาน
 - CKAN DOAE/OAE discovery แบบแบ่งหน้า, snapshot พร้อม SHA-256 และ checkpoint
 - ราคาข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15 จาก OAE/NABC ระดับประเทศ 189 เดือน ม.ค. 2011 ถึง ก.ย. 2026 ทดลองดึงจริงแล้ว แปลงบาท/ตันเป็นบาท/กก. เก็บต้นฉบับไว้
+- ขยายประวัติราคา NABC เป็น 44 สินค้าที่พบใน inventory ปี 2569: 7,657 ค่ารายเดือนที่ไม่ขัดแย้ง และ Unknown 1 เดือน เก็บหน่วยสัตว์/ไข่/ผลไม้แยกจาก THB/kg พร้อม checkpoint และ quarantine
 - Open-Meteo ERA5 ย้อนหลังปี 2016 ถึง 2025 รวม 3,653 วัน ณ จุดตัวอย่างไทย แยก reanalysis, forecast และเวลาการเผยแพร่
 - Warehouse เก็บ revisions, ปฏิเสธข้อมูลผิด schema และเก็บ `null` ต่างจาก 0
 - กฎทดลองตรวจฝนน้อยและราคา/ผลผลิต พร้อม evidence; หลักฐานไม่พอคืน `unknown`
 - Baseline forecast และ walk-forward backtest ป้องกันข้อมูลอนาคตรั่วเข้าอดีต ซ่อนผลเมื่อไม่ผ่านเกณฑ์
 - ส่งออก snapshot CSV/Parquet แยกสาธารณะกับภายใน พร้อมตรวจ checksum และไฟล์นำเข้า Power BI
+- สร้าง PBIP ในเครื่อง: 12 ตาราง 15 relationships 26 DAX measures และหน้ารายงานร่าง 5 หน้า ตรวจโครงสร้างแล้ว ยังไม่ทดสอบ Refresh/DAX/render ใน Desktop
 - CI สำหรับ tests/build และ workflow ตรวจ catalog รายสัปดาห์เมื่อเชื่อม GitHub แล้ว
 
 ## เริ่มใช้งานบน Windows
@@ -49,7 +53,7 @@ Linux/macOS ใช้ `.venv/bin/python` แทน `.venv/Scripts/python.exe` �
 ./.venv/Scripts/python.exe -m tadih build --audience internal --period 2026-09
 ```
 
-Catalog อาจยังไม่ครบเมื่อถึง page budget ต้องดู `pagination.complete` และต่อจาก offset ที่บันทึกไว้ ข้อมูลราคา OAE รุ่นทดลองนี้ดึงเพียง 1 series เพื่อพิสูจน์เส้นทางข้อมูล รายการสินค้าอื่นยังไม่ถูกดึง
+Catalog อาจยังไม่ครบเมื่อถึง page budget ต้องดู `pagination.complete` และต่อจาก offset ที่บันทึกไว้ ประวัติราคา NABC ปัจจุบันมี 44 series ตามรายการสินค้าที่ API ปี 2569 ส่งกลับ ไม่ถือว่าเป็นทุกสินค้าที่เคยเผยแพร่ในอดีต รายละเอียดคำสั่ง backfill/import และ quality อยู่ใน [commodities.md](docs/commodities.md)
 
 ไฟล์ raw/checkpoint และ DuckDB อยู่ใน `data/local/` และถูก gitignore ค่า `release_at` ของราคาที่ทดลองยังไม่ทราบ จึงใช้สำรวจย้อนหลังได้ แต่ยังใช้รับรอง as-of backtest ไม่ได้ ราคาประเทศไม่ถูกกระจายลงจังหวัด
 
