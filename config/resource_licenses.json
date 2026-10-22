@@ -491,6 +491,214 @@
           "sha256": null
         }
       ]
+    },
+    {
+      "resource_key": "ldd_rice_zoning_provincial",
+      "source_id": "ldd",
+      "resource_id": "7f508d88-3c31-4cad-b95a-68ca0ce89356",
+      "dataset_id": "lpd",
+      "name": "สถิติความเหมาะสมของดินสำหรับการปลูกข้าว ระดับจังหวัด กรมพัฒนาที่ดิน",
+      "resource_url": "https://lddcatalog.ldd.go.th/api/3/action/datastore_search?resource_id=7f508d88-3c31-4cad-b95a-68ca0ce89356",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "no_derivs_and_inter_agency_scope_unresolved_units_and_survey_year_missing",
+      "declared_license": {
+        "license_id": "Creative Commons Attribution No-Derivs",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "package lpd; data dictionary declares ขอบเขตการเผยแพร่: ระหว่างหน่วยงาน"
+      },
+      "access_evidence": {
+        "records_returned": 77,
+        "datastore_total": 77,
+        "csv_match": true,
+        "province_count": 77
+      },
+      "rights_facts": [
+        "Package declares Creative Commons Attribution No-Derivs and isopen=false.",
+        "Data dictionary declares publication scope as ระหว่างหน่วยงาน (inter-agency).",
+        "Provincial statistics table contains no numeric unit or survey year."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Permitted derivation and redistribution terms for derived tables and dashboard display",
+        "Confirmation of numeric unit (Rai vs square metres) and survey reference year",
+        "Provincial name crosswalk for Unicode spelling variations"
+      ],
+      "next_action": "Confirm terms and unit/year definitions with LDD catalog maintainer before warehouse ingestion or public release.",
+      "evidence": [
+        {
+          "url": "https://lddcatalog.ldd.go.th/api/3/action/package_show?id=lpd",
+          "kind": "live_package_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "b858ac8a087c24d9c8e48ddf9be3fde9f2df36e1e64519d74797ab588d78a3e7"
+        },
+        {
+          "url": "https://lddcatalog.ldd.go.th/api/3/action/datastore_search?resource_id=7f508d88-3c31-4cad-b95a-68ca0ce89356&limit=100&sort=_id%20asc",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-22",
+          "sha256": "f37fb276b6fbbd79c1f64e2588dc8d83d4437cb9321b7fafbe78bb8489a158c3"
+        },
+        {
+          "url": "https://lddcatalog.ldd.go.th/api/3/action/datastore_search?resource_id=626f7b83-dfd3-4d30-a2a7-aaa18fe00cd5&limit=100&sort=_id%20asc",
+          "kind": "live_dictionary_query",
+          "reviewed_at": "2026-10-22",
+          "sha256": "74aedac4f7e8d999d43da094e935d3ea1e81ec31ca2ce4f8b1ae1949f26425f8"
+        }
+      ]
+    },
+    {
+      "resource_key": "dof_annual_aquatic_production",
+      "source_id": "dof",
+      "resource_id": "42c751e0-0569-4df6-9580-a0f80c123b0f,87357769-f93c-482d-adb2-2c83c49bf3c6",
+      "dataset_id": "dofd07_05_0101_02",
+      "name": "สถิติผลผลิตสัตว์น้ำจืดและเค็ม ปริมาณและมูลค่า กรมประมง",
+      "resource_url": "https://catalog.fisheries.go.th/dataset/dofd07_05_0101_02",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_isopen_false_unresolved_annual_convention",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "package dofd07_05_0101_02"
+      },
+      "access_evidence": {
+        "records_returned": 27,
+        "quantity_unit": "พันตัน",
+        "value_unit": "ล้านบาท",
+        "geo_coverage": "ประเทศ"
+      },
+      "rights_facts": [
+        "Dataset declares Open Data Common, data_category=ข้อมูลสาธารณะ, but isopen=false.",
+        "Quantity resource declares unit พันตัน; value resource declares unit ล้านบาท.",
+        "Statistics cover 27 years (2541-2567 BE) with total and 9 animal-group columns at national grain."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact Open Data Common licence variant and redistribution permission",
+        "Calendar year vs fiscal year reference convention",
+        "Historical release timestamps"
+      ],
+      "next_action": "Clarify annual convention and redistribution terms with DOF maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=dofd07_05_0101_02",
+          "kind": "live_package_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": "8b155acc95f9b92862ab0291caba2173956cbf781f1e248dc8fd66d9799e75e0"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=42c751e0-0569-4df6-9580-a0f80c123b0f",
+          "kind": "live_quantity_datastore",
+          "reviewed_at": "2026-10-22",
+          "sha256": "ad6456a3eecbdda3e9ad4e2cbbdcde25c4b9fbdd8a8e746a0fe56dcdab2d2c83"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=87357769-f93c-482d-adb2-2c83c49bf3c6",
+          "kind": "live_value_datastore",
+          "reviewed_at": "2026-10-22",
+          "sha256": "fd1a3ed2e855ef8df25671a389fa6e36f8ae87916b800671c06fd156c2aca1fd"
+        }
+      ]
+    },
+    {
+      "resource_key": "dld_national_livestock_value",
+      "source_id": "dld",
+      "resource_id": "a512df83-39d0-420b-979e-942666863b00",
+      "dataset_id": null,
+      "name": "มูลค่าผลผลิตปศุสัตว์ระดับประเทศ กรมปศุสัตว์",
+      "resource_url": "https://catalog.dld.go.th/api/3/action/datastore_search?resource_id=a512df83-39d0-420b-979e-942666863b00",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DLD CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 35,
+        "unit": "ล้านบาท",
+        "years_be": "2562-2568",
+        "categories": 5
+      },
+      "rights_facts": [
+        "DLD catalog declares Open Data Common without variant URL or specific version.",
+        "35 rows represent 5 livestock categories across Buddhist years 2562–2568 in million THB.",
+        "Spatial grain is national (spatial_support: national)."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention",
+        "Historical release timestamps"
+      ],
+      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.dld.go.th/api/3/action/datastore_search?resource_id=a512df83-39d0-420b-979e-942666863b00",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-22",
+          "sha256": "e43f8d358baf49f281f76d7ae073ae2544bdc77347cc7e08c2eb965d2f89f5fd"
+        }
+      ]
+    },
+    {
+      "resource_key": "doae_perennial_subdistrict_2023",
+      "source_id": "doae",
+      "resource_id": "61f3f241-92c7-4cdc-9918-41ce73545268",
+      "dataset_id": "6cc09797-a60e-43ce-a646-65364a1333c3",
+      "name": "ภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2566",
+      "resource_url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/61f3f241-92c7-4cdc-9918-41ce73545268/download/open02-2023.csv",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "license_variant_and_redistribution_terms_unresolved",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_url": null,
+        "version": null,
+        "scope": "dataset_metadata; no resource-level override found"
+      },
+      "access_evidence": {
+        "source_records": 54195,
+        "staged_records": 54192,
+        "quarantined_records": 3,
+        "repeated_identity_groups": 5
+      },
+      "rights_facts": [
+        "Dataset and resource are publicly accessible under DOAE CKAN.",
+        "The declared label Open Data Common does not select an exact ODC variant.",
+        "Separate annual grain resource from short-lived crops."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and version or express reuse terms",
+        "Attribution and database share-alike conditions",
+        "Resolution of 5 conflicting repeated identities and 3 negative area rows"
+      ],
+      "next_action": "Obtain exact licence URL and resolution of conflicting identities before warehouse aggregation.",
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/61f3f241-92c7-4cdc-9918-41ce73545268/download/open02-2023.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-22",
+          "sha256": "996e6e16e866d7720fedf860afafd77cec62f8bf3dd19ede426efe3c1ed33f9d"
+        }
+      ]
     }
   ]
 }

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tadih.catalog import ROOT, load_provinces, load_sources
+from tadih.catalog import ROOT, load_provinces, load_sources, load_resource_licenses
 
 
 class CatalogTests(unittest.TestCase):
@@ -68,6 +68,25 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("null", observation["properties"]["value"]["type"])
         self.assertIn("release_at", observation["required"])
 
+    def test_resource_licenses_remain_pending_and_unique(self):
+        resources = load_resource_licenses()
+        self.assertEqual(12, len(resources))
+        self.assertEqual(12, len({r["resource_key"] for r in resources}))
+        self.assertTrue(all(r["license_status"] == "pending" for r in resources))
+        self.assertTrue(all(r["project_publication_approved"] is False for r in resources))
+        self.assertTrue(all(r["commercial_use_confirmed"] is False for r in resources))
+        self.assertTrue(all(len(r["evidence"]) >= 1 for r in resources))
+        self.assertTrue(all(len(r["unresolved"]) >= 1 for r in resources))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "licenses.json"
+            path.write_text(json.dumps({"automatic_approval": True, "resources": resources}), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_resource_licenses(path)
+            path.write_text(json.dumps({"automatic_approval": False, "resources": [resources[0], resources[0]]}), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_resource_licenses(path)
+
 
 if __name__ == "__main__":
     unittest.main()
+

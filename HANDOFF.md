@@ -1,13 +1,15 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
-## ความคืบหน้าล่าสุด (22 ต.ค. 2569 เวลา 23:15 Asia/Bangkok)
+## ความคืบหน้าล่าสุด (22 ต.ค. 2569 เวลา 23:28 Asia/Bangkok)
 
-ตรวจรวม 141 tests ผ่าน; pip check ผ่าน. สภาพแวดล้อม: Python 3.12, DuckDB warehouse 141,699 observations ล่าสุด, exports ครบทั้ง private/public.
+ตรวจรวม 142 tests ผ่าน; pip check ผ่าน. สภาพแวดล้อม: Python 3.12, DuckDB warehouse 141,699 observations ล่าสุด, exports ครบทั้ง private/public.
 
+- **Resource License Register (B1):** ขยายทะเบียนสิทธิ์ราย resource ใน `config/resource_licenses.json` และ `docs/source-license-register.md` เพิ่ม 4 ทรัพยากรใหม่ (LDD rice zoning, DOF aquatic production, DLD livestock value, DOAE perennial crops 2566) รวมเป็น 12 resources ตรวจครบถ้วน; ทุกชุดคงสถานะ `pending` ซื่อสัตย์ตามข้อเท็จจริง; เพิ่มฟังก์ชัน `tadih.catalog.load_resource_licenses` และ unit test ใน `tests/test_catalog.py` ผ่าน 100%
 - **Scheduled Price Refresh:** เพิ่ม `scripts/refresh_prices.ps1` สำหรับตั้ง Windows Task Scheduler (`TADIH-Price-Refresh` ทุกวัน 07:15 Asia/Bangkok) พร้อม lock file `data/local/scheduled/refresh.lock` ป้องกันชนกัน; ผลทดสอบ live run สำเร็จ (exit code 0, 7,658 price observations ingested, snapshots สร้างและ verify ผ่าน 8 ไฟล์ทั้ง private และ public); unit test `tests/test_refresh_script.py` ผ่าน
 - **Daily Market-Price Staging:** เพิ่ม `src/tadih/daily_prices.py`, `tests/test_daily_prices.py` และ `docs/daily-prices.md`; ตัวอย่าง bounded request มะนาว ผลขนาดใหญ่พิเศษ ตลาดกลางหนองบ้วย จ.เพชรบุรี 100 แถว (บาท/ร้อยผล) คง spatial_support เป็น `market`, price_type เป็น null, release_at เป็น null, ไม่ rollup หรือเข้า warehouse ก่อนรีวิวความหมายสิทธิ์
 - **Weekly Native Price Staging:** เพิ่ม `src/tadih/weekly_prices.py`, `tests/test_weekly_prices.py` และ `docs/weekly-prices.md`; ตัวอย่าง กระบือ ขนาดกลาง 42 แถว ปี 2569 หน่วย บาท/ตัว (TH00 ระดับประเทศ) คงรหัสสัปดาห์ 1–5 และเดือน ไม่แปลงเป็นวันหรือ ISO week; เก็บ revisions ครบถ้วน ไม่เข้า warehouse
 - **DOAE Perennial Staging Readiness Audit:** จัดทำ `docs/perennial-readiness.md`, `data/local/probes/perennial-readiness.json` และ `perennial-admin-crosswalk.csv`; ตรวจสอบพืชอายุยาว 2566 รวม 54,195 แถว: 54,186 แถว match กับ DOPA 2023, 6 แถว unmatched จากตำบลที่ติดเครื่องหมายยกเลิก, 3 แถวติด numeric quarantine จากค่าพื้นที่ติดลบ, 5 กลุ่ม repeated identities ที่มีค่าขัดแย้ง; คงสถานะ staging/quarantine ไม่ aggregate หรือนำเข้า warehouse
+
 
 ## Pipeline และข้อมูลเพิ่มเติม 22 ต.ค. 2569
 

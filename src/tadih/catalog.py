@@ -66,3 +66,32 @@ def load_sources(path=None):
             raise ValueError("Source licence status must be explicit")
         seen.add(source_id)
     return rows
+
+
+def load_resource_licenses(path=None):
+    """Load exact resource license register; all entries must be reviewed and pending."""
+    with Path(path or ROOT / "config/resource_licenses.json").open(encoding="utf-8-sig") as stream:
+        payload = json.load(stream)
+    if not isinstance(payload, dict) or payload.get("automatic_approval") is not False:
+        raise ValueError("Resource license register requires explicit non-automatic approval")
+    resources = payload.get("resources")
+    if not isinstance(resources, list) or not resources:
+        raise ValueError("Resource license register must contain a nonempty resources list")
+    seen = set()
+    required = {"resource_key", "source_id", "name", "license_status",
+                "project_publication_approved", "commercial_use_confirmed", "unresolved", "evidence"}
+    for row in resources:
+        if not isinstance(row, dict) or not required.issubset(row):
+            raise ValueError("Each resource entry must contain required review fields")
+        key = row["resource_key"]
+        if key in seen or not isinstance(key, str) or not key.strip():
+            raise ValueError("Resource keys must be unique nonempty strings")
+        if row["license_status"] not in {"approved_public", "restricted", "pending"}:
+            raise ValueError("Resource license status must be explicit")
+        if not isinstance(row["project_publication_approved"], bool) or not isinstance(row["commercial_use_confirmed"], bool):
+            raise ValueError("Approval and commercial confirmation must be booleans")
+        if not isinstance(row["evidence"], list) or not row["evidence"]:
+            raise ValueError("Resource entry requires verifiable evidence items")
+        seen.add(key)
+    return resources
+
