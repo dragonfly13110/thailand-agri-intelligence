@@ -13,9 +13,15 @@ from .quality import FIELDS, timestamp
 
 ROOT = Path(__file__).resolve().parents[2]
 BANGKOK = timezone(timedelta(hours=7))
-MEASURE_CATEGORY = {"production": "AG02", "planted_area": "AG02", "harvest_area": "AG02", "yield": "AG02",
-    "price": "AG03", "rainfall": "AG07", "temperature_max": "AG07", "reference_et0": "AG07",
-    "water_level": "AG08", "reservoir_storage": "AG08", "ndvi": "AG11", "ndmi": "AG11"}
+MEASURE_CATEGORY = {
+    "production": "AG02", "planted_area": "AG02", "harvest_area": "AG02", "harvested_area": "AG02",
+    "damaged_area": "AG02", "yield": "AG02", "price": "AG03", "rainfall": "AG07",
+    "temperature_max": "AG07", "reference_et0": "AG07", "water_level": "AG08",
+    "reservoir_storage": "AG08", "reservoir_volume": "AG08", "reservoir_storage_capacity": "AG08",
+    "reservoir_dead_storage": "AG08", "reservoir_percent_storage": "AG08",
+    "ndvi": "AG11", "ndvi_valid_pixel_fraction": "AG11", "vi_quality": "AG11",
+    "pixel_reliability": "AG11", "ndmi": "AG11"
+}
 SNAPSHOT_FILES = {"dim_area.csv", "dim_source.csv", "dim_category.csv", "fact_observation.csv",
     "fact_observation.parquet", "fact_data_coverage.csv", "fact_category_coverage.csv", "decision_cards.json"}
 

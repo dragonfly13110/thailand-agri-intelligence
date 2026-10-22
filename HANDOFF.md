@@ -48,7 +48,7 @@
 
 | ชุดข้อมูล | จำนวน/ช่วงเวลา | พาธและข้อจำกัด |
 |---|---|---|
-| Warehouse | 88,293 observations ล่าสุด | `data/local/tadih.duckdb`; ราคา 7,658 ค่า + Unknown ราคา 1 เดือน + อากาศ 54,795 ค่า (5 จุดภูมิภาค × 10 ปี) + อ่างเก็บน้ำ RID 25,816 ค่า (461 อ่าง × 14 วัน) + ดาวเทียม MODIS 28 ค่า (5 จุดภูมิภาค) |
+| Warehouse | 109,144 observations ล่าสุด (ขนาดไฟล์ 44.76 MB) | `data/local/tadih.duckdb`; ราคา 7,658 ค่า + อากาศ 54,795 ค่า (5 จุดภูมิภาค × 10 ปี) + อ่างเก็บน้ำ RID 25,816 ค่า (461 อ่าง × 14 วัน) + ดาวเทียม MODIS 24 ค่า (5 จุดภูมิภาค) + ผลผลิตและพื้นที่ระดับจังหวัด DOAE 20,851 ค่า (77 จังหวัด) |
 | ประวัติราคา OAE/NABC | 44 สินค้า ช่วงรวม ม.ค. 2011 ถึง ก.ย. 2026 | สินค้าละ 40–189 เดือน; ระดับประเทศ; `release_at` ยังไม่ทราบ; ห้ามกระจายลงจังหวัด |
 | ERA5/Open-Meteo | 5 จุดภูมิภาคเกษตรไทย จุดละ 3,653 วัน ปี 2016–2025 × 3 ตัวแปร (รวม 54,795 obs) | นครปฐม (13.8, 100.25), เชียงใหม่ (18.75, 99.0), ขอนแก่น (16.44, 102.83), อุบลราชธานี (15.24, 104.85), สุราษฎร์ธานี (9.14, 99.33); ฝน, Tmax, ET0; spatial_support เป็น grid_point ไม่ใช่ค่าเฉลี่ยจังหวัด |
 | RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง × 14 วันต่อเนื่อง (9–22 ต.ค. 2569) รวม 25,816 observations | `data/local/raw/rid/` 14 partitions; ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ; percent calibration mismatch = 0; spatial_support เป็น reservoir |
@@ -117,7 +117,7 @@
 
 - [ ] **B1 สิทธิ์และเวลาเผยแพร่:** ปิดเงื่อนไขที่ยังค้างในทะเบียน 7 resources (DOAE, OAE ข้าว, DOPA, DDPM, Open-Meteo archive/forecast, RID อ่างเก็บน้ำขนาดกลาง) และเพิ่มสิทธิ์รายสินค้า/endpoint ที่ยังไม่ได้ตรวจ พร้อม historical earliest/latest; อย่าแก้ `pending` เป็น `approved_public` โดยไม่มีหลักฐาน
 - [ ] **B2 สินค้าและราคา:** monthly 44 histories normalize แล้ว; ยังต้องตรวจรายชื่อสินค้าในอดีตที่ไม่อยู่ใน inventory ปี 2569, daily/weekly/production, taxonomy ข้าม provider, release lineage และ conflict 1 เดือน; MOC เคย timeout ยังไม่ถือว่าเชื่อมสำเร็จ
-- [ ] **B3 พื้นที่และผลผลิต:** ตรวจ 2 records บางบอนที่ยัง unmatched, รุ่นรหัสตามช่วงเวลา, ขอบเขตอำเภอ/ตำบล, duplicates/subtotals และความครบของค่าวัด ก่อนทำ provincial gold aggregates; ห้าม SUM ราคา/ผลผลิตเฉลี่ยข้าม grain
+- [x] **B3 พื้นที่และผลผลิต:** ตรวจ 2 records บางบอนที่ยัง unmatched (`บางบอน*` แขวงที่ถูกยกเลิกใน DOPA 2023) เก็บแยกไว้ใน audit ไม่เดารหัสตำบล; ตรวจสอบ 50,103 source rows ไม่มี subtotal แฝงและไม่มี duplicate identity; สร้าง provincial gold aggregates 6,696 กลุ่ม (50,101 rows matched snapshot); คำนวณ derived weighted yield (sum(production)/sum(harvested)) ห้าม average; ingest 20,851 observations เข้า DuckDB warehouse สำเร็จ ผ่าน 120 unit tests 100%
 - [ ] **B4 Coverage จริง:** เปลี่ยนจาก provider readiness เป็น resource×geo×period×metric inventory พร้อมหลักฐาน expected/observed/missing reason; `UNVERIFIED` ไม่เท่ากับ `NOT_PUBLISHED`
 - [x] **B5 อากาศระดับประเทศ:** ขยายเก็บอากาศ 5 จุดตัวแทนเกษตรกรรมไทย (นครปฐม กลาง, เชียงใหม่ เหนือ, ขอนแก่น อีสานบน, อุบลราชธานี อีสานล่าง, สุราษฎร์ธานี ใต้) ย้อนหลัง 10 ปี (2016–2025) รวม 54,795 observations; คำนวณ rainfall percentiles ย้อนหลัง 10 ปีสำหรับเกณฑ์ตัดสินใจฝนแล้งได้แล้ว; ตรวจสอบพิกัดตกในขอบเขตจังหวัด DDPM ครบถ้วน
 - [x] **B6 น้ำและดาวเทียม:** ขยาย RID อ่างเก็บน้ำขนาดกลาง 461 แห่งย้อนหลัง 14 วันต่อเนื่อง (25,816 observations, percent calibration mismatch = 0) และขยายดาวเทียม MODIS 500m 16-day NDVI/QA ครบ 5 จุดตัวแทนเกษตรกรรมไทย (28 observations) พร้อมระบบตรวจจับเมฆบังอัตโนมัติ

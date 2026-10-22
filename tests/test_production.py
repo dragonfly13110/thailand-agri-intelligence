@@ -107,6 +107,102 @@ class ProductionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 fetch_doae_production(directory, opener=opener)
 
+    def test_provincial_aggregation_derives_weighted_yield_and_isolates_unmatched(self):
+        from tadih.production import aggregate_provincial_production, provincial_production_observations
+        from tadih.quality import validate_observation
+
+        with tempfile.TemporaryDirectory() as directory:
+            dir_path = Path(directory)
+            # Create crosswalk
+            cw_path = dir_path / "crosswalk.csv"
+            with cw_path.open("w", encoding="utf-8-sig", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=[
+                    "province_name", "district_name", "subdistrict_name",
+                    "province_code", "district_code", "subdistrict_code", "mapping_status"
+                ])
+                writer.writeheader()
+                writer.writerow({
+                    "province_name": "กรุงเทพมหานคร", "district_name": "เขตหนองจอก", "subdistrict_name": "กระทุ่มราย",
+                    "province_code": "10", "district_code": "1003", "subdistrict_code": "100301", "mapping_status": "matched_snapshot"
+                })
+                writer.writerow({
+                    "province_name": "กรุงเทพมหานคร", "district_name": "เขตลาดกระบัง", "subdistrict_name": "ลาดกระบัง",
+                    "province_code": "10", "district_code": "1011", "subdistrict_code": "101101", "mapping_status": "matched_snapshot"
+                })
+                writer.writerow({
+                    "province_name": "กรุงเทพมหานคร", "district_name": "เขตบางบอน", "subdistrict_name": "บางบอน*",
+                    "province_code": "10", "district_code": "1050", "subdistrict_code": "", "mapping_status": "unmatched"
+                })
+
+            # Create records.jsonl
+            records_path = dir_path / "records.jsonl"
+            cid = "doae:rice00000000000000000001"
+            rows = [
+                # Row 1: 1000 rai, 600,000 kg -> 600 kg/rai
+                {
+                    "source_record_number": 1, "year_ad": 2023, "province_name": "กรุงเทพมหานคร",
+                    "district_name": "เขตหนองจอก", "subdistrict_name": "กระทุ่มราย", "crop_group": "ข้าว",
+                    "crop_type": "ข้าวนาปี", "variety_name": "กข 41", "commodity_id": cid,
+                    "planted_area_rai": 1000.0, "damaged_area_rai": None, "harvested_area_rai": 1000.0,
+                    "production_kg": 600000.0, "yield_kg_per_rai": 600.0
+                },
+                # Row 2: 2000 rai, 1,600,000 kg -> 800 kg/rai
+                {
+                    "source_record_number": 2, "year_ad": 2023, "province_name": "กรุงเทพมหานคร",
+                    "district_name": "เขตลาดกระบัง", "subdistrict_name": "ลาดกระบัง", "crop_group": "ข้าว",
+                    "crop_type": "ข้าวนาปี", "variety_name": "กข 41", "commodity_id": cid,
+                    "planted_area_rai": 2000.0, "damaged_area_rai": None, "harvested_area_rai": 2000.0,
+                    "production_kg": 1600000.0, "yield_kg_per_rai": 800.0
+                },
+                # Row 3 (unmatched subdistrict): 500 rai, 400,000 kg
+                {
+                    "source_record_number": 3, "year_ad": 2023, "province_name": "กรุงเทพมหานคร",
+                    "district_name": "เขตบางบอน", "subdistrict_name": "บางบอน*", "crop_group": "ข้าว",
+                    "crop_type": "ข้าวนาปี", "variety_name": "กข 41", "commodity_id": cid,
+                    "planted_area_rai": 500.0, "damaged_area_rai": None, "harvested_area_rai": 500.0,
+                    "production_kg": 400000.0, "yield_kg_per_rai": 800.0
+                }
+            ]
+            with records_path.open("w", encoding="utf-8") as f:
+                for r in rows:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+            out_dir = dir_path / "output"
+            result = aggregate_provincial_production(records_path, cw_path, output_dir=out_dir)
+
+            self.assertEqual(result["source_records"], 3)
+            self.assertEqual(result["total_matched_records"], 2)
+            self.assertEqual(result["total_unmatched_records"], 1)
+            self.assertEqual(len(result["aggregates"]), 1)
+
+            agg = result["aggregates"][0]
+            self.assertEqual(agg["province_code"], "10")
+            self.assertEqual(agg["matched_record_count"], 2)
+            self.assertEqual(agg["unmatched_record_count"], 1)
+            self.assertEqual(agg["subdistrict_completeness"], "partial_unmatched_subdistrict")
+
+            # Matched-only sum: 1000 + 2000 = 3000
+            self.assertEqual(agg["planted_area_rai"], 3000.0)
+            self.assertEqual(agg["harvested_area_rai"], 3000.0)
+            # Matched-only prod: 600,000 + 1,600,000 = 2,200,000
+            self.assertEqual(agg["production_kg"], 2200000.0)
+            # Weighted yield: 2,200,000 / 3,000 = 733.33 kg/rai (NOT simple average (600 + 800)/2 = 700!)
+            self.assertEqual(agg["weighted_yield_kg_per_rai"], 733.33)
+
+            # Check files were written and valid
+            self.assertTrue((out_dir / "provincial_production.csv").exists())
+            self.assertTrue((out_dir / "provincial_production_inventory.json").exists())
+
+            # Convert to observations and validate against JSON contract
+            observations = provincial_production_observations(result["aggregates"])
+            self.assertEqual(len(observations), 4)  # planted_area, harvested_area, production, yield
+            for obs in observations:
+                validate_observation(obs)
+                self.assertEqual(obs["area_code"], "10")
+                self.assertEqual(obs["spatial_support"], "province")
+                self.assertEqual(obs["quality_flag"], "partial_unmatched_subdistrict")
+
 
 if __name__ == "__main__":
     unittest.main()
+
