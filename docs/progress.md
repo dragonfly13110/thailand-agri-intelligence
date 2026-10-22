@@ -24,14 +24,14 @@
 | Coverage 77 × 20 | export CSV | พร้อมสถานะ UNVERIFIED (1,232 provider×province entries); ไม่มีการแต่งข้อมูล |
 | Decision workflows น้ำ/ตลาด | CLI + 5 real evidence cards + tests | ผ่านการทดสอบ (D01 watch/unknown, D02 watch/normal/unknown); รวมเข้าโมเดล offline-v7 |
 | Forecast/backtest | release-aware daily baselines/tests | prototype; ยังไม่มี forecast ปฏิบัติงาน |
-| Power BI | local PBIP v7: 12 ตาราง/15 relationships/35 measures/ร่าง 5 หน้า (20,469 obs + 5 decision cards) | schema 20 files / hashes 33 files / TOM 19.114.12 ผ่าน 100%; หน้า Satellite และ Audit แสดงผลสมบูรณ์; ร่างเก่าจัดเก็บใน archive/ |
+| Power BI | local PBIP v8: 12 ตาราง/15 relationships/35 measures/ร่าง 5 หน้า (20,469 obs + 5 decision cards) | schema 21 files / hashes 34 files / TOM 19.114.12 ผ่าน 100%; แก้ crash Desktop `version.json`; ร่างเก่าจัดเก็บใน archive/ |
 | ทะเบียนสิทธิ์ราย resource | config/resource_licenses.json + docs/source-license-register.md | ตรวจ 8 ชุดพร้อมหลักฐาน ทุกชุดยัง pending (รวม MODIS ผ่าน Planetary Computer) |
 | GitHub Actions | workflows สองชุด | CI และ catalog probe ผ่านจริง; schedule รายสัปดาห์ |
 
 ## ผลตรวจรับฐานระบบ
 
-- Tests 118 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence และ decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety)
-- ร่าง `data/local/powerbi/offline-v7/TADIH.pbip` มีข้อมูลจริงแบบ local only: 20,469 fact_observation แถว และ 5 decision cards ตรวจ hash 33 files และ Microsoft schemas 20 metadata files ผ่าน (12 ตาราง/15 relationships/35 measures) หน้า Satellite Crop Watch แสดงค่า Latest NDVI, Valid Pixel Fraction, Observation Count, Cloud Contaminated Count คู่กับ dim_period; หน้า Audit แสดง decision cards 5 รายการ (watch 2, normal 1, unknown 2) ร่างเก่า v1-v5 และ check folders ย้ายไป `data/local/powerbi/archive/`
+- Tests 119 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety) และ PBIR `version.json` metadata
+- ร่าง `data/local/powerbi/offline-v8/TADIH.pbip` มีข้อมูลจริงแบบ local only: 20,469 fact_observation แถว และ 5 decision cards ตรวจ hash 34 files และ Microsoft schemas 21 metadata files ผ่าน (12 ตาราง/15 relationships/35 measures) หน้า Satellite Crop Watch แสดงค่า Latest NDVI, Valid Pixel Fraction, Observation Count, Cloud Contaminated Count คู่กับ dim_period; หน้า Audit แสดง decision cards 5 รายการ (watch 2, normal 1, unknown 2) เพิ่ม `definition/version.json` แก้ไขปัญหา Power BI Desktop Frown error แล้ว ร่างเก่า v1-v7 และ check folders ย้ายไป `data/local/powerbi/archive/`
 - Decision Workflows D01 (ตลาด/ผลผลิต) และ D02 (น้ำ/ภัยพิบัติ) ทดสอบกับ evidence จริง:
   - D02 Watch: ฝนเดือนตุลาคม 10 ปีย้อนหลัง percentile 0.10 ต่ำกว่าเกณฑ์ 0.20 + ดาวเทียมฟ้าเปิด NDVI 0.6737 (valid fraction 1.0) + อ่างเก็บน้ำ/ระดับน้ำ 2.45m -> สถานะ `watch`, สัญญาณ `low_rain_monitoring_candidate`
   - D02 Normal: ฝน percentile 0.65 -> สถานะ `normal`, สัญญาณ `no_provisional_low_rain_signal`

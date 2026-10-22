@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tadih.local_project import model_definition, parse_measures, validate_relationships, write_report
+from tadih.local_project import SCHEMAS, model_definition, parse_measures, validate_relationships, write_report
 
 
 class LocalProjectTests(unittest.TestCase):
@@ -50,6 +50,16 @@ class LocalProjectTests(unittest.TestCase):
                 for projection in visual["visual"]["query"]["queryState"]["Values"]["projections"]:
                     if "Measure" in projection["field"]:
                         self.assertIn(projection["field"]["Measure"]["Property"], measures)
+
+    def test_write_report_emits_valid_version_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            write_report(path)
+            version_path = path / "TADIH.Report/definition/version.json"
+            self.assertTrue(version_path.is_file())
+            version_data = json.loads(version_path.read_text(encoding="utf-8"))
+            self.assertEqual(version_data.get("$schema"), SCHEMAS["version"])
+            self.assertEqual(version_data.get("version"), "2.0.0")
 
 
 if __name__ == "__main__":

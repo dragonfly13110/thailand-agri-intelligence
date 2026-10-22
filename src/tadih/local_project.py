@@ -16,6 +16,7 @@ SCHEMAS = {
     "pbip": "https://developer.microsoft.com/json-schemas/fabric/pbip/pbipProperties/1.0.0/schema.json",
     "pbism": "https://developer.microsoft.com/json-schemas/fabric/item/semanticModel/definitionProperties/1.0.0/schema.json",
     "pbir": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+    "version": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
     "report": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.1.0/schema.json",
     "page": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/1.0.0/schema.json",
     "pages": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
@@ -132,6 +133,7 @@ def _projection(table, field, measure=False):
 def write_report(destination):
     report = destination / "TADIH.Report"
     _json(report / "definition.pbir", {"$schema": SCHEMAS["pbir"], "version": "4.0", "datasetReference": {"byPath": {"path": "../TADIH.SemanticModel"}}})
+    _json(report / "definition/version.json", {"$schema": SCHEMAS["version"], "version": "2.0.0"})
     _json(report / "definition/report.json", {"$schema": SCHEMAS["report"], "themeCollection": {}})
     # shortcut: conservative native table visuals; verify typography and mobile layout in Desktop before publication.
     pages = [
