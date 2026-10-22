@@ -57,3 +57,13 @@ HTTP 401/403: หยุดและตรวจสิทธิ์/endpoint ไ�
 Schema/หน่วยเปลี่ยน: หยุดนำเข้าเก็บตัวอย่าง raw ตรวจ contract และเพิ่ม regression test ก่อนเปิดใหม่ แถวที่ไม่มีวันเผยแพร่ไม่เข้าสู่ backtest ที่ต้องใช้ as-of
 
 กฎความเสี่ยงเป็นเกณฑ์ทดลอง เจ้าหน้าที่ต้องตรวจ evidence และติดตามผลจริงก่อนตัดสินใจ งบประมาณ/ประกาศภัย/การจ่ายช่วยเหลือไม่ถูกดำเนินการอัตโนมัติ
+
+## Monthly price pipeline
+
+`python -m tadih price-pipeline --year-th 2569` runs inventory/checkpoint verification, bounded product history capture, normalization/quarantine, per-product warehouse ingestion, then internal/public exports and checksum verification. `--refresh` explicitly re-fetches revised inventory and histories; without it verified checkpoints resume, but missing checkpoints still trigger network requests. Inventory and each history have a maximum 10-page budget. This is the first complete source cycle, not a scheduler for all providers.
+
+Each run records immutable inventory/product artifact paths and checksums, database path, committed products, added revisions and verified export paths in `data/local/runs/<run>/report.json`. Failure marks the run failed and stops subsequent steps. Transactions are per product: earlier successful product imports persist if a later product fails; inspect the report, repair the source and rerun idempotently. No success is recorded until both exports verify. Pending data remain excluded by the public audience filter.
+
+Live resume cycles on 22 October 2026 imported 7,658 validated rows with zero added revisions, all 44 histories reused; public exports remained empty. Evidence: `data/local/probes/price-pipeline-first.json`, `price-pipeline-second.json`, and `price-pipeline-lineage.json`. Automatic daily scheduling and 14-day reliability acceptance remain pending.
+
+Additional local staging commands: `python -m tadih ldd-rice-zoning` (unit/year/province mapping unresolved), `python -m tadih doae-perennial` (annual grain with quarantine/duplicate flags). Neither command imports pending staging into the warehouse.

@@ -18,6 +18,14 @@ def parser():
     p = argparse.ArgumentParser(description="TADIH: Thailand-first data pipeline")
     p.add_argument("--db", default="data/local/tadih.duckdb")
     commands = p.add_subparsers(dest="command", required=True)
+    cycle = commands.add_parser("price-pipeline", help="Capture/validate/import monthly prices and verify internal/public exports")
+    cycle.add_argument("--year-th", required=True, type=int)
+    cycle.add_argument("--refresh", action="store_true", help="Re-fetch source revisions; otherwise resume verified captures")
+    land = commands.add_parser("ldd-rice-zoning", help="Local rice suitability staging; unit/year unresolved")
+    land.add_argument("--output", default="data/local/raw")
+    perennial = commands.add_parser("doae-perennial", help="Capture and stage annual perennial crops; no warehouse import")
+    perennial.add_argument("--output", default="data/local/raw/doae")
+    perennial.add_argument("--staging", default="data/local/production/perennial-staged")
     livestock = commands.add_parser("dld-livestock-value", help="Capture national livestock value; local staging only")
     livestock.add_argument("--output", default="data/local/raw")
     fisheries = commands.add_parser("dof-production", help="Capture national fisheries quantity/value; local staging only")
@@ -138,6 +146,22 @@ def main(argv=None):
             partition = f"catalog-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}-start{args.start}"
             output = save_snapshot(envelope, args.source, args.output, partition)
             output["pagination"] = envelope.get("pagination")
+        elif args.command == "doae-perennial":
+            from .production_perennial import fetch_perennial, stage_perennial
+            raw = fetch_perennial(args.output)
+            output = {"raw": raw, "staging": stage_perennial(raw["path"], args.staging)}
+        elif args.command == "ldd-rice-zoning":
+            from .land import capture_rice_zoning
+            captured = capture_rice_zoning(args.output)
+            digest = hashlib.sha256("".join(c["checksum"] for c in captured["captures"]).encode()).hexdigest()
+            staged = Path(args.output) / "ldd" / (digest + "-staged.json")
+            staged.write_text(json.dumps(captured["rows"], ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+            output = {"captures": captured["captures"], "staged_path": str(staged.resolve()),
+                      "source_values": len(captured["rows"]), "license_status": "pending",
+                      "warehouse_status": "not_imported_unit_year_and_province_mapping_unverified"}
+        elif args.command == "price-pipeline":
+            from .price_pipeline import run_price_pipeline
+            output = run_price_pipeline(args.db, args.year_th, refresh=args.refresh)
         elif args.command == "dof-production":
             from .fisheries import capture_fisheries
             captured = capture_fisheries(args.output)
