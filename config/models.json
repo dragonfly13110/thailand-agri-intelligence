@@ -8,5 +8,16 @@
   "interval_nominal_coverage": 0.8,
   "supported_horizons_days": [7, 30, 90],
   "median_window": 7,
-  "warning": "Daily single-series baselines only. No confidence claim from short annual histories."
+  "warning": "Daily single-series baselines only. No confidence claim from short annual histories.",
+  "monthly": {
+    "model_version": "monthly-baseline-pilot-0.1",
+    "minimum_history_months": 24,
+    "maximum_missing_rate": 0.1,
+    "minimum_backtest_folds": 12,
+    "minimum_interval_coverage": 0.7,
+    "interval_nominal_coverage": 0.8,
+    "supported_horizons_months": [1, 3, 6, 12],
+    "seasonal_lag_months": 12,
+    "ma_window_months": 3
+  }
 }

@@ -94,6 +94,75 @@ class ForecastTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 forecast(rows, "2025-04-20")
 
+    # --- Monthly Forecast & Backtest Tests ---
+
+    def test_monthly_series_constant_baseline_eligible(self):
+        from tadih.forecast import monthly_available_history, monthly_backtest, monthly_forecast
+        rows = self._monthly_series(count=48, value=15.0)
+        result = monthly_forecast(rows, "2024-12-31T00:00:00Z", horizon_months=1)
+        self.assertEqual(result["status"], "eligible")
+        self.assertEqual(result["point_estimate"], 15.0)
+        self.assertAlmostEqual(result["p10"], 15.0, places=2)
+        self.assertAlmostEqual(result["p90"], 15.0, places=2)
+
+    def test_monthly_series_seasonal_naive_champion(self):
+        import math
+        from tadih.forecast import monthly_backtest
+        # Seasonal wave repeating every 12 months: 10 + 5 * sin(2 * pi * month / 12)
+        rows = self._monthly_series(count=60, value=lambda idx: round(10.0 + 5.0 * math.sin(2 * math.pi * (idx % 12) / 12), 2))
+        report = monthly_backtest(rows, horizon_months=1)
+        self.assertEqual(report["status"], "eligible")
+        self.assertEqual(report["model_id"], "seasonal_naive")
+        # Seasonal naive should outperform standard naive (last_value)
+        self.assertLess(report["metrics"]["mae"], report["baseline_metrics"]["mae"])
+
+    def test_monthly_series_missing_release_suppressed(self):
+        from tadih.forecast import monthly_forecast
+        rows = self._monthly_series(count=48, value=15.0)
+        rows[10]["release_at"] = None
+        result = monthly_forecast(rows, "2024-12-31T00:00:00Z")
+        self.assertEqual(result["status"], "suppressed")
+        self.assertEqual(result["reason"], "unverified_release_dates")
+
+    def test_monthly_series_insufficient_history(self):
+        from tadih.forecast import monthly_forecast
+        rows = self._monthly_series(count=12, value=15.0)
+        result = monthly_forecast(rows, "2021-12-31T00:00:00Z")
+        self.assertEqual(result["status"], "suppressed")
+        self.assertEqual(result["reason"], "insufficient_history")
+
+    def test_monthly_series_missing_rate_exceeded(self):
+        from tadih.forecast import monthly_forecast
+        rows = self._monthly_series(count=48, value=15.0)
+        for i in range(0, 48, 5):  # 20% missing
+            rows[i]["value"] = None
+        result = monthly_forecast(rows, "2024-12-31T00:00:00Z")
+        self.assertEqual(result["status"], "suppressed")
+        self.assertEqual(result["reason"], "missing_rate_exceeded")
+
+    def test_monthly_unsupported_horizon(self):
+        from tadih.forecast import monthly_forecast
+        rows = self._monthly_series(count=48, value=15.0)
+        with self.assertRaises(ValueError):
+            monthly_forecast(rows, "2024-12-31T00:00:00Z", horizon_months=2)
+
+    def _monthly_series(self, count=48, value=10.0):
+        rows = []
+        for index in range(count):
+            year = 2021 + index // 12
+            month = (index % 12) + 1
+            obs_str = f"{year:04d}-{month:02d}-01T00:00:00Z"
+            rel_year = year if month < 12 else year + 1
+            rel_month = month + 1 if month < 12 else 1
+            rel_str = f"{rel_year:04d}-{rel_month:02d}-15T00:00:00Z"
+            val = value(index) if callable(value) else value
+            rows.append({
+                "observed_at": obs_str, "release_at": rel_str, "value": val,
+                "source_id": "synthetic", "unit": "THB/kg", "series_id": "synthetic-rice-monthly",
+                "revision_id": "r1", "data_kind": "observed",
+            })
+        return rows
+
 
 if __name__ == "__main__":
     unittest.main()
