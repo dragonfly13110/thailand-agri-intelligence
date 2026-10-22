@@ -90,7 +90,7 @@ class PipelineTests(unittest.TestCase):
             result = write_coverage_view(snapshot, path)
             with path.open(encoding="utf-8-sig", newline="") as stream:
                 rows = list(csv.DictReader(stream))
-            self.assertEqual(result["rows"], 77*15)
+            self.assertEqual(result["rows"], 77 * 16)
             self.assertEqual(len({r["province_code"] for r in rows}), 77)
             self.assertEqual({r["coverage_status"] for r in rows}, {"UNVERIFIED"})
             self.assertTrue(any(r["province_name"] == "กรุงเทพมหานคร" for r in rows))

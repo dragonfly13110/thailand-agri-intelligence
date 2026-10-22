@@ -183,6 +183,79 @@ VAR Days = DISTINCT(SELECTCOLUMNS(SeriesRows, "Day", fact_observation[observed_a
 RETURN
 IF(COUNTROWS(Locations) = 1 && COUNTROWS(Days) = COUNTROWS(SeriesRows), AVERAGEX(SeriesRows, fact_observation[value]), BLANK())
 
+Medium Reservoir Count =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "rid",
+        fact_observation[spatial_support] = "reservoir",
+        fact_observation[measure] = "reservoir_volume",
+        NOT ISBLANK(fact_observation[value])
+    )
+RETURN
+COUNTROWS(DISTINCT(SELECTCOLUMNS(SeriesRows, "Location", fact_observation[location_id])))
+
+Medium Reservoir Total Volume MCM =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "rid",
+        fact_observation[spatial_support] = "reservoir",
+        fact_observation[measure] = "reservoir_volume",
+        fact_observation[unit] = "MCM",
+        fact_observation[data_kind] = "official"
+    )
+RETURN
+IF(
+    COUNTROWS(SeriesRows) > 0,
+    SUMX(SeriesRows, fact_observation[value]),
+    BLANK()
+)
+
+Medium Reservoir Total Capacity MCM =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "rid",
+        fact_observation[spatial_support] = "reservoir",
+        fact_observation[measure] = "reservoir_storage_capacity",
+        fact_observation[unit] = "MCM",
+        fact_observation[data_kind] = "official"
+    )
+RETURN
+IF(
+    COUNTROWS(SeriesRows) > 0,
+    SUMX(SeriesRows, fact_observation[value]),
+    BLANK()
+)
+
+Medium Reservoir Total Dead Storage MCM =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "rid",
+        fact_observation[spatial_support] = "reservoir",
+        fact_observation[measure] = "reservoir_dead_storage",
+        fact_observation[unit] = "MCM",
+        fact_observation[data_kind] = "official"
+    )
+RETURN
+IF(
+    COUNTROWS(SeriesRows) > 0,
+    SUMX(SeriesRows, fact_observation[value]),
+    BLANK()
+)
+
+Medium Reservoir Storage Pct =
+VAR TotalVol = [Medium Reservoir Total Volume MCM]
+VAR TotalCap = [Medium Reservoir Total Capacity MCM]
+RETURN
+IF(
+    NOT ISBLANK(TotalVol) && NOT ISBLANK(TotalCap) && TotalCap > 0,
+    DIVIDE(TotalVol, TotalCap),
+    BLANK()
+)
+
 Production Source Rows = COUNTROWS(fact_production_source)
 
 Production Matched Rows =
@@ -192,6 +265,60 @@ Reported Production kg Single Row =
 IF(COUNTROWS(fact_production_source) = 1, MAX(fact_production_source[production_kg]), BLANK())
 
 Reviewed Production kg = BLANK()
+
+Satellite Observation Count =
+CALCULATE(
+    COUNTROWS(fact_observation),
+    fact_observation[source_id] = "modis",
+    fact_observation[spatial_support] = "grid_point"
+)
+
+Latest NDVI =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "modis",
+        fact_observation[spatial_support] = "grid_point",
+        fact_observation[measure] = "ndvi",
+        fact_observation[unit] = "index",
+        NOT ISBLANK(fact_observation[value])
+    )
+RETURN
+IF(
+    COUNTROWS(SeriesRows) = 1,
+    MAX(fact_observation[value]),
+    IF(
+        COUNTROWS(SeriesRows) > 1,
+        AVERAGEX(SeriesRows, fact_observation[value]),
+        BLANK()
+    )
+)
+
+NDVI Valid Pixel Fraction =
+VAR SeriesRows =
+    CALCULATETABLE(
+        fact_observation,
+        fact_observation[source_id] = "modis",
+        fact_observation[spatial_support] = "grid_point",
+        fact_observation[measure] = "ndvi_valid_pixel_fraction",
+        fact_observation[unit] = "fraction",
+        NOT ISBLANK(fact_observation[value])
+    )
+RETURN
+IF(
+    COUNTROWS(SeriesRows) > 0,
+    AVERAGEX(SeriesRows, fact_observation[value]),
+    BLANK()
+)
+
+Satellite Cloud Contaminated Count =
+CALCULATE(
+    COUNTROWS(fact_observation),
+    fact_observation[source_id] = "modis",
+    fact_observation[spatial_support] = "grid_point",
+    fact_observation[measure] = "ndvi",
+    fact_observation[quality_flag] = "cloud_contaminated"
+)
 
 // No default SUM/AVERAGE(value): prices, rainfall, production, NDVI and estimates
 // have incompatible grains. Keep value set to "Do not summarize" in the model.

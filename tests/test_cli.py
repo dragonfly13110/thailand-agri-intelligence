@@ -32,6 +32,26 @@ class CliTests(unittest.TestCase):
             manifest = json.loads((Path(directory) / "oae/probe/manifest.json").read_text())
             self.assertEqual(manifest["checksum"], success["checksum"])
 
+    def test_rid_reservoirs_cli_help(self):
+        result = subprocess.run([sys.executable, "-m", "tadih", "rid-reservoirs", "--help"],
+                                capture_output=True, check=True)
+        self.assertIn(b"rid-reservoirs", result.stdout)
+        self.assertIn(b"--backfill-start", result.stdout)
+        self.assertIn(b"--ingest", result.stdout)
+
+    def test_modis_ndvi_cli_file(self):
+        sample_path = Path(__file__).resolve().parents[1] / "data/local/satellite/pc_point_20240929.json"
+        if not sample_path.exists():
+            return
+        result = subprocess.run([sys.executable, "-m", "tadih", "modis-ndvi", "--file", str(sample_path)],
+                                capture_output=True, check=True)
+        payload = json.loads(result.stdout.decode("utf-8"))
+        self.assertEqual("point:13.8:100.25", payload["location_id"])
+        self.assertEqual(0.5700, payload["ndvi"])
+        self.assertEqual(0.0, payload["valid_fraction"])
+        self.assertEqual("cloud_contaminated", payload["quality_flag"])
+        self.assertEqual("grid_point", payload["spatial_support"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,14 @@ class DecisionTests(unittest.TestCase):
         data["observations"]["rain_percentile"]["value"] = 0
         self.assertEqual(evaluate_water_risk(data)["status"], "watch")
 
+    def test_normal_status_when_rain_sufficient(self):
+        data = water()
+        data["observations"]["rain_percentile"]["value"] = 0.5
+        result = evaluate_water_risk(data)
+        self.assertEqual(result["status"], "normal")
+        self.assertEqual(result["classification"], "Derived Indicator")
+        self.assertIn("no_provisional_low_rain_signal", result["reasons"])
+
     def test_missing_does_not_become_zero(self):
         data = water()
         data["observations"]["rain_percentile"]["value"] = None
@@ -96,6 +104,23 @@ class DecisionTests(unittest.TestCase):
         result = evaluate_market(data)
         self.assertEqual(result["status"], "unknown")
         self.assertEqual(result["indicators"], {})
+
+    def test_spatial_grain_mismatch_for_market(self):
+        data = market()
+        data["observations"]["current_price"]["admin_level"] = "national"
+        data["observations"]["current_price"]["area_code"] = "TH"
+        result = evaluate_market(data)
+        self.assertEqual(result["status"], "unknown")
+        self.assertIn("incompatible_spatial_grain:current_price", result["reasons"])
+
+    def test_market_normal_status_when_changes_small(self):
+        data = market()
+        data["observations"]["current_price"]["value"] = 10.5
+        data["observations"]["current_production"]["value"] = 98.0
+        result = evaluate_market(data)
+        self.assertEqual(result["status"], "normal")
+        self.assertEqual(result["classification"], "Derived Indicator")
+        self.assertIn("no_provisional_change_signal", result["reasons"])
 
     def test_input_unchanged(self):
         data = water()

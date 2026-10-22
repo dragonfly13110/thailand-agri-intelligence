@@ -517,6 +517,42 @@
         "ndmi"
       ],
       "freshness_days": null
+    },
+    {
+      "id": "modis",
+      "source_id": "modis",
+      "owner": "NASA LP DAAC / USGS",
+      "name": "MODIS Vegetation Indices (MOD13A1)",
+      "category": "satellite",
+      "domains": [
+        "AG10",
+        "AG11"
+      ],
+      "priority": "P1",
+      "url": "https://lpdaac.usgs.gov",
+      "base_url": "https://planetarycomputer.microsoft.com",
+      "type": "stac_raster",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": [
+        "grid_point",
+        "grid"
+      ],
+      "license_status": "pending",
+      "auth_status": "none_for_stac_read",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "MODIS Terra/Aqua 16-day 500m vegetation indices (NDVI/EVI), pixel reliability, and quality flags covering Thailand via Planetary Computer.",
+      "reference": "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md sections 1, 6, 26",
+      "license_review_required": true,
+      "endpoint": "/api/data/v1/item/point",
+      "spatial_scope_note": "Thailand intersecting tiles and grid samples only; publish point observations and area summaries, not raw global rasters.",
+      "topics": [
+        "ndvi",
+        "vegetation",
+        "satellite"
+      ],
+      "freshness_days": null
     }
   ],
   "deferred_sources": [

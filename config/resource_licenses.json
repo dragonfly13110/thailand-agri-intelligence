@@ -385,6 +385,112 @@
         }
       ],
       "shared_terms_resource_key": "open_meteo_thailand_era5_archive"
+    },
+    {
+      "resource_key": "rid_medium_reservoirs",
+      "source_id": "rid",
+      "resource_id": "https://app.rid.go.th/reservoir/api/reservoir/public",
+      "dataset_id": null,
+      "name": "รายงานสถานการณ์น้ำในอ่างเก็บน้ำขนาดกลาง กรมชลประทาน",
+      "resource_url": "https://app.rid.go.th/reservoir/api/reservoir/public",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "public_api_access_without_explicit_reuse_license",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "public daily medium reservoir report API"
+      },
+      "access_evidence": {
+        "public_api_tested": true,
+        "documentation_url": "https://app.rid.go.th/reservoir/api/document/reservoir",
+        "historical_endpoint_tested": true,
+        "reservoir_count_20261022": 461
+      },
+      "rights_facts": [
+        "The official endpoint provides public daily medium reservoir JSON reports without an API key or authentication.",
+        "The documentation page describes parameter structure and field names, but does not provide an explicit open licence URL, copyright grant, or commercial reuse terms.",
+        "Inflow and outflow measurement units are not defined in the provider documentation; volume and capacity are in MCM.",
+        "Historical daily query is supported, but API captures do not establish historical release timestamps or audit lineage."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลอ่างเก็บน้ำขนาดกลาง โดย กรมชลประทาน (RID)",
+      "attribution_url": "https://app.rid.go.th/reservoir/api/document/reservoir",
+      "unresolved": [
+        "Express licence terms and conditions covering redistribution and public dashboard display",
+        "Official measurement units for inflow and outflow",
+        "Publication schedule, official release timestamps, and coordinate/province master crosswalk"
+      ],
+      "next_action": "Request written reuse clarification and metadata definitions from RID SWOC before public redistribution of reservoir observations.",
+      "evidence": [
+        {
+          "url": "https://app.rid.go.th/reservoir/api/document/reservoir",
+          "kind": "official_api_documentation",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        },
+        {
+          "url": "https://app.rid.go.th/reservoir/api/reservoir/public",
+          "kind": "live_public_api_report",
+          "reviewed_at": "2026-10-22",
+          "sha256": "47332c9e78e41766161b768a007e4f2252e9fa5a87271866677b1b2ec96000b9"
+        }
+      ]
+    },
+    {
+      "resource_key": "planetary_computer_modis13a1_point",
+      "source_id": "modis",
+      "resource_id": "modis-13A1-061",
+      "dataset_id": "MOD13A1.061",
+      "name": "MODIS 16-Day 500m Vegetation Indices at Thailand Grid Points (Planetary Computer)",
+      "resource_url": "https://planetarycomputer.microsoft.com/api/data/v1/item/point/100.25,13.8?collection=modis-13A1-061&item=MOD13A1.A2024273.h27v07.061.2024290023005&assets=500m_16_days_NDVI&assets=500m_16_days_pixel_reliability&assets=500m_16_days_VI_Quality",
+      "reviewed_at": "2026-10-22",
+      "license_status": "pending",
+      "review_outcome": "us_gov_work_and_planetary_computer_terms_pending_project_review",
+      "declared_license": {
+        "license_id": "NASA Open Data Policy / US Government Work",
+        "license_id_other": null,
+        "license_url": "https://lpdaac.usgs.gov/data/data-citation-and-policies/",
+        "version": null,
+        "scope": "MODIS data products are freely and openly available to everyone"
+      },
+      "access_evidence": {
+        "public_api_tested": true,
+        "stac_search_tested": true,
+        "point_extraction_tested": true,
+        "terms_url": "https://planetarycomputer.microsoft.com/terms"
+      },
+      "rights_facts": [
+        "NASA Earth science data (MODIS) is open without restriction per US Government and NASA Data Policy.",
+        "Microsoft Planetary Computer provides hosted STAC metadata and raster tile extraction APIs.",
+        "Redistribution of extracted point observations and area summaries is compliant with data citations; project-specific publication review remains pending before public export."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": "NASA LP DAAC / USGS MODIS data accessed via Microsoft Planetary Computer",
+      "attribution_url": "https://doi.org/10.5067/MODIS/MOD13A1.061",
+      "unresolved": [
+        "Project-specific approval for public dataset release and external dashboard redistribution",
+        "Validation of cloud masking vs field survey references across Thai agricultural regions"
+      ],
+      "next_action": "Stage point observations and composite series locally with pending status; evaluate cloud-mask reliability against local agricultural seasons.",
+      "evidence": [
+        {
+          "url": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/modis-13A1-061",
+          "kind": "live_collection_metadata",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        },
+        {
+          "url": "https://planetarycomputer.microsoft.com/api/data/v1/item/point/100.25,13.8?collection=modis-13A1-061&item=MOD13A1.A2024273.h27v07.061.2024290023005&assets=500m_16_days_NDVI&assets=500m_16_days_pixel_reliability&assets=500m_16_days_VI_Quality",
+          "kind": "live_point_raster_query",
+          "reviewed_at": "2026-10-22",
+          "sha256": null
+        }
+      ]
     }
   ]
 }

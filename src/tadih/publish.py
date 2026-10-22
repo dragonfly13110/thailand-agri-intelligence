@@ -29,7 +29,7 @@ def _csv(path, fields, rows):
                              for key, value in row.items()})
 
 
-def build_exports(db, output_dir, period=None, now=None, audience="public"):
+def build_exports(db, output_dir, period=None, now=None, audience="public", evidence_dir=None):
     now = now or datetime.now(timezone.utc)
     period = period or now.astimezone(BANGKOK).strftime("%Y-%m")
     datetime.strptime(period, "%Y-%m")
@@ -82,7 +82,21 @@ def build_exports(db, output_dir, period=None, now=None, audience="public"):
                 "available_source_count": len(available), "expected_source_count": None})
     _csv(snapshot / "fact_category_coverage.csv", list(category_coverage[0]), category_coverage)
     from .decisions import evaluate_market, evaluate_water_risk
-    cards = [evaluate_water_risk({}), evaluate_market({})]
+    cards = []
+    ev_dir = Path(evidence_dir) if evidence_dir is not None else (ROOT / "data/local/evidence" if audience == "internal" else None)
+    if ev_dir and ev_dir.exists():
+        for card_file in sorted(ev_dir.glob("*.json")):
+            try:
+                card_data = json.loads(card_file.read_text(encoding="utf-8"))
+                dec_id = card_data.get("decision_id")
+                if dec_id == "D01":
+                    cards.append(evaluate_market(card_data))
+                elif dec_id == "D02":
+                    cards.append(evaluate_water_risk(card_data))
+            except Exception:
+                pass
+    if not cards:
+        cards = [evaluate_water_risk({}), evaluate_market({})]
     (snapshot / "decision_cards.json").write_text(json.dumps(cards, ensure_ascii=False, indent=2), encoding="utf-8")
     files = [{"name": path.name, "bytes": path.stat().st_size,
               "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in sorted(snapshot.iterdir())]
@@ -96,7 +110,7 @@ def build_exports(db, output_dir, period=None, now=None, audience="public"):
             "Source coverage groups imported measurements by provider; it is not a complete dataset inventory",
             "No district/subdistrict geometry or verified crop mask yet",
             "UNVERIFIED does not mean provider does not publish data",
-            "Decision examples remain unknown until compatible evidence is supplied"]}
+            "Decision screening cards evaluated from local evidence files" if any(c.get("status") != "unknown" for c in cards) else "Decision examples remain unknown until compatible evidence is supplied"]}
     (snapshot / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
     return snapshot, metadata
 

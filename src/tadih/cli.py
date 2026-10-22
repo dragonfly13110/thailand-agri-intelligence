@@ -90,6 +90,21 @@ def parser():
     predict.add_argument("file")
     predict.add_argument("--issue-at", required=True)
     predict.add_argument("--horizon-days", type=int, default=7)
+    reservoirs = commands.add_parser("rid-reservoirs", help="Capture and normalize RID medium-reservoir report; pending licence stays local")
+    reservoirs.add_argument("--date", help="Report date YYYY-MM-DD; defaults to current live report")
+    reservoirs.add_argument("--backfill-start", help="Start date YYYY-MM-DD for bounded daily backfill")
+    reservoirs.add_argument("--backfill-end", help="End date YYYY-MM-DD for bounded daily backfill")
+    reservoirs.add_argument("--output", default="data/local/raw")
+    reservoirs.add_argument("--refresh", action="store_true")
+    reservoirs.add_argument("--ingest", action="store_true", help="Ingest normalized observations into local DuckDB warehouse")
+    satellite = commands.add_parser("modis-ndvi", help="Fetch or normalize MODIS 500m 16-day vegetation indices and cloud QA")
+    satellite.add_argument("--latitude", type=float)
+    satellite.add_argument("--longitude", type=float)
+    satellite.add_argument("--file", help="Path to local point snapshot JSON")
+    satellite.add_argument("--item", help="MODIS item identifier (e.g. MOD13A1.A2026273...)")
+    satellite.add_argument("--output", default="data/local/raw")
+    satellite.add_argument("--license-status", choices=("pending", "approved_public", "restricted"), default="pending")
+    satellite.add_argument("--ingest", action="store_true", help="Ingest normalized observations into local DuckDB warehouse")
     commands.add_parser("status", help="Count actual imported records, no inferred coverage")
     return p
 
@@ -150,6 +165,52 @@ def main(argv=None):
             from .forecast import forecast
             records = json.loads(Path(args.file).read_text(encoding="utf-8-sig"))
             output = forecast(records, args.issue_at, args.horizon_days)
+        elif args.command == "rid-reservoirs":
+            from .reservoirs import capture_reservoirs, backfill_reservoirs, normalize_reservoirs
+            if args.backfill_start and args.backfill_end:
+                records = backfill_reservoirs(args.backfill_start, args.backfill_end, args.output, refresh=args.refresh)
+                output = {"partitions": records, "days": len(records), "license_status": "pending", "spatial_support": "reservoir"}
+                if args.ingest:
+                    with connect(args.db) as db:
+                        count = 0
+                        for rec in records:
+                            envelope = json.loads(Path(rec["path"]).read_text(encoding="utf-8"))
+                            normalized = normalize_reservoirs(envelope)
+                            count += ingest_rows(db, normalized["observations"])
+                        output["validated_input_rows"] = count
+            else:
+                record = capture_reservoirs(args.output, args.date, refresh=args.refresh)
+                output = {**record, "license_status": "pending", "spatial_support": "reservoir"}
+                if args.ingest:
+                    with connect(args.db) as db:
+                        envelope = json.loads(Path(record["path"]).read_text(encoding="utf-8"))
+                        normalized = normalize_reservoirs(envelope)
+                        output["validated_input_rows"] = ingest_rows(db, normalized["observations"])
+        elif args.command == "modis-ndvi":
+            from .satellite import fetch_modis_point, normalize_modis_point, save_satellite_snapshot
+            if args.file:
+                envelope = json.loads(Path(args.file).read_text(encoding="utf-8"))
+            elif args.latitude is not None and args.longitude is not None:
+                envelope = fetch_modis_point(args.latitude, args.longitude, item_id=args.item)
+                partition = f"modis/point-{args.latitude}-{args.longitude}-{envelope.get('start_datetime', '')[:10]}"
+                save_satellite_snapshot(envelope, args.output, partition)
+            else:
+                raise ValueError("Must specify either --file or both --latitude and --longitude")
+            normalized = normalize_modis_point(envelope, args.license_status)
+            output = {
+                "item_id": normalized["item_id"],
+                "location_id": normalized["location_id"],
+                "observed_at": normalized["observed_at"],
+                "ndvi": normalized["ndvi"],
+                "valid_fraction": normalized["valid_fraction"],
+                "quality_flag": normalized["quality_flag"],
+                "observations_count": normalized["count"],
+                "license_status": args.license_status,
+                "spatial_support": "grid_point"
+            }
+            if args.ingest:
+                with connect(args.db) as db:
+                    output["validated_input_rows"] = ingest_rows(db, normalized["observations"])
         else:
             with connect(args.db) as db:
                 if args.command == "ingest":

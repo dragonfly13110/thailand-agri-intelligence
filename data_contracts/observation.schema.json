@@ -102,7 +102,8 @@
         "province",
         "station",
         "grid_point",
-        "national"
+        "national",
+        "reservoir"
       ]
     },
     "location_id": {

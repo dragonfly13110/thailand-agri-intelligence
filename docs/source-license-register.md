@@ -12,6 +12,7 @@
 | DDPM ขอบเขตจังหวัด `FeatureServer/1` | item เป็น public; ช่อง licence และเครดิตว่าง | pending |
 | Open-Meteo ERA5 เฉพาะพิกัดไทย | ข้อมูล CC BY 4.0; API ฟรีจำกัดงานไม่เชิงพาณิชย์ | pending การใช้บริการและ attribution |
 | Open-Meteo forecast เฉพาะพิกัดไทย | เงื่อนไขข้อมูลและ API ชุดเดียวกับ ERA5 | pending การใช้บริการและ attribution |
+| RID รายงานอ่างเก็บน้ำขนาดกลางรายวัน | API สาธารณะไม่มี API key; เอกสารไม่ระบุสัญญาอนุญาตเผยแพร่ต่อ | pending |
 
 ## DOAE ผลผลิตรายตำบล
 
@@ -48,6 +49,18 @@
 [Terms](https://open-meteo.com/en/terms) จำกัดบริการ API ฟรีไว้สำหรับงานไม่เชิงพาณิชย์ งานเชิงพาณิชย์ต้องใช้ช่องทางบริการที่รองรับ จึงคงสถานะโครงการเป็น pending จนบันทึกลักษณะการใช้บริการและจัด attribution ครบ ความถูกต้องของพื้นที่ยังยึดเฉพาะพิกัดไทยที่ผ่านการตรวจ ไม่ขยายเป็นสิทธิ์เก็บข้อมูลทั่วโลก
 
 เอกสารผลิตภัณฑ์ที่ตรวจคือ [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) และ [Forecast API](https://open-meteo.com/en/docs) โดย ERA5 คงชนิด reanalysis ส่วนผลพยากรณ์คงชนิด forecast ตามสัญญาข้อมูลเดิม
+
+## RID รายงานอ่างเก็บน้ำขนาดกลาง
+
+ตรวจ [เอกสาร API](https://app.rid.go.th/reservoir/api/document/reservoir) และ [endpoint สาธารณะ](https://app.rid.go.th/reservoir/api/reservoir/public) แล้ว พบว่าเป็นบริการ JSON สาธารณะที่ไม่ต้องใช้ API key รายงานระบุปริมาณน้ำ ความจุ dead storage และเปอร์เซ็นต์น้ำรายอ่าง
+
+เอกสารกำกับอธิบายชื่อพารามิเตอร์และโครงสร้างข้อมูล แต่ยังไม่ระบุสัญญาอนุญาตเปิดเผยหรือเงื่อนไขการเผยแพร่ซ้ำ/เชิงพาณิชย์ นอกจากนี้หน่วยของ inflow และ outflow ไม่ได้ระบุไว้ในเอกสาร (เก็บเฉพาะ raw) และข้อมูลไม่มีพิกัดหรือรหัสจังหวัดทางการ จึงต้องคงสถานะเป็น pending และไม่กระจายข้อมูลลงจังหวัด
+
+## MODIS ดัชนีพืชพรรณผ่าน Planetary Computer
+
+ตรวจ [นโยบายข้อมูล NASA LP DAAC](https://lpdaac.usgs.gov/data/data-citation-and-policies/) และ [เงื่อนไข Planetary Computer](https://planetarycomputer.microsoft.com/terms) แล้ว ข้อมูล MODIS เป็นงานของรัฐบาลสหรัฐฯ เปิดเผยสาธารณะโดยไม่มีข้อจำกัด และ Microsoft ให้บริการ STAC API และ raster point extraction แบบสาธารณะ
+
+การดึงค่าดัชนีพืชพรรณ (NDVI), Pixel Reliability (Cloud mask) และ VI Quality เฉพาะจุดพิกัดในประเทศไทยต้องรักษา grain เป็น grid_point พร้อมบันทึก scale factor (0.0001) และ fill value (-3000 เป็น null) สถานะสิทธิ์ในโครงการคงเป็น pending สำหรับการตรวจทานเงื่อนไขเผยแพร่ซ้ำและยืนยัน cloud mask กับฤดูกาลจริงในพื้นที่ก่อนเปิดสาธารณะ
 
 ## การใช้ทะเบียนนี้
 

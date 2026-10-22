@@ -118,7 +118,7 @@ def model_definition(tables, data_folder, measures):
         if name == "dim_area":
             table["measures"] = measures
             for measure in measures:
-                if measure["name"].endswith("Pct"):
+                if measure["name"].endswith("Pct") or measure["name"].endswith("Fraction"):
                     measure["formatString"] = "0.0%;-0.0%;0.0%"
         model["tables"].append(table)
     return {"name": "TADIH", "compatibilityLevel": 1600, "model": model}
@@ -142,12 +142,15 @@ def write_report(destination):
             ("dim_period", ["period", ("dim_commodity", "crop_type"), ("National Farmgate Price Native Unit", True), ("National Farmgate Price Unit", True), ("National Price Month Change Pct", True)]),
             ("fact_production_source", ["province_name", "district_name", "subdistrict_name", "period", "crop_type", "variety_name", "production_kg", "mapping_status", "rollup_eligible"])]),
         ("water", "Water, Rain & Disaster Watch", [
-            ("dim_period", ["period", ("Grid Point Rainfall mm", True), ("Rainfall Valid Days", True), ("Grid Point Mean Daily Tmax C", True)]),
+            ("dim_period", ["period", ("Grid Point Rainfall mm", True), ("Rainfall Valid Days", True), ("Grid Point Mean Daily Tmax C", True),
+                            ("Medium Reservoir Count", True), ("Medium Reservoir Total Volume MCM", True), ("Medium Reservoir Total Capacity MCM", True), ("Medium Reservoir Storage Pct", True)]),
             ("fact_observation", ["location_id", "spatial_support", "data_kind", "measure", "unit", "source_id"])]),
-        ("satellite", "Satellite Crop Watch", [("snapshot_metadata", ["satellite_status", "satellite_note"])]),
+        ("satellite", "Satellite Crop Watch", [
+            ("dim_period", ["period", ("Latest NDVI", True), ("NDVI Valid Pixel Fraction", True), ("Satellite Observation Count", True), ("Satellite Cloud Contaminated Count", True)]),
+            ("snapshot_metadata", ["satellite_status", "satellite_note"])]),
         ("audit", "Forecast & Decision Audit", [
             ("decision_cards", ["decision_id", "status", "reasons", "recommended_action", "limitations"]),
-            ("snapshot_metadata", ["generated_at", "audience", "forecast_status", "price_data_quality", "validation_status", "license_note"])])]
+            ("snapshot_metadata", ["generated_at", "audience", "forecast_status", "price_data_quality", "decision_status", "validation_status", "license_note"])])]
     _json(report / "definition/pages/pages.json", {"$schema": SCHEMAS["pages"], "pageOrder": [p[0] for p in pages], "activePageName": pages[0][0]})
     for name, label, visuals in pages:
         page = report / "definition/pages" / name
@@ -222,10 +225,24 @@ def build_local_project(snapshot, production_inventory, workbook, output_dir):
         year, month = (year+1, 1) if month == 12 else (year, month+1)
     tables["dim_period"] = (list(months[0]), months)
     cards = json.loads((snapshot / "decision_cards.json").read_text(encoding="utf-8"))
-    tables["decision_cards"] = (list(cards[0]), cards)
+    card_fields = ["decision_id", "status", "classification", "confidence", "area_code", "commodity_id", "evaluated_at", "rule_version", "reasons", "coverage", "recommended_action", "owner", "automatic_action", "limitations"]
+    for card in cards:
+        for k in card:
+            if k not in card_fields and not isinstance(card[k], (dict, list)):
+                card_fields.append(k)
+    tables["decision_cards"] = (card_fields, cards)
+    has_sat = any(r.get("source_id") == "modis" for r in observations)
+    sat_status = "grid_point_samples" if has_sat else "unknown"
+    sat_note = ("ดัชนีพืชพรรณ MODIS 500m 16-day และ cloud QA รายจุดพิกัด; สิทธิ์ pending ไม่กระจายลงจังหวัด"
+                if has_sat else "ยังไม่มี NDVI/crop mask/zonal statistics ที่ผ่านการตรวจสอบ")
+    dec_watch = sum(c.get("status") == "watch" for c in cards)
+    dec_normal = sum(c.get("status") == "normal" for c in cards)
+    dec_unknown = sum(c.get("status") == "unknown" for c in cards)
+    dec_status = f"screening cards {len(cards)} รายการ: watch {dec_watch}, normal {dec_normal}, unknown {dec_unknown}" if cards else "unknown"
     audit = {"generated_at": metadata["generated_at"], "audience": "internal_local_only", "forecast_status": metadata["forecast_status"],
              "price_data_quality": f"ราคาที่ต้นทางให้ค่าขัดแย้ง {sum(r['quality_flag'] == 'conflicting_source_records' for r in observations)} เดือน แสดง Unknown และรอตรวจสอบ; release_at ที่ไม่ทราบคงว่าง",
-             "satellite_status": "unknown", "satellite_note": "ยังไม่มี NDVI/crop mask/zonal statistics ที่ผ่านการตรวจสอบ",
+             "satellite_status": sat_status, "satellite_note": sat_note,
+             "decision_status": dec_status,
              "validation_status": "offline_structure_only; Desktop refresh, DAX execution and rendering pending",
              "license_note": "สิทธิ์เผยแพร่ข้อมูลจริงยังรอตรวจสอบ ห้ามอัปโหลดชุดนี้ขึ้นออนไลน์"}
     tables["snapshot_metadata"] = (list(audit), [audit])

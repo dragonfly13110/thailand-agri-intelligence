@@ -58,7 +58,7 @@ def validate_observation(row):
         raise ValueError("unknown source_id")
     if row["area_code"] is not None and row["area_code"] not in provinces:
         raise ValueError("unknown province code; lower admin levels need verified master data first")
-    if row["spatial_support"] not in {"province", "station", "grid_point", "national"}:
+    if row["spatial_support"] not in {"province", "station", "grid_point", "national", "reservoir"}:
         raise ValueError("unsupported spatial_support")
     if row["spatial_support"] == "province" and row["area_code"] is None:
         raise ValueError("province observations require area_code")

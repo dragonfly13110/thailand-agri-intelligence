@@ -32,8 +32,8 @@ class CatalogTests(unittest.TestCase):
 
     def test_source_registry_does_not_claim_runtime_or_licence_approval(self):
         rows = load_sources()
-        self.assertEqual(15, len(rows))
-        self.assertEqual(15, len({r["source_id"] for r in rows}))
+        self.assertEqual(16, len(rows))
+        self.assertEqual(16, len({r["source_id"] for r in rows}))
         self.assertTrue(all(r["geographic_scope"] == "Thailand" for r in rows))
         self.assertTrue(all(not r["runtime_verified"] for r in rows))
         self.assertTrue(all(r["license_status"] == "pending" for r in rows))
