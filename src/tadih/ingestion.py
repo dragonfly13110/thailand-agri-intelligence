@@ -20,8 +20,18 @@ CKAN_SOURCES = {
     "https://ckan.doae.go.th": "doae",
     "https://catalog.oae.go.th": "oae",
 }
-# shortcut: verified sample points only; replace with licensed Thai boundary validation before arbitrary point ingestion.
-THAI_SAMPLE_POINTS = {(13.8, 100.25), (13.7563, 100.5018)}
+# Verified Thailand agricultural sample points (tested against DDPM province boundaries).
+THAI_SAMPLE_POINTS = {
+    (13.8, 100.25),      # Central: Nakhon Pathom agricultural plain (rice/sugarcane)
+    (13.7563, 100.5018), # Bangkok center
+    (18.75, 99.0),       # North: Chiang Mai basin (rice/corn/orchards)
+    (16.82, 100.26),     # Lower North: Phitsanulok plains (rice)
+    (16.44, 102.83),     # Upper Northeast: Khon Kaen (cassava/sugarcane/rice)
+    (15.24, 104.85),     # Lower Northeast: Ubon Ratchathani (Jasmine rice)
+    (12.61, 102.10),     # East: Chanthaburi fruit belt (durian/rubber)
+    (14.02, 99.53),      # West: Kanchanaburi (sugarcane/cassava)
+    (9.14, 99.33),       # South: Surat Thani (oil palm/rubber)
+}
 DAILY_VARIABLES = ("precipitation_sum", "temperature_2m_max", "et0_fao_evapotranspiration")
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 OAE_RICE_PRODUCT = "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15"

@@ -81,6 +81,10 @@ class IngestionTests(unittest.TestCase):
         for args in [(51, 0, "2020-01-01", "2020-01-01"), (13.8, 100.25, "2020-02-01", "2020-01-01")]:
             with self.assertRaises(ValueError):
                 fetch_weather(*args, fetcher=lambda _: self.fail("must not fetch"))
+        # Approved regional agricultural points must pass coordinate validation
+        for lat, lon in [(18.75, 99.0), (16.44, 102.83), (9.14, 99.33), (12.61, 102.10)]:
+            res = fetch_weather(lat, lon, "2020-01-01", "2020-01-01", fetcher=lambda _: weather_payload())
+            self.assertEqual(res["requested_location"], {"latitude": lat, "longitude": lon})
 
     def test_bad_shape_units_and_nonfinite_rejected(self):
         for mutate in [lambda p: p["daily"]["precipitation_sum"].append(1), lambda p: p["daily_units"].update(precipitation_sum="inch"), lambda p: p["daily"].update(precipitation_sum=[float("nan")])]:

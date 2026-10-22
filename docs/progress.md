@@ -17,29 +17,33 @@
 | ผลผลิต DOAE | CSV เต็ม 50,103 records /77 ชื่อจังหวัด/537 commodity identities | staging จริง; ยังไม่รวมพื้นที่เป็น fact |
 | พื้นที่ระดับย่อย | DOPA snapshot2023:928 อำเภอ/7,436 ตำบล, retired1,584 | แยก active/retired; ไม่อ้าง current2026 |
 | Commodity inventory NABC | ปี2569:raw387/unique376/duplicates11; 44 identities/4pages | normalize แล้ว; product histories 44 captures; taxonomy ข้าม provider ยังไม่ทำ |
-| อากาศ ERA5 | 1 จุดไทย / 3,653 วัน ปี 2016 ถึง 2025 / 3 ตัวแปร | ดึงจริง 10 partitions; ตรวจ resume ไม่เรียก API ซ้ำ |
-| น้ำ RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง/วัน (ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ) รวม 1,844 obs/วัน | เชื่อมต่อ pipeline, DuckDB และ CLI แล้ว; spatial_support=reservoir; สิทธิ์ pending |
-| ดาวเทียม MODIS NDVI/QA | 8 observations (2 composites 16-day: 2024-09-29, 2026-09-30) | ดึงและ normalize ผ่าน Planetary Computer ณ จุด 13.8, 100.25; scale 0.0001; cloud flags; spatial_support=grid_point; สิทธิ์ pending |
+| อากาศ ERA5 | 5 จุดภูมิภาคเกษตรไทย / จุดละ 3,653 วัน ปี 2016 ถึง 2025 / 3 ตัวแปร | ดึงจริง 50 partitions (นครปฐม, เชียงใหม่, ขอนแก่น, อุบลฯ, สุราษฎร์ฯ) รวม 54,795 observations; คำนวณ 10-year percentile รายจุดได้ |
+| น้ำ RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง × 14 วันต่อเนื่อง (9–22 ต.ค. 2569) รวม 25,816 observations | ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ; percent calibration mismatch = 0; spatial_support=reservoir; สิทธิ์ pending |
+| ดาวเทียม MODIS NDVI/QA | 28 observations (5 จุดภูมิภาคเกษตรไทย 2024-09-29 และ 2026-09-30) | ดึงและ normalize ผ่าน Planetary Computer ณ 5 จุดพิกัดเดียวกับ ERA5; scale 0.0001; cloud flags; spatial_support=grid_point; สิทธิ์ pending |
 | Data quality + revision | unittest + JSON schemas | รันได้; ข้อมูลขาดเป็น null; รองรับ spatial_support=reservoir และ grid_point |
 | Coverage 77 × 20 | export CSV | พร้อมสถานะ UNVERIFIED (1,232 provider×province entries); ไม่มีการแต่งข้อมูล |
-| Decision workflows น้ำ/ตลาด | CLI + 5 real evidence cards + tests | ผ่านการทดสอบ (D01 watch/unknown, D02 watch/normal/unknown); รวมเข้าโมเดล offline-v7 |
+| Decision workflows น้ำ/ตลาด | CLI + 8 real evidence cards + tests | ผ่านการทดสอบ ครอบคลุม 4 ภูมิภาคหลัก (D01 watch/unknown, D02 watch/normal/unknown รวม 8 cards) |
 | Forecast/backtest | release-aware daily baselines/tests | prototype; ยังไม่มี forecast ปฏิบัติงาน |
-| Power BI | local PBIP v8: 12 ตาราง/15 relationships/35 measures/ร่าง 5 หน้า (20,469 obs + 5 decision cards) | schema 21 files / hashes 34 files / TOM 19.114.12 ผ่าน 100%; แก้ crash Desktop `version.json`; ร่างเก่าจัดเก็บใน archive/ |
+| Power BI | local PBIP v8: 12 ตาราง/15 relationships/35 measures/ร่าง 5 หน้า | schema 21 files / hashes 34 files / TOM 19.114.12 ผ่าน 100%; แก้ crash Desktop `version.json`; ร่างเก่าจัดเก็บใน archive/ |
 | ทะเบียนสิทธิ์ราย resource | config/resource_licenses.json + docs/source-license-register.md | ตรวจ 8 ชุดพร้อมหลักฐาน ทุกชุดยัง pending (รวม MODIS ผ่าน Planetary Computer) |
 | GitHub Actions | workflows สองชุด | CI และ catalog probe ผ่านจริง; schedule รายสัปดาห์ |
 
 ## ผลตรวจรับฐานระบบ
 
 - Tests 119 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety) และ PBIR `version.json` metadata
-- ร่าง `data/local/powerbi/offline-v8/TADIH.pbip` มีข้อมูลจริงแบบ local only: 20,469 fact_observation แถว และ 5 decision cards ตรวจ hash 34 files และ Microsoft schemas 21 metadata files ผ่าน (12 ตาราง/15 relationships/35 measures) หน้า Satellite Crop Watch แสดงค่า Latest NDVI, Valid Pixel Fraction, Observation Count, Cloud Contaminated Count คู่กับ dim_period; หน้า Audit แสดง decision cards 5 รายการ (watch 2, normal 1, unknown 2) เพิ่ม `definition/version.json` แก้ไขปัญหา Power BI Desktop Frown error แล้ว ร่างเก่า v1-v7 และ check folders ย้ายไป `data/local/powerbi/archive/`
-- Decision Workflows D01 (ตลาด/ผลผลิต) และ D02 (น้ำ/ภัยพิบัติ) ทดสอบกับ evidence จริง:
-  - D02 Watch: ฝนเดือนตุลาคม 10 ปีย้อนหลัง percentile 0.10 ต่ำกว่าเกณฑ์ 0.20 + ดาวเทียมฟ้าเปิด NDVI 0.6737 (valid fraction 1.0) + อ่างเก็บน้ำ/ระดับน้ำ 2.45m -> สถานะ `watch`, สัญญาณ `low_rain_monitoring_candidate`
-  - D02 Normal: ฝน percentile 0.65 -> สถานะ `normal`, สัญญาณ `no_provisional_low_rain_signal`
-  - D02 Unknown: ดาวเทียม MODIS มีเมฆบัง (valid fraction 0.0 < เกณฑ์ 0.7) -> สถานะ `unknown`, ปฏิเสธการประเมินความเสียหายตามสเปกเมฆบัง
-  - D01 Watch: ราคาลดลง 24% (เกินเกณฑ์ 20%) และผลผลิตเปลี่ยน 6.7% -> สถานะ `watch`
-  - D01 Unknown: ทดสอบส่งราคา grain ประเทศ (TH) เข้าประเมินระดับจังหวัด (10) -> ปฏิเสธ fail-closed ทันทีด้วย `incompatible_spatial_grain` ป้องกันการปะปน grain ข้ามระดับ
+- Warehouse ใน `data/local/tadih.duckdb` มีข้อมูลล่าสุด **88,293 แถว** (revision 88,301 แถว ขนาดเพียง 45 MB): ราคาประเทศ 7,658 ค่า, อากาศ 5 ภูมิภาค 54,795 ค่า, อ่างเก็บน้ำ RID 461 แห่ง 14 วัน 25,816 ค่า และดาวเทียม MODIS 5 ภูมิภาค 28 ค่า
+- Decision Workflows D01 (ตลาด/ผลผลิต) และ D02 (น้ำ/ภัยพิบัติ) ขยายทดสอบกับ evidence จริงครบ 8 cards ครอบคลุม 4 ภูมิภาค:
+  - D02 Watch (กทม./ปริมณฑล): ฝน percentile 0.10 + ฟ้าเปิด NDVI 0.6737 + ระดับน้ำ 2.45m -> `watch`
+  - D02 Normal (กทม./ปริมณฑล): ฝน percentile 0.65 -> `normal`
+  - D02 Normal (เชียงใหม่ เหนือ): ฝน percentile 0.40 + ฟ้าเปิด NDVI 0.5125 (valid 1.0) -> `normal`
+  - D02 Normal (สุราษฎร์ธานี ใต้): ฝน percentile 0.90 + ฟ้าเปิด NDVI 0.3217 -> `normal`
+  - D02 Unknown (กทม./ปริมณฑล): เมฆบัง (valid fraction 0.0) -> `unknown`
+  - D02 Unknown (ขอนแก่น อีสานบน): เมฆบัง (valid fraction 0.0) -> `unknown` ปฏิเสธประเมินความเสียหายตามสเปกเมฆบัง
+  - D01 Watch: ราคาลดลง 24% และผลผลิตเปลี่ยน 6.7% -> `watch`
+  - D01 Unknown: ส่งราคา grain ประเทศ (TH) เข้าประเมินระดับจังหวัด (10) -> ปฏิเสธ fail-closed `incompatible_spatial_grain` ป้องกันการปะปน grain ข้ามระดับ
 - Crosswalk ผลผลิต DOAE จับคู่ชื่อภายใต้ parent hierarchy ได้ 50,101 จาก 50,103 records เหลือ 1 ชุดชื่อพื้นที่/2 records ที่ยังไม่ match ไม่เดารหัสแทน ใช้ DOPA snapshot2023 จึงยังไม่รับรอง boundary ของทุกช่วงเวลา
-- Warehouse มีข้อมูลล่าสุด 20,469 แถว: ราคาประเทศ 7,657 ค่า, Unknown ราคา 1 เดือน, อากาศจุดตัวอย่าง 10,959 ค่า, รายงานอ่างเก็บน้ำขนาดกลาง RID 1,844 ค่า (22 ต.ค. 2026) และดาวเทียม MODIS NDVI/QA 8 ค่า (ณ จุดพิกัด 13.8, 100.25) ไม่มีการนับอ่างเก็บน้ำหรือจุดกริดเป็นข้อมูลจังหวัด
+- Snapshot ภายในมี 88,293 แถว และ decision cards 8 ใบ พร้อม CSV/Parquet และ metadata `redistribution_allowed=false` ผล build ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T114836Z-409364b9`)
+- Snapshot สาธารณะมีข้อมูลวัด 0 แถว เพราะสิทธิ์ resource ยัง pending ผล build ล่าสุดอยู่ใน `data/local/public-build.json` (`exports/public/20261022T114949Z-1eb57f80`)
 - NABC history raw 7,669 แถว: exact duplicates 10, conflict 1 เดือน/2 แถว ไม่มีการเลือกราคาใดแทนกัน ใช้ quality revision ค่า null; หลักฐาน `data/local/probes/monthly-price-backfill.json` และ `monthly-price-import.json`
 - แก้ price IDs ที่เคยผูกกับค่าให้คง source/product/unit/month/area และเก็บค่าที่เปลี่ยนเป็น revision สำรองฐานเดิมก่อน migration; raw/export snapshots เก่าไม่ถูกแก้
 - ลองนำเข้า archive ซ้ำผ่าน CLI แล้ว จำนวนแถวและ revisions ไม่เพิ่ม ทุกปีใช้ checkpoint ที่ตรวจ hash แล้ว

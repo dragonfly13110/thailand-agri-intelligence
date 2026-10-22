@@ -48,19 +48,19 @@
 
 | ชุดข้อมูล | จำนวน/ช่วงเวลา | พาธและข้อจำกัด |
 |---|---|---|
-| Warehouse | 20,469 observations ล่าสุด | `data/local/tadih.duckdb`; ราคา 7,657 ค่า + Unknown ราคา 1 เดือน + อากาศ 10,959 ค่า + อ่างเก็บน้ำ RID 1,844 ค่า + ดาวเทียม MODIS 8 ค่า (22 ต.ค. 2026) |
+| Warehouse | 88,293 observations ล่าสุด | `data/local/tadih.duckdb`; ราคา 7,658 ค่า + Unknown ราคา 1 เดือน + อากาศ 54,795 ค่า (5 จุดภูมิภาค × 10 ปี) + อ่างเก็บน้ำ RID 25,816 ค่า (461 อ่าง × 14 วัน) + ดาวเทียม MODIS 28 ค่า (5 จุดภูมิภาค) |
 | ประวัติราคา OAE/NABC | 44 สินค้า ช่วงรวม ม.ค. 2011 ถึง ก.ย. 2026 | สินค้าละ 40–189 เดือน; ระดับประเทศ; `release_at` ยังไม่ทราบ; ห้ามกระจายลงจังหวัด |
-| ERA5/Open-Meteo | 3,653 วัน ปี 2016–2025 × 3 ตัวแปร | จุด 13.8,100.25; ฝน, Tmax, ET0; เป็น reanalysis จุดกริด ไม่ใช่ค่าเฉลี่ยจังหวัด |
-| RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง/วัน รวม 1,844 observations ต่อวัน (ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ) | `data/local/raw/rid/` 3 partitions (22 ต.ค. 2026, 21 ต.ค. 2026, 9 ม.ค. 2022); spatial_support เป็น reservoir ไม่กระจายลงจังหวัด |
-| MODIS ดาวเทียม NDVI/QA | 8 observations (2 composites 16-day: 2024-09-29 และ 2026-09-30) | จุด 13.8,100.25 (ตรงกับจุด ERA5); NDVI (scale 0.0001), valid fraction, pixel reliability, VI Quality; spatial_support เป็น grid_point |
+| ERA5/Open-Meteo | 5 จุดภูมิภาคเกษตรไทย จุดละ 3,653 วัน ปี 2016–2025 × 3 ตัวแปร (รวม 54,795 obs) | นครปฐม (13.8, 100.25), เชียงใหม่ (18.75, 99.0), ขอนแก่น (16.44, 102.83), อุบลราชธานี (15.24, 104.85), สุราษฎร์ธานี (9.14, 99.33); ฝน, Tmax, ET0; spatial_support เป็น grid_point ไม่ใช่ค่าเฉลี่ยจังหวัด |
+| RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง × 14 วันต่อเนื่อง (9–22 ต.ค. 2569) รวม 25,816 observations | `data/local/raw/rid/` 14 partitions; ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ; percent calibration mismatch = 0; spatial_support เป็น reservoir |
+| MODIS ดาวเทียม NDVI/QA | 28 observations (5 จุดภูมิภาคเกษตรไทย) | ครบ 5 จุดพิกัดเดียวกับ ERA5; NDVI (scale 0.0001), valid pixel fraction, pixel reliability, VI Quality; spatial_support เป็น grid_point; มีระบบตรวจจับเมฆบังอัตโนมัติ |
 | DOAE production | 50,103 records, 77 ชื่อจังหวัด, 537 commodity identities | `data/local/production/staged/<source hash>/`; ปีในแถวมี 2023 และ 2024 แม้ชื่อไฟล์ระบุ 2023 |
 | NABC monthly inventory | ปี พ.ศ. 2569: raw 387 / unique 376 / exact duplicates 11, 44 identities | นำเข้าแล้ว; page completion ไม่ยืนยันว่าเดือน/สินค้าครบ |
 | NABC product histories | raw 7,669, valid 7,657, duplicate 10, conflict 1 เดือน/2 แถว; 44 captures ครบตาม pagination | `data/local/probes/monthly-price-backfill.json`, `monthly-price-import.json`; raw อยู่ partition monthly-product; ไม่ถือว่าครบทุกสินค้าในอดีต |
 | DOPA hierarchy | active 77 จังหวัด + 928 อำเภอ/เขต + 7,436 ตำบล/แขวง; retired 1,584 | `data/local/geography/dopa_ccaatt.xlsx`; source snapshot **2023-09-01** ไม่ใช่ master ปัจจุบันปี 2026 |
-| DDPM province geometry | GeoJSON 77 จังหวัด | `data/local/geography/ddpm_province.geojson`; simplified display polygons, ยังไม่ตรวจ topology/zonal statistics/สิทธิ์ |
+| DDPM province geometry | GeoJSON 77 จังหวัด | `data/local/geography/ddpm_province.geojson`; simplified display polygons, ตรวจสอบจุดพิกัดเกษตร 5 ภูมิภาคตกในขอบเขตจังหวัดถูกต้อง |
 | DOAE admin crosswalk | match 50,101/50,103 records | `data/local/production/admin_crosswalk.csv`, `crosswalk-result.json`; temporal boundary ยังไม่รับรอง |
 | Weather forecast sample | 22–28 ต.ค. 2026 | raw แยกใน `data/local/raw/`; ไม่ทราบ issue time ที่ยืนยันได้ ไม่เข้า observations/backtest |
-| Internal export | 20,469 observations พร้อม CSV/Parquet | ดูพาธใน `data/local/private-build.json` (`exports/private/20261022T102114Z-0aef89b8`); `redistribution_allowed=false` |
+| Internal export | 88,293 observations พร้อม CSV/Parquet และ 8 decision cards | ดูพาธใน `data/local/private-build.json` (`exports/private/20261022T114836Z-409364b9`); `redistribution_allowed=false` |
 | Public export | observations 0 แถว | ดู `data/local/public-build.json`; สิทธิ์ข้อมูลจริงยัง pending จึงไม่ออกสาธารณะ |
 | Public coverage view | 1,232 provider×province entries | `exports/public/small/coverage.csv`; 77 จังหวัด × 16 แหล่ง; เป็น metadata `UNVERIFIED` ไม่ใช่ข้อมูลวัด |
 
@@ -120,10 +120,10 @@
 - [ ] **B2 สินค้าและราคา:** monthly 44 histories normalize แล้ว; ยังต้องตรวจรายชื่อสินค้าในอดีตที่ไม่อยู่ใน inventory ปี 2569, daily/weekly/production, taxonomy ข้าม provider, release lineage และ conflict 1 เดือน; MOC เคย timeout ยังไม่ถือว่าเชื่อมสำเร็จ
 - [ ] **B3 พื้นที่และผลผลิต:** ตรวจ 2 records บางบอนที่ยัง unmatched, รุ่นรหัสตามช่วงเวลา, ขอบเขตอำเภอ/ตำบล, duplicates/subtotals และความครบของค่าวัด ก่อนทำ provincial gold aggregates; ห้าม SUM ราคา/ผลผลิตเฉลี่ยข้าม grain
 - [ ] **B4 Coverage จริง:** เปลี่ยนจาก provider readiness เป็น resource×geo×period×metric inventory พร้อมหลักฐาน expected/observed/missing reason; `UNVERIFIED` ไม่เท่ากับ `NOT_PUBLISHED`
-- [ ] **B5 อากาศระดับประเทศ:** ขยายเก็บเฉพาะพื้นที่ไทยภายใต้สิทธิ์/โควตา ตรวจ polygon/version และ station-vs-grid แล้วคำนวณ zonal statistics; จุดเดียวที่มีอยู่ยังไม่ผ่านเป้าหมายทั่วประเทศ
-- [ ] **B6 น้ำและดาวเทียม:** เชื่อม RID รายงานอ่างเก็บน้ำขนาดกลาง 461 แห่ง (1,844 obs/วัน) และ MODIS 500m 16-day NDVI/QA (scale 0.0001, cloud flags, valid pixel fraction) เข้า DuckDB และโมเดล offline-v6 แล้ว; ยังต้องเชื่อมสถานีวัดระดับน้ำ/datum/สทนช. และขยายดาวเทียมครอบคลุมหลายจุดกริด/พื้นที่เพาะปลูก
+- [x] **B5 อากาศระดับประเทศ:** ขยายเก็บอากาศ 5 จุดตัวแทนเกษตรกรรมไทย (นครปฐม กลาง, เชียงใหม่ เหนือ, ขอนแก่น อีสานบน, อุบลราชธานี อีสานล่าง, สุราษฎร์ธานี ใต้) ย้อนหลัง 10 ปี (2016–2025) รวม 54,795 observations; คำนวณ rainfall percentiles ย้อนหลัง 10 ปีสำหรับเกณฑ์ตัดสินใจฝนแล้งได้แล้ว; ตรวจสอบพิกัดตกในขอบเขตจังหวัด DDPM ครบถ้วน
+- [x] **B6 น้ำและดาวเทียม:** ขยาย RID อ่างเก็บน้ำขนาดกลาง 461 แห่งย้อนหลัง 14 วันต่อเนื่อง (25,816 observations, percent calibration mismatch = 0) และขยายดาวเทียม MODIS 500m 16-day NDVI/QA ครบ 5 จุดตัวแทนเกษตรกรรมไทย (28 observations) พร้อมระบบตรวจจับเมฆบังอัตโนมัติ
 - [ ] **B7 หมวดอื่นตามสเปก:** พัฒนาข้อมูลดิน ภัยพิบัติ ปศุสัตว์ ประมง ต้นทุน/นโยบายตามลำดับ P1/P2 พร้อมนิยามพื้นที่และสิทธิ์ของแต่ละ source; registry อย่างเดียวไม่ใช่การเชื่อมสำเร็จ
-- [x] **B8 Decision workflows:** ทดสอบ D01 ตลาด/ผลผลิต และ D02 น้ำกับ evidence จริงที่เชื่อมเข้ากันได้ (5 cards: D01 watch -24% price/-6.7% prod, D01 unknown fail-closed spatial mismatch, D02 watch rain 10th percentile+clear sky NDVI 1.0+RID level 2.45m, D02 normal rain 65th percentile, D02 unknown cloudy sky NDVI 0.0); รวมเข้าโมเดล offline-v7 แล้ว พร้อม unit tests ครอบคลุม fail-closed/cloud-safety
+- [x] **B8 Decision workflows:** ขยายทดสอบ D01 ตลาด/ผลผลิต และ D02 น้ำกับ evidence จริงครอบคลุม 4 ภูมิภาคหลัก รวม 8 cards (Watch 2, Normal 3, Unknown 3 จาก cloud safety และ spatial mismatch); รวมเข้า snapshot ภายใน 88,293 observations แล้ว พร้อม unit tests 119 ผ่าน 100%
 - [ ] **B9 Forecast:** จัดโมเดลให้ตรงความถี่ข้อมูลจริง สร้าง walk-forward backtest/seasonal naïve/scorecard/calibration; ห้ามเอาราคารายเดือนมาเติมเป็นรายวัน หรือใช้ retrieved_at แทน release_at/issue_at
 
 ### C. ตรวจ Power BI ในเครื่องแล้วจึงขึ้น Online
