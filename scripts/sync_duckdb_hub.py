@@ -76,6 +76,21 @@ def main():
     for r in cov_summary:
         print(f"    * {r[0]:<10} | Grain: {r[1]:<12} | {r[2]:>2} resources | {r[3]:>10,} source records")
 
+    # 4. Master Provincial National Intelligence
+    nat_intel = db.execute("""
+        SELECT province_code, province_name_th, intervention_status, natural_water_active_storage_m3,
+               satellite_inundated_rice_rai, high_risk_flood_tambons, targeted_projects_count
+        FROM v_provincial_national_intelligence
+        WHERE satellite_inundated_rice_rai > 0 OR natural_water_active_storage_m3 > 0 OR high_risk_flood_tambons > 0
+        ORDER BY satellite_inundated_rice_rai DESC, high_risk_flood_tambons DESC
+        LIMIT 5
+    """).fetchall()
+    total_provs = db.execute("SELECT COUNT(*) FROM v_provincial_national_intelligence").fetchone()[0]
+    print(f"\n  [v_provincial_national_intelligence] Total Provinces Linked: {total_provs}/77")
+    print("  Top 5 Hotspot Provinces (Water / Satellite Flood / Risk):")
+    for r in nat_intel:
+        print(f"    * [{r[0]}] {r[1]:<15} | สถานะ: {r[2]:<15} | ข้าวแช่น้ำ: {r[4]:>8,.1f} ไร่ | เสี่ยงสูง: {r[5]:>3} ตำบล | น้ำธรรมชาติ: {r[3]:>10,.0f} ลบ.ม.")
+
     # Save probe
     from datetime import datetime, timezone
     audit_data = {
@@ -83,12 +98,18 @@ def main():
         "synced_at": datetime.now(timezone.utc).isoformat(),
         "database_path": str(db_path),
         "synced_records": sync_res,
+        "total_provinces_linked": total_provs,
         "unaddressed_gap_provinces_count": gap_count,
         "registered_projects_count": len(proj_summary),
         "views": [
             "v_unaddressed_policy_gaps",
             "v_project_intervention_summary",
             "v_national_coverage_overview",
+            "v_provincial_natural_water_security",
+            "v_satellite_flood_rice_impact",
+            "v_provincial_recent_weather",
+            "v_provincial_flood_risk_forecast",
+            "v_provincial_national_intelligence",
         ]
     }
     out_probe = ROOT / "data/local/probes/warehouse-audit.json"

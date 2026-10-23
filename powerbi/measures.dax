@@ -366,8 +366,46 @@ DISTINCTCOUNT(dim_project[project_id])
 National Profiled Resources Count =
 COUNTROWS(fact_national_coverage_inventory)
 
+// ==============================================================================
+// Multi-Agency Intelligence: Water Security, Satellite Disaster & Weather
+// ==============================================================================
+
+Natural Water Active Storage m3 =
+COALESCE(SUM(fact_natural_water_reservoir[active_storage_m3]), 0)
+
+Natural Water Reservoir Count =
+COALESCE(COUNTROWS(fact_natural_water_reservoir), 0)
+
+Satellite Flood Rice Area Rai =
+COALESCE(SUM(fact_satellite_flood_7days[inundated_rice_area_rai]), 0)
+
+Satellite Flood Polygon Count =
+COALESCE(COUNTROWS(fact_satellite_flood_7days), 0)
+
+High Risk Flood Tambons Count =
+COALESCE(
+    CALCULATE(
+        COUNTROWS(fact_flood_risk_forecast),
+        fact_flood_risk_forecast[risk_level] = "เสี่ยงสูง"
+    ),
+    0
+)
+
+Medium Risk Flood Tambons Count =
+COALESCE(
+    CALCULATE(
+        COUNTROWS(fact_flood_risk_forecast),
+        fact_flood_risk_forecast[risk_level] = "เสี่ยงปานกลาง"
+    ),
+    0
+)
+
+Weather Station Recent Rainfall mm =
+COALESCE(SUM(fact_daily_weather[rainfall_mm]), 0)
+
 // No default SUM/AVERAGE(value): prices, rainfall, production, NDVI and estimates
 // have incompatible grains. Keep value set to "Do not summarize" in the model.
 // Add a domain-specific aggregate only after commodity, unit, definition, season,
 // source, non-overlapping area/time and subtotal rules have been validated.
+
 

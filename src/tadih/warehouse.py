@@ -90,6 +90,33 @@ def load_json_rows(db, path):
 
 def init_national_hub_tables(db):
     """Initialize relational tables and analytical views for National Agriculture Data Center."""
+    # 0.1 Provincial Dimension (dim_province - 77 DOPA provinces)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS dim_province (
+            province_code VARCHAR PRIMARY KEY,
+            province_name_th VARCHAR,
+            admin_level VARCHAR,
+            source_url VARCHAR,
+            verification_status VARCHAR
+        )
+    """)
+
+    # 0.2 Source Provider Dimension (dim_source)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS dim_source (
+            source_id VARCHAR PRIMARY KEY,
+            name VARCHAR,
+            owner VARCHAR,
+            category VARCHAR,
+            url VARCHAR,
+            type VARCHAR,
+            priority VARCHAR,
+            geographic_scope VARCHAR,
+            license_status VARCHAR,
+            status VARCHAR
+        )
+    """)
+
     # 1. Coverage inventory
     db.execute("""
         CREATE TABLE IF NOT EXISTS national_coverage_inventory (
@@ -423,16 +450,68 @@ def init_national_hub_tables(db):
         ORDER BY high_risk_tambons DESC, medium_risk_tambons DESC
     """)
 
+    db.execute("""
+        CREATE OR REPLACE VIEW v_provincial_national_intelligence AS
+        SELECT
+            p.province_code,
+            p.province_name_th,
+            -- Policy & Evidence
+            COALESCE(m.identified_problems, 'NONE') AS identified_problems,
+            COALESCE(m.intervention_status, 'UNADDRESSED') AS intervention_status,
+            COALESCE(m.diagnostic_notes, '') AS diagnostic_notes,
+            -- Projects targeting this province
+            COUNT(DISTINCT c.project_id) AS targeted_projects_count,
+            -- Water Security (DWR)
+            COALESCE(w.natural_reservoirs_count, 0) AS natural_reservoirs_count,
+            ROUND(COALESCE(w.total_active_storage_m3, 0.0), 1) AS natural_water_active_storage_m3,
+            -- Satellite Flood Impact (GISTDA)
+            COALESCE(s.flood_polygon_count, 0) AS satellite_flood_polygons_count,
+            ROUND(COALESCE(s.total_inundated_rice_rai, 0.0), 2) AS satellite_inundated_rice_rai,
+            -- Flood Risk Forecast (HII 12-month)
+            COALESCE(f.high_risk_tambons, 0) AS high_risk_flood_tambons,
+            COALESCE(f.medium_risk_tambons, 0) AS medium_risk_flood_tambons,
+            -- Weather (Meteostat / TMD)
+            wx.station_name_en AS weather_station_name,
+            wx.avg_temperature_c,
+            wx.total_rainfall_mm
+        FROM dim_province p
+        LEFT JOIN fact_evidence_policy_match m ON p.province_code = m.province_code
+        LEFT JOIN fact_project_coverage c ON p.province_code = c.province_code AND c.is_targeted = TRUE
+        LEFT JOIN (
+            SELECT province_code, COUNT(*) AS natural_reservoirs_count, SUM(active_storage_m3) AS total_active_storage_m3
+            FROM fact_natural_water_reservoir GROUP BY province_code
+        ) w ON p.province_code = w.province_code
+        LEFT JOIN (
+            SELECT dopa_province_code, COUNT(*) AS flood_polygon_count, SUM(inundated_rice_area_rai) AS total_inundated_rice_rai
+            FROM fact_satellite_flood_7days GROUP BY dopa_province_code
+        ) s ON p.province_code = s.dopa_province_code
+        LEFT JOIN (
+            SELECT dopa_province_code,
+                   COUNT(CASE WHEN risk_level = 'เสี่ยงสูง' THEN 1 END) AS high_risk_tambons,
+                   COUNT(CASE WHEN risk_level = 'เสี่ยงปานกลาง' THEN 1 END) AS medium_risk_tambons
+            FROM fact_flood_risk_forecast GROUP BY dopa_province_code
+        ) f ON p.province_code = f.dopa_province_code
+        LEFT JOIN v_provincial_recent_weather wx ON p.province_code = wx.province_code
+        GROUP BY
+            p.province_code, p.province_name_th, m.identified_problems, m.intervention_status,
+            m.diagnostic_notes, w.natural_reservoirs_count, w.total_active_storage_m3,
+            s.flood_polygon_count, s.total_inundated_rice_rai, f.high_risk_tambons, f.medium_risk_tambons,
+            wx.station_name_en, wx.avg_temperature_c, wx.total_rainfall_mm
+        ORDER BY p.province_code
+    """)
+
 
 def sync_national_hub_data(db, root_dir=None):
     """Synchronize national agriculture intelligence probes into DuckDB warehouse."""
-    from .catalog import ROOT, load_provinces
+    from .catalog import ROOT, load_provinces, load_sources
 
     root = Path(root_dir) if root_dir else ROOT
     probes_dir = root / "data/local/probes"
     init_national_hub_tables(db)
 
     results = {
+        "dim_province": 0,
+        "dim_source": 0,
         "coverage_inventory": 0,
         "dim_project": 0,
         "fact_project_coverage": 0,
@@ -446,6 +525,33 @@ def sync_national_hub_data(db, root_dir=None):
         "fact_satellite_flood_7days": 0,
         "fact_flood_risk_forecast": 0,
     }
+
+    # 0. Sync dim_province (77 DOPA Provinces)
+    provinces = load_provinces()
+    db.execute("DELETE FROM dim_province")
+    prov_rows = [
+        (p["province_code"], p["name_th"], p["admin_level"], p["source_url"], p["verification_status"])
+        for p in provinces
+    ]
+    db.executemany("INSERT INTO dim_province VALUES (?, ?, ?, ?, ?)", prov_rows)
+    results["dim_province"] = len(prov_rows)
+
+    # 0.1 Sync dim_source (Catalog Sources + planetary_computer)
+    sources = load_sources()
+    db.execute("DELETE FROM dim_source")
+    src_rows = [
+        (s["source_id"], s["name"], s["owner"], s["category"], s["url"], s["type"],
+         s["priority"], s["geographic_scope"], s["license_status"], s["status"])
+        for s in sources
+    ]
+    if not any(s[0] == "planetary_computer" for s in src_rows):
+        src_rows.append((
+            "planetary_computer", "Microsoft Planetary Computer / NASA LP DAAC", "NASA / USGS",
+            "satellite", "https://planetarycomputer.microsoft.com", "stac_raster",
+            "P1", "Thailand", "pending", "documented_not_runtime_verified"
+        ))
+    db.executemany("INSERT INTO dim_source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", src_rows)
+    results["dim_source"] = len(src_rows)
 
     # 1. Sync Coverage Inventory
     cov_path = probes_dir / "coverage-inventory.json"

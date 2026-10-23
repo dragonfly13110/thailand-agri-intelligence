@@ -4,6 +4,31 @@
 
 รอบเอกสารนี้ปรับ [README](../README.md), [AGENTS](../AGENTS.md), [runbook](runbook.md), [roadmap DOAE](doae-catalog-expansion.md) และ [คู่มือ Power BI](../powerbi/README.md) ให้ชี้เป้าหมายศูนย์ข้อมูลเกษตรทั้งประเทศและเช็กลิสต์เดียวกัน อ้างหลักฐาน acquisition/geography/cleanup ที่มีอยู่ ไม่ได้ดึงข้อมูลใหม่ นำเข้า warehouse เผยแพร่ หรือทดสอบ DAX เพิ่ม
 
+## การยกระดับความเชื่อมโยงระดับชาติ (Master Inter-Agency Linkage) และเตรียมโมเดล Power BI Offline (offline-v13) 23 ต.ค. 2569
+
+- **Master Inter-Agency Database & Star Schema Linkage:**
+  - เพิ่มมิติข้อมูลหลัก `dim_province` (77 จังหวัด DOPA ครบถ้วน) และ `dim_source` (17 แหล่งข้อมูลพหุภาคี) ลงสู่ฐานข้อมูลกลาง `data/local/tadih.duckdb`
+  - สร้าง Master Analytical View `v_provincial_national_intelligence` เชื่อมโยง 77 จังหวัดเข้ากับข้อมูลทุกมิติแบบ Single Pane of Glass:
+    - สถานะช่องว่างมาตรการและปัญหาเชิงพื้นที่ (`fact_evidence_policy_match`)
+    - จำนวนโครงการภาครัฐที่เจาะจงเป้าหมายในจังหวัด (`fact_project_coverage`)
+    - แหล่งน้ำธรรมชาติและปริมาตรน้ำใช้การได้ (`fact_natural_water_reservoir`) จาก DWR
+    - พื้นที่นาข้าวแช่น้ำท่วมขังจากดาวเทียม Sentinel/Landsat (`fact_satellite_flood_7days`) จาก GISTDA
+    - จำนวนตำบลที่เสี่ยงอุทกภัยสูง/ปานกลาง 12 เดือนล่วงหน้า (`fact_flood_risk_forecast`) จาก HII
+    - ข้อมูลสภาพอากาศ สถิติฝนสะสม และอุณหภูมิเฉลี่ย (`fact_daily_weather` + `dim_weather_station`) จาก TMD / Meteostat
+  - ตรวจสอบความถูกต้องของ Foreign Keys (Referential Integrity) 100% ครบทุกตาราง ไม่มี orphaned records หรือรหัสจังหวัดผิดเพี้ยน
+- **Power BI Offline Project Build (offline-v13):**
+  - ยกระดับโครงสร้างโปรเจกต์สู่ `data/local/powerbi/offline-v13/` มี **23 ตาราง** (เพิ่มขึ้นจาก 17 ตาราง), **25 relationships** (เพิ่มขึ้นจาก 20), **49 measures** (เพิ่มขึ้นจาก 42), **8 หน้า PBIR** (เพิ่มหน้าใหม่ `water_satellite_disaster`: "Water Security & Satellite Early Warning")
+  - นำเข้า 6 ตารางพหุภาคีสู่โมเดล: `dim_crop_master` (831 แถว), `fact_natural_water_reservoir` (302 แถว), `dim_weather_station` (12 แถว), `fact_daily_weather` (6 แถว), `fact_satellite_flood_7days` (10 แถว), `fact_flood_risk_forecast` (27,023 แถว)
+  - เพิ่ม 7 DAX measures สำหรับงานเตือนภัยและการบริหารจัดการน้ำ:
+    - `Natural Water Active Storage m3`, `Natural Water Reservoir Count`
+    - `Satellite Flood Rice Area Rai`, `Satellite Flood Polygon Count`
+    - `High Risk Flood Tambons Count`, `Medium Risk Flood Tambons Count`
+    - `Weather Station Recent Rainfall mm`
+  - ตรวจสอบความสมบูรณ์ไฟล์ (Integrity SHA-256) ผ่านครบ 54 ไฟล์ และตรวจสอบความถูกต้องของ Microsoft Fabric JSON schemas ผ่าน 30 metadata files 100% ด้วย `scripts/validate_powerbi_project.py`
+  - บีบอัด NTFS บน `data/local/powerbi/offline-v13` ประหยัดพื้นที่ดิสก์ 2.1 ต่อ 1 (ลดจาก 98.9 MB เหลือ 48.0 MB)
+  - จำลองคำนวณ DAX measures 15 รายการใน `tests/test_dax_simulation.py` ผ่าน 100%
+  - รวมชุดทดสอบ unit tests ทั้งคลังระบบผ่าน **232/232 รายการ (100% green)** ใน 34.365s
+
 ## การนำเข้า DuckDB Warehouse และเตรียมโมเดล Power BI Offline (offline-v12) 23 ต.ค. 2569
 
 - **National DuckDB Warehouse Sync:**

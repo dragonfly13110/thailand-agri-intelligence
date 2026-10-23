@@ -15,6 +15,8 @@ class TestNationalWarehouse(unittest.TestCase):
         init_national_hub_tables(self.db)
         tables = [r[0] for r in self.db.execute("SHOW TABLES").fetchall()]
         expected_tables = [
+            "dim_province",
+            "dim_source",
             "national_coverage_inventory",
             "dim_project",
             "fact_project_coverage",
@@ -33,6 +35,8 @@ class TestNationalWarehouse(unittest.TestCase):
 
     def test_sync_national_hub_data(self):
         res = sync_national_hub_data(self.db, root_dir=ROOT)
+        self.assertEqual(res["dim_province"], 77)
+        self.assertEqual(res["dim_source"], 17)
         self.assertGreaterEqual(res["coverage_inventory"], 50)
         self.assertGreaterEqual(res["dim_project"], 5)
         self.assertGreaterEqual(res["fact_project_coverage"], 77)
@@ -70,6 +74,14 @@ class TestNationalWarehouse(unittest.TestCase):
         # Verify Weather View
         weather_summary = self.db.execute("SELECT * FROM v_provincial_recent_weather").fetchall()
         self.assertGreater(len(weather_summary), 0)
+
+        # Verify Master Provincial National Intelligence View (77 provinces linked 100%)
+        nat_intel = self.db.execute("SELECT * FROM v_provincial_national_intelligence").fetchall()
+        self.assertEqual(len(nat_intel), 77)
+        # Check Roi Et (45) has identified problems
+        roi_et = next(r for r in nat_intel if r[0] == "45")
+        self.assertIn("FLOOD_DAMAGE", roi_et[2])
+        self.assertEqual(roi_et[3], "UNADDRESSED_GAP")
 
         # Verify idempotency (re-sync should not duplicate rows)
         res2 = sync_national_hub_data(self.db, root_dir=ROOT)

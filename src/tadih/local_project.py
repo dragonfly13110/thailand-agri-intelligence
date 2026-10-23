@@ -24,10 +24,14 @@ SCHEMAS = {
 }
 INTEGER_COLUMNS = {"actual_count", "available_source_count", "expected_count", "expected_source_count", "gap_count",
                    "year_ad", "month", "source_year_be", "source_record_number", "freshness_days",
-                   "source_records", "staged_records", "quarantined_records", "target_households", "actual_households"}
+                   "source_records", "staged_records", "quarantined_records", "target_households", "actual_households",
+                   "recurrence_17yr_count"}
 NUMBER_COLUMNS = {"value", "planted_area_rai", "damaged_area_rai", "harvested_area_rai", "production_kg",
                   "yield_kg_per_rai", "farm_gate_thb_per_kg", "metric_value", "budget_allocated_baht",
-                  "budget_spent_baht", "target_area_rai", "actual_area_rai"}
+                  "budget_spent_baht", "target_area_rai", "actual_area_rai",
+                  "latitude", "longitude", "elevation_m", "storage_m3", "active_storage_m3", "outflow_m3_per_sec",
+                  "tavg_c", "tmin_c", "tmax_c", "rainfall_mm", "wind_speed_ms", "air_pressure_hpa",
+                  "inundated_area_sqm", "inundated_rice_area_rai", "centroid_latitude", "centroid_longitude"}
 DATETIME_COLUMNS = {"observed_at", "release_at", "retrieved_at", "latest_observation_date", "latest_publication_date",
                     "generated_at", "evaluated_at", "last_audited_at"}
 BOOLEAN_COLUMNS = {"retired", "rollup_eligible", "automatic_action", "deferred", "license_review_required",
@@ -79,6 +83,14 @@ def relationships(tables=None):
             ("fact_spatial_evidence", "area_code", "dim_area", "area_code"),
             ("fact_evidence_policy_match", "area_code", "dim_area", "area_code"),
             ("fact_national_coverage_inventory", "source_id", "dim_source", "source_id"),
+        ]
+    if tables and "dim_weather_station" in tables:
+        links += [
+            ("dim_weather_station", "province_code", "dim_area", "area_code"),
+            ("fact_daily_weather", "station_id", "dim_weather_station", "station_id"),
+            ("fact_natural_water_reservoir", "province_code", "dim_area", "area_code"),
+            ("fact_satellite_flood_7days", "dopa_province_code", "dim_area", "area_code"),
+            ("fact_flood_risk_forecast", "dopa_province_code", "dim_area", "area_code"),
         ]
     return [{"name": f"{f}_{fc}_{t}", "fromTable": f, "fromColumn": fc, "toTable": t, "toColumn": tc,
              "fromCardinality": "many", "toCardinality": "one", "crossFilteringBehavior": "oneDirection"}
@@ -176,6 +188,14 @@ def write_report(destination, tables=None):
             ("national_coverage", "National Coverage & License Hub", [
                 ("fact_national_coverage_inventory", ["source_id", "dataset_id", "data_grain", "period", "status", "license_status", "missing_reason", "source_records"]),
                 ("dim_area", [("Supported Provinces", True), ("Unaddressed Gap Provinces Count", True), ("Total Flood Damaged Rai", True), ("Total Drought Damaged Rai", True), ("Registered Projects Count", True)])
+            ])
+        )
+
+    if tables and "fact_natural_water_reservoir" in tables:
+        pages.append(
+            ("water_satellite_disaster", "Water Security & Satellite Early Warning", [
+                ("fact_natural_water_reservoir", ["water_resource_name_th", "province_name_th", "amphoe_name_th", "water_resource_size", "storage_m3", "active_storage_m3"]),
+                ("dim_area", [("Natural Water Active Storage m3", True), ("Natural Water Reservoir Count", True), ("Satellite Flood Rice Area Rai", True), ("High Risk Flood Tambons Count", True), ("Medium Risk Flood Tambons Count", True), ("Weather Station Recent Rainfall mm", True)])
             ])
         )
 
@@ -397,6 +417,61 @@ def build_local_project(snapshot, production_inventory, workbook, output_dir):
                 "source_sha256": e.get("source_sha256", ""),
             })
         tables["fact_national_coverage_inventory"] = (nat_fields, clean_entries)
+
+    # 4. DOAE Master Crops & Breeds (dim_crop_master)
+    crop_path = ROOT / "data/local/production/doae_crop_master.json"
+    if crop_path.exists():
+        crop_data = json.loads(crop_path.read_text(encoding="utf-8"))
+        records = crop_data.get("records", [])
+        crop_fields = ["crop_code", "crop_name_th", "crop_group_code", "crop_group_name_th", "breed_code", "breed_name_th", "breed_characteristic", "retrieved_at", "license_status"]
+        tables["dim_crop_master"] = (crop_fields, [{k: r.get(k) for k in crop_fields} for r in records])
+
+    # 5. DWR Natural Water Reservoirs (fact_natural_water_reservoir)
+    dwr_path = ROOT / "data/local/water/dwr_small_water_resources.json"
+    if dwr_path.exists():
+        dwr_data = json.loads(dwr_path.read_text(encoding="utf-8"))
+        records = dwr_data.get("records", [])
+        dwr_fields = ["water_resource_code", "water_resource_name_th", "water_resource_size", "tambon_name_th", "amphoe_name_th", "province_name_th", "province_code", "latitude", "longitude", "storage_m3", "active_storage_m3", "outflow_m3_per_sec", "feed_title", "feed_date", "retrieved_at", "source_agency", "license_status"]
+        tables["fact_natural_water_reservoir"] = (dwr_fields, [{k: r.get(k) for k in dwr_fields} for r in records])
+
+    # 6. Weather Stations & Daily Weather (dim_weather_station, fact_daily_weather)
+    stn_path = ROOT / "data/local/weather/dim_weather_stations.json"
+    if stn_path.exists():
+        stn_data = json.loads(stn_path.read_text(encoding="utf-8"))
+        records = stn_data.get("records", [])
+        stn_fields = ["station_id", "station_name_en", "province_code", "province_name_th", "latitude", "longitude", "elevation_m"]
+        tables["dim_weather_station"] = (stn_fields, [{
+            "station_id": r.get("id"),
+            "station_name_en": r.get("name_en"),
+            "province_code": r.get("province_code"),
+            "province_name_th": r.get("province_name_th"),
+            "latitude": r.get("lat"),
+            "longitude": r.get("lon"),
+            "elevation_m": r.get("elevation_m"),
+        } for r in records])
+
+    weather_path = ROOT / "data/local/weather/fact_daily_weather.json"
+    if weather_path.exists():
+        weather_data = json.loads(weather_path.read_text(encoding="utf-8"))
+        records = weather_data.get("records", [])
+        weather_fields = ["station_id", "observation_date", "tavg_c", "tmin_c", "tmax_c", "rainfall_mm", "wind_speed_ms", "air_pressure_hpa", "source_agency", "retrieved_at", "license_status"]
+        tables["fact_daily_weather"] = (weather_fields, [{k: r.get(k) for k in weather_fields} for r in records])
+
+    # 7. GISTDA Satellite Flood 7 Days (fact_satellite_flood_7days)
+    gistda_path = ROOT / "data/local/satellite/gistda_flood_7days.json"
+    if gistda_path.exists():
+        gistda_data = json.loads(gistda_path.read_text(encoding="utf-8"))
+        records = gistda_data.get("records", [])
+        gistda_fields = ["feature_id", "satellite_sources", "dopa_province_code", "province_name_en", "dopa_amphoe_code", "amphoe_name_en", "dopa_tambon_code", "tambon_name_en", "inundated_area_sqm", "inundated_rice_area_rai", "centroid_latitude", "centroid_longitude", "observation_period", "source_agency", "retrieved_at", "license_status"]
+        tables["fact_satellite_flood_7days"] = (gistda_fields, [{k: r.get(k) for k in gistda_fields} for r in records])
+
+    # 8. HII Monthly Flood Risk Forecast (fact_flood_risk_forecast)
+    hii_path = ROOT / "data/local/satellite/hii_monthly_flood_risk.json"
+    if hii_path.exists():
+        hii_data = json.loads(hii_path.read_text(encoding="utf-8"))
+        records = hii_data.get("records", [])
+        hii_fields = ["month", "dopa_tambon_code", "tambon_name_th", "dopa_amphoe_code", "amphoe_name_th", "dopa_province_code", "province_name_th", "recurrence_17yr_count", "risk_criteria", "risk_level", "source_agency", "retrieved_at", "license_status"]
+        tables["fact_flood_risk_forecast"] = (hii_fields, [{k: r.get(k) for k in hii_fields} for r in records])
 
     validate_relationships(tables, relationships(tables))
     measures = parse_measures(ROOT / "powerbi/measures.dax")

@@ -19,9 +19,10 @@ import unittest
 import duckdb
 
 
+_V13_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v13/Data"
 _V12_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v12/Data"
 _V11_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v11/Data"
-DATA_DIR = _V12_DIR if _V12_DIR.exists() else _V11_DIR
+DATA_DIR = _V13_DIR if _V13_DIR.exists() else (_V12_DIR if _V12_DIR.exists() else _V11_DIR)
 
 
 class DaxSimulationTests(unittest.TestCase):
@@ -456,6 +457,37 @@ class DaxSimulationTests(unittest.TestCase):
             SELECT count(*) FROM fact_national_coverage_inventory
         """).fetchone()[0]
         self.assertEqual(res_count, 59)
+
+    def test_multi_agency_intelligence_measures(self):
+        # 1. Natural Water Reservoir Measures (DWR)
+        res_count = self.con.execute("SELECT count(*) FROM fact_natural_water_reservoir").fetchone()[0]
+        self.assertEqual(res_count, 302)
+
+        active_storage = self.con.execute("""
+            SELECT coalesce(sum(active_storage_m3), 0) FROM fact_natural_water_reservoir
+        """).fetchone()[0]
+        self.assertGreater(active_storage, 0.0)
+
+        # 2. Satellite Flood Rice Area Rai (GISTDA)
+        flood_polygons = self.con.execute("SELECT count(*) FROM fact_satellite_flood_7days").fetchone()[0]
+        self.assertEqual(flood_polygons, 10)
+
+        rice_inundated = self.con.execute("""
+            SELECT coalesce(sum(inundated_rice_area_rai), 0) FROM fact_satellite_flood_7days
+        """).fetchone()[0]
+        self.assertGreater(rice_inundated, 0.0)
+
+        # 3. High Risk Flood Tambons Count (HII)
+        high_risk_tambons = self.con.execute("""
+            SELECT count(*) FROM fact_flood_risk_forecast WHERE risk_level = 'เสี่ยงสูง'
+        """).fetchone()[0]
+        self.assertGreater(high_risk_tambons, 1000)
+
+        # 4. Recent Station Total Rainfall mm (Meteostat / TMD)
+        rainfall = self.con.execute("""
+            SELECT coalesce(sum(rainfall_mm), 0) FROM fact_daily_weather
+        """).fetchone()[0]
+        self.assertGreaterEqual(rainfall, 0.0)
 
 
 if __name__ == "__main__":
