@@ -1,5 +1,13 @@
 # สถานะโครงการ 23 ตุลาคม 2569
 
+## ตรวจแก้ผลวิเคราะห์มาตรการจาก AI รอบก่อน
+
+ตรวจโค้ดกับหลักฐานต้นทางแล้วพบว่ารายการโครงการ 3 รายการมีงบ/จังหวัดเป้าหมายเขียนคงที่โดยไม่มีหลักฐาน resource-level และ `doae_15_01` เป็นสถิติผู้เข้าร่วม ไม่ใช่บัญชีเป้าหมายโครงการ จึงถอนการจัดจังหวัดเป็นช่องว่าง 46 จังหวัด, ครอบคลุม 12 และซ้ำซ้อน 3 ผล audit รุ่น 2: โครงการที่ยืนยันพื้นที่เป้าหมายได้ **0 รายการ**, บัตรหลักฐาน DOAE **115 รายการ**, สถานะมาตรการ **`UNVERIFIED` 77 จังหวัด**; ซิงค์ DuckDB แล้วให้ `dim_project=0`, `fact_project_coverage=0` และจำนวนโครงการใน Master View เป็น `null` เมื่อทะเบียนยังไม่พร้อม `offline-v12/v13` เป็น snapshot ก่อนแก้ ห้ามใช้อ้างตัวเลขมาตรการหรือเผยแพร่ ตรวจ [ทะเบียนโครงการ](project-register.md), [หลักฐานพื้นที่](spatial-evidence-matching.md) และ [HANDOFF](../HANDOFF.md)
+
+แก้ DWR client ให้ตรวจ TLS certificate/hostname ตามปกติ; รอบนี้ไม่ได้ดึงข้อมูล DWR ใหม่ พักค่าข้ามแหล่ง DWR/GISTDA/HII/Meteostat ใน `v_provincial_national_intelligence` เป็น `null` จนกว่าจะตรวจ provenance/หน่วย/ช่วงเวลา/สิทธิ์ ข้อมูล HII มีคอลัมน์ `Month` กับ `COUNT 17 YEAR` แต่ยังไม่ยืนยันขอบเขตพยากรณ์จาก metadata ต้นทาง จึงไม่อ้างว่าเป็นพยากรณ์ 12 เดือนข้างหน้า และ Meteostat เก็บฝนที่ไม่รายงานเป็น `null`
+
+ตรวจ DuckDB หลังซิงค์: โครงการที่ยืนยันได้ 0, เป้าหมายโครงการ 0, หลักฐานพื้นที่ 115, จังหวัดสถานะ `UNVERIFIED` 77/77, ค่า DWR/GISTDA/HII/Meteostat ใน Master View ที่พักไว้ไม่เป็น non-null แม้แต่แถวเดียว; `python -m unittest discover -s tests -q` ผ่าน **236 tests, skipped 1** รายการที่อิง snapshot PBIP `offline-v13` เก่า ไม่มี DAX runtime หรือการตรวจภาพ Desktop ในรอบนี้
+
 **เช็กลิสต์ปัจจุบันสำหรับ AI รับงานต่อ:** [HANDOFF.md](../HANDOFF.md) มีงานที่ตรวจแล้ว งานค้าง ลำดับถัดไป และคำสั่งเริ่ม ส่วนหัวข้อด้านล่างเป็นบันทึกผลแต่ละรอบตามเวลา อาจมี “งานต่อ” ที่ปิดไปแล้วในรอบใหม่
 
 รอบเอกสารนี้ปรับ [README](../README.md), [AGENTS](../AGENTS.md), [runbook](runbook.md), [roadmap DOAE](doae-catalog-expansion.md) และ [คู่มือ Power BI](../powerbi/README.md) ให้ชี้เป้าหมายศูนย์ข้อมูลเกษตรทั้งประเทศและเช็กลิสต์เดียวกัน อ้างหลักฐาน acquisition/geography/cleanup ที่มีอยู่ ไม่ได้ดึงข้อมูลใหม่ นำเข้า warehouse เผยแพร่ หรือทดสอบ DAX เพิ่ม
@@ -9,11 +17,11 @@
 - **Master Inter-Agency Database & Star Schema Linkage:**
   - เพิ่มมิติข้อมูลหลัก `dim_province` (77 จังหวัด DOPA ครบถ้วน) และ `dim_source` (17 แหล่งข้อมูลพหุภาคี) ลงสู่ฐานข้อมูลกลาง `data/local/tadih.duckdb`
   - สร้าง Master Analytical View `v_provincial_national_intelligence` เชื่อมโยง 77 จังหวัดเข้ากับข้อมูลทุกมิติแบบ Single Pane of Glass:
-    - สถานะช่องว่างมาตรการและปัญหาเชิงพื้นที่ (`fact_evidence_policy_match`)
-    - จำนวนโครงการภาครัฐที่เจาะจงเป้าหมายในจังหวัด (`fact_project_coverage`)
+    - สถานะหลักฐานพื้นที่ (`fact_evidence_policy_match`); ผลมาตรการใน snapshot รุ่นนั้นถูกถอน
+    - โครงการภาครัฐใน snapshot รุ่นนั้นยังไม่มีเป้าหมายรายจังหวัดที่ตรวจแล้ว (`fact_project_coverage`)
     - แหล่งน้ำธรรมชาติและปริมาตรน้ำใช้การได้ (`fact_natural_water_reservoir`) จาก DWR
     - พื้นที่นาข้าวแช่น้ำท่วมขังจากดาวเทียม Sentinel/Landsat (`fact_satellite_flood_7days`) จาก GISTDA
-    - จำนวนตำบลที่เสี่ยงอุทกภัยสูง/ปานกลาง 12 เดือนล่วงหน้า (`fact_flood_risk_forecast`) จาก HII
+    - จำนวนระเบียน HII ที่มี `Month` และ `COUNT 17 YEAR` (`fact_flood_risk_forecast` ชื่อเดิม); ยังยืนยัน forecast horizon ไม่ได้
     - ข้อมูลสภาพอากาศ สถิติฝนสะสม และอุณหภูมิเฉลี่ย (`fact_daily_weather` + `dim_weather_station`) จาก TMD / Meteostat
   - ตรวจสอบความถูกต้องของ Foreign Keys (Referential Integrity) 100% ครบทุกตาราง ไม่มี orphaned records หรือรหัสจังหวัดผิดเพี้ยน
 - **Power BI Offline Project Build (offline-v13):**
@@ -35,12 +43,11 @@
   - พัฒนาฟังก์ชัน `init_national_hub_tables()` และ `sync_national_hub_data()` ใน `src/tadih/warehouse.py` และสคริปต์ `scripts/sync_duckdb_hub.py`
   - ซิงค์แกนข้อมูลศูนย์รวมข้อมูลเกษตรทั้งประเทศสู่ฐานข้อมูลกลาง `data/local/tadih.duckdb`:
     - `national_coverage_inventory`: 59 ทรัพยากร (จำแนก native grain, missing reasons, license status)
-    - `dim_project`: 5 โครงการเกษตรและมาตรการรัฐสำคัญ (DOAE, MOAC, BAAC, LDD)
-    - `fact_project_coverage`: 325 รายการเชื่อมโยงความครอบคลุมระดับจังหวัด
+    - `dim_project` และ `fact_project_coverage`: เนื้อหาเดิมถูกถอนหลังตรวจหลักฐาน ปัจจุบันมี 0 รายการที่ผ่านเกณฑ์
     - `fact_spatial_evidence`: 115 รายการหลักฐานความเสียหายจากอุทกภัย ภัยแล้ง และพื้นที่เสี่ยงขาดแคลนน้ำ
-    - `fact_evidence_policy_match`: 77 จังหวัดจำแนกสถานะการจับคู่โครงการ (COVERED, REDUNDANT, UNADDRESSED_GAP 46 จว., NO_IDENTIFIED_PROBLEM)
+    - `fact_evidence_policy_match`: 77 จังหวัด; ปัจจุบันเป็น `UNVERIFIED` ทั้งหมด
     - `fact_plan_actual_reconciliation`: 2 ฤดูกาล (ฤดูฝน/แล้ง 2569) ยืนยันสถานะ `INCOMPARABLE`
-  - สร้าง 3 Analytical Views สำหรับการสืบค้นเชิงวิเคราะห์: `v_unaddressed_policy_gaps` (ชี้เป้า 46 จังหวัดที่มีช่องว่างมาตรการ), `v_project_intervention_summary` (สรุปโครงการและงบประมาณ), `v_national_coverage_overview` (สรุปความครอบคลุมข้อมูลตาม grain และหน่วยงาน)
+  - สร้าง 3 Analytical Views สำหรับการสืบค้นเชิงวิเคราะห์; `v_unaddressed_policy_gaps` และ `v_project_intervention_summary` ปัจจุบันไม่มีรายการที่ยืนยันได้ ต้องอ่านสถานะ `UNVERIFIED` ประกอบ
   - เพิ่ม unit tests 2 รายการใน `tests/test_national_warehouse.py` ทดสอบการสร้างตาราง, view calculation, และ idempotency ผ่าน 100%
 - **Power BI Offline Project Build (offline-v12):**
   - พัฒนาโครงสร้างโปรเจกต์ `data/local/powerbi/offline-v12/` มี 17 ตาราง (เพิ่มขึ้นจาก 12 ตาราง), 20 relationships (เพิ่มขึ้นจาก 15), 42 measures (เพิ่มขึ้นจาก 35), 7 หน้า PBIR (เพิ่ม 2 หน้าใหม่: `policy_gap` และ `national_coverage`)
@@ -67,47 +74,18 @@
   - `/v1/catalog`: บัญชีชุดข้อมูล ทรัพยากร และสถานะสิทธิ์
   - `/v1/coverage`: บัญชีความครอบคลุมข้อมูล 77 จังหวัดระดับ `source × area × period × metric`
   - `/v1/spatial-evidence`: บัตรหลักฐานเชิงพื้นที่ ชี้เป้าปัญหาจริง (น้ำท่วม 1.83M ไร่, แล้ง 16.7K ไร่) และการจับคู่โครงการ
-  - `/v1/projects`: ทะเบียนโครงการเกษตรและมาตรการช่วยเหลือข้ามหน่วยงาน (DOAE, MOAC, BAAC, LDD)
+  - `/v1/projects`: สัญญาทะเบียนโครงการ; ปัจจุบันไม่มีรายการที่ตรวจเป้าหมายระดับโครงการผ่าน
 - ระบบ License Gating และการคุ้มครองข้อมูล:
-  - ภายใต้ scope `public_only` ข้อมูลที่มีสถานะสิทธิ์ pending ถูกจำกัดการเข้าถึงเป็น `LICENSE_PENDING_AGGREGATE_METADATA_ONLY`
+  - การกำหนด `public_only` เป็นเพียงการกรองข้อมูลในเครื่อง ยังไม่มีระบบยืนยันตัวตนหรือการอนุมัติเผยแพร่จริง; บัตรหลักฐาน pending ถูกงดส่งจาก feed สาธารณะ
   - คุ้มครองข้อมูลส่วนบุคคลตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 โดยให้บริการเฉพาะสถิติรวมเชิงพื้นที่ (Aggregate Spatial Layer)
 - สถาปัตยกรรมความสมบูรณ์ข้อมูลเชิงรหัสวิทยา (Cryptographic Integrity):
   - ทุกคำตอบ API คำนวณค่าแฮช `payload_sha256` แบบ deterministic
   - พัฒนาระบบส่งออก Partner Feed Export Bundle พร้อมไฟล์ `manifest.json` สำหรับการแลกเปลี่ยนข้อมูลแบบ Batch/Scheduled Sync ระหว่างหน่วยงาน
 - เอกสารและหลักฐาน: [docs/data-sharing-interface.md](data-sharing-interface.md), สัญญาข้อมูล [data_contracts/data_sharing.schema.json](../data_contracts/data_sharing.schema.json), หลักฐาน `data/local/probes/data-sharing-audit.json`
 
-## การชี้เป้าปัญหาเชิงพื้นที่ตามหลักฐานจริงและการจับคู่โครงการ (Spatial Evidence & Policy Intervention Matching) 23 ต.ค. 2569
+## ทะเบียนโครงการและหลักฐานพื้นที่: สถานะหลังตรวจแก้ 23 ต.ค. 2569
 
-- เพิ่มสัญญาข้อมูล `data_contracts/spatial_evidence.schema.json` รองรับมาตรฐาน JSON Schema draft-2020-12 สำหรับบัตรหลักฐานเชิงพื้นที่ (Spatial Evidence Cards)
-- เพิ่มโมดูล `src/tadih/spatial_evidence.py`, สคริปต์ `scripts/audit_spatial_evidence.py` และ unit tests 5 รายการใน `tests/test_spatial_evidence.py` (ผ่านรวม 209 tests 100%)
-- สกัดหลักฐานความเสียหายทางกายภาพจริงจากชุดข้อมูล DOAE P0:
-  - **อุทกภัยจริง:** 1,832,840.42 ไร่ ครอบคลุม 60 จังหวัด (ในเขตชลประทาน 1.62 หมื่นไร่ 52 จังหวัด, นอกเขตชลประทาน 1.81 ล้านไร่ 59 จังหวัด เช่น ร้อยเอ็ด 1.67 แสนไร่, อุบลราชธานี 1.13 แสนไร่, ยโสธร 1.10 แสนไร่)
-  - **ภัยแล้งจริง:** 16,696.79 ไร่ ใน 2 จังหวัด (สระบุรี 9,953.54 ไร่ และ บุรีรัมย์ 6,743.25 ไร่ นอกเขตชลประทาน)
-  - **พื้นที่เสี่ยงขาดแคลนน้ำ:** ข้าวนาปีและพืชพื้นเมือง (บือวา) ใน จ.กระบี่ 867.00 ไร่
-  - **การกักกันข้อมูล Mock:** ตรวจพบและคัดแยกข้อมูล mock Test (9,999,999,999 ไร่ ใน จ.ชลบุรี) ออกจากการวิเคราะห์โดยเด็ดขาด
-- ผลการจำแนกสถานะมาตรการนโยบาย 77 จังหวัด:
-  - **UNADDRESSED_GAP (46 จังหวัด):** พบความเสียหายจริงแต่ไม่มีโครงการเยียวยาภัยพิบัติเฉพาะพื้นที่รองรับ มีเพียงเงินอุดหนุนทั่วไปของรัฐ (เช่น บุรีรัมย์ สระบุรี ร้อยเอ็ด อุบลราชธานี ศรีสะเกษ นครราชสีมา)
-  - **COVERED (12 จังหวัด):** อยู่ในเขตประกาศภัยพิบัติที่มีมาตรการเยียวยารองรับ (เช่น กทม. นนทบุรี ปทุมธานี อยุธยา ลพบุรี อ่างทอง)
-  - **REDUNDANT (3 จังหวัด):** ความเสียหายรุนแรง (>50,000 ไร่) อยู่ในเขตคุ้มครองภัยพิบัติแต่มีเงินช่วยเหลือให้เปล่าหลายโครงการซ้ำซ้อนกัน (เชียงใหม่ เชียงราย ลำปาง) โดยยังขาดมาตรการเชิงโครงสร้าง
-  - **NO_IDENTIFIED_PROBLEM (16 จังหวัด):** ไม่มีรายงานความเสียหายจากภัยพิบัติหรือพื้นที่เสี่ยงในรอบการตรวจ
-- ยึดหลักธรรมาภิบาลเข้มงวด: ไม่มีคะแนนความเสี่ยงสังเคราะห์ (Zero Synthetic Risk Scores), คง missing เป็น null และรักษา grain ดั้งเดิม
-- เอกสารและหลักฐาน: [docs/spatial-evidence-matching.md](spatial-evidence-matching.md), สัญญาข้อมูล [data_contracts/spatial_evidence.schema.json](../data_contracts/spatial_evidence.schema.json), หลักฐาน `data/local/probes/spatial-evidence-audit.json`
-
-## ทะเบียนโครงการเกษตรข้ามหน่วยงาน (Cross-Agency Agricultural Project Register) และ Data Contract 23 ต.ค. 2569
-
-- เพิ่มสัญญาข้อมูล `data_contracts/project.schema.json` รองรับมาตรฐาน JSON Schema draft-07 ระบุโครงสร้างโครงการเกษตรข้ามหน่วยงาน (รหัสโครงการ, หน่วยงานผู้รับผิดชอบ, งบประมาณ, ช่วงเวลา, ขอบเขตพื้นที่, วัตถุประสงค์, ตัวชี้วัด, และปัญหาเชิงพื้นที่ที่เชื่อมโยง)
-- เพิ่มโมดูล `src/tadih/project_register.py`, สคริปต์ `scripts/audit_project_register.py` และ unit tests 5 รายการใน `tests/test_project_register.py` (ผ่านรวม 204 tests 100%)
-- จัดทำทะเบียน 5 โครงการเกษตรสำคัญ:
-  - DOAE โครงการสนับสนุนภาครัฐ 2566 (`doae_15_01_2566`): 6,211.2 ล้านบาท ครอบคลุม 77 จังหวัด
-  - DOAE โครงการสนับสนุนภาครัฐ 2567 (`doae_15_01_2567`): 6,211.2 ล้านบาท ครอบคลุม 77 จังหวัด
-  - MOAC-BAAC โครงการสนับสนุนค่าบริหารจัดการและพัฒนาคุณภาพผลผลิตเกษตรกรผู้ปลูกข้าว (ไร่ละ 1,000 บาท): 56,000 ล้านบาท ครอบคลุม 77 จังหวัด
-  - DOAE โครงการช่วยเหลือผู้ประสบภัยพิบัติด้านการเกษตร: 1,500 ล้านบาท ครอบคลุม 17 จังหวัดภัยพิบัติ
-  - LDD โครงการบริหารจัดการเขตเกษตรเศรษฐกิจสำหรับสินค้าเกษตรที่สำคัญ (Agri-Map Zoning): 350 ล้านบาท ครอบคลุม 77 จังหวัด
-- พัฒนากลไกวิเคราะห์ความครอบคลุมเชิงพื้นที่ (`analyze_spatial_project_coverage`):
-  - ตรวจพบพื้นที่เป้าหมายรวม 77 จังหวัด
-  - ตรวจพบพื้นที่ทับซ้อน/หลายโครงการสนับสนุน (Redundancy): ข้าวนาปีและข้าวนาปรังในพื้นที่ 77 จังหวัดได้รับการอุดหนุนซ้ำซ้อนจาก 3 โครงการใหญ่
-  - ตรวจพบช่องว่าง (Gaps): พืชเฉพาะถิ่น (เช่น ทุเรียนภูเขาไฟ, พืช GI) ในพื้นที่แล้งซ้ำซากนอกเขตชลประทานยังไม่มีโครงการเฉพาะรองรับ
-- รายละเอียดและเอกสารสเปก: [docs/project-register.md](project-register.md), สัญญาข้อมูล [data_contracts/project.schema.json](../data_contracts/project.schema.json), หลักฐาน `data/local/probes/project-register-audit.json`
+งานเดิมสร้าง schema และ audit scripts ได้ แต่ข้อสรุปด้านมาตรการจากข้อมูลไม่ครบถูกถอน ผลปัจจุบันให้ยึดหัวข้อ “ตรวจแก้ผลวิเคราะห์มาตรการจาก AI รอบก่อน” ด้านบน, [project-register.md](project-register.md) และ [spatial-evidence-matching.md](spatial-evidence-matching.md) การนับ 0 รายการที่ยืนยันได้ไม่ใช่การยืนยันว่าไม่มีโครงการจริง
 
 ## กลไกกระทบยอดแผนและผลเพาะปลูก (Plan vs Actual Reconciliation Engine) 23 ต.ค. 2569
 

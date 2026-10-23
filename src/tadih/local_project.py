@@ -326,6 +326,8 @@ def build_local_project(snapshot, production_inventory, workbook, output_dir):
     proj_path = probes_dir / "project-register-audit.json"
     if proj_path.exists():
         proj_data = json.loads(proj_path.read_text(encoding="utf-8"))
+        if proj_data.get("audit_version") != 2:
+            raise ValueError("Stale project-register audit; rerun audit_project_register.py")
         projects = proj_data.get("projects", [])
         proj_fields = ["project_id", "project_name_th", "managing_agency", "fiscal_year", "intervention_type",
                        "target_commodity", "target_problem", "target_area_grain", "status", "source_evidence",
@@ -350,6 +352,8 @@ def build_local_project(snapshot, production_inventory, workbook, output_dir):
     spat_path = probes_dir / "spatial-evidence-audit.json"
     if spat_path.exists():
         spat_data = json.loads(spat_path.read_text(encoding="utf-8"))
+        if spat_data.get("audit_version") != 2:
+            raise ValueError("Stale spatial-evidence audit; rerun audit_spatial_evidence.py")
         cards = spat_data.get("province_cards", [])
         match_fields = ["area_code", "province_name_th", "identified_problems", "matched_intervention_ids",
                         "intervention_status", "diagnostic_notes", "last_audited_at"]

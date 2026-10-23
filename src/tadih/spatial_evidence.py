@@ -8,7 +8,7 @@ CRITICAL GOVERNANCE GUARANTEES:
 1. No synthetic composite risk scores (e.g. 0-100 fabricated index).
 2. Maintains honest missing data as null.
 3. Native spatial grains are explicitly preserved.
-4. Identifies genuine policy gaps where crop damage exists but assistance is absent.
+4. Does not infer a policy gap from an incomplete project register.
 """
 
 from collections import defaultdict
@@ -22,10 +22,6 @@ from typing import Any, Dict, List, Optional, Set
 from jsonschema import Draft202012Validator, FormatChecker
 
 from tadih.catalog import ROOT, load_provinces
-from tadih.project_register import (
-    AgriculturalProject,
-    build_known_national_project_register,
-)
 
 SPATIAL_EVIDENCE_CONTRACT_PATH = ROOT / "data_contracts/spatial_evidence.schema.json"
 
@@ -55,7 +51,7 @@ class ProvinceEvidenceCard:
     evidence_records: List[ProblemEvidenceItem] = field(default_factory=list)
     identified_problems: List[str] = field(default_factory=list)
     matched_intervention_ids: List[str] = field(default_factory=list)
-    intervention_status: str = "NO_IDENTIFIED_PROBLEM"
+    intervention_status: str = "UNVERIFIED"
     diagnostic_notes: str = ""
     last_audited_at: str = ""
 
@@ -140,9 +136,9 @@ def extract_doae_disaster_evidence(local_dir: Path) -> Dict[str, List[ProblemEvi
                         metric_name=f"damaged_area_flood_{zone}_rai",
                         metric_value=round(fl_total, 2),
                         unit="ไร่",
-                        native_spatial_grain="subdistrict",
+                        native_spatial_grain="province",
                         native_area_code=pcode,
-                        observed_period="2567-2568",
+                        observed_period=None,
                         license_status="pending",
                     )
                 )
@@ -158,9 +154,9 @@ def extract_doae_disaster_evidence(local_dir: Path) -> Dict[str, List[ProblemEvi
                         metric_name=f"damaged_area_drought_{zone}_rai",
                         metric_value=round(dr_total, 2),
                         unit="ไร่",
-                        native_spatial_grain="subdistrict",
+                        native_spatial_grain="province",
                         native_area_code=pcode,
-                        observed_period="2567-2568",
+                        observed_period=None,
                         license_status="pending",
                     )
                 )
@@ -196,9 +192,9 @@ def extract_doae_disaster_evidence(local_dir: Path) -> Dict[str, List[ProblemEvi
                     metric_name="water_shortage_risk_area_rai",
                     metric_value=round(risk_total, 2),
                     unit="ไร่",
-                    native_spatial_grain="subdistrict",
+                    native_spatial_grain="province",
                     native_area_code=pcode,
-                    observed_period="2569",
+                    observed_period=None,
                     license_status="pending",
                 )
             )
@@ -209,12 +205,10 @@ def extract_doae_disaster_evidence(local_dir: Path) -> Dict[str, List[ProblemEvi
 
 def build_province_evidence_cards(
     local_dir: Optional[Path] = None,
-    projects: Optional[List[AgriculturalProject]] = None,
 ) -> List[ProvinceEvidenceCard]:
-    """Build unified evidence cards for all 77 provinces matching evidence against projects."""
+    """Build evidence cards; intervention coverage awaits verified target areas."""
     local = local_dir or (ROOT / "data/local")
     provinces = load_provinces()
-    all_projects = projects or build_known_national_project_register(local)
 
     disaster_evidence = extract_doae_disaster_evidence(local)
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -228,72 +222,14 @@ def build_province_evidence_cards(
 
         identified_problems = sorted({e.problem_type for e in evidence_list})
 
-        # Match projects active in this province
-        matched_projects = []
-        for proj in all_projects:
-            if "TH" in proj.target_area_codes or proj.target_area_grain == "country":
-                matched_projects.append(proj)
-            elif pcode in proj.target_area_codes:
-                matched_projects.append(proj)
-
-        matched_ids = [p.project_id for p in matched_projects]
-
-        # Determine intervention status and factual diagnostic notes
-        if not identified_problems:
-            intervention_status = "NO_IDENTIFIED_PROBLEM"
-            notes = "ไม่มีรายงานความเสียหายจากภัยพิบัติหรือพื้นที่เสี่ยงขาดแคลนน้ำจากฐานข้อมูล DOAE ในรอบการตรวจ"
+        # Evidence is known, but project targets and register completeness are not.
+        # A missing project row cannot prove that assistance is absent.
+        matched_ids: List[str] = []
+        intervention_status = "UNVERIFIED"
+        if identified_problems:
+            notes = "พบรายงานปัญหาจาก DOAE แต่ยังตรวจทะเบียนโครงการและพื้นที่เป้าหมายไม่ครบ จึงระบุการช่วยเหลือหรือช่องว่างไม่ได้"
         else:
-            # Check problem coverage
-            has_drought = "DROUGHT_DAMAGE" in identified_problems or "WATER_SHORTAGE_RISK" in identified_problems
-            has_flood = "FLOOD_DAMAGE" in identified_problems
-
-            # Check if active disaster relief exists
-            relief_projects = [
-                p for p in matched_projects
-                if p.intervention_type == "disaster_relief"
-            ]
-
-            drought_evidence_sum = sum(
-                e.metric_value for e in evidence_list
-                if e.problem_type in ("DROUGHT_DAMAGE", "WATER_SHORTAGE_RISK")
-            )
-            flood_evidence_sum = sum(
-                e.metric_value for e in evidence_list
-                if e.problem_type == "FLOOD_DAMAGE"
-            )
-
-            # If disaster relief project covers this province
-            if relief_projects:
-                general_aids = [
-                    p for p in matched_projects
-                    if p.intervention_type in ("income_support", "general_agricultural_aid")
-                ]
-                if len(general_aids) >= 2 and flood_evidence_sum > 50000.0:
-                    intervention_status = "REDUNDANT"
-                    notes = (
-                        f"พบความเสียหายรุนแรง ({flood_evidence_sum:,.2f} ไร่) อยู่ในเขตคุ้มครองของ {relief_projects[0].project_id} "
-                        f"แต่มีโครงการสนับสนุนเงินช่วยเหลือซ้ำซ้อนกันหลายโครงการ ({', '.join(p.project_id for p in general_aids)}) "
-                        f"โดยยังขาดมาตรการเชิงโครงสร้างในการปรับปรุงระบบระบายน้ำหรือปรับเปลี่ยนพื้นที่เกษตร"
-                    )
-                else:
-                    intervention_status = "COVERED"
-                    notes = (
-                        f"พบความเสียหาย ({flood_evidence_sum:,.2f} ไร่) มีมาตรการเยียวยาภัยพิบัติรองรับ "
-                        f"({', '.join(p.project_id for p in relief_projects)})"
-                    )
-            else:
-                # Problem exists, but NO disaster relief project is assigned to this province!
-                intervention_status = "UNADDRESSED_GAP"
-                gap_details = []
-                if has_drought:
-                    gap_details.append(f"ภัยแล้ง/ขาดแคลนน้ำ {drought_evidence_sum:,.2f} ไร่")
-                if has_flood:
-                    gap_details.append(f"อุทกภัย {flood_evidence_sum:,.2f} ไร่")
-                notes = (
-                    f"พบหลักฐานความเสียหายจริง ({', '.join(gap_details)}) "
-                    f"แต่ไม่มีโครงการเยียวยาภัยพิบัติเฉพาะพื้นที่ (DOAE-DISASTER-RELIEF) กำหนดไว้ในจังหวัดนี้ "
-                    f"มีเพียงโครงการอุดหนุนทั่วไปของรัฐ"
-                )
+            notes = "ยังไม่พบรายงานปัญหาในชุด DOAE ที่ตรวจ ไม่ได้ยืนยันว่าไม่มีปัญหาในพื้นที่"
 
         card = ProvinceEvidenceCard(
             province_code=pcode,
@@ -347,6 +283,7 @@ def audit_spatial_evidence(root_dir: Optional[Path] = None) -> Dict[str, Any]:
 
     audit_result = {
         "status": "success",
+        "audit_version": 2,
         "title": "National Spatial Problem Evidence and Policy Intervention Matching Audit",
         "total_provinces_audited": len(cards),
         "intervention_status_breakdown": dict(sorted(status_counts.items())),
@@ -358,8 +295,8 @@ def audit_spatial_evidence(root_dir: Optional[Path] = None) -> Dict[str, Any]:
         "governance_guarantees": [
             "Conforms 100% to JSON Schema data_contracts/spatial_evidence.schema.json",
             "Zero synthetic risk scores generated (no composite indices)",
-            "All damage and shortage quantities preserve source units (rai) and raw observation provenance",
-            "Missing disaster data remains null rather than assumed zero"
+            "Provincial sums retain source resource identifiers; the source files do not establish an observation period",
+            "No assistance or policy-gap conclusion is made without verified project targets",
         ],
         "province_cards": [c.to_dict() for c in cards],
     }

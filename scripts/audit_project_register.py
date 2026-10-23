@@ -15,7 +15,6 @@ from tadih.project_register import audit_project_register
 def main():
     result = audit_project_register(ROOT)
     projects = result["projects"]
-    cov = result["sample_risk_coverage_analysis"]
 
     print("=" * 70)
     print(" NATIONAL AGRICULTURE DATA CENTER: PROJECT REGISTER AUDIT")
@@ -34,10 +33,8 @@ def main():
             print(f"  Impact:   {p['actual_households']:,} households | {(p.get('actual_area_rai') or 0):,.2f} rai")
         print("-" * 70)
 
-    print("Sample Risk-to-Intervention Coverage Analysis:")
-    print(f"  - Problem Provinces Evaluated: {cov['problem_provinces_total']}")
-    print(f"  - Covered by Active Measures:  {cov['covered_problem_provinces_count']} (Rate: {cov['coverage_rate']:.1%})")
-    print(f"  - Unaddressed Gap Provinces:   {cov['unaddressed_gap_provinces']}")
+    print(f"Register status: {result['register_status']}")
+    print(f"Candidate source: {result['candidate_source']}")
     print("=" * 70)
     print("Report written to data/local/probes/project-register-audit.json")
     return 0

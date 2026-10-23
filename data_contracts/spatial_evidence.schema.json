@@ -114,7 +114,8 @@
         "COVERED",
         "REDUNDANT",
         "UNADDRESSED_GAP",
-        "NO_IDENTIFIED_PROBLEM"
+        "NO_IDENTIFIED_PROBLEM",
+        "UNVERIFIED"
       ]
     },
     "diagnostic_notes": {

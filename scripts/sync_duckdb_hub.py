@@ -2,10 +2,10 @@
 
 Enforces typed storage and analytical views for:
 1. National coverage inventory (59 resources)
-2. Agricultural project register (5 cross-agency projects)
+2. Agricultural project register (verified project targets only)
 3. Project spatial coverage
 4. Spatial evidence items (disaster damage rai, water shortage risk)
-5. Spatial evidence policy matching (unaddressed gaps vs covered)
+5. Spatial evidence with unverified policy coverage until the register is complete
 6. Plan vs actual reconciliation (fail-closed incomparable seasons)
 """
 
@@ -51,8 +51,8 @@ def main():
         LIMIT 5
     """).fetchall()
     gap_count = db.execute("SELECT COUNT(*) FROM v_unaddressed_policy_gaps").fetchone()[0]
-    print(f"\n  [v_unaddressed_policy_gaps] Total Provinces with Policy Gaps: {gap_count}")
-    print("  Top 5 Gap Provinces by Damaged Rai:")
+    print(f"\n  [v_unaddressed_policy_gaps] Classified Provinces: {gap_count} (register completeness unverified)")
+    print("  Classified Provinces by Damaged Rai:")
     for row in gaps:
         print(f"    * [{row[0]}] {row[1]:<15} | ปัญหา: {row[2]:<18} | น้ำท่วม: {row[3]:>10,.1f} ไร่ | แล้ง: {row[4]:>10,.1f} ไร่")
 
@@ -77,19 +77,9 @@ def main():
         print(f"    * {r[0]:<10} | Grain: {r[1]:<12} | {r[2]:>2} resources | {r[3]:>10,} source records")
 
     # 4. Master Provincial National Intelligence
-    nat_intel = db.execute("""
-        SELECT province_code, province_name_th, intervention_status, natural_water_active_storage_m3,
-               satellite_inundated_rice_rai, high_risk_flood_tambons, targeted_projects_count
-        FROM v_provincial_national_intelligence
-        WHERE satellite_inundated_rice_rai > 0 OR natural_water_active_storage_m3 > 0 OR high_risk_flood_tambons > 0
-        ORDER BY satellite_inundated_rice_rai DESC, high_risk_flood_tambons DESC
-        LIMIT 5
-    """).fetchall()
     total_provs = db.execute("SELECT COUNT(*) FROM v_provincial_national_intelligence").fetchone()[0]
     print(f"\n  [v_provincial_national_intelligence] Total Provinces Linked: {total_provs}/77")
-    print("  Top 5 Hotspot Provinces (Water / Satellite Flood / Risk):")
-    for r in nat_intel:
-        print(f"    * [{r[0]}] {r[1]:<15} | สถานะ: {r[2]:<15} | ข้าวแช่น้ำ: {r[4]:>8,.1f} ไร่ | เสี่ยงสูง: {r[5]:>3} ตำบล | น้ำธรรมชาติ: {r[3]:>10,.0f} ลบ.ม.")
+    print("  Water, satellite, climatology and station metrics withheld pending source-grain/unit/time review")
 
     # Save probe
     from datetime import datetime, timezone
@@ -99,7 +89,9 @@ def main():
         "database_path": str(db_path),
         "synced_records": sync_res,
         "total_provinces_linked": total_provs,
-        "unaddressed_gap_provinces_count": gap_count,
+        "unaddressed_gap_provinces_count": gap_count if len(proj_summary) else None,
+        "policy_coverage_status": "UNVERIFIED_INCOMPLETE_PROJECT_REGISTER" if not proj_summary else "PARTIAL_REGISTER",
+        "external_metric_status": "WITHHELD_PENDING_SOURCE_REVIEW",
         "registered_projects_count": len(proj_summary),
         "views": [
             "v_unaddressed_policy_gaps",

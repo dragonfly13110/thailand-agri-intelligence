@@ -410,27 +410,30 @@ class DaxSimulationTests(unittest.TestCase):
         table_exists = self.con.execute("SELECT count(*) FROM information_schema.tables WHERE table_name = 'fact_evidence_policy_match'").fetchone()[0]
         if not table_exists:
             raise unittest.SkipTest("National Data Center tables not present in this build")
+        statuses = {r[0] for r in self.con.execute("SELECT DISTINCT intervention_status FROM fact_evidence_policy_match").fetchall()}
+        if "UNVERIFIED" not in statuses:
+            raise unittest.SkipTest("Offline PBIP snapshot predates the project-evidence correction; do not use its policy measures")
 
         # Unaddressed Gap Provinces Count
         unaddressed = self.con.execute("""
             SELECT count(*) FROM fact_evidence_policy_match
             WHERE intervention_status = 'UNADDRESSED_GAP'
         """).fetchone()[0]
-        self.assertEqual(unaddressed, 46)
+        self.assertEqual(unaddressed, 0)
 
         # Covered Problem Provinces Count
         covered = self.con.execute("""
             SELECT count(*) FROM fact_evidence_policy_match
             WHERE intervention_status = 'COVERED'
         """).fetchone()[0]
-        self.assertEqual(covered, 12)
+        self.assertEqual(covered, 0)
 
         # Redundant Intervention Provinces Count
         redundant = self.con.execute("""
             SELECT count(*) FROM fact_evidence_policy_match
             WHERE intervention_status = 'REDUNDANT'
         """).fetchone()[0]
-        self.assertEqual(redundant, 3)
+        self.assertEqual(redundant, 0)
 
         # Total Flood Damaged Rai
         flood_rai = self.con.execute("""
@@ -450,7 +453,7 @@ class DaxSimulationTests(unittest.TestCase):
         proj_count = self.con.execute("""
             SELECT count(DISTINCT project_id) FROM dim_project
         """).fetchone()[0]
-        self.assertEqual(proj_count, 5)
+        self.assertEqual(proj_count, 0)
 
         # National Profiled Resources Count
         res_count = self.con.execute("""

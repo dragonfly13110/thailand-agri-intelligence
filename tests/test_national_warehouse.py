@@ -1,5 +1,7 @@
 import unittest
 from pathlib import Path
+import json
+import tempfile
 import duckdb
 
 from tadih.warehouse import connect, init_national_hub_tables, sync_national_hub_data
@@ -33,13 +35,24 @@ class TestNationalWarehouse(unittest.TestCase):
         for t in expected_tables:
             self.assertIn(t, tables, f"Expected table {t} in warehouse")
 
+    def test_stale_policy_probe_fails_before_warehouse_mutation(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            probes = Path(tmp_dir) / "data/local/probes"
+            probes.mkdir(parents=True)
+            (probes / "project-register-audit.json").write_text(json.dumps({"audit_version": 1}), encoding="utf-8")
+            (probes / "spatial-evidence-audit.json").write_text(json.dumps({"audit_version": 2}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Stale project-register-audit.json"):
+                sync_national_hub_data(self.db, root_dir=Path(tmp_dir))
+            tables = {row[0] for row in self.db.execute("SHOW TABLES").fetchall()}
+            self.assertNotIn("dim_project", tables)
+
     def test_sync_national_hub_data(self):
         res = sync_national_hub_data(self.db, root_dir=ROOT)
         self.assertEqual(res["dim_province"], 77)
         self.assertEqual(res["dim_source"], 17)
         self.assertGreaterEqual(res["coverage_inventory"], 50)
-        self.assertGreaterEqual(res["dim_project"], 5)
-        self.assertGreaterEqual(res["fact_project_coverage"], 77)
+        self.assertEqual(res["dim_project"], 0)
+        self.assertEqual(res["fact_project_coverage"], 0)
         self.assertGreaterEqual(res["fact_spatial_evidence"], 100)
         self.assertEqual(res["fact_evidence_policy_match"], 77)
         self.assertEqual(res["fact_plan_actual_reconciliation"], 2)
@@ -52,16 +65,11 @@ class TestNationalWarehouse(unittest.TestCase):
 
         # Verify Views
         gaps = self.db.execute("SELECT * FROM v_unaddressed_policy_gaps").fetchall()
-        self.assertEqual(len(gaps), 46)
-
-        # Check top gap province is Roi Et (45) with > 150k rai flood damage
-        top_gap = gaps[0]
-        self.assertEqual(top_gap[0], "45")  # Roi Et province code
-        self.assertGreater(top_gap[5], 150000.0)  # flood_damage_rai
+        self.assertEqual(gaps, [])
 
         # Verify Project Summary View
         projects = self.db.execute("SELECT * FROM v_project_intervention_summary").fetchall()
-        self.assertGreaterEqual(len(projects), 5)
+        self.assertEqual(projects, [])
 
         # Verify Water Security View
         water_provinces = self.db.execute("SELECT * FROM v_provincial_natural_water_security").fetchall()
@@ -81,13 +89,15 @@ class TestNationalWarehouse(unittest.TestCase):
         # Check Roi Et (45) has identified problems
         roi_et = next(r for r in nat_intel if r[0] == "45")
         self.assertIn("FLOOD_DAMAGE", roi_et[2])
-        self.assertEqual(roi_et[3], "UNADDRESSED_GAP")
+        self.assertEqual(roi_et[3], "UNVERIFIED")
+        self.assertIsNone(roi_et[5])  # Unknown project coverage stays null.
+        self.assertTrue(all(value is None for value in roi_et[6:]))  # External metrics await source review.
 
         # Verify idempotency (re-sync should not duplicate rows)
         res2 = sync_national_hub_data(self.db, root_dir=ROOT)
         self.assertEqual(res, res2)
         count_gaps = self.db.execute("SELECT COUNT(*) FROM v_unaddressed_policy_gaps").fetchone()[0]
-        self.assertEqual(count_gaps, 46)
+        self.assertEqual(count_gaps, 0)
 
 
 if __name__ == "__main__":

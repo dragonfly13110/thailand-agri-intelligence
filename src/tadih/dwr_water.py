@@ -28,8 +28,6 @@ def fetch_latest_dwr_small_water_resources(
         raise ValueError("DWR_API_KEY is not configured in .env")
 
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
 
     # 1. Fetch RSS to get latest feed link
     rss_req = urllib.request.Request(

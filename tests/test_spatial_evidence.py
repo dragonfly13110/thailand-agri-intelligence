@@ -43,8 +43,8 @@ class SpatialEvidenceTests(unittest.TestCase):
             evidence_records=[item],
             identified_problems=["DROUGHT_DAMAGE"],
             matched_intervention_ids=["DOAE-GOV-SUPPORT-2567"],
-            intervention_status="UNADDRESSED_GAP",
-            diagnostic_notes="พบภัยแล้ง 500.25 ไร่ แต่ไม่มีโครงการเยียวยาภัยพิบัติรองรับ",
+            intervention_status="UNVERIFIED",
+            diagnostic_notes="พบภัยแล้ง แต่ยังไม่มีหลักฐานพื้นที่เป้าหมายโครงการ",
             last_audited_at="2026-10-23T05:00:00Z",
         )
         card.validate()
@@ -71,35 +71,33 @@ class SpatialEvidenceTests(unittest.TestCase):
         self.assertEqual(result["total_provinces_audited"], 77)
 
         status_breakdown = result["intervention_status_breakdown"]
-        self.assertIn("UNADDRESSED_GAP", status_breakdown)
-        self.assertIn("COVERED", status_breakdown)
-        self.assertIn("REDUNDANT", status_breakdown)
-        self.assertIn("NO_IDENTIFIED_PROBLEM", status_breakdown)
+        self.assertEqual(status_breakdown, {"UNVERIFIED": 77})
+        self.assertEqual(result["unaddressed_gap_provinces_count"], 0)
+        self.assertEqual(result["audit_version"], 2)
 
         # Check governance guarantees
         for card in result["province_cards"]:
             self.assertNotIn("composite_risk_score", card)
             self.assertNotIn("priority_index", card)
-            self.assertIn(card["intervention_status"], [
-                "COVERED", "REDUNDANT", "UNADDRESSED_GAP", "NO_IDENTIFIED_PROBLEM"
-            ])
+            self.assertEqual(card["intervention_status"], "UNVERIFIED")
 
         # Verify probe file output
         probe_file = ROOT / "data/local/probes/spatial-evidence-audit.json"
         self.assertTrue(probe_file.exists())
 
-    def test_unaddressed_gap_diagnostic_accuracy(self):
+    def test_evidence_does_not_prove_policy_gap(self):
         cards = build_province_evidence_cards(ROOT / "data/local")
         card_map = {c.province_code: c for c in cards}
 
-        # Buriram (31) has verified drought damage but no disaster relief coverage -> UNADDRESSED_GAP
+        # A disaster report does not establish whether a project covered the area.
         buriram_card = card_map["31"]
-        self.assertEqual(buriram_card.intervention_status, "UNADDRESSED_GAP")
-        self.assertIn("ภัยแล้ง", buriram_card.diagnostic_notes)
+        self.assertEqual(buriram_card.intervention_status, "UNVERIFIED")
+        self.assertIn("ทะเบียนโครงการ", buriram_card.diagnostic_notes)
+        self.assertEqual(buriram_card.matched_intervention_ids, [])
 
-        # Province 10 (Bangkok) has flood damage and is covered by disaster relief -> COVERED or REDUNDANT
+        # Bangkok also has no verified project target.
         bkk_card = card_map["10"]
-        self.assertIn(bkk_card.intervention_status, ["COVERED", "REDUNDANT"])
+        self.assertEqual(bkk_card.intervention_status, "UNVERIFIED")
 
 
 if __name__ == "__main__":

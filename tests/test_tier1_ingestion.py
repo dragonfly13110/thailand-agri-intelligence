@@ -2,14 +2,26 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 import duckdb
 
-from tadih.tier1_ingestion import sync_tier1_to_warehouse
+from tadih.tier1_ingestion import fetch_hii_flood_risk, sync_tier1_to_warehouse
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestTier1Ingestion(unittest.TestCase):
+    @patch("tadih.tier1_ingestion.urllib.request.urlopen")
+    def test_hii_blank_recurrence_stays_null_and_horizon_is_unverified(self, mock_urlopen):
+        response = MagicMock()
+        response.read.return_value = b"PROV_CODE,GEOCODE,Month,COUNT 17 YEAR,RISK\n45,450101,9,,high\n"
+        response.__enter__.return_value = response
+        mock_urlopen.return_value = response
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = fetch_hii_flood_risk(output_path=Path(tmp_dir) / "hii.json")
+        self.assertIsNone(result["records"][0]["recurrence_17yr_count"])
+        self.assertEqual(result["metadata"]["temporal_interpretation"], "month_of_year_with_17_year_count_forecast_horizon_unverified")
+
     def setUp(self):
         self.db = duckdb.connect(":memory:")
 

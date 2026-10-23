@@ -397,9 +397,9 @@ def init_national_hub_tables(db):
             COALESCE(province_code, '99') AS province_code,
             province_name_th,
             COUNT(water_resource_code) AS reservoir_count,
-            ROUND(COALESCE(SUM(storage_m3), 0), 1) AS total_storage_m3,
-            ROUND(COALESCE(SUM(active_storage_m3), 0), 1) AS total_active_storage_m3,
-            ROUND(COALESCE(AVG(active_storage_m3), 0), 1) AS avg_active_storage_m3
+            ROUND(SUM(storage_m3), 1) AS total_storage_m3,
+            ROUND(SUM(active_storage_m3), 1) AS total_active_storage_m3,
+            ROUND(AVG(active_storage_m3), 1) AS avg_active_storage_m3
         FROM fact_natural_water_reservoir
         GROUP BY province_code, province_name_th
         ORDER BY total_active_storage_m3 DESC
@@ -411,8 +411,8 @@ def init_national_hub_tables(db):
             dopa_province_code AS province_code,
             province_name_en,
             COUNT(feature_id) AS flood_polygon_count,
-            ROUND(COALESCE(SUM(inundated_rice_area_rai), 0), 2) AS total_inundated_rice_rai,
-            ROUND(COALESCE(SUM(inundated_area_sqm), 0), 1) AS total_inundated_sqm
+            ROUND(SUM(inundated_rice_area_rai), 2) AS total_inundated_rice_rai,
+            ROUND(SUM(inundated_area_sqm), 1) AS total_inundated_sqm
         FROM fact_satellite_flood_7days
         GROUP BY dopa_province_code, province_name_en
         ORDER BY total_inundated_rice_rai DESC
@@ -455,48 +455,25 @@ def init_national_hub_tables(db):
         SELECT
             p.province_code,
             p.province_name_th,
-            -- Policy & Evidence
-            COALESCE(m.identified_problems, 'NONE') AS identified_problems,
-            COALESCE(m.intervention_status, 'UNADDRESSED') AS intervention_status,
-            COALESCE(m.diagnostic_notes, '') AS diagnostic_notes,
-            -- Projects targeting this province
-            COUNT(DISTINCT c.project_id) AS targeted_projects_count,
-            -- Water Security (DWR)
-            COALESCE(w.natural_reservoirs_count, 0) AS natural_reservoirs_count,
-            ROUND(COALESCE(w.total_active_storage_m3, 0.0), 1) AS natural_water_active_storage_m3,
-            -- Satellite Flood Impact (GISTDA)
-            COALESCE(s.flood_polygon_count, 0) AS satellite_flood_polygons_count,
-            ROUND(COALESCE(s.total_inundated_rice_rai, 0.0), 2) AS satellite_inundated_rice_rai,
-            -- Flood Risk Forecast (HII 12-month)
-            COALESCE(f.high_risk_tambons, 0) AS high_risk_flood_tambons,
-            COALESCE(f.medium_risk_tambons, 0) AS medium_risk_flood_tambons,
-            -- Weather (Meteostat / TMD)
-            wx.station_name_en AS weather_station_name,
-            wx.avg_temperature_c,
-            wx.total_rainfall_mm
+            m.identified_problems,
+            COALESCE(m.intervention_status, 'UNVERIFIED') AS intervention_status,
+            m.diagnostic_notes,
+            CASE WHEN (SELECT COUNT(*) FROM dim_project) = 0 THEN NULL ELSE COUNT(DISTINCT c.project_id) END AS targeted_projects_count,
+            -- These source values are retained in their own tables for review.
+            -- Do not present them as decision-ready provincial metrics yet.
+            CAST(NULL AS BIGINT) AS natural_reservoirs_count,
+            CAST(NULL AS DOUBLE) AS natural_water_active_storage_m3,
+            CAST(NULL AS BIGINT) AS satellite_flood_polygons_count,
+            CAST(NULL AS DOUBLE) AS satellite_inundated_rice_rai,
+            CAST(NULL AS BIGINT) AS high_risk_flood_tambons,
+            CAST(NULL AS BIGINT) AS medium_risk_flood_tambons,
+            CAST(NULL AS VARCHAR) AS weather_station_name,
+            CAST(NULL AS DOUBLE) AS avg_temperature_c,
+            CAST(NULL AS DOUBLE) AS total_rainfall_mm
         FROM dim_province p
         LEFT JOIN fact_evidence_policy_match m ON p.province_code = m.province_code
         LEFT JOIN fact_project_coverage c ON p.province_code = c.province_code AND c.is_targeted = TRUE
-        LEFT JOIN (
-            SELECT province_code, COUNT(*) AS natural_reservoirs_count, SUM(active_storage_m3) AS total_active_storage_m3
-            FROM fact_natural_water_reservoir GROUP BY province_code
-        ) w ON p.province_code = w.province_code
-        LEFT JOIN (
-            SELECT dopa_province_code, COUNT(*) AS flood_polygon_count, SUM(inundated_rice_area_rai) AS total_inundated_rice_rai
-            FROM fact_satellite_flood_7days GROUP BY dopa_province_code
-        ) s ON p.province_code = s.dopa_province_code
-        LEFT JOIN (
-            SELECT dopa_province_code,
-                   COUNT(CASE WHEN risk_level = 'เสี่ยงสูง' THEN 1 END) AS high_risk_tambons,
-                   COUNT(CASE WHEN risk_level = 'เสี่ยงปานกลาง' THEN 1 END) AS medium_risk_tambons
-            FROM fact_flood_risk_forecast GROUP BY dopa_province_code
-        ) f ON p.province_code = f.dopa_province_code
-        LEFT JOIN v_provincial_recent_weather wx ON p.province_code = wx.province_code
-        GROUP BY
-            p.province_code, p.province_name_th, m.identified_problems, m.intervention_status,
-            m.diagnostic_notes, w.natural_reservoirs_count, w.total_active_storage_m3,
-            s.flood_polygon_count, s.total_inundated_rice_rai, f.high_risk_tambons, f.medium_risk_tambons,
-            wx.station_name_en, wx.avg_temperature_c, wx.total_rainfall_mm
+        GROUP BY p.province_code, p.province_name_th, m.identified_problems, m.intervention_status, m.diagnostic_notes
         ORDER BY p.province_code
     """)
 
@@ -507,6 +484,14 @@ def sync_national_hub_data(db, root_dir=None):
 
     root = Path(root_dir) if root_dir else ROOT
     probes_dir = root / "data/local/probes"
+    verified_probes = {}
+    for name in ("project-register-audit.json", "spatial-evidence-audit.json"):
+        path = probes_dir / name
+        if not path.exists():
+            raise FileNotFoundError(f"Run the {name} audit before syncing the warehouse")
+        verified_probes[name] = json.loads(path.read_text(encoding="utf-8"))
+        if verified_probes[name].get("audit_version") != 2:
+            raise ValueError(f"Stale {name}; rerun its audit before syncing the warehouse")
     init_national_hub_tables(db)
 
     results = {
@@ -589,7 +574,7 @@ def sync_national_hub_data(db, root_dir=None):
     provinces = load_provinces()
     all_codes = [p["area_code"] for p in provinces]
     if proj_path.exists():
-        proj_data = json.loads(proj_path.read_text(encoding="utf-8"))
+        proj_data = verified_probes[proj_path.name]
         projects = proj_data.get("projects", [])
         db.execute("DELETE FROM dim_project")
         db.execute("DELETE FROM fact_project_coverage")
@@ -630,7 +615,7 @@ def sync_national_hub_data(db, root_dir=None):
     # 3. Sync Spatial Evidence & Policy Match
     spat_path = probes_dir / "spatial-evidence-audit.json"
     if spat_path.exists():
-        spat_data = json.loads(spat_path.read_text(encoding="utf-8"))
+        spat_data = verified_probes[spat_path.name]
         cards = spat_data.get("province_cards", [])
         db.execute("DELETE FROM fact_spatial_evidence")
         db.execute("DELETE FROM fact_evidence_policy_match")

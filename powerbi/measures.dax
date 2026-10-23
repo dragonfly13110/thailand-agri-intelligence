@@ -325,21 +325,24 @@ CALCULATE(
 // ==============================================================================
 
 Unaddressed Gap Provinces Count =
-CALCULATE(
-    COUNTROWS(fact_evidence_policy_match),
-    fact_evidence_policy_match[intervention_status] = "UNADDRESSED_GAP"
+IF(
+    COUNTROWS(dim_project) = 0 || CALCULATE(COUNTROWS(fact_evidence_policy_match), fact_evidence_policy_match[intervention_status] = "UNVERIFIED") > 0,
+    BLANK(),
+    CALCULATE(COUNTROWS(fact_evidence_policy_match), fact_evidence_policy_match[intervention_status] = "UNADDRESSED_GAP")
 )
 
 Covered Problem Provinces Count =
-CALCULATE(
-    COUNTROWS(fact_evidence_policy_match),
-    fact_evidence_policy_match[intervention_status] = "COVERED"
+IF(
+    COUNTROWS(dim_project) = 0 || CALCULATE(COUNTROWS(fact_evidence_policy_match), fact_evidence_policy_match[intervention_status] = "UNVERIFIED") > 0,
+    BLANK(),
+    CALCULATE(COUNTROWS(fact_evidence_policy_match), fact_evidence_policy_match[intervention_status] = "COVERED")
 )
 
 Redundant Intervention Provinces Count =
-CALCULATE(
-    COUNTROWS(fact_evidence_policy_match),
-    fact_evidence_policy_match[intervention_status] = "REDUNDANT"
+IF(
+    COUNTROWS(dim_project) = 0 || CALCULATE(COUNTROWS(fact_evidence_policy_match), fact_evidence_policy_match[intervention_status] = "UNVERIFIED") > 0,
+    BLANK(),
+    CALCULATE(COUNTROWS(fact_evidence_policy_match), fact_evidence_policy_match[intervention_status] = "REDUNDANT")
 )
 
 Total Flood Damaged Rai =

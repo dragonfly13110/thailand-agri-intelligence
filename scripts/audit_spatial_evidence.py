@@ -14,7 +14,6 @@ def main():
     result = audit_spatial_evidence(ROOT)
     status_breakdown = result["intervention_status_breakdown"]
     problems_breakdown = result["identified_problems_breakdown"]
-    gaps = result["unaddressed_gap_provinces"]
 
     print("=" * 70)
     print(" NATIONAL AGRICULTURE DATA CENTER: SPATIAL EVIDENCE AUDIT")
@@ -29,12 +28,7 @@ def main():
     for status, cnt in status_breakdown.items():
         print(f"  - {status:<28}: {cnt:>2} provinces")
     print("-" * 70)
-    print(f"Unaddressed Policy Gap Provinces ({len(gaps)} provinces):")
-    for g in gaps[:10]:
-        print(f"  [{g['province_code']}] {g['province_name_th']}: {g['problems']}")
-        print(f"      Diagnostic: {g['diagnostic_notes']}")
-    if len(gaps) > 10:
-        print(f"  ... and {len(gaps) - 10} more gap provinces documented in audit probe")
+    print("Policy gap classification withheld: project targets and register completeness are unverified")
     print("=" * 70)
     print("Audit report written to data/local/probes/spatial-evidence-audit.json")
     return 0

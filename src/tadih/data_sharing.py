@@ -150,34 +150,39 @@ def execute_data_sharing_query(
     # 3. Endpoint: /v1/spatial-evidence
     elif query.endpoint == "/v1/spatial-evidence":
         ev_probe = local / "probes/spatial-evidence-audit.json"
-        if not ev_probe.exists():
+        ev_result = json.loads(ev_probe.read_text(encoding="utf-8")) if ev_probe.exists() else {}
+        if ev_result.get("audit_version") != 2:
             ev_result = audit_spatial_evidence(root)
-        else:
-            ev_result = json.loads(ev_probe.read_text(encoding="utf-8"))
 
         cards = ev_result.get("province_cards", [])
         for card in cards:
             if query.province_code and card.get("province_code") != query.province_code:
+                continue
+            if query.license_scope == "public_only" and (
+                not card.get("evidence_records")
+                or any(e.get("license_status") != "approved_public" for e in card["evidence_records"])
+            ):
                 continue
             item = dict(card)
             data_records.append(item)
 
         feed_license_status = "pending"
         governance_notes = [
-            "Physical disaster evidence extracted from DOAE P0; mock test variety records quarantined",
-            "Zero synthetic risk scores generated; intervention status identifies genuine policy gaps",
+            "DOAE source reports provide spatial evidence; project coverage remains UNVERIFIED",
+            "Pending evidence is omitted from public-only feeds",
         ]
 
     # 4. Endpoint: /v1/projects
     elif query.endpoint == "/v1/projects":
         proj_probe = local / "probes/project-register-audit.json"
-        if not proj_probe.exists():
+        proj_result = json.loads(proj_probe.read_text(encoding="utf-8")) if proj_probe.exists() else {}
+        if proj_result.get("audit_version") != 2:
             proj_result = audit_project_register(root)
-        else:
-            proj_result = json.loads(proj_probe.read_text(encoding="utf-8"))
 
         projects = proj_result.get("projects", [])
         for p in projects:
+            if query.license_scope == "public_only" and p.get("license_status") != "approved_public":
+                continue
             if query.fiscal_year and p.get("fiscal_year") != query.fiscal_year:
                 continue
             if query.commodity and p.get("target_commodity") != query.commodity:
@@ -190,8 +195,8 @@ def execute_data_sharing_query(
 
         feed_license_status = "pending"
         governance_notes = [
-            "Cross-agency agricultural project register standardized across DOAE, MOAC, BAAC, and LDD",
-            "All project metadata remains pending official inter-agency publication approval",
+            "No project-level target areas are verified; participation totals are not project targets",
+            "Pending project records are omitted from public-only feeds",
         ]
 
     # Compute deterministic SHA-256 digest of serialized payload

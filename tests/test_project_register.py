@@ -41,14 +41,10 @@ class ProjectRegisterTests(unittest.TestCase):
     def test_national_project_register_live_audit(self):
         result = audit_project_register(ROOT)
         self.assertEqual(result["status"], "success")
-        self.assertGreaterEqual(result["registered_projects_count"], 4)
-
-        projects = result["projects"]
-        project_ids = {p["project_id"] for p in projects}
-        self.assertIn("DOAE-GOV-SUPPORT-2566", project_ids)
-        self.assertIn("DOAE-GOV-SUPPORT-2567", project_ids)
-        self.assertIn("MOAC-RICE-AID-2567", project_ids)
-        self.assertIn("DOAE-DISASTER-RELIEF-2567", project_ids)
+        self.assertEqual(result["audit_version"], 2)
+        self.assertEqual(result["registered_projects_count"], 0)
+        self.assertEqual(result["projects"], [])
+        self.assertEqual(result["register_status"], "UNVERIFIED_NO_PROJECT_LEVEL_TARGETS")
 
     def test_spatial_project_coverage_gap_detection(self):
         projects = [
@@ -71,8 +67,9 @@ class ProjectRegisterTests(unittest.TestCase):
         cov = analyze_spatial_project_coverage(projects, {"50", "94"})
         self.assertEqual(cov["problem_provinces_total"], 2)
         self.assertEqual(cov["covered_problem_provinces_count"], 1)
-        self.assertEqual(cov["unaddressed_gap_provinces"], ["94"])
-        self.assertAlmostEqual(cov["coverage_rate"], 0.5)
+        self.assertEqual(cov["unverified_problem_provinces"], ["94"])
+        self.assertEqual(cov["unaddressed_gap_provinces"], [])
+        self.assertIsNone(cov["coverage_rate"])
 
 
 if __name__ == "__main__":

@@ -90,10 +90,10 @@ def fetch_daily_weather_observations(
                         "tavg_c": float(day["tavg"]) if day.get("tavg") is not None else None,
                         "tmin_c": float(day["tmin"]) if day.get("tmin") is not None else None,
                         "tmax_c": float(day["tmax"]) if day.get("tmax") is not None else None,
-                        "rainfall_mm": float(day["prcp"]) if day.get("prcp") is not None else 0.0,
+                        "rainfall_mm": float(day["prcp"]) if day.get("prcp") is not None else None,
                         "wind_speed_ms": float(day["wspd"]) if day.get("wspd") is not None else None,
                         "air_pressure_hpa": float(day["pres"]) if day.get("pres") is not None else None,
-                        "source_agency": "TMD_METEOSTAT",
+                        "source_agency": "METEOSTAT",
                         "retrieved_at": now_iso,
                         "license_status": "pending",
                     })

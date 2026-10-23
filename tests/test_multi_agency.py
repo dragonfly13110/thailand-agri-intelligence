@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import ssl
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
@@ -14,6 +15,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestMultiAgencyIngestion(unittest.TestCase):
+    @patch("tadih.dwr_water.urllib.request.urlopen")
+    def test_dwr_requires_tls_certificate_and_hostname(self, mock_urlopen):
+        rss = MagicMock()
+        rss.read.return_value = b"<rss><item><link>https://api.dwr.go.th/data.json</link></item></rss>"
+        rss.__enter__.return_value = rss
+        data = MagicMock()
+        data.read.return_value = b"[]"
+        data.__enter__.return_value = data
+        mock_urlopen.side_effect = [rss, data]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fetch_latest_dwr_small_water_resources(api_key="test", output_path=Path(tmp_dir) / "dwr.json")
+        self.assertEqual(mock_urlopen.call_count, 2)
+        for call in mock_urlopen.call_args_list:
+            context = call.kwargs["context"]
+            self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+            self.assertTrue(context.check_hostname)
+
     def test_fetch_weather_stations(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_file = Path(tmp_dir) / "stations.json"
@@ -37,6 +55,10 @@ class TestMultiAgencyIngestion(unittest.TestCase):
                     "prcp": 12.5,
                     "wspd": 3.2,
                     "pres": 1010.5,
+                },
+                {
+                    "date": "2026-10-21 00:00:00",
+                    "prcp": None,
                 }
             ]
         }).encode("utf-8")
@@ -51,9 +73,10 @@ class TestMultiAgencyIngestion(unittest.TestCase):
                 api_key="mock_key",
                 output_path=out_file,
             )
-            self.assertEqual(res["metadata"]["total_observations"], 1)
+            self.assertEqual(res["metadata"]["total_observations"], 2)
             self.assertEqual(res["records"][0]["rainfall_mm"], 12.5)
             self.assertEqual(res["records"][0]["tavg_c"], 29.5)
+            self.assertIsNone(res["records"][1]["rainfall_mm"])
 
     @patch("tadih.gistda.urllib.request.urlopen")
     def test_fetch_satellite_flood_mock(self, mock_urlopen):

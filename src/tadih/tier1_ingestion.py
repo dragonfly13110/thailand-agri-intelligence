@@ -2,7 +2,7 @@
 
 Covers:
 1. DOAE Master Crop & Breed Registry (831 records) from opend.data.go.th
-2. HII Monthly Flood Risk Area by Tambon (27,023 records) from data.hii.or.th
+2. HII monthly flood-risk rows with unverified forecast horizon from data.hii.or.th
 """
 
 import csv
@@ -73,7 +73,7 @@ def fetch_doae_crop_master(
 
 
 def fetch_hii_flood_risk(output_path: Optional[Path] = None) -> Dict[str, Any]:
-    """Fetch HII Monthly Flood Risk Area from data.hii.or.th."""
+    """Fetch monthly risk rows; the forecast horizon has not been verified."""
     target_path = output_path or (ROOT / "data/local/satellite/hii_monthly_flood_risk.json")
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -97,8 +97,8 @@ def fetch_hii_flood_risk(output_path: Optional[Path] = None) -> Dict[str, Any]:
         month_str = str(r.get("Month") or "").strip()
         month_val = int(month_str) if month_str.isdigit() else None
 
-        count_str = str(r.get("COUNT 17 YEAR") or "0").strip()
-        count_val = int(count_str) if count_str.isdigit() else 0
+        count_str = str(r.get("COUNT 17 YEAR") or "").strip()
+        count_val = int(count_str) if count_str.isdigit() else None
 
         normalized.append({
             "month": month_val,
@@ -123,6 +123,7 @@ def fetch_hii_flood_risk(output_path: Optional[Path] = None) -> Dict[str, Any]:
             "total_records": len(normalized),
             "retrieved_at": now_iso,
             "license_status": "pending",
+            "temporal_interpretation": "month_of_year_with_17_year_count_forecast_horizon_unverified",
         },
         "records": normalized,
     }

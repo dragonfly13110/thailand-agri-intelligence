@@ -76,7 +76,7 @@ class DataSharingTests(unittest.TestCase):
             license_scope="inter_agency_authorized",
         )
         feed_rice = execute_data_sharing_query(q_rice, ROOT)
-        self.assertGreaterEqual(feed_rice.total_records, 1)
+        self.assertEqual(feed_rice.total_records, 0)
         for p in feed_rice.data_records:
             self.assertEqual(p["target_commodity"], "ข้าว")
 
@@ -101,6 +101,12 @@ class DataSharingTests(unittest.TestCase):
         payload_str = json.dumps(feed.data_records, sort_keys=True, ensure_ascii=False)
         expected_sha = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
         self.assertEqual(feed.payload_sha256, expected_sha)
+
+    def test_pending_spatial_evidence_not_in_public_feed(self):
+        feed = execute_data_sharing_query(
+            SharingQuery(partner_agency="PUBLIC", endpoint="/v1/spatial-evidence", license_scope="public_only"), ROOT
+        )
+        self.assertEqual(feed.total_records, 0)
 
     def test_feed_bundle_export_and_manifest(self):
         with tempfile.TemporaryDirectory() as tmpdir:

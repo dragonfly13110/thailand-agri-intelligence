@@ -2,6 +2,8 @@
 
 **สถานะงาน:** เอกสารนี้เป็นคู่มือขั้นรายงาน ใช้หลังงาน coverage, รหัสเชื่อม, ความหมายข้อมูลและสิทธิ์ใน [เช็กลิสต์ปัจจุบัน](../HANDOFF.md) ผ่านแล้ว เป้าหมายและลำดับล่าสุดอยู่ที่ [ศูนย์ข้อมูลเกษตรทั้งประเทศ](../docs/national-agriculture-data-center.md) ตัวเลข PBIP ด้านล่างเป็นสถานะร่างที่บันทึกไว้ในรอบนั้น ต้องตรวจไฟล์จริงก่อนอ้างเป็นรุ่นล่าสุด
 
+`offline-v12` และ `offline-v13` เป็น snapshot ก่อนตรวจแก้ทะเบียนโครงการ ตัวเลข `COVERED`, `REDUNDANT` และ `UNADDRESSED_GAP` ในไฟล์เหล่านั้นถูกถอน ห้ามใช้ชี้เป้าหรือเผยแพร่จนกว่าจะสร้างใหม่จาก audit ที่ยืนยันได้; การทดสอบ Desktop/DAX runtime ยังไม่ผ่าน
+
 เมื่อถึงขั้นรายงาน ให้เตรียมโมเดลและ DAX ในเครื่อง ตรวจด้วย Power BI Desktop/Tabular engine แล้วค่อยอัปโหลด Online การสร้าง/จัด visual ผ่าน browser ถูกหยุดตามคำสั่งเจ้าของงาน
 
 บันทึกร่าง PBIP รอบนั้นที่ `data/local/powerbi/offline-v4/TADIH.pbip` พร้อม `Data/`, `TADIH.SemanticModel/model.bim` และ PBIR ร่าง 5 หน้า รวม 12 ตาราง 15 relationships 26 measures และราคา 44 สินค้า ตรวจ Microsoft schemas และ TOM round trip ผ่าน ยังไม่มี PBIX หรือหลักฐานเปิด/Refresh/execute DAX/ตรวจภาพใน Desktop ข้อมูลจริงในร่างยังสิทธิ์ pending จึงใช้ในเครื่องและยังไม่นำขึ้น Online
