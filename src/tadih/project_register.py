@@ -165,7 +165,10 @@ def build_known_national_project_register(local_dir: Path) -> List[AgriculturalP
         target_commodity=None,
         target_problem="ความเสียหายจากอุทกภัยและภัยแล้งด้านพืช",
         target_area_grain="province",
-        target_area_codes=all_77_codes,
+        target_area_codes=[
+            "10", "12", "13", "14", "15", "16", "17", "18",
+            "50", "51", "52", "54", "55", "56", "57", "60", "65"
+        ],
         status="in_progress",
         source_evidence="ระบบสารสนเทศช่วยเหลือผู้ประสบภัย disaster.doae.go.th และ DOAE dataset disaster",
         license_status="pending",

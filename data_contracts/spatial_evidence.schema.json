@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "spatial_evidence_card",
+  "type": "object",
+  "properties": {
+    "province_code": {
+      "type": "string",
+      "pattern": "^[0-9]{2}$"
+    },
+    "province_name_th": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resource_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "problem_type": {
+            "type": "string",
+            "enum": [
+              "FLOOD_DAMAGE",
+              "DROUGHT_DAMAGE",
+              "WATER_SHORTAGE_RISK",
+              "RESERVOIR_LOW_STORAGE",
+              "RESERVOIR_HIGH_STORAGE",
+              "LOW_SUITABILITY_CULTIVATION"
+            ]
+          },
+          "metric_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metric_value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "native_spatial_grain": {
+            "type": "string",
+            "enum": [
+              "subdistrict",
+              "district",
+              "province",
+              "reservoir",
+              "basin",
+              "country"
+            ]
+          },
+          "native_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "observed_period": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved_public",
+              "restricted"
+            ]
+          }
+        },
+        "required": [
+          "evidence_id",
+          "source_id",
+          "resource_id",
+          "problem_type",
+          "metric_name",
+          "metric_value",
+          "unit",
+          "native_spatial_grain",
+          "license_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "identified_problems": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "matched_intervention_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "intervention_status": {
+      "type": "string",
+      "enum": [
+        "COVERED",
+        "REDUNDANT",
+        "UNADDRESSED_GAP",
+        "NO_IDENTIFIED_PROBLEM"
+      ]
+    },
+    "diagnostic_notes": {
+      "type": "string"
+    },
+    "last_audited_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "province_code",
+    "province_name_th",
+    "evidence_records",
+    "identified_problems",
+    "matched_intervention_ids",
+    "intervention_status",
+    "diagnostic_notes",
+    "last_audited_at"
+  ],
+  "additionalProperties": false
+}

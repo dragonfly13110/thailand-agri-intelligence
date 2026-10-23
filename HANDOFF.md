@@ -15,6 +15,7 @@
 - [x] แก้ปัญหาข้อขัดแย้งเชิงพื้นที่และสร้าง Temporal Administrative Crosswalk: แปลงรหัสสลับชื่อ อ.กัลยาณิวัฒนา จ.เชียงใหม่ (1,015 แถว) สู่ DOPA 2566, กำหนดเงื่อนไขเวลาเขตบางบอน (349 แถว valid_to 2017-07-26) ให้ fallback สู่ระดับเขต 1050 ป้องกันภาพลวง, กักกันรหัสดัมมี่ จ.ตรัง `xxxxxxxx` (45 แถว), และแยก grain ข้อมูลเอกภาพ 10 รายการเป็นจังหวัด 1,320 แถว และอำเภอ 13,653 แถวโดยตั้ง `rollup_eligible=False` ([temporal crosswalk](docs/geography-crosswalk-resolution.md), `data/local/probes/temporal-crosswalk-audit.json`)
 - [x] สร้างกลไกกระทบยอดแผน-ผลเพาะปลูก (Plan vs Actual Reconciliation Engine) พร้อม Fail-Closed Guard Rails: พิสูจน์ทางคณิตศาสตร์ว่าแผนฤดูฝน 2569 (477 แถว 3 จังหวัด) และผล (3 แถว 1 จังหวัด) มีพื้นที่ไม่ทับซ้อนกัน `{20, 40, 94} ∩ {10} = ∅` และแผนฤดูแล้ง 2569 (4 จังหวัด) กับผล (5 จังหวัด) ไม่มีพื้นที่ตรงกัน คืนสถานะ `INCOMPARABLE` พร้อมเหตุผลชัดเจน ป้องกันการสรุปผลสัมฤทธิ์เป็นเปอร์เซ็นต์ลวง ([plan reconciliation](docs/plan-actual-reconciliation.md), `data/local/probes/plan-actual-reconciliation.json`)
 - [x] สร้างทะเบียนโครงการเกษตรข้ามหน่วยงาน (Cross-Agency Agricultural Project Register) และ Data Contract: ร่างสัญญาข้อมูล JSON schema ตามมาตรฐานสากล, บันทึกทะเบียนโครงการสำคัญ 5 โครงการ (DOAE สนับสนุนรัฐ 2566-2567, นบข. ไร่ละ 1,000, DOAE เยียวยาภัยพิบัติ, LDD Agri-Map Zoning) พร้อมกลไกวิเคราะห์ความครอบคลุมเชิงพื้นที่ ช่องว่าง และความซ้ำซ้อนของโครงการ ([project register](docs/project-register.md), [project schema](data_contracts/project.schema.json), `data/local/probes/project-register-audit.json`)
+- [x] สร้างเครื่องมือชี้เป้าปัญหาเชิงพื้นที่ตามหลักฐานจริงและการจับคู่โครงการ (Spatial Evidence & Policy Intervention Matching Engine): สกัดหลักฐานความเสียหายจากอุทกภัย (1.83 ล้านไร่ 60 จังหวัด) ภัยแล้ง (1.67 หมื่นไร่ 2 จังหวัด) และพื้นที่เสี่ยงขาดแคลนน้ำจาก DOAE P0 พร้อมคัดแยกข้อมูล mock Test (9,999 ล้านไร่ จ.ชลบุรี) ออกโดยเด็ดขาด; กระทบยอดกับทะเบียนโครงการพบ: COVERED 12 จังหวัด, REDUNDANT 3 จังหวัด, UNADDRESSED_GAP 46 จังหวัด (พบความเสียหายจริงแต่ไม่มีโครงการเยียวยาเฉพาะพื้นที่ เช่น บุรีรัมย์ สระบุรี อุบลราชธานี ร้อยเอ็ด), และ NO_IDENTIFIED_PROBLEM 16 จังหวัด โดยไม่มีการประดิษฐ์คะแนนความเสี่ยงสังเคราะห์ ([spatial evidence](docs/spatial-evidence-matching.md), [spatial evidence schema](data_contracts/spatial_evidence.schema.json), `data/local/probes/spatial-evidence-audit.json`)
 
 ### ค้างและลำดับงาน
 
@@ -33,6 +34,7 @@ git log -1 --oneline
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_temporal_crosswalk.py
 .\.venv\Scripts\python.exe -X utf8 scripts/reconcile_plan_actual.py
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_project_register.py
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_spatial_evidence.py
 .\.venv\Scripts\python.exe -m unittest discover -s tests -q
 ```
 
