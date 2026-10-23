@@ -86,3 +86,326 @@ def load_json_rows(db, path):
     if not isinstance(rows, list):
         raise ValueError("input must be a JSON array of normalized observations")
     return ingest_rows(db, rows)
+
+
+def init_national_hub_tables(db):
+    """Initialize relational tables and analytical views for National Agriculture Data Center."""
+    # 1. Coverage inventory
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS national_coverage_inventory (
+            source_id VARCHAR,
+            phase VARCHAR,
+            dataset_id VARCHAR,
+            resource_id VARCHAR,
+            schema VARCHAR,
+            data_grain VARCHAR,
+            period VARCHAR,
+            metrics VARCHAR,
+            units VARCHAR,
+            status VARCHAR,
+            missing_reason VARCHAR,
+            coverage_note VARCHAR,
+            license_status VARCHAR,
+            source_records BIGINT,
+            staged_records BIGINT,
+            quarantined_records BIGINT,
+            retrieved_at VARCHAR,
+            source_sha256 VARCHAR,
+            PRIMARY KEY (resource_id, period)
+        )
+    """)
+
+    # 2. Agricultural Project Register (dim_project)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS dim_project (
+            project_id VARCHAR PRIMARY KEY,
+            project_name_th VARCHAR,
+            managing_agency VARCHAR,
+            fiscal_year VARCHAR,
+            intervention_type VARCHAR,
+            target_commodity VARCHAR,
+            target_problem VARCHAR,
+            target_area_grain VARCHAR,
+            status VARCHAR,
+            source_evidence VARCHAR,
+            license_status VARCHAR,
+            budget_allocated_baht DOUBLE,
+            budget_spent_baht DOUBLE,
+            target_households BIGINT,
+            actual_households BIGINT,
+            target_area_rai DOUBLE,
+            actual_area_rai DOUBLE
+        )
+    """)
+
+    # 3. Project Spatial Coverage (fact_project_coverage)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_project_coverage (
+            project_id VARCHAR,
+            province_code VARCHAR,
+            is_targeted BOOLEAN,
+            PRIMARY KEY (project_id, province_code)
+        )
+    """)
+
+    # 4. Spatial Evidence (fact_spatial_evidence)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_spatial_evidence (
+            evidence_id VARCHAR PRIMARY KEY,
+            province_code VARCHAR,
+            source_id VARCHAR,
+            resource_id VARCHAR,
+            problem_type VARCHAR,
+            metric_name VARCHAR,
+            metric_value DOUBLE,
+            unit VARCHAR,
+            native_spatial_grain VARCHAR,
+            native_area_code VARCHAR,
+            observed_period VARCHAR,
+            license_status VARCHAR
+        )
+    """)
+
+    # 5. Evidence Policy Match (fact_evidence_policy_match)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_evidence_policy_match (
+            province_code VARCHAR PRIMARY KEY,
+            province_name_th VARCHAR,
+            identified_problems VARCHAR,
+            matched_intervention_ids VARCHAR,
+            intervention_status VARCHAR,
+            diagnostic_notes VARCHAR,
+            last_audited_at VARCHAR
+        )
+    """)
+
+    # 6. Plan vs Actual Reconciliation (fact_plan_actual_reconciliation)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_plan_actual_reconciliation (
+            crop_year VARCHAR,
+            season VARCHAR,
+            crop_type VARCHAR,
+            comparison_status VARCHAR,
+            planned_provinces VARCHAR,
+            actual_provinces VARCHAR,
+            overlapping_provinces VARCHAR,
+            reconciliation_note VARCHAR,
+            PRIMARY KEY (crop_year, season, crop_type)
+        )
+    """)
+
+    # Analytical Views
+    db.execute("""
+        CREATE OR REPLACE VIEW v_unaddressed_policy_gaps AS
+        SELECT
+            m.province_code,
+            m.province_name_th,
+            m.identified_problems,
+            m.intervention_status,
+            m.diagnostic_notes,
+            COALESCE(SUM(CASE WHEN e.metric_name LIKE '%damaged_area_flood%' THEN e.metric_value ELSE 0 END), 0) AS flood_damage_rai,
+            COALESCE(SUM(CASE WHEN e.metric_name LIKE '%damaged_area_drought%' THEN e.metric_value ELSE 0 END), 0) AS drought_damage_rai,
+            COALESCE(SUM(CASE WHEN e.metric_name LIKE '%water_shortage%' THEN e.metric_value ELSE 0 END), 0) AS water_shortage_risk_rai
+        FROM fact_evidence_policy_match m
+        LEFT JOIN fact_spatial_evidence e ON m.province_code = e.province_code
+        WHERE m.intervention_status = 'UNADDRESSED_GAP'
+        GROUP BY m.province_code, m.province_name_th, m.identified_problems, m.intervention_status, m.diagnostic_notes
+        ORDER BY flood_damage_rai DESC, drought_damage_rai DESC
+    """)
+
+    db.execute("""
+        CREATE OR REPLACE VIEW v_project_intervention_summary AS
+        SELECT
+            p.project_id,
+            p.project_name_th,
+            p.managing_agency,
+            p.fiscal_year,
+            p.intervention_type,
+            p.target_problem,
+            p.budget_allocated_baht,
+            p.target_households,
+            p.target_area_rai,
+            COUNT(c.province_code) AS targeted_provinces_count
+        FROM dim_project p
+        LEFT JOIN fact_project_coverage c ON p.project_id = c.project_id AND c.is_targeted = TRUE
+        GROUP BY p.project_id, p.project_name_th, p.managing_agency, p.fiscal_year,
+                 p.intervention_type, p.target_problem, p.budget_allocated_baht,
+                 p.target_households, p.target_area_rai
+        ORDER BY p.fiscal_year DESC, p.budget_allocated_baht DESC
+    """)
+
+    db.execute("""
+        CREATE OR REPLACE VIEW v_national_coverage_overview AS
+        SELECT
+            source_id,
+            data_grain,
+            status,
+            license_status,
+            COUNT(*) AS resource_count,
+            SUM(source_records) AS total_source_records,
+            SUM(staged_records) AS total_staged_records,
+            SUM(quarantined_records) AS total_quarantined_records
+        FROM national_coverage_inventory
+        GROUP BY source_id, data_grain, status, license_status
+        ORDER BY total_source_records DESC
+    """)
+
+
+def sync_national_hub_data(db, root_dir=None):
+    """Synchronize national agriculture intelligence probes into DuckDB warehouse."""
+    from .catalog import ROOT, load_provinces
+
+    root = Path(root_dir) if root_dir else ROOT
+    probes_dir = root / "data/local/probes"
+    init_national_hub_tables(db)
+
+    results = {
+        "coverage_inventory": 0,
+        "dim_project": 0,
+        "fact_project_coverage": 0,
+        "fact_spatial_evidence": 0,
+        "fact_evidence_policy_match": 0,
+        "fact_plan_actual_reconciliation": 0,
+    }
+
+    # 1. Sync Coverage Inventory
+    cov_path = probes_dir / "coverage-inventory.json"
+    if cov_path.exists():
+        cov_data = json.loads(cov_path.read_text(encoding="utf-8"))
+        entries = cov_data.get("entries", [])
+        db.execute("DELETE FROM national_coverage_inventory")
+        for e in entries:
+            db.execute("""
+                INSERT INTO national_coverage_inventory VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                e.get("source_id"),
+                e.get("phase"),
+                e.get("dataset_id"),
+                e.get("resource_id"),
+                e.get("schema"),
+                e.get("data_grain"),
+                str(e.get("period") or ""),
+                ", ".join(e.get("metrics") or []),
+                ", ".join(e.get("units") or []),
+                e.get("status"),
+                e.get("missing_reason"),
+                e.get("coverage_note"),
+                e.get("license_status"),
+                int(e.get("source_records") or 0),
+                int(e.get("staged_records") or 0),
+                int(e.get("quarantined_records") or 0),
+                e.get("retrieved_at"),
+                e.get("source_sha256"),
+            ])
+        results["coverage_inventory"] = len(entries)
+
+    # 2. Sync Projects & Project Coverage
+    proj_path = probes_dir / "project-register-audit.json"
+    provinces = load_provinces()
+    all_codes = [p["area_code"] for p in provinces]
+    if proj_path.exists():
+        proj_data = json.loads(proj_path.read_text(encoding="utf-8"))
+        projects = proj_data.get("projects", [])
+        db.execute("DELETE FROM dim_project")
+        db.execute("DELETE FROM fact_project_coverage")
+        cov_count = 0
+        for p in projects:
+            db.execute("""
+                INSERT INTO dim_project VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                p["project_id"],
+                p["project_name_th"],
+                p["managing_agency"],
+                p["fiscal_year"],
+                p["intervention_type"],
+                p.get("target_commodity"),
+                p["target_problem"],
+                p["target_area_grain"],
+                p["status"],
+                p["source_evidence"],
+                p["license_status"],
+                p.get("budget_allocated_baht"),
+                p.get("budget_spent_baht"),
+                p.get("target_households"),
+                p.get("actual_households"),
+                p.get("target_area_rai"),
+                p.get("actual_area_rai"),
+            ])
+            # Expand coverage
+            if "TH" in p.get("target_area_codes", []) or p.get("target_area_grain") == "country":
+                target_codes = all_codes
+            else:
+                target_codes = p.get("target_area_codes", [])
+            for c in target_codes:
+                db.execute("INSERT OR REPLACE INTO fact_project_coverage VALUES (?, ?, TRUE)", [p["project_id"], c])
+                cov_count += 1
+        results["dim_project"] = len(projects)
+        results["fact_project_coverage"] = cov_count
+
+    # 3. Sync Spatial Evidence & Policy Match
+    spat_path = probes_dir / "spatial-evidence-audit.json"
+    if spat_path.exists():
+        spat_data = json.loads(spat_path.read_text(encoding="utf-8"))
+        cards = spat_data.get("province_cards", [])
+        db.execute("DELETE FROM fact_spatial_evidence")
+        db.execute("DELETE FROM fact_evidence_policy_match")
+        ev_count = 0
+        for c in cards:
+            db.execute("""
+                INSERT INTO fact_evidence_policy_match VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, [
+                c["province_code"],
+                c["province_name_th"],
+                ", ".join(c.get("identified_problems") or []),
+                ", ".join(c.get("matched_intervention_ids") or []),
+                c["intervention_status"],
+                c.get("diagnostic_notes"),
+                c.get("last_audited_at"),
+            ])
+            for e in c.get("evidence_records", []):
+                db.execute("""
+                    INSERT OR REPLACE INTO fact_spatial_evidence VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, [
+                    e["evidence_id"],
+                    c["province_code"],
+                    e["source_id"],
+                    e["resource_id"],
+                    e["problem_type"],
+                    e["metric_name"],
+                    float(e["metric_value"]),
+                    e["unit"],
+                    e["native_spatial_grain"],
+                    e.get("native_area_code"),
+                    e.get("observed_period"),
+                    e.get("license_status", "pending"),
+                ])
+                ev_count += 1
+        results["fact_evidence_policy_match"] = len(cards)
+        results["fact_spatial_evidence"] = ev_count
+
+    # 4. Sync Plan vs Actual Reconciliation
+    plan_path = probes_dir / "plan-actual-reconciliation.json"
+    if plan_path.exists():
+        plan_data = json.loads(plan_path.read_text(encoding="utf-8"))
+        db.execute("DELETE FROM fact_plan_actual_reconciliation")
+        plan_rows = 0
+        for season_key in ("rainy_season", "dry_season"):
+            s_obj = plan_data.get(season_key)
+            if s_obj:
+                db.execute("""
+                    INSERT INTO fact_plan_actual_reconciliation VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, [
+                    str(plan_data.get("audited_crop_year") or "2569"),
+                    season_key,
+                    s_obj.get("crop_group", "rice"),
+                    s_obj.get("comparison_status"),
+                    ", ".join(s_obj.get("planned_provinces") or []),
+                    ", ".join(s_obj.get("actual_provinces") or []),
+                    ", ".join(s_obj.get("overlapping_provinces") or []),
+                    s_obj.get("reconciliation_note"),
+                ])
+                plan_rows += 1
+        results["fact_plan_actual_reconciliation"] = plan_rows
+
+    return results
+

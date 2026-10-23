@@ -61,6 +61,22 @@ class LocalProjectTests(unittest.TestCase):
             self.assertEqual(version_data.get("$schema"), SCHEMAS["version"])
             self.assertEqual(version_data.get("version"), "2.0.0")
 
+    def test_write_report_national_hub_pages(self):
+        measures = {m["name"] for m in parse_measures(Path(__file__).resolve().parents[1] / "powerbi/measures.dax")}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            write_report(path, tables={"dim_project": True})
+            pages = list(path.glob("TADIH.Report/definition/pages/*/page.json"))
+            self.assertEqual(len(pages), 7)
+            page_names = {p.parent.name for p in pages}
+            self.assertIn("policy_gap", page_names)
+            self.assertIn("national_coverage", page_names)
+            for visual_path in path.rglob("visual.json"):
+                visual = json.loads(visual_path.read_text(encoding="utf-8"))
+                for projection in visual["visual"]["query"]["queryState"]["Values"]["projections"]:
+                    if "Measure" in projection["field"]:
+                        self.assertIn(projection["field"]["Measure"]["Property"], measures)
+
 
 if __name__ == "__main__":
     unittest.main()

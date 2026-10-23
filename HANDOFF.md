@@ -18,13 +18,14 @@
 - [x] สร้างเครื่องมือชี้เป้าปัญหาเชิงพื้นที่ตามหลักฐานจริงและการจับคู่โครงการ (Spatial Evidence & Policy Intervention Matching Engine): สกัดหลักฐานความเสียหายจากอุทกภัย (1.83 ล้านไร่ 60 จังหวัด) ภัยแล้ง (1.67 หมื่นไร่ 2 จังหวัด) และพื้นที่เสี่ยงขาดแคลนน้ำจาก DOAE P0 พร้อมคัดแยกข้อมูล mock Test (9,999 ล้านไร่ จ.ชลบุรี) ออกโดยเด็ดขาด; กระทบยอดกับทะเบียนโครงการพบ: COVERED 12 จังหวัด, REDUNDANT 3 จังหวัด, UNADDRESSED_GAP 46 จังหวัด (พบความเสียหายจริงแต่ไม่มีโครงการเยียวยาเฉพาะพื้นที่ เช่น บุรีรัมย์ สระบุรี อุบลราชธานี ร้อยเอ็ด), และ NO_IDENTIFIED_PROBLEM 16 จังหวัด โดยไม่มีการประดิษฐ์คะแนนความเสี่ยงสังเคราะห์ ([spatial evidence](docs/spatial-evidence-matching.md), [spatial evidence schema](data_contracts/spatial_evidence.schema.json), `data/local/probes/spatial-evidence-audit.json`)
 - [x] ออกแบบกลไกการแลกเปลี่ยนและแบ่งปันข้อมูล (Data Sharing Interface & External Partner API Contracts): สัญญาข้อมูล JSON Schema draft-2020-12 สำหรับ 4 จุดเชื่อมต่อหลัก (/v1/catalog, /v1/coverage, /v1/spatial-evidence, /v1/projects) รองรับ สศก. (OAE), ชลประทาน (RID), พัฒนาที่ดิน (LDD), ธ.ก.ส. (BAAC), กสก. (DOAE) และสาธารณะ พร้อมระบบ License Gating กักกันข้อมูล pending ไม่ให้รั่วไหล, การตรวจสอบความสมบูรณ์ข้อมูลด้วย SHA-256 Payload Digest, และการส่งออก Partner Feed Export Bundle พร้อม manifest ([data sharing](docs/data-sharing-interface.md), [data sharing schema](data_contracts/data_sharing.schema.json), `data/local/probes/data-sharing-audit.json`)
 - [x] สร้างระบบจัดการ Environment Variables (.env, .env.example) และ Open Government Data API Client: โมดูล `tadih.env` โหลด `.env` อัตโนมัติโดยไม่มี external dependency, จัดการ `OPEND_API_KEY` / `DATA_GO_TH_API_KEY` (opend.data.go.th) และ `DOAE_CKAN_API_KEY` โดย `.env` ถูกป้องกันด้วย `.gitignore` อย่างปลอดภัย, พร้อมโมดูล `tadih.opend_client` และสคริปต์ตรวจสอบ `scripts/test_opend_connection.py` ([.env.example](.env.example), `tests/test_env.py`)
+- [x] นำเข้า DuckDB Warehouse & เชื่อมต่อโมเดล Power BI Offline (offline-v12): ซิงค์แกนข้อมูลศูนย์รวมเกษตรทั้งประเทศสู่ `data/local/tadih.duckdb` (Coverage Inventory 59 resources, Project Register 5 projects, Project Coverage 325 links, Spatial Evidence 115 items, Evidence Policy Match 77 provinces, Plan vs Actual 2 seasons) พร้อม 3 analytical views (`v_unaddressed_policy_gaps`, `v_project_intervention_summary`, `v_national_coverage_overview`); สร้างโปรเจกต์ `data/local/powerbi/offline-v12/` (17 tables, 20 relationships, 42 measures, 7 pages PBIR) ตรวจ Microsoft Fabric JSON schemas ผ่าน 27 metadata files และตรวจ SHA-256 ผ่านครบ 45 files 100%; จำลองคำนวณ DAX 14 รายการผ่าน 100% รวม unit tests ผ่านทั้งคลัง 226/226 รายการ (`scripts/sync_duckdb_hub.py`, `scripts/validate_powerbi_project.py`, `tests/test_national_warehouse.py`, `tests/test_dax_simulation.py`)
 
 ### ค้างและลำดับงาน
 
-- [ ] **เริ่มงานรอบถัดไป:** นำเข้า DuckDB Warehouse & เตรียมโมเดล Power BI Offline (offline-v12) เพื่อเชื่อมต่อแกนข้อมูลใหม่ (Coverage Inventory, Temporal Crosswalk, Project Register, Spatial Evidence) ให้พร้อมเปิดและแสดงผลใน Power BI Desktop
+- [ ] **เริ่มงานรอบถัดไป:** ตรวจสอบและเชื่อมโยง API Data.go.th และ DOAE CKAN เพิ่มเติมสำหรับชุดข้อมูล Tier-1 (รหัสพืช DOAE Master, คาดการณ์น้ำท่วม/แล้งรายตำบลของ HII, Agri-Map Zoning พด.) เมื่อผู้ใช้กรอก API Key ใน `.env` เรียบร้อย
 - [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยังคงสถานะ `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูลบุคคล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
 - [ ] ประเมินสำเนาซ้ำ 21 ไฟล์/517,762,353 bytes อีกครั้งตาม [หลักฐาน cleanup](docs/progress.md); ยังไม่มีการลบ เก็บ source, manifest, checksum, warehouse และสำเนาที่จำเป็นไว้
-- [ ] เมื่อข้อมูล สิทธิ์ และ interface พร้อม ค่อยนำเข้าแบบจำลองและการตรวจสอบหน้าจอรายงานใน Power BI Desktop; ยังไม่รับรอง DAX runtime, หน้ารายงาน หรือ Power BI Online
+- [ ] เมื่อข้อมูล สิทธิ์ และ interface พร้อม ดำเนินการทดสอบเปิดไฟล์ `data/local/powerbi/offline-v12/TADIH.pbip` ใน Power BI Desktop บน Windows จริง เพื่อตรวจการ Refresh และ Visual rendering
 
 ### คำสั่งเริ่มรอบถัดไป
 
@@ -38,6 +39,8 @@ git log -1 --oneline
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_project_register.py
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_spatial_evidence.py
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_data_sharing.py
+.\.venv\Scripts\python.exe -X utf8 scripts/sync_duckdb_hub.py
+.\.venv\Scripts\python.exe -X utf8 scripts/validate_powerbi_project.py data/local/powerbi/offline-v12
 .\.venv\Scripts\python.exe -m unittest discover -s tests -q
 ```
 

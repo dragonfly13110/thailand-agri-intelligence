@@ -4,6 +4,29 @@
 
 รอบเอกสารนี้ปรับ [README](../README.md), [AGENTS](../AGENTS.md), [runbook](runbook.md), [roadmap DOAE](doae-catalog-expansion.md) และ [คู่มือ Power BI](../powerbi/README.md) ให้ชี้เป้าหมายศูนย์ข้อมูลเกษตรทั้งประเทศและเช็กลิสต์เดียวกัน อ้างหลักฐาน acquisition/geography/cleanup ที่มีอยู่ ไม่ได้ดึงข้อมูลใหม่ นำเข้า warehouse เผยแพร่ หรือทดสอบ DAX เพิ่ม
 
+## การนำเข้า DuckDB Warehouse และเตรียมโมเดล Power BI Offline (offline-v12) 23 ต.ค. 2569
+
+- **National DuckDB Warehouse Sync:**
+  - พัฒนาฟังก์ชัน `init_national_hub_tables()` และ `sync_national_hub_data()` ใน `src/tadih/warehouse.py` และสคริปต์ `scripts/sync_duckdb_hub.py`
+  - ซิงค์แกนข้อมูลศูนย์รวมข้อมูลเกษตรทั้งประเทศสู่ฐานข้อมูลกลาง `data/local/tadih.duckdb`:
+    - `national_coverage_inventory`: 59 ทรัพยากร (จำแนก native grain, missing reasons, license status)
+    - `dim_project`: 5 โครงการเกษตรและมาตรการรัฐสำคัญ (DOAE, MOAC, BAAC, LDD)
+    - `fact_project_coverage`: 325 รายการเชื่อมโยงความครอบคลุมระดับจังหวัด
+    - `fact_spatial_evidence`: 115 รายการหลักฐานความเสียหายจากอุทกภัย ภัยแล้ง และพื้นที่เสี่ยงขาดแคลนน้ำ
+    - `fact_evidence_policy_match`: 77 จังหวัดจำแนกสถานะการจับคู่โครงการ (COVERED, REDUNDANT, UNADDRESSED_GAP 46 จว., NO_IDENTIFIED_PROBLEM)
+    - `fact_plan_actual_reconciliation`: 2 ฤดูกาล (ฤดูฝน/แล้ง 2569) ยืนยันสถานะ `INCOMPARABLE`
+  - สร้าง 3 Analytical Views สำหรับการสืบค้นเชิงวิเคราะห์: `v_unaddressed_policy_gaps` (ชี้เป้า 46 จังหวัดที่มีช่องว่างมาตรการ), `v_project_intervention_summary` (สรุปโครงการและงบประมาณ), `v_national_coverage_overview` (สรุปความครอบคลุมข้อมูลตาม grain และหน่วยงาน)
+  - เพิ่ม unit tests 2 รายการใน `tests/test_national_warehouse.py` ทดสอบการสร้างตาราง, view calculation, และ idempotency ผ่าน 100%
+- **Power BI Offline Project Build (offline-v12):**
+  - พัฒนาโครงสร้างโปรเจกต์ `data/local/powerbi/offline-v12/` มี 17 ตาราง (เพิ่มขึ้นจาก 12 ตาราง), 20 relationships (เพิ่มขึ้นจาก 15), 42 measures (เพิ่มขึ้นจาก 35), 7 หน้า PBIR (เพิ่ม 2 หน้าใหม่: `policy_gap` และ `national_coverage`)
+  - อัปเดต `powerbi/measures.dax` เพิ่ม 7 measures สำคัญสำหรับศูนย์ข้อมูลเกษตรทั้งประเทศ:
+    - `Unaddressed Gap Provinces Count`, `Covered Problem Provinces Count`, `Redundant Intervention Provinces Count`
+    - `Total Flood Damaged Rai`, `Total Drought Damaged Rai`, `Registered Projects Count`, `National Profiled Resources Count`
+  - ตรวจ integrity hash ผ่านครบ 45 ไฟล์ และตรวจสอบความถูกต้องของ Microsoft Fabric JSON schemas ผ่าน 27 metadata files 100% ด้วย `scripts/validate_powerbi_project.py`
+  - จำลองคำนวณ DAX measures 14 รายการใน `tests/test_dax_simulation.py` ผ่าน 100%
+  - เพิ่มการบีบอัด NTFS บน `data/local/powerbi/offline-v12` ลดขนาดดิสก์ลง 2.0 ต่อ 1 (จาก 92.6 MB เหลือ 46.4 MB)
+  - รวมชุดทดสอบ unit tests ทั้งคลังระบบผ่าน **226/226 รายการ (31.500s)**
+
 ## ระบบจัดการ Environment Variables (.env) และ Open Government Data Client (opend.data.go.th) 23 ต.ค. 2569
 
 - จัดทำไฟล์ต้นแบบ `.env.example` และสร้างไฟล์คอนฟิกในเครื่อง `.env` (ป้องกันด้วย `.gitignore` อย่างปลอดภัย) สำหรับกรอก API Key จากระบบศูนย์กลางข้อมูลเปิดภาครัฐ (`https://opend.data.go.th/register_api/profile.php`) และระบบ DOAE CKAN

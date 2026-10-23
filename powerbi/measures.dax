@@ -320,7 +320,54 @@ CALCULATE(
     fact_observation[quality_flag] = "cloud_contaminated"
 )
 
+// ==============================================================================
+// National Agriculture Data Center: Policy Gaps & Spatial Evidence Measures
+// ==============================================================================
+
+Unaddressed Gap Provinces Count =
+CALCULATE(
+    COUNTROWS(fact_evidence_policy_match),
+    fact_evidence_policy_match[intervention_status] = "UNADDRESSED_GAP"
+)
+
+Covered Problem Provinces Count =
+CALCULATE(
+    COUNTROWS(fact_evidence_policy_match),
+    fact_evidence_policy_match[intervention_status] = "COVERED"
+)
+
+Redundant Intervention Provinces Count =
+CALCULATE(
+    COUNTROWS(fact_evidence_policy_match),
+    fact_evidence_policy_match[intervention_status] = "REDUNDANT"
+)
+
+Total Flood Damaged Rai =
+COALESCE(
+    CALCULATE(
+        SUM(fact_spatial_evidence[metric_value]),
+        fact_spatial_evidence[problem_type] = "FLOOD_DAMAGE"
+    ),
+    0
+)
+
+Total Drought Damaged Rai =
+COALESCE(
+    CALCULATE(
+        SUM(fact_spatial_evidence[metric_value]),
+        fact_spatial_evidence[problem_type] = "DROUGHT_DAMAGE"
+    ),
+    0
+)
+
+Registered Projects Count =
+DISTINCTCOUNT(dim_project[project_id])
+
+National Profiled Resources Count =
+COUNTROWS(fact_national_coverage_inventory)
+
 // No default SUM/AVERAGE(value): prices, rainfall, production, NDVI and estimates
 // have incompatible grains. Keep value set to "Do not summarize" in the model.
 // Add a domain-specific aggregate only after commodity, unit, definition, season,
 // source, non-overlapping area/time and subtotal rules have been validated.
+

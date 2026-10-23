@@ -23,12 +23,15 @@ SCHEMAS = {
     "visual": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
 }
 INTEGER_COLUMNS = {"actual_count", "available_source_count", "expected_count", "expected_source_count", "gap_count",
-                   "year_ad", "month", "source_year_be", "source_record_number", "freshness_days"}
+                   "year_ad", "month", "source_year_be", "source_record_number", "freshness_days",
+                   "source_records", "staged_records", "quarantined_records", "target_households", "actual_households"}
 NUMBER_COLUMNS = {"value", "planted_area_rai", "damaged_area_rai", "harvested_area_rai", "production_kg",
-                  "yield_kg_per_rai", "farm_gate_thb_per_kg"}
+                  "yield_kg_per_rai", "farm_gate_thb_per_kg", "metric_value", "budget_allocated_baht",
+                  "budget_spent_baht", "target_area_rai", "actual_area_rai"}
 DATETIME_COLUMNS = {"observed_at", "release_at", "retrieved_at", "latest_observation_date", "latest_publication_date",
-                    "generated_at", "evaluated_at"}
-BOOLEAN_COLUMNS = {"retired", "rollup_eligible", "automatic_action", "deferred", "license_review_required", "runtime_verified"}
+                    "generated_at", "evaluated_at", "last_audited_at"}
+BOOLEAN_COLUMNS = {"retired", "rollup_eligible", "automatic_action", "deferred", "license_review_required",
+                   "runtime_verified", "is_targeted"}
 
 
 def _json(path, value):
@@ -57,7 +60,7 @@ def parse_measures(path):
     return measures
 
 
-def relationships():
+def relationships(tables=None):
     links = [(fact, "area_code", "dim_area", "area_code") for fact in
              ("fact_observation", "fact_data_coverage", "fact_category_coverage")]
     links += [("fact_observation", "source_id", "dim_source", "source_id"),
@@ -69,6 +72,14 @@ def relationships():
               ("fact_production_source", "subdistrict_code", "dim_admin_area", "area_code"),
               ("fact_production_source", "source_id", "dim_source", "source_id")]
     links += [(fact, "commodity_id", "dim_commodity", "commodity_id") for fact in ("fact_observation", "fact_production_source")]
+    if tables and "dim_project" in tables:
+        links += [
+            ("fact_project_coverage", "area_code", "dim_area", "area_code"),
+            ("fact_project_coverage", "project_id", "dim_project", "project_id"),
+            ("fact_spatial_evidence", "area_code", "dim_area", "area_code"),
+            ("fact_evidence_policy_match", "area_code", "dim_area", "area_code"),
+            ("fact_national_coverage_inventory", "source_id", "dim_source", "source_id"),
+        ]
     return [{"name": f"{f}_{fc}_{t}", "fromTable": f, "fromColumn": fc, "toTable": t, "toColumn": tc,
              "fromCardinality": "many", "toCardinality": "one", "crossFilteringBehavior": "oneDirection"}
             for f, fc, t, tc in links]
@@ -110,7 +121,7 @@ def model_definition(tables, data_folder, measures):
                   '    Headers = Table.PromoteHeaders(Raw, [PromoteAllScalars=true]),\n'
                   '    Nulls = Table.ReplaceValue(Headers, "", null, Replacer.ReplaceValue, Table.ColumnNames(Headers)),\n'
                   '    Typed = Table.TransformColumnTypes(Nulls, columnTypes, "en-US")\nin\n    Typed'}],
-             "tables": [], "relationships": relationships()}
+             "tables": [], "relationships": relationships(tables)}
     for name, (fields, _) in tables.items():
         columns = [{"name": field, "dataType": _column_type(field)[0], "sourceColumn": field, "summarizeBy": "none"} for field in fields]
         types = ", ".join('{"' + field + '", ' + _column_type(field)[1] + "}" for field in fields)
@@ -130,7 +141,7 @@ def _projection(table, field, measure=False):
             "queryRef": f"{table}.{field}", "nativeQueryRef": field}
 
 
-def write_report(destination):
+def write_report(destination, tables=None):
     report = destination / "TADIH.Report"
     _json(report / "definition.pbir", {"$schema": SCHEMAS["pbir"], "version": "4.0", "datasetReference": {"byPath": {"path": "../TADIH.SemanticModel"}}})
     _json(report / "definition/version.json", {"$schema": SCHEMAS["version"], "version": "2.0.0"})
@@ -153,6 +164,21 @@ def write_report(destination):
         ("audit", "Forecast & Decision Audit", [
             ("decision_cards", ["decision_id", "status", "reasons", "recommended_action", "limitations"]),
             ("snapshot_metadata", ["generated_at", "audience", "forecast_status", "price_data_quality", "decision_status", "validation_status", "license_note"])])]
+
+    if tables and "dim_project" in tables:
+        pages.append(
+            ("policy_gap", "Spatial Evidence & Policy Gap Room", [
+                ("fact_evidence_policy_match", ["area_code", "province_name_th", "identified_problems", "intervention_status", "diagnostic_notes"]),
+                ("dim_project", ["project_id", "project_name_th", "managing_agency", "fiscal_year", "target_problem", "status", "budget_allocated_baht"])
+            ])
+        )
+        pages.append(
+            ("national_coverage", "National Coverage & License Hub", [
+                ("fact_national_coverage_inventory", ["source_id", "dataset_id", "data_grain", "period", "status", "license_status", "missing_reason", "source_records"]),
+                ("dim_area", [("Supported Provinces", True), ("Unaddressed Gap Provinces Count", True), ("Total Flood Damaged Rai", True), ("Total Drought Damaged Rai", True), ("Registered Projects Count", True)])
+            ])
+        )
+
     _json(report / "definition/pages/pages.json", {"$schema": SCHEMAS["pages"], "pageOrder": [p[0] for p in pages], "activePageName": pages[0][0]})
     for name, label, visuals in pages:
         page = report / "definition/pages" / name
@@ -248,7 +274,131 @@ def build_local_project(snapshot, production_inventory, workbook, output_dir):
              "validation_status": "offline_structure_only; Desktop refresh, DAX execution and rendering pending",
              "license_note": "สิทธิ์เผยแพร่ข้อมูลจริงยังรอตรวจสอบ ห้ามอัปโหลดชุดนี้ขึ้นออนไลน์"}
     tables["snapshot_metadata"] = (list(audit), [audit])
-    validate_relationships(tables, relationships())
+
+    # National Agriculture Data Center Assets
+    probes_dir = ROOT / "data/local/probes"
+
+    # Ensure dim_source contains all providers including planetary_computer
+    src_fields, src_rows = tables["dim_source"]
+    known_src_ids = {r["source_id"] for r in src_rows}
+    if "planetary_computer" not in known_src_ids:
+        extra_src = {f: "" for f in src_fields}
+        extra_src.update({
+            "source_id": "planetary_computer",
+            "name": "Microsoft Planetary Computer / NASA LP DAAC",
+            "category": "satellite",
+            "geographic_scope": "Thailand",
+            "priority": "P1",
+            "license_status": "pending",
+            "status": "documented_not_runtime_verified",
+            "type": "stac_raster",
+            "url": "https://planetarycomputer.microsoft.com",
+            "deferred": False,
+            "license_review_required": True,
+            "runtime_verified": False,
+        })
+        src_rows.append(extra_src)
+        tables["dim_source"] = (src_fields, src_rows)
+
+    all_prov_codes = {r["area_code"] for r in tables["dim_area"][1]}
+
+    # 1. Project Register (dim_project) & Coverage (fact_project_coverage)
+    proj_path = probes_dir / "project-register-audit.json"
+    if proj_path.exists():
+        proj_data = json.loads(proj_path.read_text(encoding="utf-8"))
+        projects = proj_data.get("projects", [])
+        proj_fields = ["project_id", "project_name_th", "managing_agency", "fiscal_year", "intervention_type",
+                       "target_commodity", "target_problem", "target_area_grain", "status", "source_evidence",
+                       "license_status", "budget_allocated_baht", "budget_spent_baht", "target_households",
+                       "actual_households", "target_area_rai", "actual_area_rai"]
+        clean_projects = [{k: p.get(k) for k in proj_fields} for p in projects]
+        tables["dim_project"] = (proj_fields, clean_projects)
+
+        cov_rows = []
+        for p in projects:
+            p_id = p["project_id"]
+            if "TH" in p.get("target_area_codes", []) or p.get("target_area_grain") == "country":
+                target_codes = all_prov_codes
+            else:
+                target_codes = set(p.get("target_area_codes", []))
+            for c in target_codes:
+                if c in all_prov_codes:
+                    cov_rows.append({"project_id": p_id, "area_code": c, "is_targeted": True})
+        tables["fact_project_coverage"] = (["project_id", "area_code", "is_targeted"], cov_rows)
+
+    # 2. Spatial Evidence (fact_spatial_evidence) & Match (fact_evidence_policy_match)
+    spat_path = probes_dir / "spatial-evidence-audit.json"
+    if spat_path.exists():
+        spat_data = json.loads(spat_path.read_text(encoding="utf-8"))
+        cards = spat_data.get("province_cards", [])
+        match_fields = ["area_code", "province_name_th", "identified_problems", "matched_intervention_ids",
+                        "intervention_status", "diagnostic_notes", "last_audited_at"]
+        clean_matches = []
+        ev_fields = ["evidence_id", "area_code", "source_id", "resource_id", "problem_type", "metric_name",
+                     "metric_value", "unit", "native_spatial_grain", "native_area_code", "observed_period", "license_status"]
+        clean_ev = []
+        for c in cards:
+            c_code = c["province_code"]
+            clean_matches.append({
+                "area_code": c_code,
+                "province_name_th": c["province_name_th"],
+                "identified_problems": ", ".join(c.get("identified_problems") or []),
+                "matched_intervention_ids": ", ".join(c.get("matched_intervention_ids") or []),
+                "intervention_status": c["intervention_status"],
+                "diagnostic_notes": c.get("diagnostic_notes", ""),
+                "last_audited_at": c.get("last_audited_at", "")
+            })
+            for e in c.get("evidence_records", []):
+                clean_ev.append({
+                    "evidence_id": e["evidence_id"],
+                    "area_code": c_code,
+                    "source_id": e["source_id"],
+                    "resource_id": e["resource_id"],
+                    "problem_type": e["problem_type"],
+                    "metric_name": e["metric_name"],
+                    "metric_value": float(e["metric_value"]),
+                    "unit": e["unit"],
+                    "native_spatial_grain": e["native_spatial_grain"],
+                    "native_area_code": e.get("native_area_code", ""),
+                    "observed_period": e.get("observed_period", ""),
+                    "license_status": e.get("license_status", "pending")
+                })
+        tables["fact_evidence_policy_match"] = (match_fields, clean_matches)
+        tables["fact_spatial_evidence"] = (ev_fields, clean_ev)
+
+    # 3. National Coverage Inventory (fact_national_coverage_inventory)
+    cov_path = probes_dir / "coverage-inventory.json"
+    if cov_path.exists():
+        cov_data = json.loads(cov_path.read_text(encoding="utf-8"))
+        entries = cov_data.get("entries", [])
+        nat_fields = ["resource_id", "source_id", "phase", "dataset_id", "schema", "data_grain", "period",
+                      "metrics", "units", "status", "missing_reason", "coverage_note", "license_status",
+                      "source_records", "staged_records", "quarantined_records", "retrieved_at", "source_sha256"]
+        clean_entries = []
+        for e in entries:
+            clean_entries.append({
+                "resource_id": e.get("resource_id", ""),
+                "source_id": e.get("source_id", ""),
+                "phase": e.get("phase", ""),
+                "dataset_id": e.get("dataset_id", ""),
+                "schema": e.get("schema", ""),
+                "data_grain": e.get("data_grain", ""),
+                "period": str(e.get("period") or ""),
+                "metrics": ", ".join(e.get("metrics") or []),
+                "units": ", ".join(e.get("units") or []),
+                "status": e.get("status", ""),
+                "missing_reason": e.get("missing_reason", ""),
+                "coverage_note": e.get("coverage_note", ""),
+                "license_status": e.get("license_status", "pending"),
+                "source_records": int(e.get("source_records") or 0),
+                "staged_records": int(e.get("staged_records") or 0),
+                "quarantined_records": int(e.get("quarantined_records") or 0),
+                "retrieved_at": e.get("retrieved_at", ""),
+                "source_sha256": e.get("source_sha256", ""),
+            })
+        tables["fact_national_coverage_inventory"] = (nat_fields, clean_entries)
+
+    validate_relationships(tables, relationships(tables))
     measures = parse_measures(ROOT / "powerbi/measures.dax")
     # Datetimes in the model have explicit UTC values; Thai month keys were derived before dropping the offset.
     for _, rows in tables.values():
@@ -265,9 +415,9 @@ def build_local_project(snapshot, production_inventory, workbook, output_dir):
         semantic = destination / "TADIH.SemanticModel"
         _json(semantic / "definition.pbism", {"$schema": SCHEMAS["pbism"], "version": "1.0", "settings": {}})
         _json(semantic / "model.bim", model_definition(tables, output_dir / "Data", measures))
-        write_report(destination)
+        write_report(destination, tables)
         report = {"project": str(output_dir / "TADIH.pbip"), "audience": "internal_local_only", "redistribution_allowed": False,
-                  "row_counts": {name: len(rows) for name, (_, rows) in tables.items()}, "relationship_count": len(relationships()),
+                  "row_counts": {name: len(rows) for name, (_, rows) in tables.items()}, "relationship_count": len(relationships(tables)),
                   "measure_count": len(measures), "production_matched_rows": sum(r["mapping_status"] == "matched_snapshot" for r in production),
                   "source_snapshot": str(snapshot.resolve()), "production_inventory_sha256": _hash(inventory_path), "admin_workbook_sha256": _hash(workbook),
                   "runtime_validation": "pending_Power_BI_Desktop", "online_upload": "blocked_pending_rights_and_runtime_checks",

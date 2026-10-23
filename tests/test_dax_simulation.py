@@ -19,7 +19,9 @@ import unittest
 import duckdb
 
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v11/Data"
+_V12_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v12/Data"
+_V11_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v11/Data"
+DATA_DIR = _V12_DIR if _V12_DIR.exists() else _V11_DIR
 
 
 class DaxSimulationTests(unittest.TestCase):
@@ -402,6 +404,58 @@ class DaxSimulationTests(unittest.TestCase):
         """).fetchone()[0]
         self.assertIsNotNone(avg_frac)
         self.assertTrue(0.0 <= avg_frac <= 1.0)
+
+    def test_national_policy_gap_measures(self):
+        table_exists = self.con.execute("SELECT count(*) FROM information_schema.tables WHERE table_name = 'fact_evidence_policy_match'").fetchone()[0]
+        if not table_exists:
+            raise unittest.SkipTest("National Data Center tables not present in this build")
+
+        # Unaddressed Gap Provinces Count
+        unaddressed = self.con.execute("""
+            SELECT count(*) FROM fact_evidence_policy_match
+            WHERE intervention_status = 'UNADDRESSED_GAP'
+        """).fetchone()[0]
+        self.assertEqual(unaddressed, 46)
+
+        # Covered Problem Provinces Count
+        covered = self.con.execute("""
+            SELECT count(*) FROM fact_evidence_policy_match
+            WHERE intervention_status = 'COVERED'
+        """).fetchone()[0]
+        self.assertEqual(covered, 12)
+
+        # Redundant Intervention Provinces Count
+        redundant = self.con.execute("""
+            SELECT count(*) FROM fact_evidence_policy_match
+            WHERE intervention_status = 'REDUNDANT'
+        """).fetchone()[0]
+        self.assertEqual(redundant, 3)
+
+        # Total Flood Damaged Rai
+        flood_rai = self.con.execute("""
+            SELECT coalesce(sum(metric_value), 0) FROM fact_spatial_evidence
+            WHERE problem_type = 'FLOOD_DAMAGE'
+        """).fetchone()[0]
+        self.assertGreater(flood_rai, 1800000.0)
+
+        # Total Drought Damaged Rai
+        drought_rai = self.con.execute("""
+            SELECT coalesce(sum(metric_value), 0) FROM fact_spatial_evidence
+            WHERE problem_type = 'DROUGHT_DAMAGE'
+        """).fetchone()[0]
+        self.assertGreater(drought_rai, 16000.0)
+
+        # Registered Projects Count
+        proj_count = self.con.execute("""
+            SELECT count(DISTINCT project_id) FROM dim_project
+        """).fetchone()[0]
+        self.assertEqual(proj_count, 5)
+
+        # National Profiled Resources Count
+        res_count = self.con.execute("""
+            SELECT count(*) FROM fact_national_coverage_inventory
+        """).fetchone()[0]
+        self.assertEqual(res_count, 59)
 
 
 if __name__ == "__main__":
