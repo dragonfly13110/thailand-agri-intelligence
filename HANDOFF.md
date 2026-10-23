@@ -1,5 +1,15 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## ลดพื้นที่ข้อมูลในเครื่อง 23 ต.ค. 2569
+
+- หยุดโหลดเพิ่มตามคำสั่งเจ้าของงาน ตรวจ repository รวมประมาณ 6.38 GB; ก้อนหลักคือ DOAE raw/staging และ private exports ไม่แตะข้อมูลของโครงการอื่น
+- บีบอัดแบบ NTFS ด้วย `compact.exe /C` เฉพาะ `data/local/doae-p0`, `doae-p1`, `doae-p2`, `doae-archives` และ `exports/private` รวม 347 files; พาธ/เนื้อหา/manifest เดิมยังอ่านได้ โปรแกรมไม่ต้องคลาย ZIP เอง โฟลเดอร์เหล่านี้ตั้งให้ไฟล์ใหม่สืบทอด compression
+- ผลรวมพื้นที่ไฟล์จาก `GetCompressedFileSizeW` ลดจาก **5,939,104,827 เป็น 2,221,917,141 bytes** (ลด 3,717,187,686 bytes); พื้นที่ว่างไดรฟ์ D ที่วัดทั้ง volume เพิ่มสุทธิ **1,167,630,336 bytes** จาก 95,586,549,760 เป็น 96,754,180,096 bytes จึงไม่อ้างว่าคืนพื้นที่ว่างสุทธิทั้งไดรฟ์ 3.72 GB
+- ตรวจข้อมูล export เก่า 6 ชุด: CSV และ Parquet เทียบ `EXCEPT ALL` ทั้งสองทิศทางกับ `20261022T155531Z-ef13f544` แล้วแถวตรงกันทั้งหมด แม้ file SHA ต่างจากลำดับแถว/serialization; พบ staging schema เก่าอีก 3 ชุดมีรุ่นปัจจุบันทดแทน รวมไฟล์ที่เสนอให้ลบ 21 files / 517,762,353 bytes ระบบ automatic approval บล็อกคำสั่งลบด้วย `blocked by policy` จึง **ยังไม่ได้ลบไฟล์ใด** ทั้งรายการยังเก็บอยู่และบีบอัดแล้ว
+- เก็บต้นฉบับที่มีประโยชน์และหลักฐานทั้งหมด, staging ปัจจุบัน, warehouse/backup และ PBIP ล่าสุดไว้; แยกใช้ไม่ได้ตอนนี้เป็น quarantine: ออนไลน์ 2568 คอลัมน์ผิด 524 แถว, RAR ค่าตัวเลขวงเล็บรอยืนยัน 173 แถว, พื้นที่ติดลบ 1 แถว และข้อมูล mock 1 แถว ห้ามนำไปวิเคราะห์เป็นข้อมูลจริง ไม่ลบ raw เพียงเพราะยังตีความไม่ได้หรือสิทธิ์ pending
+- หลังบีบอัด `scripts/audit_doae_acquisition.py` exit 0: raw SHA ผ่าน 60 resources, CSV 58/58 และ staging hashes ตรงหลักฐานเทียบทุกแถวเดิม; latest private export ตรวจ SHA ผ่านครบ 8 files ไม่อ้างว่าได้รัน DAX/visual หรือเทียบทุกแถวใหม่ในรอบนี้ ไม่มี network acquisition ใหม่
+- หลักฐาน local: `data/local/probes/storage-before-cleanup.json`, `storage-cleanup-plan.json`, `storage-cleanup-result.json`, `storage-post-cleanup-audit.log`; งานลบสำเนาซ้ำยังค้างเพราะ policy ไม่เปลี่ยนสิทธิ์เผยแพร่และไม่ลดเกณฑ์ roadmap
+
 ## ความคืบหน้าล่าสุด 23 ต.ค. 2569: ปิดช่องว่าง CSV acquisition และ P2 เพิ่มเติม
 
 - ตรวจ DOAE catalog ครบ 3 หน้า **201 datasets**: uitest 160 + testdataset/emptydataset 2 + Database 6 + datasets สาธารณะ 33; แก้ข้อความเดิมที่อ้างประมาณ 100 รายการ/uitest 59 ให้ตรง snapshot ล่าสุด
