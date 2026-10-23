@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "national_agricultural_project",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_name_th": {
+      "type": "string",
+      "minLength": 1
+    },
+    "managing_agency": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fiscal_year": {
+      "type": "string",
+      "minLength": 4
+    },
+    "intervention_type": {
+      "type": "string",
+      "enum": [
+        "income_support",
+        "input_subsidy",
+        "disaster_relief",
+        "production_planning",
+        "water_management",
+        "zoning_restructuring",
+        "enterprise_strengthening",
+        "general_agricultural_aid"
+      ]
+    },
+    "target_commodity": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "target_problem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_area_grain": {
+      "enum": [
+        "country",
+        "province",
+        "district",
+        "subdistrict",
+        "basin"
+      ]
+    },
+    "target_area_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "budget_allocated_baht": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "budget_spent_baht": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "target_households": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "actual_households": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "target_area_rai": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "actual_area_rai": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "in_progress",
+        "completed",
+        "suspended",
+        "unverified"
+      ]
+    },
+    "source_evidence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license_status": {
+      "enum": [
+        "approved_public",
+        "restricted",
+        "pending"
+      ]
+    }
+  },
+  "required": [
+    "project_id",
+    "project_name_th",
+    "managing_agency",
+    "fiscal_year",
+    "intervention_type",
+    "target_problem",
+    "target_area_grain",
+    "target_area_codes",
+    "status",
+    "source_evidence",
+    "license_status"
+  ],
+  "additionalProperties": false,
+  "description": "Cross-agency agricultural project and farmer assistance register."
+}

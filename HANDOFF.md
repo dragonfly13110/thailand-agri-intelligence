@@ -9,18 +9,19 @@
 - [x] มีทะเบียน 77 จังหวัดและ coverage matrix ตั้งต้น 77 × 20 หมวด สถานะที่ยังไม่มีหลักฐานคง `UNVERIFIED`; ยังไม่ใช่ความครอบคลุมข้อมูลจริงทั้งประเทศ ([README](README.md), [คู่มือ coverage](docs/runbook.md))
 - [x] ตรวจ DOAE CKAN ครบ 201 datasets: สาธารณะ 33, Database จำกัดสิทธิ์ 6, ชุดทดสอบ/ว่าง 162; raw ของ CSV ที่ catalog ระบุครบ 58/58 resources และตรวจ SHA raw 60 resources ([acquisition audit](docs/doae-acquisition-audit.md), `data/local/probes/doae-acquisition-audit.json`)
 - [x] Stage DOAE P0 1,943,296 แถวจาก source 1,943,298 (quarantine 2), P1 202,223 จาก 202,747 (quarantine 524), archives 1,289,027 จาก 1,289,200 (quarantine 173); P2 คำขอเพิ่มรายการ 1,534 แถว แยกจาก observations ใน warehouse ([P0](docs/doae-p0-ingestion.md), [P1 และ archives](docs/doae-p1-archives.md), [acquisition audit](docs/doae-acquisition-audit.md))
-- [x] Audit พื้นที่ DOAE 21 resources/2,757,305 แถวกับ DOPA snapshot ปี 2566 พร้อมผลระดับ signature; ยังไม่มี temporal crosswalk ที่อนุมัติให้ rollup ([geography audit](docs/doae-geography-audit.md))
+- [x] Audit พื้นที่ DOAE 21 resources/2,757,305 แถวกับ DOPA snapshot ปี 2566 พร้อมผลระดับ signature ([geography audit](docs/doae-geography-audit.md))
 - [x] ลดพื้นที่ด้วย NTFS compression และตรวจ hash หลังบีบอัด; ไฟล์สำเนาซ้ำที่เสนอให้ลบ 21 ไฟล์ยังอยู่ครบเพราะ automatic approval บล็อกคำสั่งลบ ([บันทึกด้านล่าง](#ลดพื้นที่ข้อมูลในเครื่อง-23-ตค-2569))
+- [x] สร้างบัญชี coverage จาก manifest/staging ที่มีในเครื่องที่ grain `source × area × period × metric` รวม 59 ทรัพยากร (DOAE 52, OAE, RID, ERA5, MODIS, LDD, DOF, DLD) กระทบยอด DOAE source 3,436,779 แถวตรงกับ manifest 100% (staged 3,436,080 + quarantine 699), จำแนก native grain 10 รูปแบบ และระบุ missing reasons/สิทธิ์ pending ([coverage inventory](docs/coverage-inventory.md), `data/local/probes/coverage-inventory.json`)
+- [x] แก้ปัญหาข้อขัดแย้งเชิงพื้นที่และสร้าง Temporal Administrative Crosswalk: แปลงรหัสสลับชื่อ อ.กัลยาณิวัฒนา จ.เชียงใหม่ (1,015 แถว) สู่ DOPA 2566, กำหนดเงื่อนไขเวลาเขตบางบอน (349 แถว valid_to 2017-07-26) ให้ fallback สู่ระดับเขต 1050 ป้องกันภาพลวง, กักกันรหัสดัมมี่ จ.ตรัง `xxxxxxxx` (45 แถว), และแยก grain ข้อมูลเอกภาพ 10 รายการเป็นจังหวัด 1,320 แถว และอำเภอ 13,653 แถวโดยตั้ง `rollup_eligible=False` ([temporal crosswalk](docs/geography-crosswalk-resolution.md), `data/local/probes/temporal-crosswalk-audit.json`)
+- [x] สร้างกลไกกระทบยอดแผน-ผลเพาะปลูก (Plan vs Actual Reconciliation Engine) พร้อม Fail-Closed Guard Rails: พิสูจน์ทางคณิตศาสตร์ว่าแผนฤดูฝน 2569 (477 แถว 3 จังหวัด) และผล (3 แถว 1 จังหวัด) มีพื้นที่ไม่ทับซ้อนกัน `{20, 40, 94} ∩ {10} = ∅` และแผนฤดูแล้ง 2569 (4 จังหวัด) กับผล (5 จังหวัด) ไม่มีพื้นที่ตรงกัน คืนสถานะ `INCOMPARABLE` พร้อมเหตุผลชัดเจน ป้องกันการสรุปผลสัมฤทธิ์เป็นเปอร์เซ็นต์ลวง ([plan reconciliation](docs/plan-actual-reconciliation.md), `data/local/probes/plan-actual-reconciliation.json`)
+- [x] สร้างทะเบียนโครงการเกษตรข้ามหน่วยงาน (Cross-Agency Agricultural Project Register) และ Data Contract: ร่างสัญญาข้อมูล JSON schema ตามมาตรฐานสากล, บันทึกทะเบียนโครงการสำคัญ 5 โครงการ (DOAE สนับสนุนรัฐ 2566-2567, นบข. ไร่ละ 1,000, DOAE เยียวยาภัยพิบัติ, LDD Agri-Map Zoning) พร้อมกลไกวิเคราะห์ความครอบคลุมเชิงพื้นที่ ช่องว่าง และความซ้ำซ้อนของโครงการ ([project register](docs/project-register.md), [project schema](data_contracts/project.schema.json), `data/local/probes/project-register-audit.json`)
 
 ### ค้างและลำดับงาน
 
-- [ ] **เริ่มงานรอบถัดไป:** สร้างบัญชี coverage จาก manifest/staging ที่มีอยู่ในเครื่องที่ grain `source × area × period × metric` โดยบอกสถานะ/เหตุผลช่องว่าง, หน่วย, สิทธิ์, เวลาดึง และหลักฐาน; ตรวจยอดกับ manifest และแยกจังหวัดจากประเทศ/สถานี/กริด งานนี้ยังไม่ได้ทำเป็น dataset กลาง 77 จังหวัด
-- [ ] ตรวจ native grain, คำจำกัดความตัวเลข, หน่วย, ฤดู, เวลาและ subtotal ของแต่ละ resource; แก้ข้อขัดแย้งพื้นที่และทำ DOPA crosswalk ที่มีช่วงเวลารองรับ ก่อนเปิด `rollup_eligible` หรือ join ข้ามแหล่ง
-- [ ] ทำคู่เทียบแผนกับผลเฉพาะเมื่อพื้นที่/พืช/ฤดู/ช่วงเวลา/หน่วยตรงและมี coverage เพียงพอ: แผนฤดูฝน 2569 ที่มี 477 แถวกับผล 3 แถวยังไม่มีจังหวัดตรงกัน จึงยังสรุปผลสำเร็จไม่ได้
-- [ ] สำรวจแหล่งและสิทธิ์ของทะเบียนโครงการ/งบ/ผลจากแต่ละหน่วยงาน แล้วกำหนด grain และรหัสเชื่อมกับปัญหาพื้นที่; ยังไม่มีทะเบียนโครงการข้ามหน่วยงานที่ตรวจแล้ว
-- [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยัง `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
+- [ ] **เริ่มงานรอบถัดไป:** ออกแบบกลไกการแลกเปลี่ยน/แบ่งปันข้อมูล (Data Sharing Interface / API contracts) ให้หน่วยงานพันธมิตร (สศก., ชลประทาน, กรมพัฒนาที่ดิน ฯลฯ) นำข้อมูลและผลวิเคราะห์เชิงพื้นที่ไปใช้ตามสิทธิ์
+- [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยังคงสถานะ `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูลบุคคล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
 - [ ] ประเมินสำเนาซ้ำ 21 ไฟล์/517,762,353 bytes อีกครั้งตาม [หลักฐาน cleanup](docs/progress.md); ยังไม่มีการลบ เก็บ source, manifest, checksum, warehouse และสำเนาที่จำเป็นไว้
-- [ ] เมื่อข้อมูลและสิทธิ์พร้อม ค่อยกำหนดช่องทางให้หน่วยงานอื่นค้น/นำข้อมูลไปใช้และตรวจโมเดล/รายงานใน Desktop; ยังไม่รับรอง DAX runtime, หน้ารายงาน หรือ Power BI Online
+- [ ] เมื่อข้อมูล สิทธิ์ และ interface พร้อม ค่อยนำเข้าแบบจำลองและการตรวจสอบหน้าจอรายงานใน Power BI Desktop; ยังไม่รับรอง DAX runtime, หน้ารายงาน หรือ Power BI Online
 
 ### คำสั่งเริ่มรอบถัดไป
 
@@ -28,7 +29,11 @@
 Set-Location -LiteralPath 'D:\code\thailand-agri-intelligence'
 git status --short --branch
 git log -1 --oneline
-.\.venv\Scripts\python.exe -X utf8 scripts/audit_doae_acquisition.py
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_coverage_inventory.py
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_temporal_crosswalk.py
+.\.venv\Scripts\python.exe -X utf8 scripts/reconcile_plan_actual.py
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_project_register.py
+.\.venv\Scripts\python.exe -m unittest discover -s tests -q
 ```
 
 อ่าน [roadmap DOAE](docs/doae-catalog-expansion.md), [คู่มือปฏิบัติงาน](docs/runbook.md), [ทะเบียนสิทธิ์](docs/source-license-register.md), [progress](docs/progress.md) และ manifest ใน `data/local/` ก่อนเขียน coverage; คำสั่ง audit ข้างต้นตรวจไฟล์ที่มีอยู่ ไม่ต้องดาวน์โหลดซ้ำ หาก virtual environment ยังไม่มีให้ตรวจ README ก่อนติดตั้งและคำนึงถึงพื้นที่ดิสก์
