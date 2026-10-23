@@ -1,0 +1,98 @@
+"""Unit tests for multi-agency ingestion clients (DWR, Meteostat, GISTDA)."""
+
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import MagicMock, patch
+
+from tadih.dwr_water import fetch_latest_dwr_small_water_resources
+from tadih.weather import fetch_weather_stations, fetch_daily_weather_observations
+from tadih.gistda import fetch_satellite_flood_7days
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class TestMultiAgencyIngestion(unittest.TestCase):
+    def test_fetch_weather_stations(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = Path(tmp_dir) / "stations.json"
+            res = fetch_weather_stations(output_path=out_file)
+            self.assertEqual(res["metadata"]["total_stations"], 12)
+            self.assertTrue(out_file.exists())
+            records = res["records"]
+            self.assertEqual(records[0]["id"], "48455")
+            self.assertEqual(records[0]["province_code"], "10")
+
+    @patch("tadih.weather.urllib.request.urlopen")
+    def test_fetch_daily_weather_mock(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "data": [
+                {
+                    "date": "2026-10-20 00:00:00",
+                    "tavg": 29.5,
+                    "tmin": 25.0,
+                    "tmax": 34.0,
+                    "prcp": 12.5,
+                    "wspd": 3.2,
+                    "pres": 1010.5,
+                }
+            ]
+        }).encode("utf-8")
+        mock_urlopen.return_value.__enter__.return_value = mock_resp
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = Path(tmp_dir) / "weather.json"
+            res = fetch_daily_weather_observations(
+                station_ids=["48455"],
+                start_date="2026-10-20",
+                end_date="2026-10-20",
+                api_key="mock_key",
+                output_path=out_file,
+            )
+            self.assertEqual(res["metadata"]["total_observations"], 1)
+            self.assertEqual(res["records"][0]["rainfall_mm"], 12.5)
+            self.assertEqual(res["records"][0]["tavg_c"], 29.5)
+
+    @patch("tadih.gistda.urllib.request.urlopen")
+    def test_fetch_satellite_flood_mock(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "MultiPolygon",
+                        "coordinates": [[[[100.5, 13.7], [100.6, 13.7], [100.6, 13.8], [100.5, 13.7]]]],
+                    },
+                    "properties": {
+                        "_id": "mock_flood_01",
+                        "file_name": "Sentinel1_20261022",
+                        "pv_idn": "10",
+                        "pv_en": "Bangkok",
+                        "ap_idn": "1001",
+                        "ap_en": "Phra Nakhon",
+                        "tb_idn": "100101",
+                        "tb_en": "Phra Borom Maha Ratchawang",
+                        "f_area": 3200.0,
+                        "rice_area": 1600.0,
+                    },
+                }
+            ]
+        }).encode("utf-8")
+        mock_urlopen.return_value.__enter__.return_value = mock_resp
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = Path(tmp_dir) / "gistda_flood.json"
+            res = fetch_satellite_flood_7days(api_key="mock_key", output_path=out_file)
+            self.assertEqual(res["metadata"]["total_flood_polygons"], 1)
+            record = res["records"][0]
+            self.assertEqual(record["dopa_province_code"], "10")
+            self.assertEqual(record["inundated_rice_area_rai"], 1.0)  # 1600 sq.m / 1600 = 1.0 rai
+            self.assertEqual(record["centroid_longitude"], 100.5)
+            self.assertEqual(record["centroid_latitude"], 13.7)
+
+
+if __name__ == "__main__":
+    unittest.main()

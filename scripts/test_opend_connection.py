@@ -35,10 +35,11 @@ def main():
     print(f"    Masked Key: {status['masked_key']} (ความยาว: {status['key_length']} ตัวอักษร)")
     print("\nกำลังทดสอบการเรียกใช้งาน OpenD API Gateway...")
 
-    result = query_opend_api("get-ckan/datastore_search", params={"limit": 1})
+    result = query_opend_api("get-ckan/package_search", params={"q": "doae", "rows": 1})
     if result["status"] == "success":
+        data_count = result.get("data", {}).get("result", {}).get("count", 0)
         print("[+] การเชื่อมต่อสำเร็จ! (HTTP 200 OK)")
-        print(f"    Response Status: {result['status_code']}")
+        print(f"    Gateway Response: ตรวจพบชุดข้อมูลกรมส่งเสริมการเกษตร (DOAE) ทั้งหมด {data_count:,} รายการ")
     elif result.get("status_code") in (401, 403):
         print("[-] การเชื่อมต่อถูกปฏิเสธ: API Key ไม่ถูกต้องหรือยังไม่ได้รับการอนุมัติสิทธิ์ (HTTP 401/403)")
         print(f"    ข้อความจากระบบ: {result.get('message')}")

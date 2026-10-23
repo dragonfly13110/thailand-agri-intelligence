@@ -98,6 +98,19 @@ class EnvLoaderTests(unittest.TestCase):
         self.assertEqual(result["status_code"], 403)
         self.assertEqual(result["error_type"], "HTTP_ERROR")
 
+    def test_agency_keys_overview(self):
+        from tadih.env import get_agency_keys_overview, mask_key
+        self.assertEqual(mask_key(""), "(not configured)")
+        self.assertEqual(mask_key("short"), "****")
+        self.assertEqual(mask_key("1234567890"), "1234**7890")
+
+        overview = get_agency_keys_overview()
+        self.assertIn("DGA_OPEND", overview)
+        self.assertIn("GISTDA", overview)
+        self.assertIn("METEOSTAT", overview)
+        self.assertIn("DWR", overview)
+        self.assertIn("DOAE_CKAN", overview)
+
 
 if __name__ == "__main__":
     unittest.main()

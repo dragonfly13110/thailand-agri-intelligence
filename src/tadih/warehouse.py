@@ -194,6 +194,120 @@ def init_national_hub_tables(db):
         )
     """)
 
+    # 7. DOAE Master Crops & Breeds (dim_crop_master)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS dim_crop_master (
+            crop_code VARCHAR,
+            crop_name_th VARCHAR,
+            crop_group_code VARCHAR,
+            crop_group_name_th VARCHAR,
+            breed_code VARCHAR,
+            breed_name_th VARCHAR,
+            breed_characteristic VARCHAR,
+            retrieved_at VARCHAR,
+            license_status VARCHAR,
+            PRIMARY KEY(breed_code)
+        )
+    """)
+
+    # 8. Weather Stations (dim_weather_station)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS dim_weather_station (
+            station_id VARCHAR,
+            station_name_en VARCHAR,
+            province_code VARCHAR,
+            province_name_th VARCHAR,
+            latitude DOUBLE,
+            longitude DOUBLE,
+            elevation_m DOUBLE,
+            PRIMARY KEY(station_id)
+        )
+    """)
+
+    # 9. Daily Weather Observations (fact_daily_weather)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_daily_weather (
+            station_id VARCHAR,
+            observation_date VARCHAR,
+            tavg_c DOUBLE,
+            tmin_c DOUBLE,
+            tmax_c DOUBLE,
+            rainfall_mm DOUBLE,
+            wind_speed_ms DOUBLE,
+            air_pressure_hpa DOUBLE,
+            source_agency VARCHAR,
+            retrieved_at VARCHAR,
+            license_status VARCHAR,
+            PRIMARY KEY(station_id, observation_date)
+        )
+    """)
+
+    # 10. Natural Water Reservoirs (DWR non-irrigated basins - fact_natural_water_reservoir)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_natural_water_reservoir (
+            water_resource_code VARCHAR,
+            water_resource_name_th VARCHAR,
+            water_resource_size VARCHAR,
+            tambon_name_th VARCHAR,
+            amphoe_name_th VARCHAR,
+            province_name_th VARCHAR,
+            province_code VARCHAR,
+            latitude DOUBLE,
+            longitude DOUBLE,
+            storage_m3 DOUBLE,
+            active_storage_m3 DOUBLE,
+            outflow_m3_per_sec DOUBLE,
+            feed_title VARCHAR,
+            feed_date VARCHAR,
+            retrieved_at VARCHAR,
+            source_agency VARCHAR,
+            license_status VARCHAR,
+            PRIMARY KEY(water_resource_code)
+        )
+    """)
+
+    # 11. Satellite 7-Day Flood Features (GISTDA - fact_satellite_flood_7days)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_satellite_flood_7days (
+            feature_id VARCHAR,
+            satellite_sources VARCHAR,
+            dopa_province_code VARCHAR,
+            province_name_en VARCHAR,
+            dopa_amphoe_code VARCHAR,
+            amphoe_name_en VARCHAR,
+            dopa_tambon_code VARCHAR,
+            tambon_name_en VARCHAR,
+            inundated_area_sqm DOUBLE,
+            inundated_rice_area_rai DOUBLE,
+            centroid_latitude DOUBLE,
+            centroid_longitude DOUBLE,
+            observation_period VARCHAR,
+            source_agency VARCHAR,
+            retrieved_at VARCHAR,
+            license_status VARCHAR,
+            PRIMARY KEY(feature_id)
+        )
+    """)
+
+    # 12. Monthly Flood Risk Forecast (HII - fact_flood_risk_forecast)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fact_flood_risk_forecast (
+            month INTEGER,
+            dopa_tambon_code VARCHAR,
+            tambon_name_th VARCHAR,
+            dopa_amphoe_code VARCHAR,
+            amphoe_name_th VARCHAR,
+            dopa_province_code VARCHAR,
+            province_name_th VARCHAR,
+            recurrence_17yr_count INTEGER,
+            risk_criteria VARCHAR,
+            risk_level VARCHAR,
+            source_agency VARCHAR,
+            retrieved_at VARCHAR,
+            license_status VARCHAR
+        )
+    """)
+
     # Analytical Views
     db.execute("""
         CREATE OR REPLACE VIEW v_unaddressed_policy_gaps AS
@@ -229,8 +343,8 @@ def init_national_hub_tables(db):
         FROM dim_project p
         LEFT JOIN fact_project_coverage c ON p.project_id = c.project_id AND c.is_targeted = TRUE
         GROUP BY p.project_id, p.project_name_th, p.managing_agency, p.fiscal_year,
-                 p.intervention_type, p.target_problem, p.budget_allocated_baht,
-                 p.target_households, p.target_area_rai
+                  p.intervention_type, p.target_problem, p.budget_allocated_baht,
+                  p.target_households, p.target_area_rai
         ORDER BY p.fiscal_year DESC, p.budget_allocated_baht DESC
     """)
 
@@ -250,6 +364,65 @@ def init_national_hub_tables(db):
         ORDER BY total_source_records DESC
     """)
 
+    db.execute("""
+        CREATE OR REPLACE VIEW v_provincial_natural_water_security AS
+        SELECT
+            COALESCE(province_code, '99') AS province_code,
+            province_name_th,
+            COUNT(water_resource_code) AS reservoir_count,
+            ROUND(COALESCE(SUM(storage_m3), 0), 1) AS total_storage_m3,
+            ROUND(COALESCE(SUM(active_storage_m3), 0), 1) AS total_active_storage_m3,
+            ROUND(COALESCE(AVG(active_storage_m3), 0), 1) AS avg_active_storage_m3
+        FROM fact_natural_water_reservoir
+        GROUP BY province_code, province_name_th
+        ORDER BY total_active_storage_m3 DESC
+    """)
+
+    db.execute("""
+        CREATE OR REPLACE VIEW v_satellite_flood_rice_impact AS
+        SELECT
+            dopa_province_code AS province_code,
+            province_name_en,
+            COUNT(feature_id) AS flood_polygon_count,
+            ROUND(COALESCE(SUM(inundated_rice_area_rai), 0), 2) AS total_inundated_rice_rai,
+            ROUND(COALESCE(SUM(inundated_area_sqm), 0), 1) AS total_inundated_sqm
+        FROM fact_satellite_flood_7days
+        GROUP BY dopa_province_code, province_name_en
+        ORDER BY total_inundated_rice_rai DESC
+    """)
+
+    db.execute("""
+        CREATE OR REPLACE VIEW v_provincial_recent_weather AS
+        SELECT
+            s.province_code,
+            s.province_name_th,
+            s.station_name_en,
+            COUNT(w.observation_date) AS observation_days,
+            ROUND(AVG(w.tavg_c), 1) AS avg_temperature_c,
+            ROUND(MIN(w.tmin_c), 1) AS min_temperature_c,
+            ROUND(MAX(w.tmax_c), 1) AS max_temperature_c,
+            ROUND(SUM(w.rainfall_mm), 1) AS total_rainfall_mm
+        FROM dim_weather_station s
+        JOIN fact_daily_weather w ON s.station_id = w.station_id
+        GROUP BY s.province_code, s.province_name_th, s.station_name_en
+        ORDER BY total_rainfall_mm DESC
+    """)
+
+    db.execute("""
+        CREATE OR REPLACE VIEW v_provincial_flood_risk_forecast AS
+        SELECT
+            dopa_province_code AS province_code,
+            province_name_th,
+            month,
+            COUNT(CASE WHEN risk_level = 'เสี่ยงสูง' THEN 1 END) AS high_risk_tambons,
+            COUNT(CASE WHEN risk_level = 'เสี่ยงปานกลาง' THEN 1 END) AS medium_risk_tambons,
+            COUNT(CASE WHEN risk_level = 'เสี่ยงต่ำ' THEN 1 END) AS low_risk_tambons,
+            COUNT(*) AS total_risk_tambon_events
+        FROM fact_flood_risk_forecast
+        GROUP BY dopa_province_code, province_name_th, month
+        ORDER BY high_risk_tambons DESC, medium_risk_tambons DESC
+    """)
+
 
 def sync_national_hub_data(db, root_dir=None):
     """Synchronize national agriculture intelligence probes into DuckDB warehouse."""
@@ -266,6 +439,12 @@ def sync_national_hub_data(db, root_dir=None):
         "fact_spatial_evidence": 0,
         "fact_evidence_policy_match": 0,
         "fact_plan_actual_reconciliation": 0,
+        "dim_crop_master": 0,
+        "fact_natural_water_reservoir": 0,
+        "dim_weather_station": 0,
+        "fact_daily_weather": 0,
+        "fact_satellite_flood_7days": 0,
+        "fact_flood_risk_forecast": 0,
     }
 
     # 1. Sync Coverage Inventory
@@ -406,6 +585,96 @@ def sync_national_hub_data(db, root_dir=None):
                 ])
                 plan_rows += 1
         results["fact_plan_actual_reconciliation"] = plan_rows
+
+    # 5. Sync DOAE Master Crops
+    crop_path = root / "data/local/production/doae_crop_master.json"
+    if crop_path.exists():
+        safe_path = crop_path.as_posix().replace("'", "''")
+        db.execute(f"""
+            DELETE FROM dim_crop_master;
+            INSERT INTO dim_crop_master
+            SELECT
+                r.crop_code, r.crop_name_th, r.crop_group_code, r.crop_group_name_th,
+                r.breed_code, r.breed_name_th, r.breed_characteristic, r.retrieved_at, r.license_status
+            FROM (SELECT unnest(records) AS r FROM read_json_auto('{safe_path}'));
+        """)
+        results["dim_crop_master"] = db.execute("SELECT COUNT(*) FROM dim_crop_master").fetchone()[0]
+
+    # 6. Sync DWR Natural Water Reservoirs
+    dwr_path = root / "data/local/water/dwr_small_water_resources.json"
+    if dwr_path.exists():
+        safe_path = dwr_path.as_posix().replace("'", "''")
+        db.execute(f"""
+            DELETE FROM fact_natural_water_reservoir;
+            INSERT INTO fact_natural_water_reservoir
+            SELECT
+                r.water_resource_code, r.water_resource_name_th, r.water_resource_size,
+                r.tambon_name_th, r.amphoe_name_th, r.province_name_th, r.province_code,
+                r.latitude, r.longitude, r.storage_m3, r.active_storage_m3, r.outflow_m3_per_sec,
+                r.feed_title, r.feed_date, r.retrieved_at, r.source_agency, r.license_status
+            FROM (SELECT unnest(records) AS r FROM read_json_auto('{safe_path}'));
+        """)
+        results["fact_natural_water_reservoir"] = db.execute("SELECT COUNT(*) FROM fact_natural_water_reservoir").fetchone()[0]
+
+    # 7. Sync Weather Stations & Observations
+    stn_path = root / "data/local/weather/dim_weather_stations.json"
+    if stn_path.exists():
+        safe_path = stn_path.as_posix().replace("'", "''")
+        db.execute(f"""
+            DELETE FROM dim_weather_station;
+            INSERT INTO dim_weather_station
+            SELECT
+                r.id, r.name_en, r.province_code, r.province_name_th, r.lat, r.lon, r.elevation_m
+            FROM (SELECT unnest(records) AS r FROM read_json_auto('{safe_path}'));
+        """)
+        results["dim_weather_station"] = db.execute("SELECT COUNT(*) FROM dim_weather_station").fetchone()[0]
+
+    weather_path = root / "data/local/weather/fact_daily_weather.json"
+    if weather_path.exists():
+        safe_path = weather_path.as_posix().replace("'", "''")
+        db.execute(f"""
+            DELETE FROM fact_daily_weather;
+            INSERT INTO fact_daily_weather
+            SELECT
+                r.station_id, r.observation_date, r.tavg_c, r.tmin_c, r.tmax_c,
+                r.rainfall_mm, r.wind_speed_ms, r.air_pressure_hpa, r.source_agency,
+                r.retrieved_at, r.license_status
+            FROM (SELECT unnest(records) AS r FROM read_json_auto('{safe_path}'));
+        """)
+        results["fact_daily_weather"] = db.execute("SELECT COUNT(*) FROM fact_daily_weather").fetchone()[0]
+
+    # 8. Sync GISTDA Satellite Flood Features
+    gistda_path = root / "data/local/satellite/gistda_flood_7days.json"
+    if gistda_path.exists():
+        safe_path = gistda_path.as_posix().replace("'", "''")
+        db.execute(f"""
+            DELETE FROM fact_satellite_flood_7days;
+            INSERT INTO fact_satellite_flood_7days
+            SELECT
+                r.feature_id, r.satellite_sources, r.dopa_province_code, r.province_name_en,
+                r.dopa_amphoe_code, r.amphoe_name_en, r.dopa_tambon_code, r.tambon_name_en,
+                r.inundated_area_sqm, r.inundated_rice_area_rai, r.centroid_latitude,
+                r.centroid_longitude, r.observation_period, r.source_agency, r.retrieved_at,
+                r.license_status
+            FROM (SELECT unnest(records) AS r FROM read_json_auto('{safe_path}'));
+        """)
+        results["fact_satellite_flood_7days"] = db.execute("SELECT COUNT(*) FROM fact_satellite_flood_7days").fetchone()[0]
+
+    # 9. Sync HII Flood Risk Forecast
+    hii_path = root / "data/local/satellite/hii_monthly_flood_risk.json"
+    if hii_path.exists():
+        safe_path = hii_path.as_posix().replace("'", "''")
+        db.execute(f"""
+            DELETE FROM fact_flood_risk_forecast;
+            INSERT INTO fact_flood_risk_forecast
+            SELECT
+                r.month, r.dopa_tambon_code, r.tambon_name_th, r.dopa_amphoe_code,
+                r.amphoe_name_th, r.dopa_province_code, r.province_name_th,
+                r.recurrence_17yr_count, r.risk_criteria, r.risk_level,
+                r.source_agency, r.retrieved_at, r.license_status
+            FROM (SELECT unnest(records) AS r FROM read_json_auto('{safe_path}'));
+        """)
+        results["fact_flood_risk_forecast"] = db.execute("SELECT COUNT(*) FROM fact_flood_risk_forecast").fetchone()[0]
 
     return results
 
