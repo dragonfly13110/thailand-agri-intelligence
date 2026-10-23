@@ -699,6 +699,43 @@
           "sha256": "996e6e16e866d7720fedf860afafd77cec62f8bf3dd19ede426efe3c1ed33f9d"
         }
       ]
+    },
+    {
+      "resource_key": "doae:a7ce04a9-3535-4e88-98f5-7bc50fa63b2e",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2569 (รายตำบล)",
+      "resource_id": "a7ce04a9-3535-4e88-98f5-7bc50fa63b2e",
+      "license_status": "pending",
+      "review_outcome": "reuse_terms_unresolved",
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "version": null
+      },
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Crop-year boundaries and temporal administrative mapping",
+        "Coverage is four provinces in the captured revision; completeness is unverified"
+      ],
+      "next_action": "Obtain exact reuse terms and verify period/geography before aggregation or publication.",
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5d49536d723060960490fd68b4ea59337fcd92df36e9a32f15a0278f0abe27a6",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/a7ce04a9-3535-4e88-98f5-7bc50fa63b2e/download/plan_dry_2569.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "35448b082d4aad525f637ff3f26d7fc75776e8ecc3a704d79f3816f587e69c1c"
+        }
+      ]
     }
   ]
 }

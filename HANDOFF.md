@@ -1,5 +1,23 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## ความคืบหน้าล่าสุด 23 ต.ค. 2569 เวลา 07:29 Asia/Bangkok
+
+- ทำ P0 ถัดจาก DOAE roadmap: เพิ่ม `doae-dryplant` สำหรับ capture/staging resource รายตำบลปี 2569 พร้อม bounded download 2 MiB, SHA-256, immutable revisions, quarantine และ verified resume; ใช้ helper ตัวเลข/hash เดิม ไม่เพิ่ม dependency
+- Live CSV 177,936 bytes SHA-256 `35448b082d4aad525f637ff3f26d7fc75776e8ecc3a704d79f3816f587e69c1c`: 599 source = 599 staged, quarantine 0, duplicate identity 0; 4 จังหวัด (20/46/81/90), 69 รหัสตำบลต้นทาง ศูนย์พื้นที่จริง 317 แถว และครัวเรือน null 599 แถว ไม่รับรอง coverage ทั้งประเทศหรือ temporal admin mapping
+- เทียบค่าพื้นที่/รหัสตำบล/updated_at ทุกแถวกับ raw CSV, hash raw/staging และ rerun `skipped_verified` ผ่าน หลักฐาน `data/local/probes/dryplant-staging-cli.json`, `dryplant-verification.json`; `release_at=null`, `license_status=pending`, `rollup_eligible=false` ทุกแถว ไม่เข้า warehouse หรือ public/Online
+- ทะเบียนสิทธิ์เพิ่ม exact resource เป็น 13 รายการ: CKAN ระบุ `อื่นๆ` ยังไม่ยืนยันสิทธิ์ใช้ซ้ำ ดู `docs/plan-dryplant.md` และ `docs/source-license-register.md`
+- ทดสอบรวม **166 tests ผ่าน** (15.774s), `pip check` ผ่าน หลักฐาน `data/local/probes/dryplant-cycle-tests.log`; tests เฉพาะส่วนใหม่ 4 รายการครอบคลุม null/zero/schema/quarantine/size/truncation/redirect/revisions/resume/corruption
+- งานต่อ: ตรวจ schema ไฟล์สรุปปี 2568 (มีประเทศ/ภาค/จังหวัดและ subtotal) และรายตำบลย้อนหลังแยกกันก่อน backfill; ตรวจขอบเขตปีเพาะปลูก/พื้นที่และสิทธิ์ก่อนเชื่อม Power Query หรือคำนวณ actual/plan สถานะ DAX runtime/refresh/render ยังไม่ผ่านจาก simulation
+
+คำสั่งทำต่อใน checkout นี้:
+
+```powershell
+Set-Location -LiteralPath 'D:\code\thailand-agri-intelligence'
+git status --short --branch
+.\.venv\Scripts\python.exe -X utf8 -m tadih doae-dryplant
+.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -p test_plan_dryplant.py -q
+```
+
 ## ความคืบหน้าล่าสุด (22 ต.ค. 2569 เวลา 23:28 Asia/Bangkok)
 
 ตรวจรวม 162 tests ผ่าน 100%; pip check ผ่าน. สภาพแวดล้อม: Python 3.12, DuckDB warehouse 141,699 observations ล่าสุด, exports ครบทั้ง private/public.
@@ -180,7 +198,7 @@ DOF staging เพิ่มแล้ว: `python -m tadih dof-production` ดึ
 ### C. ตรวจ Power BI ในเครื่องแล้วจึงขึ้น Online
 
 - [ ] **C1 Runtime:** เปิด PBIP, refresh ทุกตาราง, ตรวจชนิดข้อมูล/null และ relationships ใน Desktop รุ่นที่รองรับ project format
-- [x] **C2 DAX:** จำลองคำนวณ 35 measures ในเครื่องสำเร็จ (tests/test_dax_simulation.py และ docs/dax-simulation-audit.md); ยืนยัน context และ guard rails: ราคาระดับประเทศไม่ leak ลงจังหวัด, wholesale/retail ไม่เข้า farmgate, แยกหน่วยบาท/กก. ออกจากหน่วยนับเฉพาะ, อากาศรายจุดไม่เฉลี่ยรวมประเทศ, อ่างเก็บน้ำ RID 461 แห่ง (457 แห่งที่มีปริมาตรน้ำ) คำนวณถูกต้อง และ Reviewed Production kg บล็อกเป็น blank ตามสเปก
+- [ ] **C2 DAX runtime:** มี Python simulation ของ 35 measures (tests/test_dax_simulation.py และ docs/dax-simulation-audit.md) สำหรับตรวจ guard rails เบื้องต้น; ยังต้อง execute DAX ใน engine และเทียบ filter context/blank/zero/เดือนก่อนกับต้นทาง จึงยังไม่ผ่าน C2 จาก simulation เพียงอย่างเดียว
 - [ ] **C3 Report:** ทำรายงาน 5 หน้าให้ใช้ตัดสินใจได้ตามข้อ 49 ของสเปก พร้อม map/drill-down เท่าที่ข้อมูลมีจริงและแสดง quality/freshness/หน่วย/ที่มา
 - [ ] **C4 Acceptance:** ตรวจผู้ใช้จริง mobile/accessibility/privacy/RLS ตามกลุ่มผู้ใช้ที่ตกลง และแยก Official/Observed/Estimated/Forecast/Scenario/Unknown
 - [ ] **C5 Publish:** คัดชุดที่สิทธิ์ผ่านและ runtime ผ่านแล้วขึ้น Online ตั้ง refresh/credentials/gateway ตาม deployment จริง ทดสอบหลัง publish แล้วบันทึก workspace/model/report และวิธี rollback

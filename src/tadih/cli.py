@@ -26,6 +26,10 @@ def parser():
     perennial = commands.add_parser("doae-perennial", help="Capture and stage annual perennial crops; no warehouse import")
     perennial.add_argument("--output", default="data/local/raw/doae")
     perennial.add_argument("--staging", default="data/local/production/perennial-staged")
+    dryplant = commands.add_parser("doae-dryplant", help="Capture and stage DOAE 2569 dry-season plans locally")
+    dryplant.add_argument("--output", default="data/local/raw/doae")
+    dryplant.add_argument("--staging", default="data/local/production/dryplant-staged")
+    dryplant.add_argument("--refresh", action="store_true", help="Capture a new source revision; retain old bytes")
     livestock = commands.add_parser("dld-livestock-value", help="Capture national livestock value; local staging only")
     livestock.add_argument("--output", default="data/local/raw")
     fisheries = commands.add_parser("dof-production", help="Capture national fisheries quantity/value; local staging only")
@@ -146,6 +150,10 @@ def main(argv=None):
             partition = f"catalog-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}-start{args.start}"
             output = save_snapshot(envelope, args.source, args.output, partition)
             output["pagination"] = envelope.get("pagination")
+        elif args.command == "doae-dryplant":
+            from .plan_dryplant import capture_dryplant, stage_dryplant
+            raw = capture_dryplant(args.output, refresh=args.refresh)
+            output = {"raw": raw, "staging": stage_dryplant(raw["path"], args.staging)}
         elif args.command == "doae-perennial":
             from .production_perennial import fetch_perennial, stage_perennial
             raw = fetch_perennial(args.output)

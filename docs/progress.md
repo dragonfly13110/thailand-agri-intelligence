@@ -1,5 +1,13 @@
 # สถานะโครงการ 22 ตุลาคม 2569
 
+## เพิ่มเติม 23 ต.ค. 2569 เวลา 07:29 Asia/Bangkok
+
+ทำ P0 DOAE แผนเพาะปลูกฤดูแล้งปี 2569 ต่อจาก roadmap: CLI `doae-dryplant` capture/staging จริง 599 แถว, 4 จังหวัด / 69 รหัสตำบลต้นทาง, quarantine และ repeated identity เป็น 0; พื้นที่ศูนย์จริง 317 แถว ครัวเรือน null 599 แถว คงแผนแยกผลปลูกจริง ไม่ aggregate และไม่เข้า warehouse/Online เนื่องจากปีเพาะปลูก/พื้นที่ยังไม่รับรองและสิทธิ์ `อื่นๆ` คง pending
+
+ตรวจ raw/staging SHA-256, เทียบพื้นที่/รหัส/updated_at ครบ 599 แถว และ rerun จาก checkpoint ผ่าน ทะเบียน exact resources เพิ่มเป็น 13 รายการ Unit/regression รวม 166 tests ผ่าน (15.774s) และ pip check ผ่าน หลักฐาน `data/local/probes/dryplant-verification.json` และ `dryplant-cycle-tests.log` ดู [วิธีรันและขอบเขต](plan-dryplant.md)
+
+งานต่อ: ทบทวน schema รายปี/ไฟล์สรุปก่อน backfill (ปี 2568 มี subtotal ประเทศ/ภาค/จังหวัด), ยืนยัน temporal mapping/ปีเพาะปลูก/สิทธิ์ก่อนเข้าโมเดล ปรับ C2 ใน HANDOFF กลับเป็นงานค้างให้ตรงหลักฐาน เพราะ Python simulation ยังไม่ใช่ DAX engine runtime
+
 ## ความคืบหน้าล่าสุด (22 ต.ค. 2569 เวลา 23:28 Asia/Bangkok)
 
 ตรวจรวม 162 tests ผ่าน 100%; pip check ผ่าน. DuckDB warehouse 141,699 latest observations จาก 5 แหล่งข้อมูล (DOAE, ERA5, RID, OAE, MODIS).

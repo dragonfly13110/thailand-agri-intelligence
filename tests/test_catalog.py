@@ -70,8 +70,8 @@ class CatalogTests(unittest.TestCase):
 
     def test_resource_licenses_remain_pending_and_unique(self):
         resources = load_resource_licenses()
-        self.assertEqual(12, len(resources))
-        self.assertEqual(12, len({r["resource_key"] for r in resources}))
+        self.assertEqual(13, len(resources))
+        self.assertEqual(13, len({r["resource_key"] for r in resources}))
         self.assertTrue(all(r["license_status"] == "pending" for r in resources))
         self.assertTrue(all(r["project_publication_approved"] is False for r in resources))
         self.assertTrue(all(r["commercial_use_confirmed"] is False for r in resources))
