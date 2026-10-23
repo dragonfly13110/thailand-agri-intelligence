@@ -1556,6 +1556,931 @@
           "bytes": 14070
         }
       ]
+    },
+    {
+      "resource_key": "doae:42adcacf-d007-45da-b14d-9694d385fb24",
+      "source_id": "doae",
+      "resource_id": "42adcacf-d007-45da-b14d-9694d385fb24",
+      "dataset": "smce-province",
+      "name": "จำนวนวิสาหกิจชุมชน แยกตามระดับศักยภาพ ปี 2566",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=smce-province",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "d1787bb3dd7d69d823201efcdf97020134daee12c0b8b2ae1a854b57ce799ded",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/ca955fae-7ad8-43fe-a0c2-296a48c6573d/resource/42adcacf-d007-45da-b14d-9694d385fb24/download/1.-2566.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "2028f5e0b669e0be6514835c72f2e2b953052a0dee9848e4292c70142cf57dff",
+          "bytes": 14122
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:299ea6d1-fa7c-41d5-9031-8c41179aa6ad",
+      "source_id": "doae",
+      "resource_id": "299ea6d1-fa7c-41d5-9031-8c41179aa6ad",
+      "dataset": "smce-province",
+      "name": "จำนวนวิสาหกิจชุมชน แยกตามระดับศักยภาพ ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=smce-province",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "d1787bb3dd7d69d823201efcdf97020134daee12c0b8b2ae1a854b57ce799ded",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/ca955fae-7ad8-43fe-a0c2-296a48c6573d/resource/299ea6d1-fa7c-41d5-9031-8c41179aa6ad/download/-2567.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "8f8283c6ef8c9bc618870274c20d3fa25b6e2b41e19aae5db50beb311a7297cb",
+          "bytes": 14104
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:68b01319-4cdb-4cc6-8735-d993f09b1fbc",
+      "source_id": "doae",
+      "resource_id": "68b01319-4cdb-4cc6-8735-d993f09b1fbc",
+      "dataset": "smce-province",
+      "name": "จำนวนวิสาหกิจชุมชน แยกตามระดับศักยภาพ ปี 2568",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=smce-province",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "d1787bb3dd7d69d823201efcdf97020134daee12c0b8b2ae1a854b57ce799ded",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/ca955fae-7ad8-43fe-a0c2-296a48c6573d/resource/68b01319-4cdb-4cc6-8735-d993f09b1fbc/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "7500da3ef0a34e4dbf47e40a576876934a646748891a52a9e4786a2986cfe9c1",
+          "bytes": 14571
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:f96294fb-00b1-48fd-8993-b0f5cc2c3757",
+      "source_id": "doae",
+      "resource_id": "f96294fb-00b1-48fd-8993-b0f5cc2c3757",
+      "dataset": "smce",
+      "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2566",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=smce",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b3706d6cbdab23bafaf2bf05d0734af98ed750cc64806d96b4bc8f705b15571b",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/5f3de0ad-af88-4c4d-9f4a-29feb4e2f71b/resource/f96294fb-00b1-48fd-8993-b0f5cc2c3757/download/3.-2566.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "1af398b7ffc7ba0f4a46431bbdc8b81ddac75a76b8cf504552cd7d1818f9c081",
+          "bytes": 15907
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:4de8ab09-7807-44fb-a80d-b08e032f89f9",
+      "source_id": "doae",
+      "resource_id": "4de8ab09-7807-44fb-a80d-b08e032f89f9",
+      "dataset": "smce",
+      "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=smce",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b3706d6cbdab23bafaf2bf05d0734af98ed750cc64806d96b4bc8f705b15571b",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/5f3de0ad-af88-4c4d-9f4a-29feb4e2f71b/resource/4de8ab09-7807-44fb-a80d-b08e032f89f9/download/-2567.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "35ef654e0a7d2be84ec65ab4f749f2addb97f913ecbf7b70bb984035eb71fef4",
+          "bytes": 15794
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:31643387-6cd0-4b07-bb09-62af2e5710b4",
+      "source_id": "doae",
+      "resource_id": "31643387-6cd0-4b07-bb09-62af2e5710b4",
+      "dataset": "smce",
+      "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2568",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=smce",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b3706d6cbdab23bafaf2bf05d0734af98ed750cc64806d96b4bc8f705b15571b",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/5f3de0ad-af88-4c4d-9f4a-29feb4e2f71b/resource/31643387-6cd0-4b07-bb09-62af2e5710b4/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "cfd09ce5a6b417387aafdfbe671772862e0038d3814100fa08c1cfe2f385f623",
+          "bytes": 17102
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:c280820d-e70a-4269-b728-4698b086e85f",
+      "source_id": "doae",
+      "resource_id": "c280820d-e70a-4269-b728-4698b086e85f",
+      "dataset": "doae_14_02",
+      "name": "3.สินค้าวิสาหกิจชุมชน 2566.csv",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae_14_02",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5b4acdac89ebdb7d805dc0c90d6cb62b50a27bbd8333ce9ad0901b5e2c67700c",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/67736da0-0484-417d-ad12-17891d3e309f/resource/c280820d-e70a-4269-b728-4698b086e85f/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "df471d88af2d5d49737169a6c09768030c048b2d357f9d4b3cefc8b8760709e1",
+          "bytes": 62750608
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:fec755b5-dc56-416b-9f21-ddee5e07521e",
+      "source_id": "doae",
+      "resource_id": "fec755b5-dc56-416b-9f21-ddee5e07521e",
+      "dataset": "herbs-spices",
+      "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2566",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=herbs-spices",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5cdf7c2edb2ea741180b612e55b17476fc7d3b05acf4b8ce9083d9f647187838",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/47099cf0-376e-4fd2-a20c-17c185a94318/resource/fec755b5-dc56-416b-9f21-ddee5e07521e/download/6.-.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "d877fd6ff8d94cce54437d8ecdf751ed5b6cf2e081dba48f3c88e78275c415c8",
+          "bytes": 2202
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:fe66f521-d947-4fac-b20d-8b36faf90572",
+      "source_id": "doae",
+      "resource_id": "fe66f521-d947-4fac-b20d-8b36faf90572",
+      "dataset": "herbs-spices",
+      "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=herbs-spices",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5cdf7c2edb2ea741180b612e55b17476fc7d3b05acf4b8ce9083d9f647187838",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/47099cf0-376e-4fd2-a20c-17c185a94318/resource/fe66f521-d947-4fac-b20d-8b36faf90572/download/6..csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "83c904e45076b53c815ab7423b6d18e06b6d9704f3df5b82fc1ccfff06f4f730",
+          "bytes": 2468
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:3833567f-f2a8-4847-99c6-661bbdaa5ebc",
+      "source_id": "doae",
+      "resource_id": "3833567f-f2a8-4847-99c6-661bbdaa5ebc",
+      "dataset": "herbs-spices",
+      "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2568",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=herbs-spices",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5cdf7c2edb2ea741180b612e55b17476fc7d3b05acf4b8ce9083d9f647187838",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/47099cf0-376e-4fd2-a20c-17c185a94318/resource/3833567f-f2a8-4847-99c6-661bbdaa5ebc/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "6d078cc6099b8c40ccc65dd726f6343e7cc7f202cac24e4ac322b7eff938eec4",
+          "bytes": 2405
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:1d5c0d26-c4d7-4933-987e-c2360e51d977",
+      "source_id": "doae",
+      "resource_id": "1d5c0d26-c4d7-4933-987e-c2360e51d977",
+      "dataset": "econ_insect_doae",
+      "name": "มูลค่าสินค้าแมลงเศรษฐกิจ ปี 2560 - 2568",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=econ_insect_doae",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "e33c8a878bd8eed4992b4ea2c6a1875bfff834c2cedf93bfc7b3549ed685e2a2",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/72a7dd78-9439-4b27-b307-cb7491a54c8d/resource/1d5c0d26-c4d7-4933-987e-c2360e51d977/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "bba4ec3bce71c940170d63c1aa32c75367ced3a7fb6f264239fa5e04e29da2d1",
+          "bytes": 1753
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:27e3ee2c-53bb-4867-adfe-5e84a242fc08",
+      "source_id": "doae",
+      "resource_id": "27e3ee2c-53bb-4867-adfe-5e84a242fc08",
+      "dataset": "province-unified-data",
+      "name": "ข้อมูลเอกภาพระดับจังหวัด",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=province-unified-data",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "025bb538ae85c791d6be7816bac0de60f7927a00409b8e982d3fd54c451da17f",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/c562f2ff-f55a-4360-8091-bf3d95836139/resource/27e3ee2c-53bb-4867-adfe-5e84a242fc08/download/open_unity_production_province.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "fa4c743ecd1eb8d5e97fa68806bf55eeeb15979da085dc7bb0b590d20d34d747",
+          "bytes": 2795894
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:d5ea0233-8fd4-4995-97b5-3a1357fe774b",
+      "source_id": "doae",
+      "resource_id": "d5ea0233-8fd4-4995-97b5-3a1357fe774b",
+      "dataset": "doae-area-type",
+      "name": "การถือครองที่ดินเพื่อการเกษตร ปี 2562-2568.csv",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae-area-type",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5094e67c1d346bcb2247fdb83959e079a53ac867c0380e8b79c181bae4c4fd1e",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/b6e48d21-26d3-464f-b275-93a1060732eb/resource/d5ea0233-8fd4-4995-97b5-3a1357fe774b/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "e5d0f8de63c8282d9edcb4557fc568c7d405946326bbf46c800dbeaa347512ce",
+          "bytes": 66508
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:c3af447b-16ba-4328-8d8a-6639f4abd559",
+      "source_id": "doae",
+      "resource_id": "c3af447b-16ba-4328-8d8a-6639f4abd559",
+      "dataset": "online-product",
+      "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2566",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=online-product",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "525c2aca3428e2dd7c4174f80a102c49ae228d0125f28a898d2fb6f600aa0def",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0c9d3509-57f0-4b14-8304-d197b7d38736/resource/c3af447b-16ba-4328-8d8a-6639f4abd559/download/4.-66.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "da2e29be929d0d4a1f0bf37e736a3dc18beb9161a7cbef24b93d9188614baad6",
+          "bytes": 46320
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:76ad613f-c13c-4112-b85c-791112d6d2d9",
+      "source_id": "doae",
+      "resource_id": "76ad613f-c13c-4112-b85c-791112d6d2d9",
+      "dataset": "online-product",
+      "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=online-product",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "525c2aca3428e2dd7c4174f80a102c49ae228d0125f28a898d2fb6f600aa0def",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0c9d3509-57f0-4b14-8304-d197b7d38736/resource/76ad613f-c13c-4112-b85c-791112d6d2d9/download/4.-67.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "2906f13e7e5c35508f436d17a0b4ca25fb7e3ef3ca08b5630330b8cbf03d2320",
+          "bytes": 21461
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:85623373-b59c-4fa5-8208-f0566b586a68",
+      "source_id": "doae",
+      "resource_id": "85623373-b59c-4fa5-8208-f0566b586a68",
+      "dataset": "online-product",
+      "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2568",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=online-product",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "525c2aca3428e2dd7c4174f80a102c49ae228d0125f28a898d2fb6f600aa0def",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0c9d3509-57f0-4b14-8304-d197b7d38736/resource/85623373-b59c-4fa5-8208-f0566b586a68/download/untitled.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "2a8289bcb40b4c6a2a6940cd57becd60d0e2902521a4d7a2b400f3586e3ecf7a",
+          "bytes": 44695
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:4f3e12e2-fc5b-4978-aa4c-13b7367aa8fe",
+      "source_id": "doae",
+      "resource_id": "4f3e12e2-fc5b-4978-aa4c-13b7367aa8fe",
+      "dataset": "doae_15_01",
+      "name": "จำนวนครัวเรือนเกษตรกรเข้าร่วมโครงการภาครัฐ ปี 2566",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae_15_01",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "feb26c6aa16841539328640a5666c8c76d61ac0c4bb511ec79f8c1a9706798b0",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/46bd990f-6c60-4fa6-b4b1-0b9dfdb194c0/resource/4f3e12e2-fc5b-4978-aa4c-13b7367aa8fe/download/-66.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "2ec1fb4b300ae02426da7555bbe82fa75aeb3f919c68514751b0c195b78cfa8d",
+          "bytes": 4081
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:c517e6de-66da-432e-98d4-c224870fadcd",
+      "source_id": "doae",
+      "resource_id": "c517e6de-66da-432e-98d4-c224870fadcd",
+      "dataset": "doae_15_01",
+      "name": "จำนวนครัวเรือนเกษตรกรที่เข้าร่วมโครงการภาครัฐ  ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae_15_01",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "feb26c6aa16841539328640a5666c8c76d61ac0c4bb511ec79f8c1a9706798b0",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/46bd990f-6c60-4fa6-b4b1-0b9dfdb194c0/resource/c517e6de-66da-432e-98d4-c224870fadcd/download/-67.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b53d23069538fb539a733af2910ad52ace6a46a6d0a4fa95bb9d75535b4a9f31",
+          "bytes": 3963
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:3b969ad7-4b17-4a06-adb0-3f245e24f71f",
+      "source_id": "doae",
+      "resource_id": "3b969ad7-4b17-4a06-adb0-3f245e24f71f",
+      "dataset": "disaster",
+      "name": "ข้อมูลเกษตรกรผู้ประสบภัยพิบัติด้านพืช ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "License not specified",
+        "license_title": "License not specified",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=disaster",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "01f89a4052590a9472d3e65ba4ed7061bd4a41a236b00f6fad27b986d50e455a",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/50e9742a-847e-4902-bd22-d8e66265605e/resource/3b969ad7-4b17-4a06-adb0-3f245e24f71f/download/10.-67.csv",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "ed9c62de4ff8dfc473ab7e72157d356ccf4cb519f6ecba61d6a38ae47a7499a5",
+          "bytes": 41273
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:9a84a3f0-4f84-4eca-9204-6ee180be04ba",
+      "source_id": "doae",
+      "resource_id": "9a84a3f0-4f84-4eca-9204-6ee180be04ba",
+      "dataset": "doae-office-location",
+      "name": "ข้อมูลที่ตั้งสำนักงานเกษตรจังหวัดและสำนักงานเกษตรพื้นที่",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae-office-location",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "866b1991ab1252db4b1a8899a4fd6b2334da188fb5aa3977f232af7c7ff45f1a",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/44a3d0f0-52ee-4c77-a312-b82cc96480d3/resource/9a84a3f0-4f84-4eca-9204-6ee180be04ba/download/doae_office_location.jsonld",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b5dd3bfe5a90c3c556a5856df457d3f7fb339bfbbd2b141514ffd415f05ee63d",
+          "bytes": 560224
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:007e60a1-5269-4d15-bd53-b8d0f3f2ea76",
+      "source_id": "doae",
+      "resource_id": "007e60a1-5269-4d15-bd53-b8d0f3f2ea76",
+      "dataset": "agricultural-households-disaster-affected-area-province",
+      "name": "ข้อมูลครัวเรือนเกษตรและพื้นที่ได้รับผลกระทบจากภัยธรรมชาติ รายจังหวัด",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=agricultural-households-disaster-affected-area-province",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "f667e75af3dcd956f45e33f220bf512d7648e58efdb5a6267e6a5cc380769f7a",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/c1f8df9e-8c3e-4034-bc3d-9c7cf7e213c6/resource/007e60a1-5269-4d15-bd53-b8d0f3f2ea76/download/untitled.geojson",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "ca4f28cdf32a98de1b73548a4c40eb8f2c01e20b0b7b79eeeafddb6d56190e07",
+          "bytes": 4805266
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:9a0342f0-d126-490a-b3ed-236ebec467c9",
+      "source_id": "doae",
+      "resource_id": "9a0342f0-d126-490a-b3ed-236ebec467c9",
+      "dataset": "doae_14_02",
+      "name": "สินค้าวิสาหกิจชุมชน ปี 2566",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae_14_02",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5b4acdac89ebdb7d805dc0c90d6cb62b50a27bbd8333ce9ad0901b5e2c67700c",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/67736da0-0484-417d-ad12-17891d3e309f/resource/9a0342f0-d126-490a-b3ed-236ebec467c9/download/3.-2566.rar",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "e089dcbd5d9560f858b8f3559aae16b4e2fe09c82a57ab12cfeadf8a10f1e0bf",
+          "bytes": 3871877
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:495726cb-b387-41e9-9bd1-5d77981b227c",
+      "source_id": "doae",
+      "resource_id": "495726cb-b387-41e9-9bd1-5d77981b227c",
+      "dataset": "doae_14_02",
+      "name": "สินค้าวิสาหกิจชุมชน ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=doae_14_02",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5b4acdac89ebdb7d805dc0c90d6cb62b50a27bbd8333ce9ad0901b5e2c67700c",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/67736da0-0484-417d-ad12-17891d3e309f/resource/495726cb-b387-41e9-9bd1-5d77981b227c/download/-2567.rar",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "0cf63e182a2fca8e0ad6799a45e8f38f9d2877b4d1c9b8df19b216ec85b9ef7d",
+          "bytes": 3277619
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:0719c5ce-108c-4373-93e8-6b27a9176c5e",
+      "source_id": "doae",
+      "resource_id": "0719c5ce-108c-4373-93e8-6b27a9176c5e",
+      "dataset": "production_doae",
+      "name": "ข้อมูลภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=production_doae",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "be0fa7ae798aef8b3e54ef0d227054c919083cc686acea4061c4e97709da8ea9",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/0719c5ce-108c-4373-93e8-6b27a9176c5e/download/production01.rar",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "e8533193015de26e01187af9c074700f67a182bc31115babbc836618f41909e9",
+          "bytes": 2130557
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:a130f9e0-0795-4ac8-8daf-008c686c484d",
+      "source_id": "doae",
+      "resource_id": "a130f9e0-0795-4ac8-8daf-008c686c484d",
+      "dataset": "production_doae",
+      "name": "ข้อมูลภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2567",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Source semantics, units, period and temporal geography before model use",
+        "Privacy review before sharing group records or free text"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=production_doae",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "be0fa7ae798aef8b3e54ef0d227054c919083cc686acea4061c4e97709da8ea9",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/a130f9e0-0795-4ac8-8daf-008c686c484d/download/production02.rar",
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b7261d860577a277e0ea79ed73d7fdd31866d0c407ce4e74093aa99fbac55ebf",
+          "bytes": 1498326
+        }
+      ]
     }
   ]
 }

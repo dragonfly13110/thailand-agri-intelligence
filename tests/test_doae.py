@@ -138,3 +138,142 @@ class DoaeTests(unittest.TestCase):
             result = stage_csv(path, RESOURCE, schema, Path(directory) / 'staged')
             self.assertEqual(result['duplicate_identities'], 1)
             self.assertEqual(result['records'], 3)
+
+    def test_csv_encoding_and_exact_preamble(self):
+        schema = {'fields': ['จังหวัด', 'ครัวเรือน'], 'numeric_fields': ['ครัวเรือน'],
+                  'encoding': 'cp874', 'preamble': [['ชื่อโครงการ', '']]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'thai.csv'
+            path.write_bytes('ชื่อโครงการ,\r\nจังหวัด,ครัวเรือน\r\nนครปฐม,--\r\n'.encode('cp874'))
+            report = stage_csv(path, RESOURCE, schema, Path(directory) / 'staged')
+            self.assertEqual(report['records'], 1)
+            row = json.loads((Path(report['output']) / 'records.jsonl').read_text(encoding='utf-8'))
+            self.assertIsNone(row['numeric_values']['ครัวเรือน'])
+            path.write_bytes('ผิดโครงการ,\r\nจังหวัด,ครัวเรือน\r\n'.encode('cp874'))
+            with self.assertRaisesRegex(ValueError, 'preamble'):
+                stage_csv(path, RESOURCE, schema, Path(directory) / 'staged')
+
+    def test_office_json_missing_coordinates_and_bounds(self):
+        from tadih.doae import stage_json
+        schema = {'kind': 'office_jsonld', 'container': '@graph', 'max_records': 10,
+                  'fields': ['identifier', 'lat', 'long'], 'required_fields': ['identifier'],
+                  'numeric_fields': ['lat', 'long'], 'identity_fields': ['identifier']}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'office.json'
+            path.write_text(json.dumps({'@graph': [{'identifier': '01', 'lat': 13.8, 'long': 100.2},
+                                                  {'identifier': '02'}, {'identifier': '03', 'lat': 95, 'long': 100}]}), encoding='utf-8')
+            report = stage_json(path, RESOURCE, schema, Path(directory) / 'staged')
+            self.assertEqual((report['records'], report['quarantined_records']), (2, 1))
+            rows = [json.loads(x) for x in (Path(report['output']) / 'records.jsonl').read_text(encoding='utf-8').splitlines()]
+            self.assertTrue(rows[1]['missing_coordinates'])
+            self.assertIsNone(rows[1]['numeric_values']['lat'])
+            self.assertEqual(stage_json(path, RESOURCE, schema, Path(directory) / 'staged'), report)
+            path.write_text(json.dumps({'@graph': [{'identifier': '01', 'person_phone': 'private'}]}), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'schema'):
+                stage_json(path, RESOURCE, schema, Path(directory) / 'staged')
+
+    def test_geojson_ring_closure_and_unknown_properties(self):
+        from tadih.doae import stage_json
+        schema = {'kind': 'disaster_geojson', 'container': 'features', 'max_records': 100,
+                  'fields': ['type', 'geometry', 'properties'], 'required_fields': ['type', 'geometry', 'properties'],
+                  'property_fields': ['province', 'affected_area_rai'], 'numeric_fields': ['affected_area_rai'],
+                  'identity_fields': ['province']}
+        polygon = {'type': 'Feature', 'properties': {'province': 'นครปฐม', 'affected_area_rai': 0},
+                   'geometry': {'type': 'Polygon', 'coordinates': [[[100, 13], [101, 13], [101, 14], [100, 13]]]}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'province.json'
+            path.write_text(json.dumps({'type': 'FeatureCollection', 'features': [polygon]}), encoding='utf-8')
+            report = stage_json(path, RESOURCE, schema, Path(directory) / 'staged')
+            self.assertEqual(report['records'], 1)
+            polygon['geometry']['coordinates'][0][-1] = [101, 14]
+            path.write_text(json.dumps({'type': 'FeatureCollection', 'features': [polygon]}), encoding='utf-8')
+            report = stage_json(path, RESOURCE, schema, Path(directory) / 'staged')
+            self.assertEqual(report['quarantined_records'], 1)
+            polygon['geometry']['coordinates'][0] = [[100, 13, 0], [101, 13, 0], [101, 14, 0], [100, 13, 0]]
+            path.write_text(json.dumps({'type': 'FeatureCollection', 'features': [polygon]}), encoding='utf-8')
+            report = stage_json(path, RESOURCE, schema, Path(directory) / 'staged')
+            self.assertEqual(report['records'], 1)
+
+    def test_p1_json_capture_and_verifier(self):
+        from unittest.mock import patch
+        from scripts.verify_doae_p0 import verify
+        from tadih.doae import capture_file, validate_json, stage_json
+        schema = {'kind': 'office_jsonld', 'container': '@graph', 'max_records': 10,
+                  'fields': ['identifier', 'lat', 'long'], 'required_fields': ['identifier'],
+                  'numeric_fields': ['lat', 'long'], 'identity_fields': ['identifier']}
+        data = json.dumps({'@graph': [{'identifier': '01'}]}).encode()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            response = Response(data)
+            response.headers['Content-Type'] = 'application/ld+json'
+            raw = capture_file(RESOURCE, root / 'raw', lambda p: validate_json(p, schema),
+                               suffix='.json', content_types={'application/ld+json'}, opener=lambda *a, **k: response)
+            staged = stage_json(raw['path'], RESOURCE, schema, root / 'staged')
+            (root / 'config').mkdir()
+            (root / 'config/doae_p1_resources.json').write_text(json.dumps({'resources': [RESOURCE], 'schemas': {'test': schema}}), encoding='utf-8')
+            (root / 'p1-run.json').write_text(json.dumps({'status': 'success', 'planned_resources': 1, 'completed_resources': 1,
+                'results': [{'status': 'success', 'resource_id': RESOURCE['resource_id'], 'raw': raw, 'staging': staged}]}), encoding='utf-8')
+            with patch('scripts.verify_doae_p0.ROOT', root):
+                self.assertTrue(verify(root, 'p1')['all_p1_resources_verified'])
+
+    def test_archive_magic_rejects_mislabeled_csv_and_executables(self):
+        from scripts.capture_doae_archives import validate_rar
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'source.rar'
+            for signature in (b'Rar!\x1a\x07\x00', b'Rar!\x1a\x07\x01\x00'):
+                path.write_bytes(signature)
+                validate_rar(path)
+            for signature in (b'MZbinary', b'province,value\n', b'<html>error</html>'):
+                path.write_bytes(signature)
+                with self.assertRaises(ValueError):
+                    validate_rar(path)
+
+    def test_archive_stdout_extraction_bounds_resume_and_paths(self):
+        from unittest.mock import patch
+        from scripts.capture_doae_archives import extract_member
+        from tadih.production import _digest
+
+        class Process:
+            def __init__(self, data):
+                self.stdout = io.BytesIO(data)
+                self.returncode = None
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, **kwargs):
+                if self.returncode is None:
+                    self.returncode = 0
+                return self.returncode
+
+            def kill(self):
+                self.returncode = -9
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / 'source.rar'
+            archive.write_bytes(b'Rar!\x1a\x07\x01\x00')
+            record = {'resource_id': RESOURCE['resource_id'], 'inspection_exit': 0, 'regular_files_only': True,
+                      'members': ['inner.csv'], 'raw': {'path': str(archive), 'sha256': _digest(archive),
+                                                       'bytes': archive.stat().st_size, 'source_url': RESOURCE['url']}}
+            with patch('scripts.capture_doae_archives.subprocess.Popen', side_effect=lambda *a, **k: Process(b'province,value\n01,0\n')):
+                result = extract_member(record, root / 'extracted')
+            self.assertEqual(Path(result['path']).read_bytes(), b'province,value\n01,0\n')
+            self.assertEqual(extract_member(record, root / 'extracted')['action'], 'skipped_verified')
+            from scripts.verify_doae_p0 import verify
+            schema = {'fields': ['province', 'value'], 'numeric_fields': ['value']}
+            staged = stage_csv(result['path'], RESOURCE, schema, root / 'staged')
+            (root / 'config').mkdir()
+            (root / 'config/doae_archive_resources.json').write_text(json.dumps({'resources': [RESOURCE], 'schemas': {'test': schema}}), encoding='utf-8')
+            (root / 'archive-run.json').write_text(json.dumps({'planned_resources': 1, 'captures': [{**record, 'extracted': result, 'staging': staged}]}), encoding='utf-8')
+            with patch('scripts.verify_doae_p0.ROOT', root), patch('scripts.verify_doae_p0.subprocess.Popen', side_effect=lambda *a, **k: Process(b'province,value\n01,0\n')):
+                self.assertTrue(verify(root, 'archives')['all_archives_resources_verified'])
+            with self.assertRaisesRegex(ValueError, 'basename'):
+                extract_member({**record, 'members': ['../escape.csv']}, root)
+            with patch('scripts.capture_doae_archives.subprocess.Popen', side_effect=lambda *a, **k: Process(b'X' * 100)):
+                with self.assertRaisesRegex(ValueError, 'byte limit'):
+                    extract_member(record, root / 'bounded', max_bytes=8)
+                self.assertFalse(list((root / 'bounded').rglob('manifest.json')))
+            Path(result['path']).write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'corrupt'):
+                extract_member(record, root / 'extracted')

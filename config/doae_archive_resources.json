@@ -1,0 +1,183 @@
+{
+  "resources": [
+    {
+      "dataset": "doae_14_02",
+      "resource_id": "9a0342f0-d126-490a-b3ed-236ebec467c9",
+      "name": "สินค้าวิสาหกิจชุมชน ปี 2566",
+      "url": "https://ckan.doae.go.th/dataset/67736da0-0484-417d-ad12-17891d3e309f/resource/9a0342f0-d126-490a-b3ed-236ebec467c9/download/3.-2566.rar",
+      "license_status": "pending",
+      "schema": "archive_9a0342f0-d126-490a-b3ed-236ebec467c9",
+      "resource_year_be": 2566
+    },
+    {
+      "dataset": "doae_14_02",
+      "resource_id": "495726cb-b387-41e9-9bd1-5d77981b227c",
+      "name": "สินค้าวิสาหกิจชุมชน ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/67736da0-0484-417d-ad12-17891d3e309f/resource/495726cb-b387-41e9-9bd1-5d77981b227c/download/-2567.rar",
+      "license_status": "pending",
+      "schema": "archive_495726cb-b387-41e9-9bd1-5d77981b227c",
+      "resource_year_be": 2567
+    },
+    {
+      "dataset": "production_doae",
+      "resource_id": "0719c5ce-108c-4373-93e8-6b27a9176c5e",
+      "name": "ข้อมูลภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/0719c5ce-108c-4373-93e8-6b27a9176c5e/download/production01.rar",
+      "license_status": "pending",
+      "schema": "archive_0719c5ce-108c-4373-93e8-6b27a9176c5e",
+      "resource_year_be": 2567
+    },
+    {
+      "dataset": "production_doae",
+      "resource_id": "a130f9e0-0795-4ac8-8daf-008c686c484d",
+      "name": "ข้อมูลภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/a130f9e0-0795-4ac8-8daf-008c686c484d/download/production02.rar",
+      "license_status": "pending",
+      "schema": "archive_a130f9e0-0795-4ac8-8daf-008c686c484d",
+      "resource_year_be": 2567
+    }
+  ],
+  "schemas": {
+    "archive_9a0342f0-d126-490a-b3ed-236ebec467c9": {
+      "fields": [
+        "",
+        "ชื่อวิสาหกิจ",
+        " รหัสทะเบียน",
+        "กลุ่มกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรมย่อย",
+        "ชนิดสินค้าหรือบริการ",
+        "รายละเอียด"
+      ],
+      "numeric_fields": [],
+      "identity_fields": [
+        " รหัสทะเบียน",
+        "กลุ่มกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรมย่อย",
+        "ชนิดสินค้าหรือบริการ",
+        "รายละเอียด"
+      ],
+      "numeric_units": {}
+    },
+    "archive_495726cb-b387-41e9-9bd1-5d77981b227c": {
+      "fields": [
+        "ชื่อวิสาหกิจ",
+        "รหัสทะเบียน",
+        "กลุ่มกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรมย่อย",
+        "ชนิดของสินค้า หรือบริการ",
+        "ผลิตภัณฑ์"
+      ],
+      "numeric_fields": [],
+      "identity_fields": [
+        "รหัสทะเบียน",
+        "กลุ่มกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรมย่อย",
+        "ชนิดของสินค้า หรือบริการ",
+        "ผลิตภัณฑ์"
+      ],
+      "numeric_units": {}
+    },
+    "archive_0719c5ce-108c-4373-93e8-6b27a9176c5e": {
+      "fields": [
+        "Db_year",
+        "Db_month",
+        "Province_Code",
+        "Province_Name",
+        "Amphoe_Code",
+        "Amphoe_Name",
+        "Tambon_Code",
+        "Tambon_Name",
+        "Product_Code",
+        "Product_Name",
+        "Breed_Code",
+        "Breed_Name",
+        "House_Hold",
+        " Produced_Area ",
+        " Non-Produce_Area ",
+        " Total_Area ",
+        " Harvest_area ",
+        " Production "
+      ],
+      "numeric_fields": [
+        "House_Hold",
+        " Produced_Area ",
+        " Non-Produce_Area ",
+        " Total_Area ",
+        " Harvest_area ",
+        " Production "
+      ],
+      "identity_fields": [
+        "Db_year",
+        "Db_month",
+        "Province_Code",
+        "Province_Name",
+        "Amphoe_Code",
+        "Amphoe_Name",
+        "Tambon_Code",
+        "Tambon_Name",
+        "Product_Code",
+        "Product_Name",
+        "Breed_Code",
+        "Breed_Name"
+      ],
+      "numeric_units": {
+        "House_Hold": null,
+        " Produced_Area ": null,
+        " Non-Produce_Area ": null,
+        " Total_Area ": null,
+        " Harvest_area ": null,
+        " Production ": null
+      }
+    },
+    "archive_a130f9e0-0795-4ac8-8daf-008c686c484d": {
+      "fields": [
+        "db_year",
+        "db_month",
+        "pro_id",
+        "pro_name",
+        "amp_id",
+        "amp_name",
+        "tam_id",
+        "tam_name",
+        "product_id",
+        "prod_name",
+        "product_breed_id",
+        "breed_name",
+        "household",
+        " area_plant ",
+        " area_harvest ",
+        " product_harvest "
+      ],
+      "numeric_fields": [
+        "household",
+        " area_plant ",
+        " area_harvest ",
+        " product_harvest "
+      ],
+      "identity_fields": [
+        "db_year",
+        "db_month",
+        "pro_id",
+        "pro_name",
+        "amp_id",
+        "amp_name",
+        "tam_id",
+        "tam_name",
+        "product_id",
+        "prod_name",
+        "product_breed_id",
+        "breed_name"
+      ],
+      "numeric_units": {
+        "household": null,
+        " area_plant ": null,
+        " area_harvest ": null,
+        " product_harvest ": null
+      }
+    }
+  }
+}

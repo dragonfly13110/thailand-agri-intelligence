@@ -1,5 +1,23 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## ความคืบหน้าล่าสุด 23 ต.ค. 2569: P1 และ RAR ปี 2567
+
+- P1 capture/staging 21 resources (19 CSV + สำนักงาน JSON-LD + GeoJSON จังหวัด) จาก 12 datasets ครบ: **71,240,721 bytes / 202,747 source records = 202,223 staged + 524 quarantine** ตรวจ hash และเทียบทุก record ผ่าน; `data/local/probes/doae-p1-verification.json` เป็น `all_p1_resources_verified=true` และรันซ้ำครบเป็น skipped_verified
+- ตัวดึงรองรับ schema encoding/preamble ที่ตรวจจริง: ออนไลน์ปี 2567 เป็น CP874; โครงการรัฐปี 2566 มี preamble 3 บรรทัด; ออนไลน์ปี 2568 มีข้อมูลหมวดอยู่ใต้หัวมูลค่าทั้ง 524 แถว กักไว้ไม่สลับคอลัมน์เอง
+- สำนักงาน JSON-LD 955 รายการ (อำเภอ 878/จังหวัด 76/พื้นที่ 1), มีพิกัด 954 / missing 1; GeoJSON 77 features คง Polygon/MultiPolygon และ altitude ต้นทาง ไม่ถือเป็นการยืนยันขอบเขต/ปีหรือจังหวัดจากพิกัด
+- RAR 4 files (วิสาหกิจ 2566/2567 และพืชอายุสั้น/ยาว 2567) ตรวจ magic/outer SHA แล้วคลาย CSV ผ่าน stdout ลง local quarantine: compressed 10,778,379 / extracted 245,266,945 bytes; **984,720 source = 984,547 staged + 173 quarantine** ค่าในวงเล็บ 173 แถวรอยืนยัน; ไม่เดาหน่วย English fields หรือบวกซ้ำข้าม resource
+- ตรวจคลายซ้ำเป็น digest และเทียบทุกแถวผ่าน 4 resources ใน `data/local/probes/doae-archives-verification.json` เป็น `all_archives_resources_verified=true`; raw/inner/staging resume ผ่าน CSV วิสาหกิจ 2566 ใน RAR hash ตรงกับ CSV P1 จึงห้ามนับรวมซ้ำ
+- รวม 178 tests ผ่าน (22.815s), pip check ผ่าน; ตรวจทะเบียนเพิ่ม 6 tests ผ่าน หลักฐาน `data/local/probes/doae-p1-archives-tests.log`; ทะเบียนสิทธิ์รวม 58 exact resources ทั้งหมดยัง pending ไม่มี public/warehouse/Power Query/Online import จากรอบนี้
+- เอกสาร [docs/doae-p1-archives.md](docs/doae-p1-archives.md) และ [ร่าง Data Contract](docs/doae-aggregate-data-contract-draft.md) พร้อมทบทวน ยังไม่ส่งบุคคลภายนอกและไม่ได้เชื่อมฐานทะเบียนรายบุคคล
+- งานต่อ: ตรวจ source semantics/units/period และสิทธิ์, temporal DOPA crosswalk, revisions/duplicates/subtotals และ coverage, คอลัมน์ออนไลน์ 2568/ตัวเลขวงเล็บ ก่อนเข้าโมเดลและเชื่อม workflow ตาม roadmap; ห้ามตีความ staging ครบเป็น model/BI acceptance ผ่าน
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m tadih doae-p1
+.\.venv\Scripts\python.exe -X utf8 scripts/verify_doae_p0.py --priority p1
+.\.venv\Scripts\python.exe -X utf8 scripts/capture_doae_archives.py --stage
+.\.venv\Scripts\python.exe -X utf8 scripts/verify_doae_p0.py --priority archives
+```
+
 ## ความคืบหน้าล่าสุด 23 ต.ค. 2569: DOAE P0 capture/staging ครบ
 
 - เพิ่ม `doae-p0` ดึงครบ **21 CSV / 10 datasets / 9 schemas** ตาม inventory ที่ตรวจจริง: แผนฤดูแล้งปี 2561–2569 และไฟล์สรุป, รต.01-04, เฝ้าระวังขาดแคลนน้ำ, ภัยใน/นอกเขตชลประทาน, แผน/ผล/สรุปฤดูฝนและผล/สรุปฤดูแล้ง รวม 585,506,130 bytes

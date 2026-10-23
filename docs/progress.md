@@ -1,5 +1,15 @@
 # สถานะโครงการ 22 ตุลาคม 2569
 
+## DOAE P1 และ RAR เพิ่มเติม 23 ตุลาคม 2569
+
+ดึงและ staging P1 21 resources / 12 datasets: 202,747 source = 202,223 staged + 524 quarantined (ออนไลน์ปี 2568 คอลัมน์คลาดเคลื่อน) พร้อมสำนักงาน JSON-LD 955 รายการ (พิกัด missing 1) และ GeoJSON จังหวัด 77 features คง geometry 3 ค่า; source fields/code/null/หน่วย/ช่วงเวลาคงต้นทาง ไม่เข้า warehouse/BI
+
+ดาวน์โหลดและคลาย RAR 4 resources (วิสาหกิจ 2566/2567, พืชอายุสั้น/ยาว 2567) แบบจำกัดขนาด/เวลา ผ่าน stdout ไม่ใช้ path ใน archive เป็นปลายทาง: source 984,720 / staged 984,547 / quarantine 173 รูปแบบตัวเลขวงเล็บรอยืนยัน CSV วิสาหกิจ 2566 ใน RAR bytes ตรงกับ CSV P1 จึงไม่รวมจำนวนซ้ำ
+
+ตรวจ hash และเทียบทุกแถวผ่านครบ P1 21 + archives 4 พร้อมคลายซ้ำเป็น digest และ verified resume; `data/local/probes/doae-p1-verification.json`, `doae-archives-verification.json` ทดสอบรวม 178 tests ผ่าน (22.815s), pip check ผ่าน และตรวจ license registry 6 tests ผ่าน ทะเบียน exact resources รวม 58 คง pending ดู [รายละเอียด](doae-p1-archives.md)
+
+ทำ [ร่าง Data Contract](doae-aggregate-data-contract-draft.md) สำหรับสถิติรวมแล้ว ยังไม่ส่งหรือรับข้อมูลรายบุคคล งานต่อเป็น source semantics/temporal geography/coverage/revisions/สิทธิ์และการเชื่อม workflow ตาม roadmap ยังไม่รับรองความถูกต้องเชิงความหมายหรือ DAX/BI runtime จากการผ่าน staging
+
 ## DOAE P0 capture/staging ครบ 23 ตุลาคม 2569
 
 ดึง 21 CSV จาก 10 datasets รวม 585,506,130 bytes และ 1,943,298 source rows; staged 1,943,296 / quarantine 2 แถว ครอบคลุมแผนฤดูแล้งย้อนหลัง 2561–2569 (รวมไฟล์สรุปแยก), รต.01-04, เฝ้าระวังขาดแคลนน้ำ, ภัยใน/นอกเขตชลประทาน และแผน/ผล/report snapshot ฤดูฝนและแล้ง รายละเอียด [doae-p0-ingestion.md](doae-p0-ingestion.md)

@@ -45,9 +45,11 @@
 
 ## DOAE แผนเพาะปลูกฤดูแล้งปี 2569
 
-รอบ P0 ขยายทะเบียนเพิ่ม exact CSV resources ครบ 21 ไฟล์ใน 10 datasets โดยคง pending และบันทึก metadata snapshot/hash, URL และ raw CSV hash/ขนาดของทุกไฟล์ ดู [ผลดึงและขอบเขต](doae-p0-ingestion.md) ทั้งทะเบียนรวมแหล่งเดิมมี 33 รายการ ไม่มีรายการใหม่อนุมัติเผยแพร่จากการดาวน์โหลดสำเร็จ
+รอบ P1/RAR ลงทะเบียน exact resources เพิ่มอีก 25 รายการ (21 CSV/JSON/GIS + 4 RAR) รวมทั้งทะเบียนเป็น 58 รายการ คง pending ทั้งหมด พร้อม raw SHA-256/ขนาด และ dataset metadata evidence; รายกลุ่มวิสาหกิจยังเก็บภายในและรอ privacy review ดู [รายละเอียด](doae-p1-archives.md)
 
-ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 33; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
+รอบ P0 ขยายทะเบียนเพิ่ม exact CSV resources ครบ 21 ไฟล์ใน 10 datasets โดยคง pending และบันทึก metadata snapshot/hash, URL และ raw CSV hash/ขนาดของทุกไฟล์ ดู [ผลดึงและขอบเขต](doae-p0-ingestion.md) รอบ P0 ทั้งทะเบียนรวมแหล่งเดิมมี 33 รายการ ไม่มีรายการใหม่อนุมัติเผยแพร่จากการดาวน์โหลดสำเร็จ
+
+ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 58; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
 
 ## DDPM ขอบเขตจังหวัด
 

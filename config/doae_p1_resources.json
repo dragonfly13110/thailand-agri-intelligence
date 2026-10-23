@@ -1,0 +1,606 @@
+{
+  "version": 1,
+  "schemas": {
+    "smce_province_1": {
+      "fields": [
+        "พื้นที่",
+        "ระดับศักยภาพ",
+        "จำนวนวิสาหกิจชุมชน"
+      ],
+      "numeric_fields": [
+        "จำนวนวิสาหกิจชุมชน"
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "smce_province_2": {
+      "fields": [
+        "พื้นที่",
+        "ระดับศักยภาพ",
+        " จำนวนวิสาหกิจชุมชน "
+      ],
+      "numeric_fields": [
+        " จำนวนวิสาหกิจชุมชน "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "smce_3": {
+      "fields": [
+        "พื้นที่",
+        "ระดับศักยภาพ",
+        "จำนวนวิสาหกิจชุมชน",
+        "ร้อยละ"
+      ],
+      "numeric_fields": [
+        "จำนวนวิสาหกิจชุมชน",
+        "ร้อยละ"
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "smce_4": {
+      "fields": [
+        "พื้นที่",
+        "ระดับศักยภาพ",
+        "จำนวนวิสาหกิจชุมชน",
+        "ร้อยละ "
+      ],
+      "numeric_fields": [
+        "จำนวนวิสาหกิจชุมชน",
+        "ร้อยละ "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "smce_5": {
+      "fields": [
+        "พื้นที่",
+        "ระดับศักยภาพ",
+        " จำนวนวิสาหกิจชุมชน ",
+        " ร้อยละ "
+      ],
+      "numeric_fields": [
+        " จำนวนวิสาหกิจชุมชน ",
+        " ร้อยละ "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "doae_14_02_6": {
+      "fields": [
+        "",
+        "ชื่อวิสาหกิจ",
+        " รหัสทะเบียน",
+        "กลุ่มกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรมย่อย",
+        "ชนิดสินค้าหรือบริการ",
+        "รายละเอียด"
+      ],
+      "numeric_fields": [],
+      "encoding": "utf-8-sig",
+      "preamble": [],
+      "identity_fields": [
+        " รหัสทะเบียน",
+        "กลุ่มกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรม",
+        "ประเภทกิจการ/กิจกรรมย่อย",
+        "ชนิดสินค้าหรือบริการ",
+        "รายละเอียด"
+      ]
+    },
+    "herbs_spices_7": {
+      "fields": [
+        "สมุนไพร",
+        " มูลค่า (บาท) ",
+        ""
+      ],
+      "numeric_fields": [
+        " มูลค่า (บาท) "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "herbs_spices_8": {
+      "fields": [
+        "สมุนไพร",
+        " มูลค่า (บาท) "
+      ],
+      "numeric_fields": [
+        " มูลค่า (บาท) "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "econ_insect_doae_9": {
+      "fields": [
+        "สินค้า",
+        "ปี",
+        "  มูลค่า  "
+      ],
+      "numeric_fields": [
+        "  มูลค่า  "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "province_unified_data_10": {
+      "fields": [
+        "crop_year",
+        "crop_year_be",
+        "period_name",
+        "period_type",
+        "month_no",
+        "week_no",
+        "province_code",
+        "province_name",
+        "district_code",
+        "district_name",
+        "subdistrict_code",
+        "subdistrict_name",
+        "production_type",
+        "crop_code",
+        "crop_name",
+        "variety_code",
+        "variety_name",
+        "insect_code",
+        "insect_name",
+        "salt_farm_type_name",
+        "irrigation_type",
+        "household_count",
+        "planted_area",
+        "harvested_area",
+        "total_yield",
+        "yield_unit_name",
+        "yield_per_planted_rai",
+        "yield_per_harvested_rai",
+        "meeting_date",
+        "approved_at"
+      ],
+      "numeric_fields": [
+        "household_count",
+        "planted_area",
+        "harvested_area",
+        "total_yield",
+        "yield_per_planted_rai",
+        "yield_per_harvested_rai"
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "doae_area_type_11": {
+      "fields": [
+        "Province",
+        "Year",
+        "Total(Household)",
+        "Total(Area)(ไร่)",
+        "Owner(Household)",
+        "Owner(Area)(ไร่)",
+        "Rent(Household)",
+        "Rent(Area)(ไร่)",
+        "Other(Household)",
+        "Other(Area)(ไร่)"
+      ],
+      "numeric_fields": [
+        "Total(Household)",
+        "Total(Area)(ไร่)",
+        "Owner(Household)",
+        "Owner(Area)(ไร่)",
+        "Rent(Household)",
+        "Rent(Area)(ไร่)",
+        "Other(Household)",
+        "Other(Area)(ไร่)"
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "online_product_12": {
+      "fields": [
+        "พื้นที่",
+        "หมวดหมู่สินค้า",
+        "  มูลค่าการจำหน่าย  "
+      ],
+      "numeric_fields": [
+        "  มูลค่าการจำหน่าย  "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "online_product_13": {
+      "fields": [
+        "พื้นที่",
+        "หมวดหมู่สินค้า",
+        " มูลค่าการจำหน่าย "
+      ],
+      "numeric_fields": [
+        " มูลค่าการจำหน่าย "
+      ],
+      "encoding": "cp874",
+      "preamble": []
+    },
+    "online_product_14": {
+      "fields": [
+        "พื้นที่",
+        " มูลค่าการจำหน่าย ",
+        " หมวดหมู่สินค้า "
+      ],
+      "numeric_fields": [
+        " มูลค่าการจำหน่าย "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "doae_15_01_15": {
+      "fields": [
+        "จังหวัด",
+        "ครัวเรือน",
+        "เนื้อที่ (ไร่)"
+      ],
+      "numeric_fields": [
+        "ครัวเรือน",
+        "เนื้อที่ (ไร่)"
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": [
+        [
+          "จำนวนครัวเรือนเกษตรกรที่เข้าร่วมโครงการภาครัฐ 2566",
+          "",
+          ""
+        ],
+        [
+          "โครงการสนับสนุนค่าบริการจัดการและพัฒนาคุณภาพผลผลิตเกษตรกรผู้ปลูกข้าว ปีการผลิต 2566/67",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          ""
+        ]
+      ]
+    },
+    "doae_15_01_16": {
+      "fields": [
+        "จังหวัด",
+        " ครัวเรือน ",
+        " เนื้อที่ (ไร่) "
+      ],
+      "numeric_fields": [
+        " ครัวเรือน ",
+        " เนื้อที่ (ไร่) "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "disaster_17": {
+      "fields": [
+        "จังหวัด",
+        "ชนิดภัย",
+        " ครัวเรือน ",
+        " เนื้อที่เสียหาย (ไร่) "
+      ],
+      "numeric_fields": [
+        " ครัวเรือน ",
+        " เนื้อที่เสียหาย (ไร่) "
+      ],
+      "encoding": "utf-8-sig",
+      "preamble": []
+    },
+    "office_jsonld": {
+      "kind": "office_jsonld",
+      "container": "@graph",
+      "fields": [
+        "@id",
+        "@type",
+        "address",
+        "addressLocality",
+        "addressRegion",
+        "identifier",
+        "lat",
+        "long",
+        "name",
+        "officeType"
+      ],
+      "required_fields": [
+        "@id",
+        "@type",
+        "identifier",
+        "name",
+        "addressRegion",
+        "address",
+        "officeType"
+      ],
+      "numeric_fields": [
+        "lat",
+        "long"
+      ],
+      "identity_fields": [
+        "identifier"
+      ],
+      "max_records": 2000
+    },
+    "disaster_geojson": {
+      "kind": "disaster_geojson",
+      "container": "features",
+      "fields": [
+        "type",
+        "properties",
+        "geometry"
+      ],
+      "required_fields": [
+        "type",
+        "properties",
+        "geometry"
+      ],
+      "property_fields": [
+        "Name",
+        "province",
+        "total_houses",
+        "registered_agri_households",
+        "affected_households",
+        "registered_area_rai",
+        "affected_area_rai",
+        "remaining_area_rai",
+        "area_impact_percent",
+        "impact_level",
+        "Field_1",
+        "Field_2",
+        "Field_3",
+        "Field_4",
+        "Field_5",
+        "Field_6"
+      ],
+      "numeric_fields": [
+        "total_houses",
+        "registered_agri_households",
+        "affected_households",
+        "registered_area_rai",
+        "affected_area_rai",
+        "remaining_area_rai",
+        "area_impact_percent"
+      ],
+      "identity_fields": [
+        "province"
+      ],
+      "max_records": 100,
+      "position_dimensions": [
+        2,
+        3
+      ]
+    }
+  },
+  "resources": [
+    {
+      "dataset": "smce-province",
+      "resource_id": "42adcacf-d007-45da-b14d-9694d385fb24",
+      "name": "จำนวนวิสาหกิจชุมชน แยกตามระดับศักยภาพ ปี 2566",
+      "url": "https://ckan.doae.go.th/dataset/ca955fae-7ad8-43fe-a0c2-296a48c6573d/resource/42adcacf-d007-45da-b14d-9694d385fb24/download/1.-2566.csv",
+      "format": "CSV",
+      "schema": "smce_province_1",
+      "resource_year_be": 2566,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "smce-province",
+      "resource_id": "299ea6d1-fa7c-41d5-9031-8c41179aa6ad",
+      "name": "จำนวนวิสาหกิจชุมชน แยกตามระดับศักยภาพ ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/ca955fae-7ad8-43fe-a0c2-296a48c6573d/resource/299ea6d1-fa7c-41d5-9031-8c41179aa6ad/download/-2567.csv",
+      "format": "CSV",
+      "schema": "smce_province_1",
+      "resource_year_be": 2567,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "smce-province",
+      "resource_id": "68b01319-4cdb-4cc6-8735-d993f09b1fbc",
+      "name": "จำนวนวิสาหกิจชุมชน แยกตามระดับศักยภาพ ปี 2568",
+      "url": "https://ckan.doae.go.th/dataset/ca955fae-7ad8-43fe-a0c2-296a48c6573d/resource/68b01319-4cdb-4cc6-8735-d993f09b1fbc/download/untitled.csv",
+      "format": "CSV",
+      "schema": "smce_province_2",
+      "resource_year_be": 2568,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "smce",
+      "resource_id": "f96294fb-00b1-48fd-8993-b0f5cc2c3757",
+      "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2566",
+      "url": "https://ckan.doae.go.th/dataset/5f3de0ad-af88-4c4d-9f4a-29feb4e2f71b/resource/f96294fb-00b1-48fd-8993-b0f5cc2c3757/download/3.-2566.csv",
+      "format": "CSV",
+      "schema": "smce_3",
+      "resource_year_be": 2566,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "smce",
+      "resource_id": "4de8ab09-7807-44fb-a80d-b08e032f89f9",
+      "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/5f3de0ad-af88-4c4d-9f4a-29feb4e2f71b/resource/4de8ab09-7807-44fb-a80d-b08e032f89f9/download/-2567.csv",
+      "format": "CSV",
+      "schema": "smce_4",
+      "resource_year_be": 2567,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "smce",
+      "resource_id": "31643387-6cd0-4b07-bb09-62af2e5710b4",
+      "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2568",
+      "url": "https://ckan.doae.go.th/dataset/5f3de0ad-af88-4c4d-9f4a-29feb4e2f71b/resource/31643387-6cd0-4b07-bb09-62af2e5710b4/download/untitled.csv",
+      "format": "CSV",
+      "schema": "smce_5",
+      "resource_year_be": 2568,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "doae_14_02",
+      "resource_id": "c280820d-e70a-4269-b728-4698b086e85f",
+      "name": "3.สินค้าวิสาหกิจชุมชน 2566.csv",
+      "url": "https://ckan.doae.go.th/dataset/67736da0-0484-417d-ad12-17891d3e309f/resource/c280820d-e70a-4269-b728-4698b086e85f/download/untitled.csv",
+      "format": "CSV",
+      "schema": "doae_14_02_6",
+      "resource_year_be": 2566,
+      "license_status": "pending",
+      "privacy_status": "internal_group_records_review_required"
+    },
+    {
+      "dataset": "herbs-spices",
+      "resource_id": "fec755b5-dc56-416b-9f21-ddee5e07521e",
+      "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2566",
+      "url": "https://ckan.doae.go.th/dataset/47099cf0-376e-4fd2-a20c-17c185a94318/resource/fec755b5-dc56-416b-9f21-ddee5e07521e/download/6.-.csv",
+      "format": "CSV",
+      "schema": "herbs_spices_7",
+      "resource_year_be": 2566,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "herbs-spices",
+      "resource_id": "fe66f521-d947-4fac-b20d-8b36faf90572",
+      "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/47099cf0-376e-4fd2-a20c-17c185a94318/resource/fe66f521-d947-4fac-b20d-8b36faf90572/download/6..csv",
+      "format": "CSV",
+      "schema": "herbs_spices_8",
+      "resource_year_be": 2567,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "herbs-spices",
+      "resource_id": "3833567f-f2a8-4847-99c6-661bbdaa5ebc",
+      "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2568",
+      "url": "https://ckan.doae.go.th/dataset/47099cf0-376e-4fd2-a20c-17c185a94318/resource/3833567f-f2a8-4847-99c6-661bbdaa5ebc/download/untitled.csv",
+      "format": "CSV",
+      "schema": "herbs_spices_8",
+      "resource_year_be": 2568,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "econ_insect_doae",
+      "resource_id": "1d5c0d26-c4d7-4933-987e-c2360e51d977",
+      "name": "มูลค่าสินค้าแมลงเศรษฐกิจ ปี 2560 - 2568",
+      "url": "https://ckan.doae.go.th/dataset/72a7dd78-9439-4b27-b307-cb7491a54c8d/resource/1d5c0d26-c4d7-4933-987e-c2360e51d977/download/untitled.csv",
+      "format": "CSV",
+      "schema": "econ_insect_doae_9",
+      "resource_year_be": null,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "province-unified-data",
+      "resource_id": "27e3ee2c-53bb-4867-adfe-5e84a242fc08",
+      "name": "ข้อมูลเอกภาพระดับจังหวัด",
+      "url": "https://ckan.doae.go.th/dataset/c562f2ff-f55a-4360-8091-bf3d95836139/resource/27e3ee2c-53bb-4867-adfe-5e84a242fc08/download/open_unity_production_province.csv",
+      "format": "CSV",
+      "schema": "province_unified_data_10",
+      "resource_year_be": null,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "doae-area-type",
+      "resource_id": "d5ea0233-8fd4-4995-97b5-3a1357fe774b",
+      "name": "การถือครองที่ดินเพื่อการเกษตร ปี 2562-2568.csv",
+      "url": "https://ckan.doae.go.th/dataset/b6e48d21-26d3-464f-b275-93a1060732eb/resource/d5ea0233-8fd4-4995-97b5-3a1357fe774b/download/untitled.csv",
+      "format": "CSV",
+      "schema": "doae_area_type_11",
+      "resource_year_be": null,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "online-product",
+      "resource_id": "c3af447b-16ba-4328-8d8a-6639f4abd559",
+      "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2566",
+      "url": "https://ckan.doae.go.th/dataset/0c9d3509-57f0-4b14-8304-d197b7d38736/resource/c3af447b-16ba-4328-8d8a-6639f4abd559/download/4.-66.csv",
+      "format": "CSV",
+      "schema": "online_product_12",
+      "resource_year_be": 2566,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "online-product",
+      "resource_id": "76ad613f-c13c-4112-b85c-791112d6d2d9",
+      "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/0c9d3509-57f0-4b14-8304-d197b7d38736/resource/76ad613f-c13c-4112-b85c-791112d6d2d9/download/4.-67.csv",
+      "format": "CSV",
+      "schema": "online_product_13",
+      "resource_year_be": 2567,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "online-product",
+      "resource_id": "85623373-b59c-4fa5-8208-f0566b586a68",
+      "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2568",
+      "url": "https://ckan.doae.go.th/dataset/0c9d3509-57f0-4b14-8304-d197b7d38736/resource/85623373-b59c-4fa5-8208-f0566b586a68/download/untitled.csv",
+      "format": "CSV",
+      "schema": "online_product_14",
+      "resource_year_be": 2568,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "doae_15_01",
+      "resource_id": "4f3e12e2-fc5b-4978-aa4c-13b7367aa8fe",
+      "name": "จำนวนครัวเรือนเกษตรกรเข้าร่วมโครงการภาครัฐ ปี 2566",
+      "url": "https://ckan.doae.go.th/dataset/46bd990f-6c60-4fa6-b4b1-0b9dfdb194c0/resource/4f3e12e2-fc5b-4978-aa4c-13b7367aa8fe/download/-66.csv",
+      "format": "CSV",
+      "schema": "doae_15_01_15",
+      "resource_year_be": 2566,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "doae_15_01",
+      "resource_id": "c517e6de-66da-432e-98d4-c224870fadcd",
+      "name": "จำนวนครัวเรือนเกษตรกรที่เข้าร่วมโครงการภาครัฐ  ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/46bd990f-6c60-4fa6-b4b1-0b9dfdb194c0/resource/c517e6de-66da-432e-98d4-c224870fadcd/download/-67.csv",
+      "format": "CSV",
+      "schema": "doae_15_01_16",
+      "resource_year_be": 2567,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "disaster",
+      "resource_id": "3b969ad7-4b17-4a06-adb0-3f245e24f71f",
+      "name": "ข้อมูลเกษตรกรผู้ประสบภัยพิบัติด้านพืช ปี 2567",
+      "url": "https://ckan.doae.go.th/dataset/50e9742a-847e-4902-bd22-d8e66265605e/resource/3b969ad7-4b17-4a06-adb0-3f245e24f71f/download/10.-67.csv",
+      "format": "CSV",
+      "schema": "disaster_17",
+      "resource_year_be": 2567,
+      "license_status": "pending",
+      "privacy_status": "aggregate_statistics_unverified"
+    },
+    {
+      "dataset": "doae-office-location",
+      "resource_id": "9a84a3f0-4f84-4eca-9204-6ee180be04ba",
+      "name": "ข้อมูลที่ตั้งสำนักงานเกษตรจังหวัดและสำนักงานเกษตรพื้นที่",
+      "url": "https://ckan.doae.go.th/dataset/44a3d0f0-52ee-4c77-a312-b82cc96480d3/resource/9a84a3f0-4f84-4eca-9204-6ee180be04ba/download/doae_office_location.jsonld",
+      "format": "JSON-LD",
+      "schema": "office_jsonld",
+      "resource_year_be": null,
+      "license_status": "pending",
+      "privacy_status": "government_offices"
+    },
+    {
+      "dataset": "agricultural-households-disaster-affected-area-province",
+      "resource_id": "007e60a1-5269-4d15-bd53-b8d0f3f2ea76",
+      "name": "ข้อมูลครัวเรือนเกษตรและพื้นที่ได้รับผลกระทบจากภัยธรรมชาติ รายจังหวัด",
+      "url": "https://ckan.doae.go.th/dataset/c1f8df9e-8c3e-4034-bc3d-9c7cf7e213c6/resource/007e60a1-5269-4d15-bd53-b8d0f3f2ea76/download/untitled.geojson",
+      "format": "GeoJSON",
+      "schema": "disaster_geojson",
+      "resource_year_be": null,
+      "license_status": "pending",
+      "privacy_status": "province_statistics_unverified"
+    }
+  ]
+}

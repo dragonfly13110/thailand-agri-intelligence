@@ -72,9 +72,10 @@ class CatalogTests(unittest.TestCase):
         resources = load_resource_licenses()
         self.assertGreaterEqual(len(resources), 13)
         self.assertEqual(len(resources), len({r["resource_key"] for r in resources}))
-        p0 = json.loads((ROOT / 'config/doae_p0_resources.json').read_text(encoding='utf-8'))
-        self.assertTrue({r['resource_id'] for r in p0['resources']}.issubset(
-            {r.get('resource_id') for r in resources}))
+        for catalog in ('doae_p0_resources.json', 'doae_p1_resources.json', 'doae_archive_resources.json'):
+            config = json.loads((ROOT / 'config' / catalog).read_text(encoding='utf-8'))
+            self.assertTrue({r['resource_id'] for r in config['resources']}.issubset(
+                {r.get('resource_id') for r in resources}))
         self.assertTrue(all(r["license_status"] == "pending" for r in resources))
         self.assertTrue(all(r["project_publication_approved"] is False for r in resources))
         self.assertTrue(all(r["commercial_use_confirmed"] is False for r in resources))
