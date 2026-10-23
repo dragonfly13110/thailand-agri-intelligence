@@ -1,5 +1,7 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
+รอบ P2/acquisition audit วันที่ 23 ต.ค. 2569 เพิ่ม exact resource 12 รายการ (คำขอสินค้า 1, RAR รายชื่อ/ที่ตั้ง 4, reference CSV 7) รวมทะเบียน **70 รายการ** ทุกชุดยัง pending ตรวจ live catalog ครบ pagination และ raw hashes แล้ว ดู [ขอบเขต/หลักฐาน](doae-acquisition-audit.md) ข้อมูลชื่อ/รหัส/ติดต่อ/free text ไม่ออก public artifacts การรับข้อมูลครบไม่ได้อนุมัติใช้ซ้ำหรือรับรองโมเดล
+
 ตรวจวันที่ 22 และ 23 ตุลาคม 2569 (2026-10-22 และ 2026-10-23) จาก metadata และเงื่อนไขของผู้ให้บริการโดยตรง ผลแบบอ่านด้วยโปรแกรมอยู่ใน [resource_licenses.json](../config/resource_licenses.json) พร้อม URL หลักฐาน วันที่ตรวจ และ SHA-256 ของคำตอบที่ตรวจผ่านคำขอจริงเมื่อมี
 
 ยังไม่มีรายการใดถูกตั้งเป็น `approved_public` การตรวจครั้งนี้เก็บข้อเท็จจริงเรื่องสิทธิ์และเงื่อนไขที่ยังต้องปิดก่อนเผยแพร่ โดยไม่เปลี่ยนสถานะใน warehouse หรือทะเบียน sources เดิม
@@ -49,7 +51,7 @@
 
 รอบ P0 ขยายทะเบียนเพิ่ม exact CSV resources ครบ 21 ไฟล์ใน 10 datasets โดยคง pending และบันทึก metadata snapshot/hash, URL และ raw CSV hash/ขนาดของทุกไฟล์ ดู [ผลดึงและขอบเขต](doae-p0-ingestion.md) รอบ P0 ทั้งทะเบียนรวมแหล่งเดิมมี 33 รายการ ไม่มีรายการใหม่อนุมัติเผยแพร่จากการดาวน์โหลดสำเร็จ
 
-ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 58; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
+ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 70; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
 
 ## DDPM ขอบเขตจังหวัด
 

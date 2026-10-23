@@ -1,5 +1,26 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## ความคืบหน้าล่าสุด 23 ต.ค. 2569: ปิดช่องว่าง CSV acquisition และ P2 เพิ่มเติม
+
+- ตรวจ DOAE catalog ครบ 3 หน้า **201 datasets**: uitest 160 + testdataset/emptydataset 2 + Database 6 + datasets สาธารณะ 33; แก้ข้อความเดิมที่อ้างประมาณ 100 รายการ/uitest 59 ให้ตรง snapshot ล่าสุด
+- `scripts/audit_doae_acquisition.py --refresh-catalog` ตรวจ metadata pagination/hash, raw URL/ขนาด/SHA, schema/staging hashes และผลเทียบทุกแถว: **CSV ที่ catalog ระบุครบ 58/58 resources, มี capture 33/33 datasets สาธารณะ, raw hash verified 60 resources** (`data/local/probes/doae-acquisition-audit.json`) ไม่อ้างว่าได้ทุก non-CSV: ยังไม่เลือก 24 resources รวม PDF/RDF/KML/SHP และรูปแบบอื่น; reference CSV ไม่ใช่เนื้อหา PDF
+- P2 `new-agri-item-request`: 1,534 source/staged, quarantine 0, repeated identities 28; เป็นคำขอ/สถานะ ไม่ใช่ผลผลิตหรือการอนุมัติ เก็บ free text ภายในพร้อม privacy flag; CLI `doae-p2` และ verifier ผ่าน
+- RAR เพิ่มรายชื่อ/ที่ตั้งวิสาหกิจ 2566/2567 อีก 4 resources: 83,517/68,723/83,517/68,723 แถว; มีที่อยู่/อีเมล/โทรศัพท์จึงคง internal only ตอนนี้ archives ทั้ง 8 รวม **1,289,200 source = 1,289,027 staged + 173 quarantine** ตรวจคลายซ้ำและเทียบทุกแถวผ่าน (`all_archives_resources_verified=true`)
+- ดึง reference CSV 7 datasets ไว้เป็น raw index แบบ positional เก็บ blank headers ซ้ำ ไม่สร้าง observations; `data/local/doae-references/reference-run.json`; ชื่อ/ข้อมูลติดต่อในเอกสารผู้บริหารยังอยู่เฉพาะ data/local
+- Source native ปี 2567 มี Province/Amphoe/Tambon code components 2/2/2 หลัก; `data/local/probes/doae-native-code-profile.json` จึงยังไม่ถือเป็น full DOPA code หรือ temporal crosswalk ที่ผ่าน
+- รวม **182 tests ผ่าน (22.500s)**, pip check ผ่าน และตรวจทะเบียนเพิ่ม 6 tests ผ่าน; `data/local/probes/doae-p2-tests.log`; ทะเบียน exact resources รวม 70 รายการ คง pending ทั้งหมด ข้อมูลจริงยังถูก ignore ไม่มี public/warehouse/PQ/Online import
+- อ่าน [docs/doae-acquisition-audit.md](docs/doae-acquisition-audit.md) สำหรับขอบเขต/หลักฐานและ requirement matrix งานค้าง: source semantics/units/time, temporal DOPA crosswalk, revisions/subtotals/coverage, Risk Signal และ actual/plan, P1 Dimension/แผนที่/วิเคราะห์ และสิทธิ์ก่อนเข้าโมเดล; การรับ CSV ครบยังไม่ปิด roadmap ทั้งแผน
+- Database `doae_11_02/03`, `doae_12_01/02/04/05` ยังไม่ได้อ่านข้อมูลบุคคล มีร่าง aggregate Data Contract แล้ว ไม่มีการติดต่อภายนอกหรืออนุมัติสิทธิ์เอง
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m tadih doae-p2
+.\.venv\Scripts\python.exe -X utf8 scripts/capture_doae_archives.py --stage
+.\.venv\Scripts\python.exe -X utf8 scripts/capture_doae_references.py
+.\.venv\Scripts\python.exe -X utf8 scripts/verify_doae_p0.py --priority p2
+.\.venv\Scripts\python.exe -X utf8 scripts/verify_doae_p0.py --priority archives
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_doae_acquisition.py --refresh-catalog
+```
+
 ## ความคืบหน้าล่าสุด 23 ต.ค. 2569: P1 และ RAR ปี 2567
 
 - P1 capture/staging 21 resources (19 CSV + สำนักงาน JSON-LD + GeoJSON จังหวัด) จาก 12 datasets ครบ: **71,240,721 bytes / 202,747 source records = 202,223 staged + 524 quarantine** ตรวจ hash และเทียบทุก record ผ่าน; `data/local/probes/doae-p1-verification.json` เป็น `all_p1_resources_verified=true` และรันซ้ำครบเป็น skipped_verified

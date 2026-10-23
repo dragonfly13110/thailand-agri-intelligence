@@ -1,4 +1,12 @@
-# สถานะโครงการ 22 ตุลาคม 2569
+# สถานะโครงการ 23 ตุลาคม 2569
+
+## P2 และ catalog acquisition audit วันที่ 23 ตุลาคม 2569
+
+ตรวจ catalog 3 หน้าครบ 201 datasets: uitest 160, demo/empty 2, Database 6, public datasets 33 เทียบ raw กับ metadata และตรวจ hashes/schema/output/ผลเทียบทุกแถวแล้ว CSV ที่ catalog ระบุมี capture ครบ 58/58 resources, 33/33 public datasets และ raw hash ผ่าน 60 resources ยังไม่เลือก non-CSV 24 resources ไม่อ้างว่าเป็นสำเนาเทียบเท่าหรืออ่าน PDF ที่ reference CSV ลิงก์ไว้ ดู [acquisition audit และงานค้าง](doae-acquisition-audit.md)
+
+P2 เพิ่มคำขอสินค้า 1,534 แถว และ RAR รายชื่อ/ที่ตั้งวิสาหกิจ 4 resources รวม 304,480 แถว เก็บ private พร้อม privacy flags; archives ทั้ง 8 รวม source 1,289,200 / staged 1,289,027 / quarantine 173 ผ่านการคลายซ้ำและเทียบทุกแถว Reference CSV 7 ชุดเก็บ positional raw index ไม่ใช่ metric observations
+
+ทดสอบ 182 tests ผ่าน (22.500s), pip check ผ่าน และตรวจทะเบียนเพิ่ม 6 tests ผ่าน ทะเบียน exact resources 70 รายการคง pending ไม่มีข้อมูลจริงเข้า Git/public/warehouse/Power Query/Online งานต่อยังเป็นหน่วย/เวลา/พื้นที่/revisions/coverage และเชื่อม workflow/Dimension ตาม roadmap ไม่ปิดเกณฑ์เหล่านี้จากการดึง CSV ครบ
 
 ## DOAE P1 และ RAR เพิ่มเติม 23 ตุลาคม 2569
 

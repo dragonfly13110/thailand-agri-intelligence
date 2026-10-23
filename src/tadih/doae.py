@@ -154,6 +154,8 @@ def stage_csv(path, resource, schema, directory):
                           'source_fields': row, 'numeric_values': values, 'duplicate_identity': duplicate,
                           'license_status': 'pending', 'release_at': None, 'rollup_eligible': False,
                           'semantics_status': 'source_grain_units_period_and_geography_require_review'}
+                if 'privacy_status' in schema:
+                    staged['privacy_status'] = schema['privacy_status']
                 target.write(json.dumps(staged, ensure_ascii=False, allow_nan=False) + '\n')
         # Header-only resources remain evidence of zero source rows, not a fabricated observation.
         report = {'resource_id': resource['resource_id'], 'dataset': resource['dataset'], 'schema': resource['schema'],
@@ -278,7 +280,7 @@ def stage_json(path, resource, schema, directory):
 
 def run_catalog(directory, *, priority='p0', datasets=None, refresh=False):
     """Capture the reviewed inventory; failures remain explicit and other resources continue."""
-    if priority not in {'p0', 'p1'}:
+    if priority not in {'p0', 'p1', 'p2'}:
         raise ValueError('unknown DOAE priority')
     config = json.loads((ROOT / f'config/doae_{priority}_resources.json').read_text(encoding='utf-8'))
     resources = config['resources']

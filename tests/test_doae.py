@@ -35,6 +35,31 @@ class Response(io.BytesIO):
 
 
 class DoaeTests(unittest.TestCase):
+    def test_reference_duplicate_blank_headers_remain_positional(self):
+        from scripts.capture_doae_references import validate_reference
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'reference.csv'
+            path.write_text('title,url,,\nplan,https://example.org,a,b\n', encoding='utf-8')
+            resource = {'encoding': 'utf-8', 'header': ['title', 'url', '', '']}
+            self.assertEqual(validate_reference(path, resource), 1)
+            with self.assertRaisesRegex(ValueError, 'header changed'):
+                validate_reference(path, {**resource, 'header': ['title', 'url']})
+
+    def test_p2_free_text_is_marked_private_and_cli_does_not_open_warehouse(self):
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+        from tadih.cli import main
+        schema = {**SCHEMA, 'privacy_status': 'internal_free_text_review_required'}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'source.csv'
+            path.write_bytes(body([['2568', '01', '', '0', '']]))
+            staged = stage_csv(path, RESOURCE, schema, Path(directory) / 'staged')
+            row = json.loads((Path(staged['output']) / 'records.jsonl').read_text(encoding='utf-8'))
+            self.assertEqual(row['privacy_status'], schema['privacy_status'])
+            with patch('tadih.doae.run_catalog', return_value={'status': 'success'}) as run, patch('tadih.cli.connect', side_effect=AssertionError('private staging must not open warehouse')), redirect_stdout(io.StringIO()):
+                self.assertEqual(main(['doae-p2', '--output', directory]), 0)
+            run.assert_called_once_with(directory, priority='p2', refresh=False)
+
     def test_capture_stage_resume_null_zero_conflicts_and_quarantine(self):
         data = body([['2568', '01', '', '0', '2026-01-01'],
                      ['2568', '01', '', '2', '2026-01-02'],

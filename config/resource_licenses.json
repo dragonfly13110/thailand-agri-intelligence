@@ -2481,6 +2481,462 @@
           "bytes": 1498326
         }
       ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o7",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 1741,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "788e167dadccc3e6234878fd15f42753c41e4ce71a1efc40219fa9ed774238f2",
+          "url": "https://ckan.doae.go.th/dataset/07a2d4c7-6e75-4977-bd63-d357f919aea7/resource/31a17875-6d7a-4b70-abf3-c56d68635937/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "รายงานผลการดำเนินงานประจำปี",
+      "project_publication_approved": false,
+      "resource_id": "31a17875-6d7a-4b70-abf3-c56d68635937",
+      "resource_key": "doae:31a17875-6d7a-4b70-abf3-c56d68635937",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "doae_13_01",
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_id_other": "License not specified",
+        "license_title": "อื่นๆ",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 1616626,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "43407355ada46c2a758009b61434d5ba8c2ef8e57ffd80a70d1bd7eec97b21b2",
+          "url": "https://ckan.doae.go.th/dataset/23ea9557-ef00-4533-86eb-e1b6d3ce3fa8/resource/6ed1db83-a796-4d02-8bfa-d2915b24920f/download/-2566.rar"
+        }
+      ],
+      "license_status": "pending",
+      "name": "รายชื่อวิสาหกิจชุมชน 2566",
+      "project_publication_approved": false,
+      "resource_id": "6ed1db83-a796-4d02-8bfa-d2915b24920f",
+      "resource_key": "doae:6ed1db83-a796-4d02-8bfa-d2915b24920f",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "doae_13_01",
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_id_other": "License not specified",
+        "license_title": "อื่นๆ",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 1574278,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "9c4bedaeeb73930f257999740a4978e5ee89bfde5fafda249a7053337ff5fbc6",
+          "url": "https://ckan.doae.go.th/dataset/23ea9557-ef00-4533-86eb-e1b6d3ce3fa8/resource/08cfa92e-0839-4a7d-9115-5b8deed6af8e/download/-2567.rar"
+        }
+      ],
+      "license_status": "pending",
+      "name": "รายชื่อวิสาหกิจชุมชน 2567",
+      "project_publication_approved": false,
+      "resource_id": "08cfa92e-0839-4a7d-9115-5b8deed6af8e",
+      "resource_key": "doae:08cfa92e-0839-4a7d-9115-5b8deed6af8e",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o18",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 1431,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "28eb4764e9874c0ff86b1b15e4acd4107761b832988ad79ab12439b0af0e904c",
+          "url": "https://ckan.doae.go.th/dataset/299e6d18-984b-45ba-9d01-a370c2403bb7/resource/9bda9d5f-4bb9-4060-a43f-fb6438ba09e4/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "ข้อมูลสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
+      "project_publication_approved": false,
+      "resource_id": "9bda9d5f-4bb9-4060-a43f-fb6438ba09e4",
+      "resource_key": "doae:9bda9d5f-4bb9-4060-a43f-fb6438ba09e4",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "new-agri-item-request",
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_id_other": null,
+        "license_title": "Creative Commons Attributions",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 383885,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "6df30b0c8f3e0700d9c743d16a33b18e4a867b6395ed1f59f898cc581f3fd434",
+          "url": "https://ckan.doae.go.th/dataset/2e2aba1f-3413-4a8e-aafc-38daba9d60cc/resource/1e4c3d1e-8159-4999-88f9-4e2f77fe3856/download/open_crop_request_province.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "คำขอเพิ่มพืช แมลงเศรษฐกิจ และนากลือทะเลที่ไม่มีในระบบ",
+      "project_publication_approved": false,
+      "resource_id": "1e4c3d1e-8159-4999-88f9-4e2f77fe3856",
+      "resource_key": "doae:1e4c3d1e-8159-4999-88f9-4e2f77fe3856",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "location_smce",
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_id_other": "License not specified",
+        "license_title": "อื่นๆ",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 1729697,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "3e604eccf47a33ba2dd566c76e76ec8f6e1c40e5d11dea803898762e97d80fda",
+          "url": "https://ckan.doae.go.th/dataset/36c9cfe0-4580-4bd8-97d9-8b25e53737a0/resource/4e4df800-e0af-4b8f-96cb-2db0cb47928f/download/-2566.rar"
+        }
+      ],
+      "license_status": "pending",
+      "name": "ที่ตั้งวิสาหกิจชุมชน 2566",
+      "project_publication_approved": false,
+      "resource_id": "4e4df800-e0af-4b8f-96cb-2db0cb47928f",
+      "resource_key": "doae:4e4df800-e0af-4b8f-96cb-2db0cb47928f",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "location_smce",
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_id_other": "License not specified",
+        "license_title": "อื่นๆ",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 2556526,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "69b028c128552c2705fec8b5eaf2bd105cc99a3d45f174335817d8c14431351e",
+          "url": "https://ckan.doae.go.th/dataset/36c9cfe0-4580-4bd8-97d9-8b25e53737a0/resource/6c0cbeb6-44a0-4c62-9875-4c8a80152efa/download/-2567.rar"
+        }
+      ],
+      "license_status": "pending",
+      "name": "ที่ตั้งวิสาหกิจชุมชน 2567",
+      "project_publication_approved": false,
+      "resource_id": "6c0cbeb6-44a0-4c62-9875-4c8a80152efa",
+      "resource_key": "doae:6c0cbeb6-44a0-4c62-9875-4c8a80152efa",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o22",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 860,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "39d2a6e18c4b9d131b27de64fb298c8cc6e738dcce4dfda2cbed3b724e5dcecb",
+          "url": "https://ckan.doae.go.th/dataset/44fd67aa-02d4-43b5-88a8-15f22e4f1684/resource/78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "รายงานผลการดำเนินการตามแผนบริหารจัดการความเสี่ยงการทุจริตของหน่วยงาน ",
+      "project_publication_approved": false,
+      "resource_id": "78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2",
+      "resource_key": "doae:78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o2",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 2436,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "aa7e061657cd5ce8031b96f14cf3711e033a24a4ee15bacee4382a5b6d14c5f3",
+          "url": "https://ckan.doae.go.th/dataset/4c111e5e-d239-4f05-9151-6c15edcbb183/resource/ddf72077-a1e7-4477-a08c-5dc6e783b221/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "ข้อมูลผู้บริหาร",
+      "project_publication_approved": false,
+      "resource_id": "ddf72077-a1e7-4477-a08c-5dc6e783b221",
+      "resource_key": "doae:ddf72077-a1e7-4477-a08c-5dc6e783b221",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o16",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 691,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "151b2bf2f8342651516502b73c81f7b452158a6611073dd5fb833c2735e475ed",
+          "url": "https://ckan.doae.go.th/dataset/c97fd969-8907-4e8d-bafb-33cf99af5e78/resource/e780973b-9e4b-4962-897b-80b6f147de58/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "แนวปฏิบัติการจัดการเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
+      "project_publication_approved": false,
+      "resource_id": "e780973b-9e4b-4962-897b-80b6f147de58",
+      "resource_key": "doae:e780973b-9e4b-4962-897b-80b6f147de58",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o5",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 1299,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "4a5bae404d9d643d69491d1c23e2d90122f762b373f6ef831d8d4eed9fd3e37d",
+          "url": "https://ckan.doae.go.th/dataset/f11bff10-1c9b-4baa-81bf-d3615b778538/resource/c45d065e-c369-440b-bbbc-f65ef8bbb80a/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "แผนยุทธศาสตร์หรือแผนพัฒนาหน่วยงาน",
+      "project_publication_approved": false,
+      "resource_id": "c45d065e-c369-440b-bbbc-f65ef8bbb80a",
+      "resource_key": "doae:c45d065e-c369-440b-bbbc-f65ef8bbb80a",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "commercial_use_confirmed": false,
+      "dataset": "dataset_o9",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": "",
+        "license_title": "Open Data Common",
+        "license_url": null
+      },
+      "evidence": [
+        {
+          "checksum_basis": "canonical_merged_envelope_json_utf8",
+          "kind": "paginated_catalog_metadata",
+          "pages": 3,
+          "reviewed_at": "2026-10-23",
+          "sha256": "9bc908b251113a818d0b2798b7a06c720a9a67a21f6b2f74c651100826691997",
+          "url": "https://ckan.doae.go.th/api/3/action/package_search?rows=100&start=0&sort=id+asc"
+        },
+        {
+          "bytes": 2787,
+          "kind": "live_resource_bytes",
+          "reviewed_at": "2026-10-23",
+          "sha256": "a95f764df333600110fcd3fb31051d8ad9d3e37057be6dde763e5bff0189372c",
+          "url": "https://ckan.doae.go.th/dataset/f773f186-477b-47f9-b597-ca1b48ef7834/resource/92e59366-d941-441b-b5fd-b64d0dad578e/download/untitled.csv"
+        }
+      ],
+      "license_status": "pending",
+      "name": "คู่มือหรือแนวทางการขอรับบริการสำหรับผู้รับบริการ หรือผู้มาติดต่อ",
+      "project_publication_approved": false,
+      "resource_id": "92e59366-d941-441b-b5fd-b64d0dad578e",
+      "resource_key": "doae:92e59366-d941-441b-b5fd-b64d0dad578e",
+      "source_id": "doae",
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Privacy review of identifiers, contacts, names and free text before any sharing",
+        "Source semantics and time/geography before model use"
+      ]
     }
   ]
 }

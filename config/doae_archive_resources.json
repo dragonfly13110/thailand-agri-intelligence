@@ -35,6 +35,46 @@
       "license_status": "pending",
       "schema": "archive_a130f9e0-0795-4ac8-8daf-008c686c484d",
       "resource_year_be": 2567
+    },
+    {
+      "dataset": "doae_13_01",
+      "license_status": "pending",
+      "name": "รายชื่อวิสาหกิจชุมชน 2566",
+      "privacy_status": "internal_only_identifiers_contacts_free_text_review_required",
+      "resource_id": "6ed1db83-a796-4d02-8bfa-d2915b24920f",
+      "resource_year_be": 2566,
+      "schema": "archive_6ed1db83-a796-4d02-8bfa-d2915b24920f",
+      "url": "https://ckan.doae.go.th/dataset/23ea9557-ef00-4533-86eb-e1b6d3ce3fa8/resource/6ed1db83-a796-4d02-8bfa-d2915b24920f/download/-2566.rar"
+    },
+    {
+      "dataset": "doae_13_01",
+      "license_status": "pending",
+      "name": "รายชื่อวิสาหกิจชุมชน 2567",
+      "privacy_status": "internal_only_identifiers_contacts_free_text_review_required",
+      "resource_id": "08cfa92e-0839-4a7d-9115-5b8deed6af8e",
+      "resource_year_be": 2567,
+      "schema": "archive_08cfa92e-0839-4a7d-9115-5b8deed6af8e",
+      "url": "https://ckan.doae.go.th/dataset/23ea9557-ef00-4533-86eb-e1b6d3ce3fa8/resource/08cfa92e-0839-4a7d-9115-5b8deed6af8e/download/-2567.rar"
+    },
+    {
+      "dataset": "location_smce",
+      "license_status": "pending",
+      "name": "ที่ตั้งวิสาหกิจชุมชน 2566",
+      "privacy_status": "internal_only_identifiers_contacts_free_text_review_required",
+      "resource_id": "4e4df800-e0af-4b8f-96cb-2db0cb47928f",
+      "resource_year_be": 2566,
+      "schema": "archive_4e4df800-e0af-4b8f-96cb-2db0cb47928f",
+      "url": "https://ckan.doae.go.th/dataset/36c9cfe0-4580-4bd8-97d9-8b25e53737a0/resource/4e4df800-e0af-4b8f-96cb-2db0cb47928f/download/-2566.rar"
+    },
+    {
+      "dataset": "location_smce",
+      "license_status": "pending",
+      "name": "ที่ตั้งวิสาหกิจชุมชน 2567",
+      "privacy_status": "internal_only_identifiers_contacts_free_text_review_required",
+      "resource_id": "6c0cbeb6-44a0-4c62-9875-4c8a80152efa",
+      "resource_year_be": 2567,
+      "schema": "archive_6c0cbeb6-44a0-4c62-9875-4c8a80152efa",
+      "url": "https://ckan.doae.go.th/dataset/36c9cfe0-4580-4bd8-97d9-8b25e53737a0/resource/6c0cbeb6-44a0-4c62-9875-4c8a80152efa/download/-2567.rar"
     }
   ],
   "schemas": {
@@ -178,6 +218,80 @@
         " area_harvest ": null,
         " product_harvest ": null
       }
+    },
+    "archive_08cfa92e-0839-4a7d-9115-5b8deed6af8e": {
+      "fields": [
+        "ชื่อวิสาหกิจ",
+        " รหัสทะเบียน",
+        "วันที่ขึ้นทะเบียน",
+        "จำนวนสมาชิกวิสาหกิจ",
+        "วันที่ต่ออายุ"
+      ],
+      "identity_fields": [
+        " รหัสทะเบียน"
+      ],
+      "numeric_fields": [
+        "จำนวนสมาชิกวิสาหกิจ"
+      ],
+      "privacy_status": "internal_only_no_public_records"
+    },
+    "archive_4e4df800-e0af-4b8f-96cb-2db0cb47928f": {
+      "fields": [
+        "ชื่อวิสาหกิจ",
+        "เลขทะเบียนวิสาหกิจชุมชน",
+        "บ้านเลขที่",
+        "หมู่",
+        "ถนน",
+        "จังหวัด",
+        "อำเภอ/เขต",
+        "ตำบล",
+        "รหัสไปษณีย์",
+        "อีเมล"
+      ],
+      "identity_fields": [
+        "เลขทะเบียนวิสาหกิจชุมชน"
+      ],
+      "numeric_fields": [],
+      "privacy_status": "internal_only_no_public_records"
+    },
+    "archive_6c0cbeb6-44a0-4c62-9875-4c8a80152efa": {
+      "fields": [
+        "ชื่อวิสาหกิจ",
+        "เลขทะเบียนวิสาหกิจ",
+        "วันที่ขึ้นทะเบียนสำเร็จ",
+        "ประเภทวิสาหกิจ",
+        "พื้นที่เขต",
+        "ที่อยู่",
+        "จังหวัด",
+        "อำเภอ",
+        "ตำบล",
+        "รหัสไปรษณีย์",
+        "อีเมล",
+        "เบอร์ติดต่อ",
+        "เพจเฟสบุ๊ค",
+        "ไลน์ไอดี"
+      ],
+      "identity_fields": [
+        "เลขทะเบียนวิสาหกิจ"
+      ],
+      "numeric_fields": [],
+      "privacy_status": "internal_only_no_public_records"
+    },
+    "archive_6ed1db83-a796-4d02-8bfa-d2915b24920f": {
+      "fields": [
+        "ชื่อวิสาหกิจ",
+        " รหัสทะเบียน",
+        "วันที่อนุมัติ",
+        "จำนวนสมาชิก",
+        "วันที่ต่ออายุ"
+      ],
+      "identity_fields": [
+        " รหัสทะเบียน"
+      ],
+      "numeric_fields": [
+        "จำนวนสมาชิก"
+      ],
+      "privacy_status": "internal_only_no_public_records"
     }
   }
 }

@@ -1,0 +1,42 @@
+{
+  "resources": [
+    {
+      "dataset": "new-agri-item-request",
+      "license_status": "pending",
+      "name": "คำขอเพิ่มพืช แมลงเศรษฐกิจ และนากลือทะเลที่ไม่มีในระบบ",
+      "resource_id": "1e4c3d1e-8159-4999-88f9-4e2f77fe3856",
+      "resource_year_be": null,
+      "schema": "crop_request",
+      "url": "https://ckan.doae.go.th/dataset/2e2aba1f-3413-4a8e-aafc-38daba9d60cc/resource/1e4c3d1e-8159-4999-88f9-4e2f77fe3856/download/open_crop_request_province.csv"
+    }
+  ],
+  "schemas": {
+    "crop_request": {
+      "fields": [
+        "request_type",
+        "requested_group_name",
+        "requested_crop_name",
+        "requested_variety_name",
+        "requested_category_code",
+        "request_reason",
+        "status",
+        "requester_level",
+        "current_level",
+        "requester_province_code",
+        "requester_province_name",
+        "requester_district_code",
+        "requester_district_name",
+        "created_crop_code",
+        "created_crop_name",
+        "created_variety_code",
+        "created_variety_name",
+        "created_at",
+        "reviewed_at",
+        "updated_at"
+      ],
+      "numeric_fields": [],
+      "privacy_status": "internal_free_text_review_required"
+    }
+  },
+  "version": 1
+}

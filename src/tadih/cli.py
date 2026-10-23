@@ -38,6 +38,9 @@ def parser():
     doae_p1.add_argument("--output", default="data/local/doae-p1")
     doae_p1.add_argument("--dataset", action="append")
     doae_p1.add_argument("--refresh", action="store_true")
+    doae_p2 = commands.add_parser("doae-p2", help="Capture reviewed public P2 requests locally; free text remains private")
+    doae_p2.add_argument("--output", default="data/local/doae-p2")
+    doae_p2.add_argument("--refresh", action="store_true")
     livestock = commands.add_parser("dld-livestock-value", help="Capture national livestock value; local staging only")
     livestock.add_argument("--output", default="data/local/raw")
     fisheries = commands.add_parser("dof-production", help="Capture national fisheries quantity/value; local staging only")
@@ -158,6 +161,11 @@ def main(argv=None):
             partition = f"catalog-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}-start{args.start}"
             output = save_snapshot(envelope, args.source, args.output, partition)
             output["pagination"] = envelope.get("pagination")
+        elif args.command == "doae-p2":
+            from .doae import run_catalog
+            output = run_catalog(args.output, priority='p2', refresh=args.refresh)
+            print(json.dumps(output, ensure_ascii=False, indent=2))
+            return 0 if output['status'] == 'success' else 1
         elif args.command == "doae-p1":
             from .doae import run_catalog
             output = run_catalog(args.output, priority='p1', datasets=args.dataset, refresh=args.refresh)

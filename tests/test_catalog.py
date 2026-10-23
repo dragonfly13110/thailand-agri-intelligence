@@ -72,7 +72,8 @@ class CatalogTests(unittest.TestCase):
         resources = load_resource_licenses()
         self.assertGreaterEqual(len(resources), 13)
         self.assertEqual(len(resources), len({r["resource_key"] for r in resources}))
-        for catalog in ('doae_p0_resources.json', 'doae_p1_resources.json', 'doae_archive_resources.json'):
+        for catalog in ('doae_p0_resources.json', 'doae_p1_resources.json', 'doae_p2_resources.json',
+                        'doae_archive_resources.json', 'doae_reference_resources.json'):
             config = json.loads((ROOT / 'config' / catalog).read_text(encoding='utf-8'))
             self.assertTrue({r['resource_id'] for r in config['resources']}.issubset(
                 {r.get('resource_id') for r in resources}))

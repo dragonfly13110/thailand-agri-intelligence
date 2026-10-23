@@ -62,7 +62,7 @@ def _archive_report(directory):
 
 
 def verify(directory, priority='p0'):
-    assert priority in {'p0', 'p1', 'archives'}
+    assert priority in {'p0', 'p1', 'p2', 'archives'}
     directory = Path(directory)
     report = _archive_report(directory) if priority == 'archives' else json.loads((directory / f'{priority}-run.json').read_text(encoding='utf-8'))
     config_file = 'doae_archive_resources.json' if priority == 'archives' else f'doae_{priority}_resources.json'
@@ -133,7 +133,7 @@ def verify(directory, priority='p0'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', nargs='?')
-    parser.add_argument('--priority', choices=('p0', 'p1', 'archives'), default='p0')
+    parser.add_argument('--priority', choices=('p0', 'p1', 'p2', 'archives'), default='p0')
     parser.add_argument('--output')
     args = parser.parse_args()
     result = verify(args.directory or f'data/local/doae-{args.priority}', args.priority)

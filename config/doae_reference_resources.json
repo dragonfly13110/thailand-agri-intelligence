@@ -1,0 +1,122 @@
+{
+  "resources": [
+    {
+      "dataset": "dataset_o7",
+      "encoding": "utf-8-sig",
+      "header": [
+        " ชื่อเรื่อง ",
+        "รายละเอียด  ",
+        "ปีที่เผยแพร่",
+        "URL เล่มรายงาน"
+      ],
+      "license_status": "pending",
+      "name": "รายงานผลการดำเนินงานประจำปี",
+      "resource_id": "31a17875-6d7a-4b70-abf3-c56d68635937",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/07a2d4c7-6e75-4977-bd63-d357f919aea7/resource/31a17875-6d7a-4b70-abf3-c56d68635937/download/untitled.csv"
+    },
+    {
+      "dataset": "dataset_o18",
+      "encoding": "utf-8-sig",
+      "header": [
+        "ปี",
+        "เดือน",
+        "ประเภท",
+        "จำนวนเรื่องร้องเรียน",
+        "อยู่ระหว่างดำเนินการ",
+        "ดำเนินการแล้วเสร็จ"
+      ],
+      "license_status": "pending",
+      "name": "ข้อมูลสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
+      "resource_id": "9bda9d5f-4bb9-4060-a43f-fb6438ba09e4",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/299e6d18-984b-45ba-9d01-a370c2403bb7/resource/9bda9d5f-4bb9-4060-a43f-fb6438ba09e4/download/untitled.csv"
+    },
+    {
+      "dataset": "dataset_o22",
+      "encoding": "utf-8-sig",
+      "header": [
+        " ชื่อเรื่อง ",
+        "รายละเอียด  ",
+        "ปีที่เผยแพร่",
+        "URL ที่เก็บไฟล์ต้นทาง  ",
+        ""
+      ],
+      "license_status": "pending",
+      "name": "รายงานผลการดำเนินการตามแผนบริหารจัดการความเสี่ยงการทุจริตของหน่วยงาน ",
+      "resource_id": "78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/44fd67aa-02d4-43b5-88a8-15f22e4f1684/resource/78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2/download/untitled.csv"
+    },
+    {
+      "dataset": "dataset_o2",
+      "encoding": "utf-8-sig",
+      "header": [
+        "ปี พ.ศ.",
+        "คำนำหน้า",
+        "ชื่อ",
+        "สกุล",
+        "ตำแหน่ง",
+        "เบอร์โทร",
+        "URL รูปถ่าย",
+        "URL หนังสือมอบอำนาจ"
+      ],
+      "license_status": "pending",
+      "name": "ข้อมูลผู้บริหาร",
+      "resource_id": "ddf72077-a1e7-4477-a08c-5dc6e783b221",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/4c111e5e-d239-4f05-9151-6c15edcbb183/resource/ddf72077-a1e7-4477-a08c-5dc6e783b221/download/untitled.csv"
+    },
+    {
+      "dataset": "dataset_o16",
+      "encoding": "utf-8-sig",
+      "header": [
+        " ชื่อเรื่อง ",
+        "รายละเอียด  ",
+        "ปีที่เผยแพร่",
+        "URL ที่เก็บไฟล์ต้นทาง  ",
+        "",
+        ""
+      ],
+      "license_status": "pending",
+      "name": "แนวปฏิบัติการจัดการเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
+      "resource_id": "e780973b-9e4b-4962-897b-80b6f147de58",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/c97fd969-8907-4e8d-bafb-33cf99af5e78/resource/e780973b-9e4b-4962-897b-80b6f147de58/download/untitled.csv"
+    },
+    {
+      "dataset": "dataset_o5",
+      "encoding": "utf-8-sig",
+      "header": [
+        " ชื่อเรื่อง ",
+        "รายละเอียด  ",
+        "ปีที่เริ่มแผน",
+        "ปีที่สิ้นสุดแผน",
+        "URL ไฟล์เล่มแผน"
+      ],
+      "license_status": "pending",
+      "name": "แผนยุทธศาสตร์หรือแผนพัฒนาหน่วยงาน",
+      "resource_id": "c45d065e-c369-440b-bbbc-f65ef8bbb80a",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/f11bff10-1c9b-4baa-81bf-d3615b778538/resource/c45d065e-c369-440b-bbbc-f65ef8bbb80a/download/untitled.csv"
+    },
+    {
+      "dataset": "dataset_o9",
+      "encoding": "utf-8-sig",
+      "header": [
+        " ชื่อเรื่อง ",
+        "รายละเอียด  ",
+        "ปีที่เผยแพร่",
+        "URL ที่เก็บไฟล์ต้นทาง  ",
+        "",
+        "",
+        ""
+      ],
+      "license_status": "pending",
+      "name": "คู่มือหรือแนวทางการขอรับบริการสำหรับผู้รับบริการ หรือผู้มาติดต่อ",
+      "resource_id": "92e59366-d941-441b-b5fd-b64d0dad578e",
+      "scope": "raw_reference_index_only",
+      "url": "https://ckan.doae.go.th/dataset/f773f186-477b-47f9-b597-ca1b48ef7834/resource/92e59366-d941-441b-b5fd-b64d0dad578e/download/untitled.csv"
+    }
+  ]
+}
