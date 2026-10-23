@@ -4,6 +4,13 @@
 
 รอบเอกสารนี้ปรับ [README](../README.md), [AGENTS](../AGENTS.md), [runbook](runbook.md), [roadmap DOAE](doae-catalog-expansion.md) และ [คู่มือ Power BI](../powerbi/README.md) ให้ชี้เป้าหมายศูนย์ข้อมูลเกษตรทั้งประเทศและเช็กลิสต์เดียวกัน อ้างหลักฐาน acquisition/geography/cleanup ที่มีอยู่ ไม่ได้ดึงข้อมูลใหม่ นำเข้า warehouse เผยแพร่ หรือทดสอบ DAX เพิ่ม
 
+## ระบบจัดการ Environment Variables (.env) และ Open Government Data Client (opend.data.go.th) 23 ต.ค. 2569
+
+- จัดทำไฟล์ต้นแบบ `.env.example` และสร้างไฟล์คอนฟิกในเครื่อง `.env` (ป้องกันด้วย `.gitignore` อย่างปลอดภัย) สำหรับกรอก API Key จากระบบศูนย์กลางข้อมูลเปิดภาครัฐ (`https://opend.data.go.th/register_api/profile.php`) และระบบ DOAE CKAN
+- พัฒนาโมดูล `src/tadih/env.py` สำหรับโหลด `.env` เข้าสู่ `os.environ` อัตโนมัติโดยไม่ต้องพึ่งพา external package พร้อมฟังก์ชันช่วยดึงค่า `get_opend_api_key()`, `get_doae_api_key()`
+- พัฒนาโมดูล `src/tadih/opend_client.py` สำหรับเรียกใช้งาน API บริการ `Opend` (opend-search) ด้วยมาตรฐาน Header `api-key` และสคริปต์ตรวจสอบสถานะ `scripts/test_opend_connection.py`
+- เพิ่ม unit tests 5 รายการใน `tests/test_env.py` ทดสอบการ parse `.env`, การมาสก์คีย์ (Masked Key เช่น `....fun4`), การส่ง Header และการดักจับข้อผิดพลาด (ผ่านรวม 222 tests 100%)
+
 ## สัญญาและส่วนต่อประสานการแบ่งปันข้อมูลสำหรับหน่วยงานพันธมิตร (Data Sharing Interface & External Partner API Contracts) 23 ต.ค. 2569
 
 - เพิ่มสัญญาข้อมูล `data_contracts/data_sharing.schema.json` รองรับมาตรฐาน JSON Schema draft-2020-12 สำหรับ Data Sharing Feeds และ Inter-Agency API Responses
