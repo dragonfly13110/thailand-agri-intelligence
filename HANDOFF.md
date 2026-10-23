@@ -1,5 +1,12 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## ตรวจภูมิศาสตร์ DOAE ในเครื่อง 23 ต.ค. 2569
+
+- เพิ่ม `scripts/audit_doae_geography.py` ใช้ raw 21 resources 2,757,305 แถว ตรวจชื่อและรหัสกับ DOPA snapshot ปี 2566 โดยย่อเป็น 92,226 area signatures ใน `data/local/doae-geography/` (CSV 26.9 MB ตรรกะ, บีบอัด NTFS) ไม่โหลดข้อมูลเพิ่ม
+- รหัสและชื่อสามระดับตรง snapshot 2,579,775 แถว; ขัดกัน 947, ไม่อยู่ใน active 385, รหัสมีแต่ชื่อยังจับคู่ไม่ครบ 3,366; ไม่มีรหัส 158,007; hierarchy ไม่ครบ 14,824; mock ผิดรูปแบบ 1 แถว ดู [หลักฐานและขอบเขต](docs/doae-geography-audit.md)
+- `province_unified_data_10` มีแถวจังหวัด 1,320 และอำเภอ 13,504 แถวแยก grain ไม่จัดเป็นข้อมูลตำบลหรือ data error อัตโนมัติ; temporal validity ยังไม่ยืนยันและ `rollup_eligible=False` ทุกแถว
+- ตรวจ CSV output SHA, จำนวนแถวและสถานะกลับกับ inventory ของทั้ง 21 resources ผ่าน; focused geography tests 5 ผ่าน งานต่อ: source grain ของชุดเอกภาพ, รหัสขัดกัน, temporal DOPA และหน่วย/รอบเวลา ก่อนเชื่อมโมเดล สิทธิ์ยัง pending
+
 ## ลดพื้นที่ข้อมูลในเครื่อง 23 ต.ค. 2569
 
 - หยุดโหลดเพิ่มตามคำสั่งเจ้าของงาน ตรวจ repository รวมประมาณ 6.38 GB; ก้อนหลักคือ DOAE raw/staging และ private exports ไม่แตะข้อมูลของโครงการอื่น
