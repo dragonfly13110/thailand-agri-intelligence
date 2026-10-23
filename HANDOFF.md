@@ -1,5 +1,23 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## ความคืบหน้าล่าสุด 23 ต.ค. 2569: DOAE P0 capture/staging ครบ
+
+- เพิ่ม `doae-p0` ดึงครบ **21 CSV / 10 datasets / 9 schemas** ตาม inventory ที่ตรวจจริง: แผนฤดูแล้งปี 2561–2569 และไฟล์สรุป, รต.01-04, เฝ้าระวังขาดแคลนน้ำ, ภัยใน/นอกเขตชลประทาน, แผน/ผล/สรุปฤดูฝนและผล/สรุปฤดูแล้ง รวม 585,506,130 bytes
+- **1,943,298 source rows = 1,943,296 staged + 2 quarantined**; ไม่ใช่ warehouse observations เพิ่มใหม่ แผนฤดูแล้งครบ 10 CSV รวม 1,857,553 แถว แยก subtotal ประเทศ/ภาค/จังหวัดออกจากรายตำบล
+- รต.01-02 มีเพียง 1 แถว `(mock)` ทั้งแถว เข้า quarantine จึงยังไม่มีข้อมูลพืชจริงจาก resource นี้; นาเกลือแถว 37 มี `area_start_rai=-384.0` เข้า quarantine ไม่แก้เป็นศูนย์ แมลงมี repeated identities 48 / เกลือ 96 เก็บทุกแถวไว้ไม่รวมยอด; snapshot ใช้ `reported_at` เป็นส่วนหนึ่งของ grain
+- ตรวจ hash raw/staging และเทียบ source fields/ตัวเลข/เลขแถวกับ CSV **ครบทั้ง 1,943,298 แถว** ผ่าน `scripts/verify_doae_p0.py`: `verified_resources=21`, `all_p0_resources_verified=true`; `data/local/probes/doae-p0-verification.json` รันซ้ำครบ 21 resources เป็น `skipped_verified` ไม่มี network ใหม่ (`doae-p0-resume-cli.json`)
+- Unit/regression **172 tests ผ่าน (19.820s)**, pip check ผ่าน; `data/local/probes/doae-p0-tests.log`; ทดสอบ downloader ร่วมกับคำสั่งปี 2569 เดิม ผ่าน null/zero/schema/quarantine/revisions/bounds/corruption/partial failure และ verifier
+- ทะเบียนสิทธิ์ exact resources รวม 33 รายการ คง pending ทั้งหมด ข้อมูลอยู่ใน `data/local/doae-p0/` ซึ่ง gitignore; release null ไม่ใช้ approved_at/updated_at/reported_at แทนวันเผยแพร่ ไม่มี warehouse import, public export, Power Query หรือ Online จากชุดนี้
+- เอกสารหลัก [docs/doae-p0-ingestion.md](docs/doae-p0-ingestion.md) และบัญชี `config/doae_p0_resources.json`; source metadata หลักฐานอยู่ `data/local/probes/doae-p0-inventory.json`
+- **งานต่อ:** ดึง P1 ตาม roadmap (สำนักงานเกษตร/GIS สถิติพื้นที่ประสบภัย วิสาหกิจชุมชน สมุนไพร/แมลง) หลังตรวจ schema/ขอบเขตความเป็นส่วนตัว; ตรวจ native units/period, DOPA temporal crosswalk, revisions และ coverage ของ P0 ก่อนใช้ Risk Signal หรือคำนวณ actual/plan; P2 RAR และ data contract ยังค้าง ไม่มีการติดต่อบุคคลภายนอกหรือรับรองสิทธิ์
+
+```powershell
+Set-Location -LiteralPath 'D:\code\thailand-agri-intelligence'
+git status --short --branch
+.\.venv\Scripts\python.exe -X utf8 -m tadih doae-p0
+.\.venv\Scripts\python.exe -X utf8 scripts/verify_doae_p0.py
+```
+
 ## ความคืบหน้าล่าสุด 23 ต.ค. 2569 เวลา 07:29 Asia/Bangkok
 
 - ทำ P0 ถัดจาก DOAE roadmap: เพิ่ม `doae-dryplant` สำหรับ capture/staging resource รายตำบลปี 2569 พร้อม bounded download 2 MiB, SHA-256, immutable revisions, quarantine และ verified resume; ใช้ helper ตัวเลข/hash เดิม ไม่เพิ่ม dependency

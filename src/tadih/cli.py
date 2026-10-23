@@ -30,6 +30,10 @@ def parser():
     dryplant.add_argument("--output", default="data/local/raw/doae")
     dryplant.add_argument("--staging", default="data/local/production/dryplant-staged")
     dryplant.add_argument("--refresh", action="store_true", help="Capture a new source revision; retain old bytes")
+    doae_p0 = commands.add_parser("doae-p0", help="Capture and stage all reviewed P0 DOAE CSV resources locally")
+    doae_p0.add_argument("--output", default="data/local/doae-p0")
+    doae_p0.add_argument("--dataset", action="append", help="Limit to a reviewed dataset; repeat for multiple datasets")
+    doae_p0.add_argument("--refresh", action="store_true")
     livestock = commands.add_parser("dld-livestock-value", help="Capture national livestock value; local staging only")
     livestock.add_argument("--output", default="data/local/raw")
     fisheries = commands.add_parser("dof-production", help="Capture national fisheries quantity/value; local staging only")
@@ -150,6 +154,11 @@ def main(argv=None):
             partition = f"catalog-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}-start{args.start}"
             output = save_snapshot(envelope, args.source, args.output, partition)
             output["pagination"] = envelope.get("pagination")
+        elif args.command == "doae-p0":
+            from .doae import run_p0
+            output = run_p0(args.output, datasets=args.dataset, refresh=args.refresh)
+            print(json.dumps(output, ensure_ascii=False, indent=2))
+            return 0 if output['status'] == 'success' else 1
         elif args.command == "doae-dryplant":
             from .plan_dryplant import capture_dryplant, stage_dryplant
             raw = capture_dryplant(args.output, refresh=args.refresh)

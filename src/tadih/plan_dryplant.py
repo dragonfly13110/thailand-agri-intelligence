@@ -1,15 +1,11 @@
 """Local staging of the DOAE 2569 subdistrict dry-season plan; no actuals inferred."""
 import csv
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
 import tempfile
-from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 
 from .catalog import load_provinces
-from .ingestion import trusted_ssl_context
 from .production import _digest, _json, _number
 
 RESOURCE_ID = 'a7ce04a9-3535-4e88-98f5-7bc50fa63b2e'
@@ -34,51 +30,11 @@ def _header(path):
 
 
 def capture_dryplant(output_dir, *, refresh=False, opener=None):
-    """Bounded CSV download with atomic checkpoint and hash-verified offline resume."""
-    directory = Path(output_dir) / 'doae_dryplant_2569'
-    directory.mkdir(parents=True, exist_ok=True)
-    checkpoint = directory / 'manifest.json'
-    if checkpoint.exists() and not refresh:
-        record = json.loads(checkpoint.read_text(encoding='utf-8'))
-        checksum = record.get('sha256', '')
-        if not re.fullmatch('[0-9a-f]{64}', checksum):
-            raise ValueError('invalid dryplant checkpoint')
-        artifact = directory / (checksum + '.csv')
-        if (record.get('source_url') != SOURCE_URL or record.get('resource_id') != RESOURCE_ID
-                or not artifact.is_file() or not 0 < artifact.stat().st_size <= MAX_BYTES
-                or artifact.stat().st_size != record.get('bytes') or _digest(artifact) != checksum):
-            raise ValueError('dryplant checkpoint missing or corrupt')
-        _header(artifact)
-        return {**record, 'path': str(artifact.resolve()), 'action': 'skipped_verified'}
-    context = trusted_ssl_context() if opener is None else None
-    request = Request(SOURCE_URL, headers={'User-Agent': 'TADIH bounded-dryplant-ingest'})
-    response = urlopen(request, timeout=30, context=context) if opener is None else opener(request, timeout=30)
-    with tempfile.TemporaryDirectory(dir=directory) as tmp, response:
-        parsed = urlparse(response.geturl())
-        if parsed.scheme != 'https' or parsed.hostname != 'ckan.doae.go.th':
-            raise ValueError('dryplant redirect outside source host')
-        length = response.headers.get('Content-Length')
-        if (response.headers.get('Content-Type', '').split(';')[0].lower() != 'text/csv'
-                or (length is not None and not 0 < int(length) <= MAX_BYTES)):
-            raise ValueError('dryplant response must be CSV within 2 MiB')
-        body = response.read(MAX_BYTES + 1)
-        if not 0 < len(body) <= MAX_BYTES or (length is not None and len(body) != int(length)):
-            raise ValueError('dryplant download size invalid')
-        target = Path(tmp) / 'download.csv'
-        target.write_bytes(body)
-        _header(target)
-        checksum = _digest(target)
-        artifact = directory / (checksum + '.csv')
-        if artifact.exists() and _digest(artifact) != checksum:
-            raise ValueError('dryplant artifact corrupt')
-        if not artifact.exists():
-            target.replace(artifact)
-        record = {'source_id': 'doae', 'source_url': SOURCE_URL, 'resource_id': RESOURCE_ID,
-                  'sha256': checksum, 'bytes': len(body), 'retrieved_at': datetime.now(timezone.utc).isoformat(),
-                  'license_status': 'pending', 'release_at': None}
-        _json(Path(tmp) / 'manifest.json', record)
-        (Path(tmp) / 'manifest.json').replace(checkpoint)
-    return {**record, 'path': str(artifact.resolve()), 'action': 'fetched'}
+    """Use the shared bounded capture while retaining the original checkpoint path."""
+    from .doae import capture_csv
+    return capture_csv({'resource_id': RESOURCE_ID, 'url': SOURCE_URL}, FIELDS,
+                       Path(output_dir) / 'doae_dryplant_2569', refresh=refresh,
+                       max_bytes=MAX_BYTES, opener=opener)
 
 
 def stage_dryplant(path, output_dir):

@@ -1,5 +1,15 @@
 # สถานะโครงการ 22 ตุลาคม 2569
 
+## DOAE P0 capture/staging ครบ 23 ตุลาคม 2569
+
+ดึง 21 CSV จาก 10 datasets รวม 585,506,130 bytes และ 1,943,298 source rows; staged 1,943,296 / quarantine 2 แถว ครอบคลุมแผนฤดูแล้งย้อนหลัง 2561–2569 (รวมไฟล์สรุปแยก), รต.01-04, เฝ้าระวังขาดแคลนน้ำ, ภัยใน/นอกเขตชลประทาน และแผน/ผล/report snapshot ฤดูฝนและแล้ง รายละเอียด [doae-p0-ingestion.md](doae-p0-ingestion.md)
+
+ตรวจ hash และเทียบ source fields/ตัวเลข/ลำดับทุกแถวกับ raw CSV ผ่านครบทั้ง 21 resources ผล `all_p0_resources_verified=true` ใน `data/local/probes/doae-p0-verification.json` รันซ้ำทุก resource เป็น skipped_verified; ทดสอบรวม 172 tests ผ่าน (19.820s), pip check ผ่าน และทะเบียน exact resources เพิ่มเป็น 33 รายการ คง pending ทุกชุด
+
+ข้อค้นพบ: resource รต.01-02 มีเพียงแถว mock ซึ่งกักไว้ จึงยังไม่มีข้อมูลพืชจริงจาก endpoint นี้; นาเกลือมีค่าพื้นที่ติดลบ 1 แถวกักไว้ แมลง/เกลือมี repeated identities 48/96 เก็บทั้งหมด; report snapshot คง reported_at ใน grain ไม่มีการรวม subtotal, หน่วย หรือช่วงเวลา และยังไม่เข้า warehouse/Power BI
+
+งานต่อคือ P1 และ P2 ตาม roadmap พร้อม semantic/temporal/geographic/license review ก่อนเชื่อมโมเดล การดึง P0 ครบยังไม่ใช่การจบแผน DOAE หรือเกณฑ์รับรองโครงการทั้งหมด
+
 ## เพิ่มเติม 23 ต.ค. 2569 เวลา 07:29 Asia/Bangkok
 
 ทำ P0 DOAE แผนเพาะปลูกฤดูแล้งปี 2569 ต่อจาก roadmap: CLI `doae-dryplant` capture/staging จริง 599 แถว, 4 จังหวัด / 69 รหัสตำบลต้นทาง, quarantine และ repeated identity เป็น 0; พื้นที่ศูนย์จริง 317 แถว ครัวเรือน null 599 แถว คงแผนแยกผลปลูกจริง ไม่ aggregate และไม่เข้า warehouse/Online เนื่องจากปีเพาะปลูก/พื้นที่ยังไม่รับรองและสิทธิ์ `อื่นๆ` คง pending

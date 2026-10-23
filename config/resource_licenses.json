@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "reviewed_at": "2026-10-22",
+  "reviewed_at": "2026-10-23",
   "scope": "Exact resources currently investigated for Thailand Core",
   "review_kind": "read_only_official_metadata_and_terms",
   "automatic_approval": false,
@@ -734,6 +734,826 @@
           "kind": "live_resource_csv",
           "reviewed_at": "2026-10-23",
           "sha256": "35448b082d4aad525f637ff3f26d7fc75776e8ecc3a704d79f3816f587e69c1c"
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:a021c314-9754-4a60-b33b-16d5c3c149e2",
+      "source_id": "doae",
+      "name": "แผนเพาะปลูกพืชฤดูแล้ง ปี 2568",
+      "resource_id": "a021c314-9754-4a60-b33b-16d5c3c149e2",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/a021c314-9754-4a60-b33b-16d5c3c149e2/download/untitled.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/a021c314-9754-4a60-b33b-16d5c3c149e2/download/untitled.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "722759eb74c1cddf6a4ffbc38aeeecc9dc8c959bc0e15a15af8a47e1527423ad",
+          "bytes": 106596
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:8b0cdb9e-222c-4159-a511-20d7bcfe770b",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2561 (รายตำบล)",
+      "resource_id": "8b0cdb9e-222c-4159-a511-20d7bcfe770b",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/8b0cdb9e-222c-4159-a511-20d7bcfe770b/download/plan_dry_2561.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/8b0cdb9e-222c-4159-a511-20d7bcfe770b/download/plan_dry_2561.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "3c6d383a2e0bbf01ff0dfe7606caf69d860b4684657abee07918a556847d7920",
+          "bytes": 38247505
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:e9fcaf21-8200-42b0-a542-134559f64606",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2562 (รายตำบล)",
+      "resource_id": "e9fcaf21-8200-42b0-a542-134559f64606",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/e9fcaf21-8200-42b0-a542-134559f64606/download/plan_dry_2562.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/e9fcaf21-8200-42b0-a542-134559f64606/download/plan_dry_2562.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "7fb4acc73d895d46122ee6db59bb7807ba57e2f0f683be4bad5bb819548472ef",
+          "bytes": 35569820
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:28fbb070-1440-496f-9ffa-38cf713e7ed7",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2563 (รายตำบล)",
+      "resource_id": "28fbb070-1440-496f-9ffa-38cf713e7ed7",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/28fbb070-1440-496f-9ffa-38cf713e7ed7/download/plan_dry_2563.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/28fbb070-1440-496f-9ffa-38cf713e7ed7/download/plan_dry_2563.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "996b90736aef4a02bcf25cb89aa6cfbfec82544a4d3aee811dffe26c8963f3fe",
+          "bytes": 78075328
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:3e5de90c-3acf-4fa8-8f2c-b8d2bc8aed17",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2564 (รายตำบล)",
+      "resource_id": "3e5de90c-3acf-4fa8-8f2c-b8d2bc8aed17",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/3e5de90c-3acf-4fa8-8f2c-b8d2bc8aed17/download/plan_dry_2564.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/3e5de90c-3acf-4fa8-8f2c-b8d2bc8aed17/download/plan_dry_2564.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5f605c1c82faf0fec3fa8e80e9913825792b719ceeaba9b76cff806cd6288256",
+          "bytes": 79232471
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:fa213dea-8b56-4841-aec8-0b332e4e95ba",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2565 (รายตำบล)",
+      "resource_id": "fa213dea-8b56-4841-aec8-0b332e4e95ba",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/fa213dea-8b56-4841-aec8-0b332e4e95ba/download/plan_dry_2565.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/fa213dea-8b56-4841-aec8-0b332e4e95ba/download/plan_dry_2565.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "472c5641c0d995ae1ebdbf64a03546e013ff9f6a118263a4b584993102b3880d",
+          "bytes": 79393373
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:cb2bc7bf-2c43-4aa5-bd5f-d586d41e7a33",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2566 (รายตำบล)",
+      "resource_id": "cb2bc7bf-2c43-4aa5-bd5f-d586d41e7a33",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/cb2bc7bf-2c43-4aa5-bd5f-d586d41e7a33/download/plan_dry_2566.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/cb2bc7bf-2c43-4aa5-bd5f-d586d41e7a33/download/plan_dry_2566.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "f60426b1fb4ddddaffff291a3005f1addacacf1720b9f783a5e217af39cf4386",
+          "bytes": 80561257
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:b4147770-f110-4cb2-8bcf-2ab5eaab0b16",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2567 (รายตำบล)",
+      "resource_id": "b4147770-f110-4cb2-8bcf-2ab5eaab0b16",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/b4147770-f110-4cb2-8bcf-2ab5eaab0b16/download/plan_dry_2567.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/b4147770-f110-4cb2-8bcf-2ab5eaab0b16/download/plan_dry_2567.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "223c69ac686c570881fa745c8f3794f76e30c098f78d96fab5c197f716724e69",
+          "bytes": 82272245
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:5ee61ad3-7815-49a0-bb95-734c83cc31df",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูแล้ง ปี 2568 (รายตำบล)",
+      "resource_id": "5ee61ad3-7815-49a0-bb95-734c83cc31df",
+      "dataset": "plan_dryplant",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "อื่นๆ",
+        "license_title": "อื่นๆ",
+        "license_url": null,
+        "license_id_other": "License not specified"
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "c0f61498efad7c7d2cc8a9fbafc7a82b98ecc8190af29eb56198dc2bdb9bbc42",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/5ee61ad3-7815-49a0-bb95-734c83cc31df/download/plan_dry_2568.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/75f215f5-18a2-4426-83fd-d9465bfd0f6f/resource/5ee61ad3-7815-49a0-bb95-734c83cc31df/download/plan_dry_2568.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "d4848a51775242fc832525b28d9b80de08622dfaf662eb1bc0b07e9738b073bb",
+          "bytes": 80695424
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:708bd8c5-c85a-40d0-ac12-43113e88104f",
+      "source_id": "doae",
+      "name": "ข้อมูลภาวะการผลิตพืช (รต.01-02)",
+      "resource_id": "708bd8c5-c85a-40d0-ac12-43113e88104f",
+      "dataset": "production-rt01-04",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=production-rt01-04",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "17d94e2d9ce986b82095faa43b0dc2506524ad4965331b1203160128334ae942",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/def56b85-0e71-465e-bba2-8b8902f757b8/resource/708bd8c5-c85a-40d0-ac12-43113e88104f/download/open_rot_crop_production_subdistrict.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/def56b85-0e71-465e-bba2-8b8902f757b8/resource/708bd8c5-c85a-40d0-ac12-43113e88104f/download/open_rot_crop_production_subdistrict.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "89b658048efe38df372a8ec782e66802c6d98ffba582678ad3872e75529816ec",
+          "bytes": 1117
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:7e4758b0-5945-42ed-b75d-4196f07199b5",
+      "source_id": "doae",
+      "name": "ข้อมูลภาวะการผลิตแมลงเศรษฐกิจ (รต.03)",
+      "resource_id": "7e4758b0-5945-42ed-b75d-4196f07199b5",
+      "dataset": "production-rt01-04",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=production-rt01-04",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "17d94e2d9ce986b82095faa43b0dc2506524ad4965331b1203160128334ae942",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/def56b85-0e71-465e-bba2-8b8902f757b8/resource/7e4758b0-5945-42ed-b75d-4196f07199b5/download/open_rot_insect_production_subdistrict.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/def56b85-0e71-465e-bba2-8b8902f757b8/resource/7e4758b0-5945-42ed-b75d-4196f07199b5/download/open_rot_insect_production_subdistrict.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "dd5d3d3ef17921eda72f8efb428300457950bc38b25878ece74b3ba591de2836",
+          "bytes": 30091255
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:c4b0f207-5c19-4736-a607-a036bec721ab",
+      "source_id": "doae",
+      "name": "ข้อมูลภาวะการผลิตนาเกลือทะเล (รต.04)",
+      "resource_id": "c4b0f207-5c19-4736-a607-a036bec721ab",
+      "dataset": "production-rt01-04",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=production-rt01-04",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "17d94e2d9ce986b82095faa43b0dc2506524ad4965331b1203160128334ae942",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/def56b85-0e71-465e-bba2-8b8902f757b8/resource/c4b0f207-5c19-4736-a607-a036bec721ab/download/open_rot_salt_production_subdistrict.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/def56b85-0e71-465e-bba2-8b8902f757b8/resource/c4b0f207-5c19-4736-a607-a036bec721ab/download/open_rot_salt_production_subdistrict.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "16b9aa13923d5861ee828f1758fdb2ee44a9e05a16d630980ae7e0513ddccb76",
+          "bytes": 164677
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:8cc3c8e7-3206-4411-b33a-c62c5d3554d7",
+      "source_id": "doae",
+      "name": "พื้นที่เฝ้าระวังเสี่ยงขาดแคลนน้ำ",
+      "resource_id": "8cc3c8e7-3206-4411-b33a-c62c5d3554d7",
+      "dataset": "water-shortage-risk-area",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=water-shortage-risk-area",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "117f9a8a93c7f5cda966407781212a689f0a4ca90f2ad9c79428ed99abe2c432",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/04911784-ce7e-4480-b70d-38f6dbfb5979/resource/8cc3c8e7-3206-4411-b33a-c62c5d3554d7/download/open_drought_risk_area_subdistrict.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/04911784-ce7e-4480-b70d-38f6dbfb5979/resource/8cc3c8e7-3206-4411-b33a-c62c5d3554d7/download/open_drought_risk_area_subdistrict.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "db18cfe98bb7fbe7f834a39f36381eb3a07203f26d243cf52ad81d03ec1be004",
+          "bytes": 13561
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:ab68661c-52d7-4cdc-86b6-efdaf92a785e",
+      "source_id": "doae",
+      "name": "พื้นที่เพาะปลูกในเขตชลประทานที่ได้รับผลกระทบจากภัยน้ำท่วมเเละภัยแล้ง",
+      "resource_id": "ab68661c-52d7-4cdc-86b6-efdaf92a785e",
+      "dataset": "disaster_inthearea",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=disaster_inthearea",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "71b3438bc026ece7171be6e60ecc3d61edbb4601a92748e9ecee5456d1f224e1",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/91edf316-3f31-4959-9db9-decec96e4dba/resource/ab68661c-52d7-4cdc-86b6-efdaf92a785e/download/untitled.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/91edf316-3f31-4959-9db9-decec96e4dba/resource/ab68661c-52d7-4cdc-86b6-efdaf92a785e/download/untitled.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "9822798cfa03fd43f26eb887f31e55df3c9d8f366450c5af740ef39a62a42819",
+          "bytes": 361936
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:9e118afd-62fc-47ce-95b0-f47dcaee5721",
+      "source_id": "doae",
+      "name": "พื้นที่เพาะปลูกนอกเขตชลประทานที่ได้รับผลกระทบจากภัยน้ำท่วมเเละภัยแล้ง.csv",
+      "resource_id": "9e118afd-62fc-47ce-95b0-f47dcaee5721",
+      "dataset": "disaster_outsidethearea",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_title": "Open Data Common",
+        "license_url": null,
+        "license_id_other": ""
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=disaster_outsidethearea",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "07067920de4f7f1be3c251ae98dedffe6272def1a5c36326ed944ed46aac0632",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/98d554c1-b180-4240-a378-40ccdab13cd0/resource/9e118afd-62fc-47ce-95b0-f47dcaee5721/download/untitled.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/98d554c1-b180-4240-a378-40ccdab13cd0/resource/9e118afd-62fc-47ce-95b0-f47dcaee5721/download/untitled.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "e4833bb6d69c5b4cf08e7c2b0636b261489b01845cadfd5aed9d89b9f1e5206d",
+          "bytes": 377842
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:bfdbb893-65a7-4e89-8588-146836185d56",
+      "source_id": "doae",
+      "name": "แผนการเพาะปลูกพืชฤดูฝน",
+      "resource_id": "bfdbb893-65a7-4e89-8588-146836185d56",
+      "dataset": "rainy-season-crop-plan",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=rainy-season-crop-plan",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "1f59dfc5023e981f7837bf1d46baa9201c9be2a30056f28584c638317f5bebe6",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0845adb5-b4cc-463c-865c-512da3431231/resource/bfdbb893-65a7-4e89-8588-146836185d56/download/open_season_planting_plan_subdistrict.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0845adb5-b4cc-463c-865c-512da3431231/resource/bfdbb893-65a7-4e89-8588-146836185d56/download/open_season_planting_plan_subdistrict.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "4f9628c371e11506b55a1aed348dbd281751d1297557d95eb43e5bb93f963f62",
+          "bytes": 132305
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:2c912a86-9bf3-4b5f-b69a-aec1d5e449d9",
+      "source_id": "doae",
+      "name": "รายงานผลการเพาะปลูกพืชฤดูฝน",
+      "resource_id": "2c912a86-9bf3-4b5f-b69a-aec1d5e449d9",
+      "dataset": "rainy-season-crop-result",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=rainy-season-crop-result",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "2217445af55398dd752457e34d1f6059a9dc1db86e7cc2df69f31752d4c5f137",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/a9eb6315-5a65-4591-9e5c-be706b5e6395/resource/2c912a86-9bf3-4b5f-b69a-aec1d5e449d9/download/open_moac_planting_province.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/a9eb6315-5a65-4591-9e5c-be706b5e6395/resource/2c912a86-9bf3-4b5f-b69a-aec1d5e449d9/download/open_moac_planting_province.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "f4d1a57269560c6c75f6ab13e1ef98e2b042111148a3af3c3a2b1b810ea1181b",
+          "bytes": 716
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:bc327a6a-a85d-40ac-a195-a5a6d76875ff",
+      "source_id": "doae",
+      "name": "สรุปรายงานผลการเพาะปลูกพืชฤดูฝน",
+      "resource_id": "bc327a6a-a85d-40ac-a195-a5a6d76875ff",
+      "dataset": "rainy-season-crop-summary-moa",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=rainy-season-crop-summary-moa",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "99d18772bd3ed827865b6fe23dd1ec449d9916298564d539fc9bed21802a268e",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0b9a5905-e93b-42bf-acdd-610bad9eeb4f/resource/bc327a6a-a85d-40ac-a195-a5a6d76875ff/download/open_moac_report_snapshot_province.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/0b9a5905-e93b-42bf-acdd-610bad9eeb4f/resource/bc327a6a-a85d-40ac-a195-a5a6d76875ff/download/open_moac_report_snapshot_province.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "fb661d88ee13549bc629d185a8545d970f889ea52ad2d001cc0b5f17839cf610",
+          "bytes": 14834
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:923bd35e-ff7d-4958-80df-54871063544d",
+      "source_id": "doae",
+      "name": "รายงานผลการเพาะปลูกพืชฤดูแล้ง",
+      "resource_id": "923bd35e-ff7d-4958-80df-54871063544d",
+      "dataset": "dry-season-crop-result",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=dry-season-crop-result",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "2b601e8129a02c77ea3ce7d26fedf1ea294fdae845bfe94df2f49f0244fade3d",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/30879ce7-66fb-4df4-b220-a1af5885dbe6/resource/923bd35e-ff7d-4958-80df-54871063544d/download/open_moac_planting_province.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/30879ce7-66fb-4df4-b220-a1af5885dbe6/resource/923bd35e-ff7d-4958-80df-54871063544d/download/open_moac_planting_province.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "b047b1521f4b8433b498f68c2f0e1000a3403e9de3c3da2159b7bf7cf2a489e6",
+          "bytes": 1862
+        }
+      ]
+    },
+    {
+      "resource_key": "doae:2c282c8b-c1cd-415c-8be5-d7cecafe90a4",
+      "source_id": "doae",
+      "name": "สรุปรายงานผลการเพาะปลูกพืชฤดูแล้ง",
+      "resource_id": "2c282c8b-c1cd-415c-8be5-d7cecafe90a4",
+      "dataset": "dry-season-crop-summary-moa",
+      "license_status": "pending",
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "declared_license": {
+        "license_id": "Creative Commons Attributions",
+        "license_title": "Creative Commons Attributions",
+        "license_url": null,
+        "license_id_other": null
+      },
+      "unresolved": [
+        "Exact resource reuse and redistribution terms",
+        "Native period, units, administrative mapping and completeness before model use"
+      ],
+      "evidence": [
+        {
+          "url": "https://ckan.doae.go.th/api/3/action/package_show?id=dry-season-crop-summary-moa",
+          "kind": "live_dataset_metadata",
+          "reviewed_at": "2026-10-23",
+          "sha256": "5ec8a723b999a0efc188ee12888de7330d7d77441efe91a23cfdd822a9356409",
+          "checksum_basis": "canonical_snapshot_envelope_json_utf8"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/b594b2e4-42df-4fdf-ae78-9fedf226f996/resource/2c282c8b-c1cd-415c-8be5-d7cecafe90a4/download/open_moac_report_snapshot_province.csv",
+          "kind": "live_csv_header_review",
+          "reviewed_at": "2026-10-23"
+        },
+        {
+          "url": "https://ckan.doae.go.th/dataset/b594b2e4-42df-4fdf-ae78-9fedf226f996/resource/2c282c8b-c1cd-415c-8be5-d7cecafe90a4/download/open_moac_report_snapshot_province.csv",
+          "kind": "live_resource_csv",
+          "reviewed_at": "2026-10-23",
+          "sha256": "ce91f1bb3e8dc4070825a3f419267b5f64b076980388416e1b5097d0bec2f58a",
+          "bytes": 14070
         }
       ]
     }
