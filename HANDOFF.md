@@ -16,10 +16,11 @@
 - [x] สร้างกลไกกระทบยอดแผน-ผลเพาะปลูก (Plan vs Actual Reconciliation Engine) พร้อม Fail-Closed Guard Rails: พิสูจน์ทางคณิตศาสตร์ว่าแผนฤดูฝน 2569 (477 แถว 3 จังหวัด) และผล (3 แถว 1 จังหวัด) มีพื้นที่ไม่ทับซ้อนกัน `{20, 40, 94} ∩ {10} = ∅` และแผนฤดูแล้ง 2569 (4 จังหวัด) กับผล (5 จังหวัด) ไม่มีพื้นที่ตรงกัน คืนสถานะ `INCOMPARABLE` พร้อมเหตุผลชัดเจน ป้องกันการสรุปผลสัมฤทธิ์เป็นเปอร์เซ็นต์ลวง ([plan reconciliation](docs/plan-actual-reconciliation.md), `data/local/probes/plan-actual-reconciliation.json`)
 - [x] สร้างทะเบียนโครงการเกษตรข้ามหน่วยงาน (Cross-Agency Agricultural Project Register) และ Data Contract: ร่างสัญญาข้อมูล JSON schema ตามมาตรฐานสากล, บันทึกทะเบียนโครงการสำคัญ 5 โครงการ (DOAE สนับสนุนรัฐ 2566-2567, นบข. ไร่ละ 1,000, DOAE เยียวยาภัยพิบัติ, LDD Agri-Map Zoning) พร้อมกลไกวิเคราะห์ความครอบคลุมเชิงพื้นที่ ช่องว่าง และความซ้ำซ้อนของโครงการ ([project register](docs/project-register.md), [project schema](data_contracts/project.schema.json), `data/local/probes/project-register-audit.json`)
 - [x] สร้างเครื่องมือชี้เป้าปัญหาเชิงพื้นที่ตามหลักฐานจริงและการจับคู่โครงการ (Spatial Evidence & Policy Intervention Matching Engine): สกัดหลักฐานความเสียหายจากอุทกภัย (1.83 ล้านไร่ 60 จังหวัด) ภัยแล้ง (1.67 หมื่นไร่ 2 จังหวัด) และพื้นที่เสี่ยงขาดแคลนน้ำจาก DOAE P0 พร้อมคัดแยกข้อมูล mock Test (9,999 ล้านไร่ จ.ชลบุรี) ออกโดยเด็ดขาด; กระทบยอดกับทะเบียนโครงการพบ: COVERED 12 จังหวัด, REDUNDANT 3 จังหวัด, UNADDRESSED_GAP 46 จังหวัด (พบความเสียหายจริงแต่ไม่มีโครงการเยียวยาเฉพาะพื้นที่ เช่น บุรีรัมย์ สระบุรี อุบลราชธานี ร้อยเอ็ด), และ NO_IDENTIFIED_PROBLEM 16 จังหวัด โดยไม่มีการประดิษฐ์คะแนนความเสี่ยงสังเคราะห์ ([spatial evidence](docs/spatial-evidence-matching.md), [spatial evidence schema](data_contracts/spatial_evidence.schema.json), `data/local/probes/spatial-evidence-audit.json`)
+- [x] ออกแบบกลไกการแลกเปลี่ยนและแบ่งปันข้อมูล (Data Sharing Interface & External Partner API Contracts): สัญญาข้อมูล JSON Schema draft-2020-12 สำหรับ 4 จุดเชื่อมต่อหลัก (/v1/catalog, /v1/coverage, /v1/spatial-evidence, /v1/projects) รองรับ สศก. (OAE), ชลประทาน (RID), พัฒนาที่ดิน (LDD), ธ.ก.ส. (BAAC), กสก. (DOAE) และสาธารณะ พร้อมระบบ License Gating กักกันข้อมูล pending ไม่ให้รั่วไหล, การตรวจสอบความสมบูรณ์ข้อมูลด้วย SHA-256 Payload Digest, และการส่งออก Partner Feed Export Bundle พร้อม manifest ([data sharing](docs/data-sharing-interface.md), [data sharing schema](data_contracts/data_sharing.schema.json), `data/local/probes/data-sharing-audit.json`)
 
 ### ค้างและลำดับงาน
 
-- [ ] **เริ่มงานรอบถัดไป:** ออกแบบกลไกการแลกเปลี่ยน/แบ่งปันข้อมูล (Data Sharing Interface / API contracts) ให้หน่วยงานพันธมิตร (สศก., ชลประทาน, กรมพัฒนาที่ดิน ฯลฯ) นำข้อมูลและผลวิเคราะห์เชิงพื้นที่ไปใช้ตามสิทธิ์
+- [ ] **เริ่มงานรอบถัดไป:** นำเข้า DuckDB Warehouse & เตรียมโมเดล Power BI Offline (offline-v12) เพื่อเชื่อมต่อแกนข้อมูลใหม่ (Coverage Inventory, Temporal Crosswalk, Project Register, Spatial Evidence) ให้พร้อมเปิดและแสดงผลใน Power BI Desktop
 - [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยังคงสถานะ `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูลบุคคล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
 - [ ] ประเมินสำเนาซ้ำ 21 ไฟล์/517,762,353 bytes อีกครั้งตาม [หลักฐาน cleanup](docs/progress.md); ยังไม่มีการลบ เก็บ source, manifest, checksum, warehouse และสำเนาที่จำเป็นไว้
 - [ ] เมื่อข้อมูล สิทธิ์ และ interface พร้อม ค่อยนำเข้าแบบจำลองและการตรวจสอบหน้าจอรายงานใน Power BI Desktop; ยังไม่รับรอง DAX runtime, หน้ารายงาน หรือ Power BI Online
@@ -35,6 +36,7 @@ git log -1 --oneline
 .\.venv\Scripts\python.exe -X utf8 scripts/reconcile_plan_actual.py
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_project_register.py
 .\.venv\Scripts\python.exe -X utf8 scripts/audit_spatial_evidence.py
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_data_sharing.py
 .\.venv\Scripts\python.exe -m unittest discover -s tests -q
 ```
 

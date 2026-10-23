@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "national_data_sharing_feed",
+  "type": "object",
+  "properties": {
+    "feed_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "partner_agency": {
+      "type": "string",
+      "enum": [
+        "OAE",
+        "RID",
+        "LDD",
+        "BAAC",
+        "DOAE",
+        "PUBLIC",
+        "ALLIED_AGENCIES"
+      ]
+    },
+    "feed_endpoint": {
+      "type": "string",
+      "enum": [
+        "/v1/catalog",
+        "/v1/coverage",
+        "/v1/spatial-evidence",
+        "/v1/projects"
+      ]
+    },
+    "requested_at": {
+      "type": "string"
+    },
+    "query_parameters": {
+      "type": "object",
+      "properties": {
+        "province_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commodity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fiscal_year": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license_scope": {
+          "type": "string",
+          "enum": [
+            "public_only",
+            "inter_agency_authorized"
+          ]
+        }
+      },
+      "required": [
+        "license_scope"
+      ],
+      "additionalProperties": false
+    },
+    "total_records": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "license_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved_public",
+        "restricted",
+        "inter_agency_pending"
+      ]
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "data_records": {
+      "type": "array"
+    },
+    "governance_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "feed_id",
+    "partner_agency",
+    "feed_endpoint",
+    "requested_at",
+    "query_parameters",
+    "total_records",
+    "license_status",
+    "payload_sha256",
+    "data_records",
+    "governance_notes"
+  ],
+  "additionalProperties": false
+}

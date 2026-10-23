@@ -4,6 +4,23 @@
 
 รอบเอกสารนี้ปรับ [README](../README.md), [AGENTS](../AGENTS.md), [runbook](runbook.md), [roadmap DOAE](doae-catalog-expansion.md) และ [คู่มือ Power BI](../powerbi/README.md) ให้ชี้เป้าหมายศูนย์ข้อมูลเกษตรทั้งประเทศและเช็กลิสต์เดียวกัน อ้างหลักฐาน acquisition/geography/cleanup ที่มีอยู่ ไม่ได้ดึงข้อมูลใหม่ นำเข้า warehouse เผยแพร่ หรือทดสอบ DAX เพิ่ม
 
+## สัญญาและส่วนต่อประสานการแบ่งปันข้อมูลสำหรับหน่วยงานพันธมิตร (Data Sharing Interface & External Partner API Contracts) 23 ต.ค. 2569
+
+- เพิ่มสัญญาข้อมูล `data_contracts/data_sharing.schema.json` รองรับมาตรฐาน JSON Schema draft-2020-12 สำหรับ Data Sharing Feeds และ Inter-Agency API Responses
+- เพิ่มโมดูล `src/tadih/data_sharing.py`, สคริปต์ `scripts/audit_data_sharing.py` และ unit tests 8 รายการใน `tests/test_data_sharing.py` (ผ่านรวม 217 tests 100%)
+- รองรับ 4 จุดเชื่อมต่อหลัก (Standard Endpoints):
+  - `/v1/catalog`: บัญชีชุดข้อมูล ทรัพยากร และสถานะสิทธิ์
+  - `/v1/coverage`: บัญชีความครอบคลุมข้อมูล 77 จังหวัดระดับ `source × area × period × metric`
+  - `/v1/spatial-evidence`: บัตรหลักฐานเชิงพื้นที่ ชี้เป้าปัญหาจริง (น้ำท่วม 1.83M ไร่, แล้ง 16.7K ไร่) และการจับคู่โครงการ
+  - `/v1/projects`: ทะเบียนโครงการเกษตรและมาตรการช่วยเหลือข้ามหน่วยงาน (DOAE, MOAC, BAAC, LDD)
+- ระบบ License Gating และการคุ้มครองข้อมูล:
+  - ภายใต้ scope `public_only` ข้อมูลที่มีสถานะสิทธิ์ pending ถูกจำกัดการเข้าถึงเป็น `LICENSE_PENDING_AGGREGATE_METADATA_ONLY`
+  - คุ้มครองข้อมูลส่วนบุคคลตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 โดยให้บริการเฉพาะสถิติรวมเชิงพื้นที่ (Aggregate Spatial Layer)
+- สถาปัตยกรรมความสมบูรณ์ข้อมูลเชิงรหัสวิทยา (Cryptographic Integrity):
+  - ทุกคำตอบ API คำนวณค่าแฮช `payload_sha256` แบบ deterministic
+  - พัฒนาระบบส่งออก Partner Feed Export Bundle พร้อมไฟล์ `manifest.json` สำหรับการแลกเปลี่ยนข้อมูลแบบ Batch/Scheduled Sync ระหว่างหน่วยงาน
+- เอกสารและหลักฐาน: [docs/data-sharing-interface.md](data-sharing-interface.md), สัญญาข้อมูล [data_contracts/data_sharing.schema.json](../data_contracts/data_sharing.schema.json), หลักฐาน `data/local/probes/data-sharing-audit.json`
+
 ## การชี้เป้าปัญหาเชิงพื้นที่ตามหลักฐานจริงและการจับคู่โครงการ (Spatial Evidence & Policy Intervention Matching) 23 ต.ค. 2569
 
 - เพิ่มสัญญาข้อมูล `data_contracts/spatial_evidence.schema.json` รองรับมาตรฐาน JSON Schema draft-2020-12 สำหรับบัตรหลักฐานเชิงพื้นที่ (Spatial Evidence Cards)
