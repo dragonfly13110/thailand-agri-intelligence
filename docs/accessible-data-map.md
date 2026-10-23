@@ -111,7 +111,7 @@ THAGRI แยก “พบรายการ API” จาก “อ่านเ
 
 ## สิ่งที่ต้องจัดการก่อนใช้จริง
 
-1. สถานีใน `weather.py` ขัดกับ metadata ผู้ให้บริการ 4/12 IDs: 48381 ผูกนครสวรรค์แต่ระบุขอนแก่น, 48383 ผูกขอนแก่นแต่ระบุมุกดาหาร, 48475 ผูกจันทบุรีแต่เป็น Hua Hin/region 77, 48565 ผูกสุราษฎร์ธานีแต่เป็น Phuket Airport/region 83 เก็บทะเบียน/ผลเปรียบเทียบใหม่แยกจาก cache เดิม ไม่เขียนทับประวัติหรือ warehouse
+1. รอบสำรวจพบทะเบียนเดิมใน `weather.py` ขัดกับ metadata 4/12 IDs: 48381 ผูกนครสวรรค์แต่ระบุขอนแก่น, 48383 ผูกขอนแก่นแต่ระบุมุกดาหาร, 48475 ผูกจันทบุรีแต่เป็น Hua Hin/region 77, 48565 ผูกสุราษฎร์ธานีแต่เป็น Phuket Airport/region 83 ผล mapping เป็น snapshot ก่อนแก้; งานต่อได้แก้ client/สถานี/หน่วยเป็น [รุ่น 2](weather-v2.md) แล้ว โดยแยกไฟล์ v2 จาก legacy และยังไม่เปลี่ยน warehouse
 2. พิกัดหลายแห่งไม่ตรง metadata เช่น Nakhonpathom Agromet 48451 ต้นทางให้ 14.0117, 99.97 ต้องใช้ provenance สถานีแทนจุดกำหนดเอง และตรวจว่าเป็นตัวแทนพื้นที่ได้หรือไม่
 3. Meteostat มี `model=true` เป็นค่าเริ่มต้น และ metric `wspd` คือ km/h แต่ client เดิมใช้ชื่อ `wind_speed_ms` ต้องแก้ contract/ประวัติหน่วยก่อนใช้ ดู [นิยามรายวัน](https://dev.meteostat.net/api/stations/daily) และ [station metadata](https://dev.meteostat.net/api/stations/meta)
 4. DataStore บางชุดเป็น data dictionary, index รายงาน PDF หรือคู่มือ ต้องจำแนก schema และตัวอย่างที่ผ่านสิทธิ์ก่อนเข้า warehouse
@@ -143,4 +143,4 @@ Cache ใช้ resume รอบนี้ ไม่ใช่ refresh ใหม�
 
 วิธีค้น/แบ่งหน้า/DataStore อ้างอิง [CKAN API ทางการ](https://docs.ckan.org/en/latest/api/) การใช้ parameter เดียวกันได้ไม่ได้ยืนยันว่าทุกเว็บไซต์ตั้งค่า limit หรือเปิดสิทธิ์เหมือนกัน
 
-ลำดับต่อ: แก้ทะเบียนสถานี/หน่วยอากาศ, ตรวจ metadata รายชุดที่ดัชนีขาด, เลือกข้อมูลตามช่องว่างพื้นที่/ปัญหา แล้วตรวจ geography/time/unit/สิทธิ์ราย resource ก่อน ingestion ตัวสำรวจไม่แก้สิทธิ์ ไม่ประกาศ coverage 77 จังหวัด และไม่เปิดข้อมูลสาธารณะ
+ลำดับต่อ: เตรียม migration อากาศ v2 หลังตรวจวัน/พื้นที่/สิทธิ์, ตรวจ metadata รายชุดที่ดัชนีขาด, เลือกข้อมูลตามช่องว่างพื้นที่/ปัญหา แล้วตรวจ geography/time/unit/สิทธิ์ราย resource ก่อน ingestion ตัวสำรวจไม่แก้สิทธิ์ ไม่ประกาศ coverage 77 จังหวัด และไม่เปิดข้อมูลสาธารณะ

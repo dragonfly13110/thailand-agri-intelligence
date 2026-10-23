@@ -1,5 +1,13 @@
 # สถานะโครงการ 23 ตุลาคม 2569
 
+## ทำต่อ: แก้ client สถานีอากาศเป็นรุ่น 2
+
+แก้ชื่อ/จังหวัด 4 station IDs และปรับ metadata ทั้ง 12 แห่งให้ตรงทะเบียน Meteostat ที่ตรวจแล้ว รักษา IDs เดิม; ขอ `model=false&units=metric`, แปลง `wspd` จาก km/h เป็น m/s พร้อมเก็บค่า km/h ต้นทาง, เก็บ null ตามจริง, ตรวจวัน/ID/ค่าตัวเลขและ response cap, แยก partial/empty/failed โดยไม่บันทึกข้อความ exception หรือ key ค่าเริ่มต้นเขียน `dim_weather_stations_v2.json` และ `fact_daily_weather_v2.json` เพื่อไม่แทน cache เดิมก่อน migration ดู [weather-v2](weather-v2.md)
+
+API จริง 10–12 ต.ค. 2569 ที่ IDs 48455/48451 ได้กรุงเทพฯ 3 แถวและนครปฐม array ว่าง จึงเป็น partial 3/6 requested station-days; ตรวจ metadata สถานีตรงต้นทาง 12/12 และ conversion ของลมผ่าน หลักฐาน `data/local/probes/weather-v2-audit.json` ยืนยัน SHA-256 ของ legacy caches และ DuckDB เท่าเดิม ไม่มี warehouse ingestion/ปลดการพัก metric หรืออนุมัติสิทธิ์ ข้อมูลรายวันยัง pending และ timezone/ความเป็นตัวแทนพื้นที่ยังต้องตรวจ
+
+ตรวจ regression แบบ red → green และ full suite สุดท้าย `python -m unittest discover -s tests -q` รัน 244 tests ผ่านโดย skipped 1 ที่อิง PBIP เก่า ใช้เวลา 78.409 วินาที; log `data/local/probes/access-map-weather-tests.log` ไม่อ้างว่า integration warehouse/Power BI v2 ผ่าน เพราะ consumers ยังอ่าน path รุ่นเดิมตามที่บันทึกในคู่มือ
+
 ## สำรวจแผนที่ข้อมูลและ API ที่เข้าถึงได้
 
 ตรวจรายชื่อระบบ TH/GL/RS ในสเปกครบ 84 รายการผ่าน 81 entry URLs และแค็ตตาล็อก 21 เส้นทาง อ่าน metadata ครบ 15 แห่ง: data.go.th 44,383 datasets จาก 444 หน้า (ID ไม่ซ้ำ/count ตรงก่อนและหลัง) และบัญชีเจ้าของข้อมูล 14 แห่ง 2,387 รายการ รวม mapping 46,770 catalog entries และ 127,050 resource links ไม่ใช่ชุดข้อมูลอิสระทั้งหมด เพราะมี mirror/harvest; ตรวจ source identity/URL ซ้ำเป็นคำใบ้เท่านั้น ไม่รวมยอด observations ข้ามบัญชี

@@ -6,6 +6,8 @@
 
 ### ทำแล้วและมีหลักฐาน
 
+- [x] ทำต่อหลัง mapping: แก้ Meteostat client รุ่น 2 ให้ station IDs เดิมมีชื่อ/จังหวัด/พิกัด/ความสูงตรงทะเบียนผู้ให้บริการ 12/12, ขอ `model=false&units=metric`, เก็บลม km/h และแปลง m/s, แยก partial/empty/failed และไม่เก็บแถวผิดวัน/ค่าผิดรูปแบบ; default ใหม่เขียน `*_v2.json` แยก legacy ดู [contract และขอบเขต](docs/weather-v2.md), `data/local/probes/weather-v2-audit.json` มีผล API จริง 2 สถานี/3 วัน: กรุงเทพฯ 3 แถว นครปฐมไม่มี daily rows; SHA-256 legacy caches และ DuckDB ไม่เปลี่ยน ยังไม่ ingest หรือปลดการพักอากาศใน Master View
+- [x] ตรวจหลังแก้ weather v2: `python -m unittest discover -s tests -q` รัน 244 tests ผ่านโดยข้าม 1 รายการที่อิง PBIP เก่า; หลักฐาน `data/local/probes/access-map-weather-tests.log` รวม regression แปลงหน่วย/ขอ model=false, สถานีผิดฉลาก, partial/error ไม่รั่ว key, ปฏิเสธวันนอกช่วง และรักษา legacy เมื่อเขียน defaults v2
 - [x] สำรวจแผนที่แหล่งข้อมูล/API 23 ต.ค. 2569 ตาม [คู่มือ mapping](docs/accessible-data-map.md): ตรวจระบบในสเปก 84 รายการ/81 URLs, เส้นทางแค็ตตาล็อก 21 แห่ง อ่านครบ 15 แห่ง (บัญชีกลาง 44,383 datasets/444 หน้า และเจ้าของข้อมูล 14 แห่งรวม 2,387); count ก่อน/หลังตรง ไม่มี ID ซ้ำระหว่างหน้าบัญชีกลาง รวม mapping 46,770 catalog entries/127,050 resource links ซึ่งยังซ้ำข้ามเว็บได้ เก็บผลภายใน `data/local/access-map/` ไม่ใช่ coverage ข้อมูลจริงหรือสิทธิ์เผยแพร่
 - [x] อ่าน DataStore schema ครบ 2,884 resources ที่ catalog ระบุ active ได้ 22,512 คอลัมน์ โดย `limit=0` ไม่มีค่าระเบียนที่ได้รับ; NABC ติด 429 แล้วตรวจซ้ำทีละคำขอจนสำเร็จ แยก schema ข้อเท็จจริงที่ยังไม่รีวิว/พจนานุกรมข้อมูล/สารบัญเอกสาร และส่งออก `join-candidates.csv.gz` เป็นคอลัมน์จริง → แกนอ้างอิงที่เสนอ ทุกเส้นทางรอตรวจ
 - [x] สำรวจ API ใน environment โดยไม่แสดง key: GISTDA มีเอกสาร 54 GET operations ตรวจ features/capabilities 40 เส้นทางสำเร็จ อีก 14 tile templates ไม่โหลดภาพ; DWR ArcGIS 67 services อ่าน layer metadata ได้ 37 ชั้น อีก 30 services มี application error; Meteostat directory ประเทศ TH 123 สถานี/inventory 2,313 รายการ เทียบทะเบียนเดิมพบชื่อจังหวัดขัด 4/12 IDs พร้อมพิกัด/ช่วงข้อมูลจริงใน `weather-station-audit.json`
@@ -42,7 +44,7 @@
 
 ### ค้างและลำดับงาน
 
-- [ ] **เริ่มงานรอบถัดไป:** ใช้ [mapping ล่าสุด](docs/accessible-data-map.md) แก้ทะเบียน Meteostat ที่จังหวัดขัด 4 IDs/พิกัดไม่ตรง และ contract `wind_speed_ms` ซึ่ง API metric ให้ km/h; แยก model/observed และไม่เขียนทับประวัติเดิมโดยไม่มี migration จากนั้นตรวจหน่วย/เวลา/พื้นที่/สิทธิ์ DWR, GISTDA, HII ก่อนใช้ Master View ชี้เป้า; `offline-v13` ยังเป็น snapshot เก่าที่ห้ามเผยแพร่
+- [ ] **เริ่มงานรอบถัดไป:** Meteostat v2 แก้ client/สถานี/หน่วยแล้ว แต่ต้องตรวจวัน/เวลา พื้นที่และสิทธิ์ ออกแบบ migration/consumer gate แยก cache รุ่นเดิม 6 แถวจาก v2 ก่อนนำเข้า warehouse/exports อ่าน [weather-v2](docs/weather-v2.md); ตรวจหน่วย/เวลา/พื้นที่/สิทธิ์ DWR, GISTDA, HII ก่อนใช้ Master View ชี้เป้า; `offline-v13` ยังเป็น snapshot เก่าที่ห้ามเผยแพร่
 - [ ] เลือก resources จาก `join-candidates.csv.gz` ตามคำถาม/ช่องว่างพื้นที่ ไม่ดาวน์โหลดทุกลิงก์ ตรวจ metadata ที่ดัชนีขาดและ key/grain/time/unit/สิทธิ์ก่อน join; THAGRI token และ 6 catalog failures เป็นงานเข้าถึงที่ยังไม่ยืนยัน ห้ามตี missing เป็น 0
 - [ ] ขอ/ค้นหลักฐานโครงการระดับรายการที่ระบุพื้นที่เป้าหมาย ช่วงเวลา วัตถุประสงค์ และผลจริง; จนกว่าจะครบห้ามจัดจังหวัดเป็น `COVERED`, `REDUNDANT` หรือ `UNADDRESSED_GAP`
 - [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยังคงสถานะ `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูลบุคคล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
