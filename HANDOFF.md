@@ -6,6 +6,14 @@
 
 ### ทำแล้วและมีหลักฐาน
 
+- [x] สำรวจแผนที่แหล่งข้อมูล/API 23 ต.ค. 2569 ตาม [คู่มือ mapping](docs/accessible-data-map.md): ตรวจระบบในสเปก 84 รายการ/81 URLs, เส้นทางแค็ตตาล็อก 21 แห่ง อ่านครบ 15 แห่ง (บัญชีกลาง 44,383 datasets/444 หน้า และเจ้าของข้อมูล 14 แห่งรวม 2,387); count ก่อน/หลังตรง ไม่มี ID ซ้ำระหว่างหน้าบัญชีกลาง รวม mapping 46,770 catalog entries/127,050 resource links ซึ่งยังซ้ำข้ามเว็บได้ เก็บผลภายใน `data/local/access-map/` ไม่ใช่ coverage ข้อมูลจริงหรือสิทธิ์เผยแพร่
+- [x] อ่าน DataStore schema ครบ 2,884 resources ที่ catalog ระบุ active ได้ 22,512 คอลัมน์ โดย `limit=0` ไม่มีค่าระเบียนที่ได้รับ; NABC ติด 429 แล้วตรวจซ้ำทีละคำขอจนสำเร็จ แยก schema ข้อเท็จจริงที่ยังไม่รีวิว/พจนานุกรมข้อมูล/สารบัญเอกสาร และส่งออก `join-candidates.csv.gz` เป็นคอลัมน์จริง → แกนอ้างอิงที่เสนอ ทุกเส้นทางรอตรวจ
+- [x] สำรวจ API ใน environment โดยไม่แสดง key: GISTDA มีเอกสาร 54 GET operations ตรวจ features/capabilities 40 เส้นทางสำเร็จ อีก 14 tile templates ไม่โหลดภาพ; DWR ArcGIS 67 services อ่าน layer metadata ได้ 37 ชั้น อีก 30 services มี application error; Meteostat directory ประเทศ TH 123 สถานี/inventory 2,313 รายการ เทียบทะเบียนเดิมพบชื่อจังหวัดขัด 4/12 IDs พร้อมพิกัด/ช่วงข้อมูลจริงใน `weather-station-audit.json`
+- [x] แยกข้อจำกัดจริงใน mapping: DWR RSS ติด TLS ก่อนทดสอบ key; OpenD gateway redirect ข้าม host จึงไม่ส่ง key ตาม; THAGRI มี 542 ลิงก์ `openapi-json` แต่ตัวสร้าง Swagger ต้องมี token เฉพาะ (คำขอไม่มี token ตอบ 422); 6 catalog paths ยังอ่านไม่ได้จาก connection/TLS/502/timeout; DOAE private key และ TADIH partner key ว่าง ตัว partner ยังเป็นสัญญา/export ภายใน
+- [x] เพิ่มตัวสำรวจ `scripts/map_accessible_sources.py` และ focused checks `tests.test_access_map` + `tests.test_env` ผ่าน 11 tests ตรวจ pagination/cap, ID ซ้ำ, credential redirect/redaction, CSV formula และการไม่นับ retry ซ้ำ ไม่มี ingestion/เปลี่ยนสิทธิ์/เปิดเผย raw ในงานนี้
+- [x] กระทบยอดไฟล์ mapping: 3,780 join candidates, 707 API/discovery mapping entries (รวม 542 ลิงก์ THAGRI ที่ยังอ่านเอกสารรายบริการไม่ได้ ไม่ใช่ 707 API ที่อ่านข้อมูลสำเร็จ); `verification.json` ตรวจ 508 ไฟล์ ไม่พบค่า secret จาก environment, CSV row counts ตรง และมี SHA-256 manifest เก็บ metadata/ตารางบีบอัดประมาณ 32 MB
+- [x] สำรวจ insight จากข้อมูลในเครื่อง 23 ต.ค. 2569: ราคา ก.ย. 2569 เทียบเดือนก่อน/ปีก่อนตามสินค้าเดิม, RID จับคู่อ่างเดิม 9–22 ต.ค., ฝน ERA5 ปี 2568 เทียบ 2559–2567 ณ 5 จุดโดยตัด 29 ก.พ., สัดส่วนปริมาณ/มูลค่าสัตว์น้ำ และมูลค่าปศุสัตว์ เก็บผลใน `data/local/reports/insight-scan-2026-10-23.json`; เป็นการสำรวจย้อนหลังภายใน ไม่ยืนยันสาเหตุ กำไร หรือสถานการณ์ปัจจุบัน และไม่เปิดสิทธิ์เผยแพร่
+
 - [x] มีทะเบียน 77 จังหวัดและ coverage matrix ตั้งต้น 77 × 20 หมวด สถานะที่ยังไม่มีหลักฐานคง `UNVERIFIED`; ยังไม่ใช่ความครอบคลุมข้อมูลจริงทั้งประเทศ ([README](README.md), [คู่มือ coverage](docs/runbook.md))
 - [x] ตรวจ DOAE CKAN ครบ 201 datasets: สาธารณะ 33, Database จำกัดสิทธิ์ 6, ชุดทดสอบ/ว่าง 162; raw ของ CSV ที่ catalog ระบุครบ 58/58 resources และตรวจ SHA raw 60 resources ([acquisition audit](docs/doae-acquisition-audit.md), `data/local/probes/doae-acquisition-audit.json`)
 - [x] Stage DOAE P0 1,943,296 แถวจาก source 1,943,298 (quarantine 2), P1 202,223 จาก 202,747 (quarantine 524), archives 1,289,027 จาก 1,289,200 (quarantine 173); P2 คำขอเพิ่มรายการ 1,534 แถว แยกจาก observations ใน warehouse ([P0](docs/doae-p0-ingestion.md), [P1 และ archives](docs/doae-p1-archives.md), [acquisition audit](docs/doae-acquisition-audit.md))
@@ -34,7 +42,8 @@
 
 ### ค้างและลำดับงาน
 
-- [ ] **เริ่มงานรอบถัดไป:** ตรวจ provenance และนิยามของ DWR, GISTDA, Meteostat และ HII ทีละ resource รวมหน่วย เวลา พื้นที่ สิทธิ์ และการแทน missing ก่อนใช้ Master View ชี้เป้าพื้นที่; `offline-v13` ต้องสร้างใหม่จากข้อมูลที่ผ่านการตรวจจึงค่อยทดสอบ Desktop
+- [ ] **เริ่มงานรอบถัดไป:** ใช้ [mapping ล่าสุด](docs/accessible-data-map.md) แก้ทะเบียน Meteostat ที่จังหวัดขัด 4 IDs/พิกัดไม่ตรง และ contract `wind_speed_ms` ซึ่ง API metric ให้ km/h; แยก model/observed และไม่เขียนทับประวัติเดิมโดยไม่มี migration จากนั้นตรวจหน่วย/เวลา/พื้นที่/สิทธิ์ DWR, GISTDA, HII ก่อนใช้ Master View ชี้เป้า; `offline-v13` ยังเป็น snapshot เก่าที่ห้ามเผยแพร่
+- [ ] เลือก resources จาก `join-candidates.csv.gz` ตามคำถาม/ช่องว่างพื้นที่ ไม่ดาวน์โหลดทุกลิงก์ ตรวจ metadata ที่ดัชนีขาดและ key/grain/time/unit/สิทธิ์ก่อน join; THAGRI token และ 6 catalog failures เป็นงานเข้าถึงที่ยังไม่ยืนยัน ห้ามตี missing เป็น 0
 - [ ] ขอ/ค้นหลักฐานโครงการระดับรายการที่ระบุพื้นที่เป้าหมาย ช่วงเวลา วัตถุประสงค์ และผลจริง; จนกว่าจะครบห้ามจัดจังหวัดเป็น `COVERED`, `REDUNDANT` หรือ `UNADDRESSED_GAP`
 - [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยังคงสถานะ `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูลบุคคล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
 - [ ] ประเมินสำเนาซ้ำ 21 ไฟล์/517,762,353 bytes อีกครั้งตาม [หลักฐาน cleanup](docs/progress.md); ยังไม่มีการลบ เก็บ source, manifest, checksum, warehouse และสำเนาที่จำเป็นไว้

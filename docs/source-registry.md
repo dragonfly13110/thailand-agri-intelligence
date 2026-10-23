@@ -1,6 +1,8 @@
 # ทะเบียนแหล่งข้อมูลและรหัสจังหวัด
 
-ชุดเริ่มต้นมีแหล่งข้อมูล 15 ราย ครอบคลุมพืช ราคา อากาศ น้ำ ดิน ดาวเทียม ภัยพิบัติ ปศุสัตว์และประมง ตาม [สเปก v1.4](../Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ส่วน 48 แต่ละแหล่งยังต้องตรวจ resource, schema, ปีข้อมูล, key, quota และสิทธิ์เผยแพร่เป็นรายชุด ก่อนนำข้อมูลออกสาธารณะ
+Registry ใน `config/sources.json` มี 16 ระบบ ครอบคลุมพืช ราคา อากาศ น้ำ ดิน ดาวเทียม ภัยพิบัติ ปศุสัตว์และประมง ตาม [สเปก v1.4](../Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ส่วน 48 แต่ละแหล่งยังต้องตรวจ resource, schema, ปีข้อมูล, key, quota และสิทธิ์เผยแพร่เป็นรายชุด ก่อนนำข้อมูลออกสาธารณะ
+
+ผลสำรวจที่กว้างกว่า connector ตั้งต้นอยู่ใน [แผนที่ข้อมูล/API](accessible-data-map.md) และ `data/local/access-map/` รวมระบบในสเปก บัญชีกลาง บัญชีเจ้าของ และ environment ไม่เปลี่ยน `runtime_verified` ของทั้งแหล่งเพราะอ่านสำเร็จเพียง endpoint เดียว และไม่ใช้จำนวน catalog แทน coverage จังหวัด
 
 ผลตรวจสิทธิ์ราย resource ล่าสุดอยู่ใน [ทะเบียนสิทธิ์](source-license-register.md) และ [resource_licenses.json](../config/resource_licenses.json) ตรวจ 6 ชุดจากหลักฐานทางการแล้ว ยังไม่มีการอนุมัติเผยแพร่ชุดจริง ไม่ขยายเงื่อนไขของราคาข้าวหนึ่ง resource ไปยังทุกสินค้า NABC
 

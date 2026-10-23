@@ -1,5 +1,23 @@
 # สถานะโครงการ 23 ตุลาคม 2569
 
+## สำรวจแผนที่ข้อมูลและ API ที่เข้าถึงได้
+
+ตรวจรายชื่อระบบ TH/GL/RS ในสเปกครบ 84 รายการผ่าน 81 entry URLs และแค็ตตาล็อก 21 เส้นทาง อ่าน metadata ครบ 15 แห่ง: data.go.th 44,383 datasets จาก 444 หน้า (ID ไม่ซ้ำ/count ตรงก่อนและหลัง) และบัญชีเจ้าของข้อมูล 14 แห่ง 2,387 รายการ รวม mapping 46,770 catalog entries และ 127,050 resource links ไม่ใช่ชุดข้อมูลอิสระทั้งหมด เพราะมี mirror/harvest; ตรวจ source identity/URL ซ้ำเป็นคำใบ้เท่านั้น ไม่รวมยอด observations ข้ามบัญชี
+
+อ่าน schema ของ DataStore ที่ระบุ active ครบ 2,884 resources ได้ 22,512 คอลัมน์ โดย `limit=0` ได้ records 0 ทุกคำขอสำเร็จ NABC เคยติด 429 จำนวน 246 resources แล้วเว้นจังหวะตรวจซ้ำทีละคำขอจนสำเร็จครบ เก็บประวัติ attempts แต่ mapping ใช้ผลล่าสุดต่อ catalog/resource แยก data dictionary/สารบัญรายงานจากตารางที่ยังไม่ตรวจความหมาย; `join-candidates.csv.gz` ระบุคอลัมน์จริง ตารางเทียบที่เสนอ และเงื่อนไขตรวจ โดยทุก join ยัง blocked/unverified
+
+GISTDA OpenAPI มี 54 GET operations; อ่าน feature samples 12 และ WMS/WMTS capabilities 28 ได้ อีก 14 tile templates เก็บเฉพาะรายการ DWR ArcGIS directory 67 services อ่าน layer metadata 37 ชั้น อีก 30 services มี application error แม้ HTTP 200; ไม่แปลง error เป็นข้อมูลว่าง Meteostat directory กรองประเทศ TH ได้ 123 สถานีและ inventory 2,313 รายการ ตรวจสถานีเดิม 12 IDs พบชื่อจังหวัดขัด 4 แห่งและพิกัดเดิมหลายแห่งไม่ตรง metadata; หน่วย `wspd` เป็น km/h แต่ client เดิมตั้งชื่อ `wind_speed_ms` ต้องแก้ก่อนใช้งาน
+
+ตรวจเฉพาะชื่อ/สถานะตัวแปร environment ไม่บันทึก key หรือ headers DWR RSS ยังติด TLS issuer verification, OpenD gateway redirect ถูกบล็อกการส่ง key ข้าม host, THAGRI มี 542 ลิงก์เอกสาร แต่ generator schema ต้องมี token และตัวอย่างไม่มี token ตอบ 422; ไม่ใช้ OpenD/GISTDA key แทน token อีกระบบ DOAE private/partner key ว่าง; TADIH interface ยังไม่ใช่หลักฐาน deploy API จริง บัญชี RID/DOA/Rice/CPD/QSDS/ARDA ยังเข้าไม่สำเร็จตามผลใน mapping
+
+หลักฐาน/ตารางทั้งหมดอยู่ `data/local/access-map/` รวม `REPORT.md`, `mapping-summary.json`, datasets/resource-links/schema-fields/join-candidates/API/systems/spatial-layers/weather-stations CSV gzip; เอกสารสาธารณะเฉพาะวิธีใช้/ผลรวมอยู่ [accessible-data-map.md](accessible-data-map.md) ไม่มี ingestion, warehouse refresh, การอนุมัติสิทธิ์ หรือข้อมูลดิบใหม่ลง Git ตรวจ focused suite `tests.test_access_map` + `tests.test_env` ผ่าน 11 tests และ `git diff --check` ผ่าน ไม่ได้ทดสอบ Power BI/DAX หรือความถูกต้องเชิงพื้นที่ทุก resource
+
+ไฟล์สุดท้ายมี 3,780 join candidates และ 707 API/discovery entries (รวม 542 ลิงก์ THAGRI ไม่ใช่จำนวน API ที่อ่านข้อมูลสำเร็จ) ตรวจผลลัพธ์ 508 ไฟล์ด้วย `verification.json`: ไม่พบค่า secret จาก environment, ยอด CSV ตรงกับ summary ทุกตาราง และบันทึก SHA-256 manifest; metadata และตารางบีบอัดใช้พื้นที่ตรรกะรวม 32,041,064 bytes ก่อนเพิ่มตัว verification manifest
+
+## สำรวจ insight จาก snapshot ในเครื่อง
+
+สำรวจ insight จาก snapshot ในเครื่องและบันทึก `data/local/reports/insight-scan-2026-10-23.json`: เปรียบเทียบราคาสินค้า ก.ย. 2569, ระดับน้ำอ่างเดิม 461 แห่งระหว่าง 9–22 ต.ค., ฝน ERA5 ปี 2568 เทียบค่าเฉลี่ย 9 ปีก่อน ณ 5 จุดโดยตัด leap day, โครงสร้างปริมาณ/มูลค่าสัตว์น้ำ และการเปลี่ยนมูลค่าปศุสัตว์ เป็น descriptive analysis ตาม grain เดิม ยังไม่ยืนยันสาเหตุ กำไร หรือสถานการณ์ปัจจุบัน ไม่มีการดึงข้อมูลใหม่หรือเปลี่ยนสิทธิ์
+
 ## ตรวจแก้ผลวิเคราะห์มาตรการจาก AI รอบก่อน
 
 ตรวจโค้ดกับหลักฐานต้นทางแล้วพบว่ารายการโครงการ 3 รายการมีงบ/จังหวัดเป้าหมายเขียนคงที่โดยไม่มีหลักฐาน resource-level และ `doae_15_01` เป็นสถิติผู้เข้าร่วม ไม่ใช่บัญชีเป้าหมายโครงการ จึงถอนการจัดจังหวัดเป็นช่องว่าง 46 จังหวัด, ครอบคลุม 12 และซ้ำซ้อน 3 ผล audit รุ่น 2: โครงการที่ยืนยันพื้นที่เป้าหมายได้ **0 รายการ**, บัตรหลักฐาน DOAE **115 รายการ**, สถานะมาตรการ **`UNVERIFIED` 77 จังหวัด**; ซิงค์ DuckDB แล้วให้ `dim_project=0`, `fact_project_coverage=0` และจำนวนโครงการใน Master View เป็น `null` เมื่อทะเบียนยังไม่พร้อม `offline-v12/v13` เป็น snapshot ก่อนแก้ ห้ามใช้อ้างตัวเลขมาตรการหรือเผยแพร่ ตรวจ [ทะเบียนโครงการ](project-register.md), [หลักฐานพื้นที่](spatial-evidence-matching.md) และ [HANDOFF](../HANDOFF.md)

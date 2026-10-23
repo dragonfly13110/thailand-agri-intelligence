@@ -28,6 +28,8 @@
 
 ## ความหมายของ coverage
 
+ก่อนดาวน์โหลด resource ใหม่ ให้ค้น [แผนที่ข้อมูล/API](accessible-data-map.md) และ `data/local/access-map/REPORT.md` ซึ่งมี dataset/resource links, schema, join candidates และผลเข้าถึงจริง การสำรวจนี้เป็น metadata inventory แยกจาก coverage ที่ผ่านตรวจแล้ว ใช้ `scripts/map_accessible_sources.py --build` รวมหลักฐานเดิม; คำสั่งสำรวจ/วิธี resume และข้อจำกัดอยู่ในคู่มือดังกล่าว อย่าเปิดเผย environment values หรือส่ง key ตาม redirect ข้าม host
+
 `fact_data_coverage.csv` แสดง 1 แถวต่อ provider × จังหวัด × เดือน × กลุ่ม metric ที่นำเข้า เป็น readiness ขั้นแรก ยังไม่ใช่ inventory ครบทุก resource ของหน่วยงาน `expected_count` และ `gap_count` ว่างจนกว่าจะรู้จำนวนที่ควรมี
 
 `fact_category_coverage.csv` มี 77 × 20 แถว ใช้ metric ที่นำเข้าจริงในการกำหนดหมวด ไม่ใช้รายชื่อหมวดที่ provider อาจให้บริการ ข้อมูลระดับประเทศ จุด หรือสถานีไม่ทำให้จังหวัดมีสถานะ AVAILABLE เดือนคำนวณตามเวลาไทย UTC+7 แม้ข้อมูลในฐานเก็บเวลา UTC
