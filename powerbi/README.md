@@ -1,8 +1,10 @@
 # Power BI Import handoff
 
-วิธีทำงานปัจจุบัน: เตรียมข้อมูล โมเดล และ DAX ในเครื่องให้เสร็จ ตรวจด้วย Power BI Desktop/Tabular engine แล้วค่อยอัปโหลด Online การสร้าง/จัด visual ผ่าน browser ถูกหยุดตามคำสั่งเจ้าของงาน
+**สถานะงาน:** เอกสารนี้เป็นคู่มือขั้นรายงาน ใช้หลังงาน coverage, รหัสเชื่อม, ความหมายข้อมูลและสิทธิ์ใน [เช็กลิสต์ปัจจุบัน](../HANDOFF.md) ผ่านแล้ว เป้าหมายและลำดับล่าสุดอยู่ที่ [ศูนย์ข้อมูลเกษตรทั้งประเทศ](../docs/national-agriculture-data-center.md) ตัวเลข PBIP ด้านล่างเป็นสถานะร่างที่บันทึกไว้ในรอบนั้น ต้องตรวจไฟล์จริงก่อนอ้างเป็นรุ่นล่าสุด
 
-มีร่าง PBIP ล่าสุดที่ `data/local/powerbi/offline-v4/TADIH.pbip` พร้อม `Data/`, `TADIH.SemanticModel/model.bim` และ PBIR ร่าง 5 หน้า รวม 12 ตาราง 15 relationships 26 measures และราคา 44 สินค้า ตรวจ Microsoft schemas และ TOM round trip ผ่าน ยังไม่มี PBIX หรือหลักฐานเปิด/Refresh/execute DAX/ตรวจภาพใน Desktop ข้อมูลจริงในร่างยังสิทธิ์ pending จึงใช้ในเครื่องและยังไม่นำขึ้น Online
+เมื่อถึงขั้นรายงาน ให้เตรียมโมเดลและ DAX ในเครื่อง ตรวจด้วย Power BI Desktop/Tabular engine แล้วค่อยอัปโหลด Online การสร้าง/จัด visual ผ่าน browser ถูกหยุดตามคำสั่งเจ้าของงาน
+
+บันทึกร่าง PBIP รอบนั้นที่ `data/local/powerbi/offline-v4/TADIH.pbip` พร้อม `Data/`, `TADIH.SemanticModel/model.bim` และ PBIR ร่าง 5 หน้า รวม 12 ตาราง 15 relationships 26 measures และราคา 44 สินค้า ตรวจ Microsoft schemas และ TOM round trip ผ่าน ยังไม่มี PBIX หรือหลักฐานเปิด/Refresh/execute DAX/ตรวจภาพใน Desktop ข้อมูลจริงในร่างยังสิทธิ์ pending จึงใช้ในเครื่องและยังไม่นำขึ้น Online
 
 ดูรายการไฟล์ คำสั่งสร้าง/ตรวจ และเช็กลิสต์ทำต่อใน [HANDOFF.md](../HANDOFF.md) Generated PBIP มี M partitions และ parameter ของตัวเอง ขั้นตอน manual ด้านล่างเป็นฐานเดิม 9 ตารางสำหรับ coverage/single-observation measures หากใช้ domain DAX ใหม่ที่อ้าง `dim_admin_area`, `fact_production_source` หรือ `dim_period[month_start]` ให้ใช้ generated model ซึ่งมี schema ครบ
 

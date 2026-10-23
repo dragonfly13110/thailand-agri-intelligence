@@ -1,10 +1,10 @@
 # Thailand Agricultural Decision Intelligence Hub
 
-เริ่มพัฒนาจากสเปก [Thailand First v1.4](Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) วันที่ 22 ตุลาคม 2569 ใช้ Python + DuckDB + ไฟล์ CSV/Parquet สำหรับ Power BI Import ทำงานได้โดยไม่มี Fabric
+พัฒนาจากสเปก [Thailand First v1.4](Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ด้วย Python + DuckDB + ไฟล์ CSV/Parquet เป้าหมายปัจจุบันคือ [ศูนย์รวมข้อมูลเกษตรทั้งประเทศ](docs/national-agriculture-data-center.md) ให้กรมส่งเสริมการเกษตรและหน่วยงานอื่นใช้หลักฐานเดียวกันเลือกพื้นที่ วางโครงการ และติดตามผล
 
-สถานะ: ฐานระบบที่รันได้พร้อมข้อมูลจริงตัวอย่าง ยังไม่ใช่รายงาน Power BI สำเร็จรูปหรือระบบเตือนภัยที่ผ่านการรับรอง
+สถานะ: มี raw/staging หลายแหล่งและระบบต้นแบบ แต่ยังไม่มีบัญชี coverage จากทุก resource, crosswalk พื้นที่ตามเวลา, ทะเบียนโครงการข้ามหน่วยงาน หรือข้อมูลที่ผ่านสิทธิ์พร้อมเปิดใช้ร่วมกันทั้งประเทศ
 
-**เริ่มทำงานต่อที่ [เช็กลิสต์และเอกสารส่งต่องาน](HANDOFF.md)** มีรายการไฟล์ งานที่เสร็จ หลักฐานทดสอบ งานค้าง และคำสั่งเริ่มต่อสำหรับ AI อัปเดต 22 ตุลาคม 2569
+**เริ่มทำงานต่อที่ [เช็กลิสต์และเอกสารส่งต่องาน](HANDOFF.md)** อัปเดต 23 ตุลาคม 2569 ระยะนี้ทำบัญชี coverage, ความหมายข้อมูล, รหัสเชื่อม และตรรกะแผน/ผลจากไฟล์ที่มีอยู่ก่อน งาน Power BI เป็นขั้นปลายทางเมื่อข้อมูลผ่านเกณฑ์
 
 ## สิ่งที่มีแล้ว
 
@@ -18,7 +18,7 @@
 - กฎทดลองตรวจฝนน้อยและราคา/ผลผลิต พร้อม evidence; หลักฐานไม่พอคืน `unknown`
 - Baseline forecast และ walk-forward backtest ป้องกันข้อมูลอนาคตรั่วเข้าอดีต ซ่อนผลเมื่อไม่ผ่านเกณฑ์
 - ส่งออก snapshot CSV/Parquet แยกสาธารณะกับภายใน พร้อมตรวจ checksum และไฟล์นำเข้า Power BI
-- สร้าง PBIP ในเครื่อง: 12 ตาราง 15 relationships 26 DAX measures และหน้ารายงานร่าง 5 หน้า ตรวจโครงสร้างแล้ว ยังไม่ทดสอบ Refresh/DAX/render ใน Desktop
+- มี PBIP ร่างในเครื่องและตรวจโครงสร้างแล้ว ยังไม่ทดสอบ Refresh/DAX/render ใน Desktop; สถานะและไฟล์รุ่นล่าสุดดู [Power BI handoff](powerbi/README.md)
 - CI สำหรับ tests/build และ workflow ตรวจ catalog รายสัปดาห์เมื่อเชื่อม GitHub แล้ว
 
 ## เริ่มใช้งานบน Windows
@@ -42,6 +42,8 @@ Linux/macOS ใช้ `.venv/bin/python` แทน `.venv/Scripts/python.exe` �
 ```
 
 ## ดึงข้อมูลจริง
+
+คำสั่งส่วนนี้เป็นคู่มือ ingestion เดิม ตรวจ [HANDOFF](HANDOFF.md) และ manifest ก่อนใช้เพื่อไม่โหลดซ้ำหรือกินพื้นที่ดิสก์เพิ่ม งานรอบถัดไปเริ่มจากข้อมูลในเครื่อง
 
 ```powershell
 ./.venv/Scripts/python.exe -m tadih discover --source doae --limit 100 --max-pages 2

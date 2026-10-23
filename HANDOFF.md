@@ -1,5 +1,38 @@
 # เช็กลิสต์และเอกสารส่งต่องาน TADIH
 
+## เริ่มงานต่อที่นี่ (สถานะ 23 ต.ค. 2569)
+
+เป้าหมายปัจจุบันคือศูนย์รวมข้อมูลเกษตรระดับประเทศให้กรมส่งเสริมการเกษตรและหน่วยงานอื่นใช้หลักฐานเดียวกันวางโครงการตรงพื้นที่ ติดตามผล และหยิบข้อมูลที่ผ่านสิทธิ์ไปใช้ต่อได้ อ่าน [สัญญาข้อมูลและลำดับงาน](docs/national-agriculture-data-center.md) ก่อนแก้โค้ด ส่วนหัวข้อเก่าด้านล่างเป็นบันทึกตามเวลาที่ทำ ไม่ใช่คำสั่งงานล่าสุด สเปก [Thailand First v1.4](Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ยังเป็นเกณฑ์ระยะยาว
+
+### ทำแล้วและมีหลักฐาน
+
+- [x] มีทะเบียน 77 จังหวัดและ coverage matrix ตั้งต้น 77 × 20 หมวด สถานะที่ยังไม่มีหลักฐานคง `UNVERIFIED`; ยังไม่ใช่ความครอบคลุมข้อมูลจริงทั้งประเทศ ([README](README.md), [คู่มือ coverage](docs/runbook.md))
+- [x] ตรวจ DOAE CKAN ครบ 201 datasets: สาธารณะ 33, Database จำกัดสิทธิ์ 6, ชุดทดสอบ/ว่าง 162; raw ของ CSV ที่ catalog ระบุครบ 58/58 resources และตรวจ SHA raw 60 resources ([acquisition audit](docs/doae-acquisition-audit.md), `data/local/probes/doae-acquisition-audit.json`)
+- [x] Stage DOAE P0 1,943,296 แถวจาก source 1,943,298 (quarantine 2), P1 202,223 จาก 202,747 (quarantine 524), archives 1,289,027 จาก 1,289,200 (quarantine 173); P2 คำขอเพิ่มรายการ 1,534 แถว แยกจาก observations ใน warehouse ([P0](docs/doae-p0-ingestion.md), [P1 และ archives](docs/doae-p1-archives.md), [acquisition audit](docs/doae-acquisition-audit.md))
+- [x] Audit พื้นที่ DOAE 21 resources/2,757,305 แถวกับ DOPA snapshot ปี 2566 พร้อมผลระดับ signature; ยังไม่มี temporal crosswalk ที่อนุมัติให้ rollup ([geography audit](docs/doae-geography-audit.md))
+- [x] ลดพื้นที่ด้วย NTFS compression และตรวจ hash หลังบีบอัด; ไฟล์สำเนาซ้ำที่เสนอให้ลบ 21 ไฟล์ยังอยู่ครบเพราะ automatic approval บล็อกคำสั่งลบ ([บันทึกด้านล่าง](#ลดพื้นที่ข้อมูลในเครื่อง-23-ตค-2569))
+
+### ค้างและลำดับงาน
+
+- [ ] **เริ่มงานรอบถัดไป:** สร้างบัญชี coverage จาก manifest/staging ที่มีอยู่ในเครื่องที่ grain `source × area × period × metric` โดยบอกสถานะ/เหตุผลช่องว่าง, หน่วย, สิทธิ์, เวลาดึง และหลักฐาน; ตรวจยอดกับ manifest และแยกจังหวัดจากประเทศ/สถานี/กริด งานนี้ยังไม่ได้ทำเป็น dataset กลาง 77 จังหวัด
+- [ ] ตรวจ native grain, คำจำกัดความตัวเลข, หน่วย, ฤดู, เวลาและ subtotal ของแต่ละ resource; แก้ข้อขัดแย้งพื้นที่และทำ DOPA crosswalk ที่มีช่วงเวลารองรับ ก่อนเปิด `rollup_eligible` หรือ join ข้ามแหล่ง
+- [ ] ทำคู่เทียบแผนกับผลเฉพาะเมื่อพื้นที่/พืช/ฤดู/ช่วงเวลา/หน่วยตรงและมี coverage เพียงพอ: แผนฤดูฝน 2569 ที่มี 477 แถวกับผล 3 แถวยังไม่มีจังหวัดตรงกัน จึงยังสรุปผลสำเร็จไม่ได้
+- [ ] สำรวจแหล่งและสิทธิ์ของทะเบียนโครงการ/งบ/ผลจากแต่ละหน่วยงาน แล้วกำหนด grain และรหัสเชื่อมกับปัญหาพื้นที่; ยังไม่มีทะเบียนโครงการข้ามหน่วยงานที่ตรวจแล้ว
+- [ ] ตรวจสิทธิ์ใช้ซ้ำและข้อมูลส่วนบุคคลราย resource ก่อนเผยแพร่ ทุก 70 exact resources ในทะเบียนยัง `pending`; 6 Database datasets ยังไม่ได้อ่านข้อมูล ห้ามย้าย raw, `data/local/` หรือ `exports/private/` เข้า Git/public artifact
+- [ ] ประเมินสำเนาซ้ำ 21 ไฟล์/517,762,353 bytes อีกครั้งตาม [หลักฐาน cleanup](docs/progress.md); ยังไม่มีการลบ เก็บ source, manifest, checksum, warehouse และสำเนาที่จำเป็นไว้
+- [ ] เมื่อข้อมูลและสิทธิ์พร้อม ค่อยกำหนดช่องทางให้หน่วยงานอื่นค้น/นำข้อมูลไปใช้และตรวจโมเดล/รายงานใน Desktop; ยังไม่รับรอง DAX runtime, หน้ารายงาน หรือ Power BI Online
+
+### คำสั่งเริ่มรอบถัดไป
+
+```powershell
+Set-Location -LiteralPath 'D:\code\thailand-agri-intelligence'
+git status --short --branch
+git log -1 --oneline
+.\.venv\Scripts\python.exe -X utf8 scripts/audit_doae_acquisition.py
+```
+
+อ่าน [roadmap DOAE](docs/doae-catalog-expansion.md), [คู่มือปฏิบัติงาน](docs/runbook.md), [ทะเบียนสิทธิ์](docs/source-license-register.md), [progress](docs/progress.md) และ manifest ใน `data/local/` ก่อนเขียน coverage; คำสั่ง audit ข้างต้นตรวจไฟล์ที่มีอยู่ ไม่ต้องดาวน์โหลดซ้ำ หาก virtual environment ยังไม่มีให้ตรวจ README ก่อนติดตั้งและคำนึงถึงพื้นที่ดิสก์
+
 ## ทิศทางเจ้าของงาน 23 ต.ค. 2569: ศูนย์ข้อมูลเกษตรทั้งประเทศ
 
 - เป้าหมายหลักคือให้กรมส่งเสริมการเกษตรและหน่วยงานอื่นใช้หลักฐานกลางวางโครงการตรงปัญหา/พื้นที่และติดตามผล ครอบคลุมทะเบียน 77 จังหวัดโดยแสดงช่องว่างข้อมูลจริง อ่าน [ลำดับงานและสัญญาข้อมูล](docs/national-agriculture-data-center.md)
@@ -152,11 +185,11 @@ DOF staging เพิ่มแล้ว: `python -m tadih dof-production` ดึ
 - งานต่อด้านข้อมูล: ตรวจความหมายเดือน/รอบปลูกและช่วงเวลาพื้นที่กับ DOAE, ยืนยันสิทธิ์ 7 resources/วันเผยแพร่ราคา, ตรวจสินค้าและข้อมูล daily/weekly จริง, เพิ่ม P1/P2 ตามสเปก, ทำ backtest เมื่อมี issue/release lineage; ห้ามใช้ snapshot นี้เป็น historical as-of certified forecast. ฐานเก่าที่หยุดกลางทางเก็บใน `data/local/backups/partial-before-bulk.duckdb*` เพื่อสอบสวน ไม่ใช่ฐานใช้งาน
 - ช่วงนี้พัก BI ตามคำสั่งล่าสุด: **ทำข้อมูลก่อน**. ยังไม่ทดสอบ Desktop/DAX หรืออัปโหลด Online
 
-## อ่านตรงนี้ก่อนเริ่ม
+## บันทึกส่งต่อช่วง Power BI เดิม (ประวัติ 22 ต.ค. 2569)
 
 โครงการอยู่ระหว่างพัฒนา Thailand Core มี pipeline ที่รันได้ ข้อมูลจริงบางชุด และ Power BI Project ร่างในเครื่อง ยังไม่ผ่านเกณฑ์จบโครงการตามสเปก v1.4 และยังไม่มีรายงานพร้อมใช้งานครบประเทศ
 
-คำสั่งล่าสุดของเจ้าของงาน: **ดึงและเตรียมข้อมูล ทำโมเดล ความสัมพันธ์ Power Query และ DAX ในเครื่องก่อน ตรวจผล แล้วค่อยอัปโหลด Power BI Online เมื่อพร้อม** หยุดการจัด visual ผ่าน browser ไว้แล้ว
+ลำดับงานที่บันทึกไว้ในช่วงนั้น: **ดึงและเตรียมข้อมูล ทำโมเดล ความสัมพันธ์ Power Query และ DAX ในเครื่องก่อน ตรวจผล แล้วค่อยอัปโหลด Power BI Online เมื่อพร้อม** ลำดับปัจจุบันให้ยึดเช็กลิสต์ต้นไฟล์
 
 - Workspace ปัจจุบัน: `D:\code\thailand-agri-intelligence`; `T:\coding+\BI AGRI THAILAND` เป็นเครื่องเดิม
 - สเปกหลัก: [Thailand First v1.4](Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ให้ยึด PART IV เป็นลำดับแรก และคงข้อกำหนด historical/forecast ของ PART III
