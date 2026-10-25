@@ -1,0 +1,2051 @@
+/* ==========================================================================
+   มาตรฐานความปลอดภัยสินค้าเกษตรและการตรวจสอบย้อนกลับ (Food Safety)
+   Mobile-first · ใช้ token จาก app/globals.css · ไม่มี class ทับซ้อน global
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  /* น้ำเสียงสีเชิงความหมาย (pass / watch / risk) กระจายจากสีเขียวหลักของเว็บ */
+  --fsPassBg: #e3efe6;
+  --fsPassInk: #2c6647;
+  --fsWatchBg: #fbf3dd;
+  --fsWatchInk: #7d5c14;
+  --fsRiskBg: #f8e5e3;
+  --fsRiskInk: #9a3230;
+  --fsSubtleBg: #f2f5ee;
+  --fsLineSoft: #e7ece2;
+}
+
+/* --------------------------------------------------------------------------
+   1) แบนเนอร์สถานะข้อมูล
+   -------------------------------------------------------------------------- */
+.banner {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius, 8px);
+  border: 1px solid #ebdcb2;
+  border-left: 5px solid #c69a35;
+  background: #fdf6e6;
+  color: #5f4a13;
+}
+
+.bannerSample {
+  border-color: #ebdcb2;
+  border-left-color: #c69a35;
+  background: #fdf6e6;
+  color: #5f4a13;
+}
+
+.bannerLive {
+  border-color: #cfe0cf;
+  border-left-color: #2f6b4f;
+  background: #eef5ee;
+  color: #24483a;
+}
+
+.bannerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f3e5bb;
+  color: #7a5a12;
+}
+
+.bannerLive .bannerIcon {
+  background: #d8e8da;
+  color: #2c6647;
+}
+
+.bannerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bannerTopline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bannerTopline strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.bannerTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: #c69a35;
+  color: #fffdf6;
+  white-space: nowrap;
+}
+
+.bannerLive .bannerTag {
+  background: #2f6b4f;
+}
+
+.bannerBody p {
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: #6b571e;
+  overflow-wrap: break-word;
+}
+
+.bannerLive .bannerBody p {
+  color: #30503f;
+}
+
+.bannerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 12px !important;
+  color: #7a662c !important;
+}
+
+.bannerMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.warningList {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #6f5a1f;
+}
+
+.warningList li::marker {
+  color: #c69a35;
+}
+
+/* --------------------------------------------------------------------------
+   2) KPI
+   -------------------------------------------------------------------------- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 1px 2px rgba(33, 61, 50, 0.04);
+}
+
+.kpiHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kpiIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--fsSubtleBg, #f2f5ee);
+  color: var(--forest, #213d32);
+}
+
+.kpiTitle {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.kpiValue {
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.4px;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiUnit {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted, #53645a);
+}
+
+.kpiBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kpiNote {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.splitRow {
+  display: grid;
+  gap: 4px;
+}
+
+.splitLabel {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted, #53645a);
+}
+
+.mandateLegend {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legendCount {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   แถบ / วงแหวน
+   -------------------------------------------------------------------------- */
+.barTrack {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fsSubtleBg, #f2f5ee);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.barForest {
+  background: #4a6b3f;
+}
+
+.barPass {
+  background: #2f6b4f;
+}
+
+.barFail {
+  background: #a8392f;
+}
+
+.barAmber {
+  background: #c69a35;
+}
+
+.barCaption {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  font-size: 10px;
+  color: var(--muted, #53645a);
+}
+
+.splitTrack {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--fsSubtleBg, #f2f5ee);
+}
+
+.splitPass {
+  background: #2f6b4f;
+}
+
+.splitFail {
+  background: #a8392f;
+}
+
+.splitPending {
+  background: #c9cfc4;
+}
+
+.splitLegend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.legendPass {
+  color: var(--fsPassInk, #2c6647);
+}
+
+.legendFail {
+  color: var(--fsRiskInk, #9a3230);
+}
+
+.gaugeWrap {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.gaugeTrack {
+  stroke: #e4eade;
+}
+
+.gaugeValue {
+  transition: stroke-dasharray 0.3s ease;
+}
+
+.gaugeGood {
+  stroke: #2f6b4f;
+}
+
+.gaugeWatch {
+  stroke: #c69a35;
+}
+
+.gaugeRisk {
+  stroke: #a8392f;
+}
+
+.gaugeText {
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.gaugeRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3) การ์ดมาตรฐาน + badge บังคับ/สมัครใจ
+   -------------------------------------------------------------------------- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sectionHeader h2 {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+}
+
+.sectionHeader p {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  max-width: 70ch;
+}
+
+.sectionCount {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--fsSubtleBg, #f2f5ee);
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+}
+
+.standardGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.standardCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  text-align: left;
+  width: 100%;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: var(--fsSubtleBg, #f2f5ee);
+  color: var(--ink, #21352b);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.standardCard:hover {
+  background: #e9f0e2;
+  border-color: #b9cab2;
+}
+
+.standardCardActive {
+  background: var(--white, #fff);
+  border-color: var(--forest, #213d32);
+  box-shadow: inset 3px 0 0 var(--forest, #213d32);
+}
+
+/* ปุ่มสลับตัวกรองอยู่ภายในการ์ด — แยกจากลิงก์ที่มาเพื่อไม่ซ้อน interactive element */
+.standardToggle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.standardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: #e4eddc;
+  color: #46683a;
+}
+
+.standardCardActive .standardIcon {
+  background: var(--accent, #d9e8a0);
+  color: var(--forest, #213d32);
+}
+
+.standardHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.standardHead strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.standardHead small {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.standardCount {
+  font-size: 12px;
+  font-weight: 500;
+  color: #46683a;
+  font-variant-numeric: tabular-nums;
+}
+
+.standardDesc {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+}
+
+.standardMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+}
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #3f6134;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.noLink {
+  font-size: 11.5px;
+  color: #7b8a7c;
+  font-style: italic;
+}
+
+/* badge มาตรฐานบังคับ vs สมัครใจ — ต่างทั้งสี รูปทรง น้ำหนัก และไอคอน */
+.mandateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.mandateGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.mandateRequired {
+  padding: 4px 9px 4px 5px;
+  border-radius: 3px;
+  background: var(--forest, #213d32);
+  color: var(--accent, #d9e8a0);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid var(--forest, #213d32);
+}
+
+.mandateVoluntary {
+  padding: 3px 9px 3px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed #a4b6a0;
+  color: #4b6152;
+  font-weight: 400;
+}
+
+/* --------------------------------------------------------------------------
+   4) แผงตัวกรอง + ค้นหา
+   -------------------------------------------------------------------------- */
+.filterPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.filterRow {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filterLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--muted, #53645a);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 13px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  border-radius: 999px;
+  border: 1px solid #cbd7c6;
+  background: #f6f8f3;
+  color: #45594b;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip:hover {
+  background: #e9f0e0;
+  border-color: #a8bd9d;
+}
+
+.chipActive {
+  background: var(--forest, #213d32);
+  border-color: var(--forest, #213d32);
+  color: #f2f7ea;
+  font-weight: 600;
+}
+
+.searchRow {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.searchField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 260px;
+  min-width: 0;
+  gap: 10px;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--white, #fff);
+  border: 1px solid #b3c3ac;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(33, 61, 50, 0.04);
+}
+
+.searchField:focus-within {
+  border-color: #6e8a5a;
+  background: #fcfdfa;
+}
+
+.searchIcon {
+  display: flex;
+  align-items: center;
+  color: #657d5b;
+}
+
+.searchField input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink, #21352b);
+  outline: none;
+}
+
+.resetButton {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 6px;
+  border: 1px solid #bdc9b7;
+  background: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.resetButton:hover {
+  background: #edf2e7;
+}
+
+.resetButton:disabled {
+  color: #97a498;
+  background: #f4f6f2;
+  cursor: not-allowed;
+}
+
+.resultLine {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+}
+
+.resultLine strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.filterEcho {
+  align-self: flex-start;
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--fsSubtleBg, #f2f5ee);
+  color: #4c624d;
+}
+
+.provinceHitRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed #c3d1bd;
+  border-radius: var(--radius, 8px);
+  background: #f7faf2;
+  min-width: 0;
+}
+
+.provinceHitLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.registryGrid {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.registryColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.columnTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--fsLineSoft, #e7ece2);
+}
+
+.columnTitle svg {
+  color: #5f7a53;
+}
+
+.columnEmpty {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #7b8a7c;
+}
+
+.cardStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.moreNote {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  padding: 8px 10px;
+  background: var(--fsSubtleBg, #f2f5ee);
+  border-radius: 5px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px 16px;
+  text-align: center;
+  border: 1px dashed #c3d1bd;
+  border-radius: var(--radius, 8px);
+  background: #f7faf2;
+}
+
+.emptyState h3 {
+  font-size: 16px;
+  color: var(--forest, #213d32);
+}
+
+.emptyState p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--muted, #53645a);
+  max-width: 60ch;
+  margin: 0 auto;
+}
+
+/* การ์ดใบรับรอง / ล็อต */
+.recordCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: var(--fsSubtleBg, #f2f5ee);
+  min-width: 0;
+}
+
+.recordHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recordNo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #e4eddc;
+  color: #3f5f34;
+  overflow-wrap: anywhere;
+}
+
+.recordTitle {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.recordMeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 0;
+}
+
+.recordMeta div {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.recordMeta dt {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  min-width: 74px;
+  flex-shrink: 0;
+}
+
+.recordMeta dd {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+}
+
+.recordFooter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--fsLineSoft, #e7ece2);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.statusActive {
+  background: var(--fsPassBg, #e3efe6);
+  color: var(--fsPassInk, #2c6647);
+}
+
+.statusExpired {
+  background: #eaece8;
+  color: #5f6d60;
+}
+
+.statusSuspended {
+  background: var(--fsRiskBg, #f8e5e3);
+  color: var(--fsRiskInk, #9a3230);
+}
+
+.statusPending {
+  background: var(--fsWatchBg, #fbf3dd);
+  color: var(--fsWatchInk, #7d5c14);
+}
+
+.lotCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  padding: 14px;
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-left: 4px solid #c9d5c4;
+  border-radius: var(--radius, 8px);
+  background: var(--fsSubtleBg, #f2f5ee);
+  color: var(--ink, #21352b);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.lotCard:hover {
+  background: #e9f0e2;
+  border-left-color: #7f9a6d;
+}
+
+.lotCardActive {
+  background: var(--white, #fff);
+  border-color: #b7ccab;
+  border-left-color: var(--forest, #213d32);
+  box-shadow: 0 2px 8px rgba(33, 61, 50, 0.07);
+}
+
+.lotHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lotCode {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.lotLine {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--ink, #21352b);
+  overflow-wrap: break-word;
+}
+
+.lotLineMuted {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.lotFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+.residueChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.residuePass {
+  background: var(--fsPassBg, #e3efe6);
+  color: var(--fsPassInk, #2c6647);
+}
+
+.residueFail {
+  background: var(--fsRiskBg, #f8e5e3);
+  color: var(--fsRiskInk, #9a3230);
+}
+
+.residuePending {
+  background: var(--fsWatchBg, #fbf3dd);
+  color: var(--fsWatchInk, #7d5c14);
+}
+
+/* --------------------------------------------------------------------------
+   5) กระดานรายสินค้า
+   -------------------------------------------------------------------------- */
+.tabBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--fsLineSoft, #e7ece2);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: #44594d;
+  background: #f0f3ec;
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: -2px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab:hover {
+  background: #e5ecdf;
+  color: #1f3a2c;
+}
+
+.tabActive {
+  background: var(--white, #fff);
+  border-color: var(--line, #dce3d9);
+  border-bottom-color: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-weight: 600;
+}
+
+.tabCount {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #dfe8d6;
+  color: #46683a;
+  font-variant-numeric: tabular-nums;
+}
+
+.commodityGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.commodityCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  min-width: 0;
+  background: #f2f5f0;
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.commodityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--fsLineSoft, #e7ece2);
+}
+
+.commodityHeader h3 {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.commodityStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.commodityStats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.commodityStats dt {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.commodityStats dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.metricBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.metricLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.metricLabel strong {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bandGood {
+  color: var(--fsPassInk, #2c6647);
+}
+
+.bandWatch {
+  color: var(--fsWatchInk, #7d5c14);
+}
+
+.bandRisk {
+  color: var(--fsRiskInk, #9a3230);
+}
+
+.bandUnknown {
+  color: #7b8a7c;
+}
+
+.topProvinceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.topProvinceList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topProvinceList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  background: var(--white, #fff);
+  border-radius: 5px;
+}
+
+.rankMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #e4eddc;
+  color: #46683a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.provinceLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink, #21352b);
+  text-align: left;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.provinceLink:hover {
+  color: #3f6134;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rankValue {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   6) ตารางจังหวัด
+   -------------------------------------------------------------------------- */
+.regionBar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.selectField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+  min-width: 0;
+}
+
+.selectField select {
+  height: 44px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--ink, #21352b);
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+}
+
+.tableScroll {
+  overflow: auto;
+  max-height: 620px;
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: var(--white, #fff);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eff2e9;
+  color: var(--muted, #53645a);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  text-align: left;
+  white-space: nowrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line, #dce3d9);
+}
+
+.thName {
+  min-width: 178px;
+}
+
+.thNumeric {
+  white-space: nowrap;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sortButton:hover {
+  background: #e2e9dc;
+  color: var(--forest, #213d32);
+}
+
+.sortGlyph {
+  display: inline-flex;
+  color: #a6b3a4;
+}
+
+.sortGlyphActive {
+  color: var(--forest, #213d32);
+}
+
+.table tbody td,
+.table tbody th {
+  padding: 12px;
+  border-bottom: 1px solid var(--fsLineSoft, #e7ece2);
+  vertical-align: top;
+  text-align: left;
+  line-height: 1.8;
+}
+
+.table tbody tr:hover td,
+.table tbody tr:hover th {
+  background: #f7faf2;
+}
+
+.rowSelected th,
+.rowSelected td {
+  background: #eef5e4;
+}
+
+.provinceCell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--white, #fff);
+  min-width: 178px;
+}
+
+.rowSelected .provinceCell {
+  background: #eef5e4;
+}
+
+.provinceName {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.provinceSub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted, #53645a);
+}
+
+.numeric {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  display: table-cell;
+}
+
+.numericStrong {
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.numeric .barTrack {
+  margin-top: 6px;
+  max-width: 110px;
+}
+
+.countCell {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+}
+
+.passText {
+  color: var(--fsPassInk, #2c6647);
+  font-weight: 600;
+}
+
+.failText {
+  color: var(--fsRiskInk, #9a3230);
+  font-weight: 600;
+}
+
+.pendingText {
+  color: var(--fsWatchInk, #7d5c14);
+  font-size: 11.5px;
+}
+
+.rateCell {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rateCell.bandGood {
+  background: var(--fsPassBg, #e3efe6);
+}
+
+.rateCell.bandWatch {
+  background: var(--fsWatchBg, #fbf3dd);
+}
+
+.rateCell.bandRisk {
+  background: var(--fsRiskBg, #f8e5e3);
+}
+
+.rateCell.bandUnknown {
+  background: #eef0ec;
+}
+
+.commodityCell {
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+  min-width: 92px;
+}
+
+.table tfoot th,
+.table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #f2f5ee;
+  padding: 11px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  border-top: 2px solid var(--line, #dce3d9);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   7) แผงสืบย้อนแหล่งกำเนิด
+   -------------------------------------------------------------------------- */
+.traceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.traceSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  min-width: 0;
+  background: var(--fsSubtleBg, #f2f5ee);
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.traceTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.traceMeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fsLineSoft, #e7ece2);
+}
+
+.traceMeta div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.traceMeta dt {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  min-width: 92px;
+  flex-shrink: 0;
+}
+
+.traceMeta dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink, #21352b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.codeInline {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.qrBlock {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: var(--white, #fff);
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.qrSvg {
+  width: 128px;
+  height: 128px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  border: 1px solid var(--line, #dce3d9);
+}
+
+.qrDark {
+  fill: var(--forest, #213d32);
+}
+
+.qrLight {
+  fill: #ffffff;
+}
+
+.qrSide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.qrCaption {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.qrPayload {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #3f5f34;
+  background: #eef3e6;
+  padding: 8px 10px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.qrNote {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.stepperCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  min-width: 0;
+  background: var(--fsSubtleBg, #f2f5ee);
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.stepperTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.stepper {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepperItem {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+  min-width: 0;
+}
+
+.stepperItem:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 34px;
+  bottom: 0;
+  width: 2px;
+  background: #d3ddcd;
+}
+
+.stepperDot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--white, #fff);
+  border: 2px solid #8faa7f;
+  color: #40603a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stepperItem:last-child .stepperDot {
+  background: var(--accent, #d9e8a0);
+  border-color: var(--forest, #213d32);
+  color: var(--forest, #213d32);
+}
+
+.stepperBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.stepperBody strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.stepperPlace {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.stepperPlace svg {
+  color: #7c9370;
+}
+
+.stepperDate {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #6a7c6c;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   8) แถบห้องปฏิบัติการตรวจสารตกค้าง
+   -------------------------------------------------------------------------- */
+.labGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.labCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  min-width: 0;
+  background: var(--fsSubtleBg, #f2f5ee);
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.labHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.labHeader h3 {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.labRegion {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #e4eddc;
+  color: #46683a;
+  white-space: nowrap;
+}
+
+.labGauge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.labStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.labStats div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.labStats dt {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.labStats dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--ink, #21352b);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   9) แหล่งข้อมูล
+   -------------------------------------------------------------------------- */
+.sourceList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sourceItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  min-width: 0;
+  background: var(--fsSubtleBg, #f2f5ee);
+  border: 1px solid var(--fsLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.sourceHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sourceHead strong {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.licenseBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--fsWatchBg, #fbf3dd);
+  color: var(--fsWatchInk, #7d5c14);
+  white-space: nowrap;
+}
+
+.sourceAgency {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #5f7160;
+}
+
+.sourceRole {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.sourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #3f6134;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive — 2 คอลัมน์ที่ ≥640px, 3 คอลัมน์ที่ ≥1024px, KPI 4 คอลัมน์ ≥1200px
+   -------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .standardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .commodityGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .labGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sourceList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recordMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .traceMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .section,
+  .filterPanel {
+    padding: 22px 24px;
+  }
+
+  .banner {
+    padding: 20px 22px;
+  }
+
+  .regionBar {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .selectField {
+    min-width: 260px;
+    flex-shrink: 0;
+  }
+
+  .registryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filterRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .traceGrid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .searchRow {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 1024px) {
+  .kpiGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .standardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .commodityGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .labGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sourceList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    gap: 28px;
+  }
+
+  /* 5 การ์ด KPI = 4 คอลัมน์แถวบน + 2 การ์ด gauge (span 2) แถวล่าง */
+  .kpiGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .kpiCardWide {
+    grid-column: span 2;
+  }
+
+  .commodityGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  /* กัน iOS auto-zoom ตอน focus (ใกล้เคียงกับที่ globals ทำกับ .data-filters) */
+  .searchField input,
+  .selectField select {
+    font-size: 16px;
+  }
+
+  .searchRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .resetButton {
+    width: 100%;
+  }
+
+  .table tfoot th,
+  .table tfoot td {
+    position: static;
+  }
+}
+
+@media (max-width: 420px) {
+  .kpiValue {
+    font-size: 24px;
+  }
+
+  .qrSvg {
+    width: 108px;
+    height: 108px;
+  }
+
+  .chip {
+    font-size: 12px;
+    padding: 8px 11px;
+  }
+
+  .recordMeta dt {
+    min-width: 68px;
+  }
+
+  .bannerMeta {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill,
+  .gaugeValue,
+  .chip,
+  .tab,
+  .standardCard,
+  .lotCard,
+  .resetButton,
+  .kpiCard {
+    transition: none;
+  }
+}

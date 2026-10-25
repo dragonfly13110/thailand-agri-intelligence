@@ -16,6 +16,7 @@ from tadih.data_sharing import (
     export_partner_feed_bundle,
     audit_data_sharing_interface,
 )
+from tests.test_project_register import project_fixture
 
 
 class DataSharingTests(unittest.TestCase):
@@ -90,6 +91,27 @@ class DataSharingTests(unittest.TestCase):
         feed_year = execute_data_sharing_query(q_year, ROOT)
         for p in feed_year.data_records:
             self.assertEqual(p["fiscal_year"], "2567")
+
+    def test_project_province_filter_keeps_only_explicit_native_province_targets(self):
+        rows = [project_fixture(project_id="TEST-COUNTRY",target_area_grain="country",target_area_codes=["TH"]),
+                project_fixture(project_id="TEST-DISTRICT",target_area_grain="district",target_area_codes=["7301"]),
+                project_fixture(), project_fixture(project_id="TEST-UNKNOWN-CROP",target_commodity=None)]
+        with tempfile.TemporaryDirectory() as temp:
+            probes=Path(temp)/"data/local/probes";probes.mkdir(parents=True)
+            (probes/"project-register-audit.json").write_text(json.dumps({"audit_version":2,"projects":rows}),encoding="utf-8")
+            def query(**filters):
+                return execute_data_sharing_query(SharingQuery(partner_agency="DOAE",endpoint="/v1/projects",license_scope="inter_agency_authorized",**filters),Path(temp))
+            self.assertEqual(query().total_records,4)
+            self.assertEqual({p["project_id"] for p in query(province_code="73").data_records},{"TEST-PROVINCE","TEST-UNKNOWN-CROP"})
+            self.assertEqual([p["project_id"] for p in query(province_code="73",commodity="ข้าว").data_records],["TEST-PROVINCE"])
+            self.assertEqual(query(province_code="74").total_records,0)
+
+    def test_invalid_project_target_proof_is_rejected_even_without_province_query(self):
+        with tempfile.TemporaryDirectory() as temp:
+            probes=Path(temp)/"data/local/probes";probes.mkdir(parents=True)
+            (probes/"project-register-audit.json").write_text(json.dumps({"audit_version":2,"projects":[project_fixture(target_area_codes=["00"])]}),encoding="utf-8")
+            with self.assertRaises(ValueError):
+                execute_data_sharing_query(SharingQuery(partner_agency="DOAE",endpoint="/v1/projects",license_scope="inter_agency_authorized"),Path(temp))
 
     def test_payload_sha256_cryptographic_integrity(self):
         q = SharingQuery(partner_agency="LDD", endpoint="/v1/projects", license_scope="inter_agency_authorized")

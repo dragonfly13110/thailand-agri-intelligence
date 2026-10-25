@@ -6,18 +6,30 @@ Links project target areas and commodities with risk signals to identify covered
 redundancies, and unaddressed gaps.
 """
 
-from collections import defaultdict
 from dataclasses import dataclass, asdict
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from .catalog import ROOT, load_provinces
+from .catalog import ROOT, PROVINCE_CODES
 
 
 PROJECT_CONTRACT_PATH = ROOT / "data_contracts/project.schema.json"
+
+
+def province_project_targets(project: Dict[str, Any]) -> List[str]:
+    """Return declared province targets only; never expand another native grain."""
+    if project.get("target_area_grain") != "province":
+        return []
+    codes = project.get("target_area_codes")
+    if (not isinstance(codes, list) or not codes
+            or any(not isinstance(code, str) or code not in PROVINCE_CODES for code in codes)
+            or len(codes) != len(set(codes))):
+        raise ValueError("Province targets must be nonempty, unique, explicit DOPA province codes")
+    return list(codes)
 
 
 @dataclass
@@ -45,6 +57,17 @@ class AgriculturalProject:
         schema = json.loads(PROJECT_CONTRACT_PATH.read_text(encoding="utf-8"))
         validator = Draft202012Validator(schema, format_checker=FormatChecker())
         validator.validate(asdict(self))
+        for name in ("budget_allocated_baht", "budget_spent_baht", "target_households",
+                     "actual_households", "target_area_rai", "actual_area_rai"):
+            value = getattr(self, name)
+            if value is not None:
+                try:
+                    finite = math.isfinite(value)
+                except (TypeError, OverflowError):
+                    finite = False
+                if not finite:
+                    raise ValueError("Project numeric values must be finite or null")
+        province_project_targets(asdict(self))
 
 
 def build_known_national_project_register(local_dir: Path) -> List[AgriculturalProject]:
@@ -64,29 +87,22 @@ def analyze_spatial_project_coverage(
     problem_province_codes: Set[str],
     commodity_filter: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Analyze which problem areas are covered, duplicate, or unaddressed gaps."""
-    provinces = load_provinces()
-    all_codes = {p["area_code"] for p in provinces}
-
-    covered_by_project = defaultdict(list)
+    """Describe declared targets; planned scope cannot prove implementation coverage."""
+    declared_targets = set()
     for p in projects:
-        if commodity_filter and p.target_commodity and p.target_commodity != commodity_filter:
+        p.validate()
+        if commodity_filter is not None and (not p.target_commodity or not p.target_commodity.strip()
+                                             or p.target_commodity != commodity_filter):
             continue
-        if "TH" in p.target_area_codes or p.target_area_grain == "country":
-            target_codes = all_codes
-        else:
-            target_codes = set(p.target_area_codes)
-
-        for code in target_codes:
-            covered_by_project[code].append(p.project_id)
-
-    covered_problems = problem_province_codes.intersection(covered_by_project.keys())
-    undocumented_problems = problem_province_codes - set(covered_by_project.keys())
+        declared_targets.update(province_project_targets(asdict(p)))
+    planned = sorted(problem_province_codes.intersection(declared_targets))
 
     return {
         "problem_provinces_total": len(problem_province_codes),
-        "covered_problem_provinces_count": len(covered_problems),
-        "unverified_problem_provinces": sorted(undocumented_problems),
+        "planned_target_problem_provinces": planned,
+        "planned_target_problem_provinces_count": len(planned),
+        "covered_problem_provinces_count": None,
+        "unverified_problem_provinces": sorted(problem_province_codes),
         "unaddressed_gap_provinces": [],
         "redundant_intervention_provinces": {},
         "coverage_rate": None,

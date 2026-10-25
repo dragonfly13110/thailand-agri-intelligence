@@ -1,0 +1,2438 @@
+/* ==========================================================================
+   การท่องเที่ยวเชิงเกษตรและวิสาหกิจชุมชนแปลงใหญ่ (Agri-Tourism)
+   Mobile-first · ใช้ token จาก app/globals.css · ไม่มี class ทับ global
+   สีหลักยังเขียว forest ของเว็บ ส่วนสีฤดู (cool/rainy/hot) เป็น accent เชิงความหมาย
+   กระจายอยู่ภายใน .container เท่านั้น
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+
+  /* ฤดูหนาว = teal/blue-green · ฤดูฝน = indigo/slate · ฤดูร้อน = amber */
+  --atCool: #2f7d72;
+  --atCoolBg: #e2f0ee;
+  --atCoolSoft: #cfe5e1;
+  --atRainy: #4a5b7c;
+  --atRainyBg: #e9edf5;
+  --atRainySoft: #d5dcea;
+  --atHot: #b07a17;
+  --atHotBg: #fbf1dd;
+  --atHotSoft: #f2e2bd;
+  --atUnknown: #6b7a6e;
+  --atUnknownBg: #eef1ec;
+
+  /* น้ำเสียงรองของโมดูล (พื้นการ์ด/เส้นขอบ/ข้อความอ่อน) */
+  --atSubtleBg: #f2f5ee;
+  --atLineSoft: #e7ece2;
+  --atInkSoft: #5f7160;
+  --atLeafBg: #e4eddc;
+  --atLeafInk: #46683a;
+}
+
+/* --------------------------------------------------------------------------
+   1) แบนเนอร์สถานะข้อมูล + แถบแหล่งข้อมูลอ้างอิง
+   -------------------------------------------------------------------------- */
+.banner {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius, 8px);
+  border: 1px solid #ebdcb2;
+  border-left: 5px solid #c69a35;
+  background: #fdf6e6;
+  color: #5f4a13;
+  min-width: 0;
+}
+
+.bannerSample {
+  border-color: #ebdcb2;
+  border-left-color: #c69a35;
+  background: #fdf6e6;
+  color: #5f4a13;
+}
+
+.bannerLive {
+  border-color: #cfe0cf;
+  border-left-color: #2f6b4f;
+  background: #eef5ee;
+  color: #24483a;
+}
+
+.bannerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f3e5bb;
+  color: #7a5a12;
+}
+
+.bannerLive .bannerIcon {
+  background: #d8e8da;
+  color: #2c6647;
+}
+
+.bannerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bannerTopline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bannerTopline strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.bannerTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: #c69a35;
+  color: #fffdf6;
+  white-space: nowrap;
+}
+
+.bannerAccess {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #e0d2a8;
+  color: #6d5518;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+.bannerLive .bannerTag {
+  background: #2f6b4f;
+}
+
+.bannerBody p {
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: #6b571e;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.bannerLive .bannerBody p {
+  color: #30503f;
+}
+
+.bannerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 12px !important;
+  color: #7a662c !important;
+}
+
+.bannerLive .bannerMeta {
+  color: #40604b !important;
+}
+
+.bannerMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.warningList {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #6f5a1f;
+}
+
+.warningList li {
+  overflow-wrap: anywhere;
+}
+
+.warningList li::marker {
+  color: #c69a35;
+}
+
+.sourceStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: var(--radius, 8px);
+  border: 1px solid #e6d8ad;
+  background: rgba(255, 255, 255, 0.66);
+  min-width: 0;
+}
+
+.sourceStripTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: #6d5518;
+}
+
+.bannerLive .sourceStrip {
+  border-color: #cadecb;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.bannerLive .sourceStripTitle {
+  color: #2c5a44;
+}
+
+.sourceList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sourceItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  min-width: 0;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: var(--white, #fff);
+}
+
+.sourceHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sourceName {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.licenseBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.7;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.licensePending {
+  background: #fbf3dd;
+  color: #7d5c14;
+}
+
+.licenseOk {
+  background: #e3efe6;
+  color: #2c6647;
+}
+
+.licenseRestricted {
+  background: #f8e5e3;
+  color: #9a3230;
+}
+
+.sourceAgency {
+  font-size: 12px !important;
+  line-height: 1.8 !important;
+  color: var(--atInkSoft, #5f7160) !important;
+}
+
+.sourceFlags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 11.5px !important;
+  color: var(--muted, #53645a) !important;
+}
+
+.sourceFlags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sourceLimitList {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 3px;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.sourceLimitList li {
+  overflow-wrap: anywhere;
+}
+
+.sourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #3f6134;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.noLink {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #7b8a7c;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   2) การ์ด KPI
+   -------------------------------------------------------------------------- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 1px 2px rgba(33, 61, 50, 0.04);
+}
+
+.kpiCardWide {
+  grid-column: span 1;
+  border-left: 4px solid #b5c98f;
+}
+
+.kpiHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.kpiIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--atSubtleBg, #f2f5ee);
+  color: var(--forest, #213d32);
+}
+
+.kpiTitle {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.kpiValue {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.4px;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.kpiUnit {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted, #53645a);
+}
+
+.kpiRatio {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.kpiRatioLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.kpiRatioLabel strong {
+  font-size: 12.5px;
+  color: #3f6134;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiNote {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* --------------------------------------------------------------------------
+   แถบสัดส่วน
+   -------------------------------------------------------------------------- */
+.barTrack {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--atSubtleBg, #f2f5ee);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #4a6b3f;
+}
+
+.barForest {
+  background: #4a6b3f;
+}
+
+.barTeal {
+  background: var(--atCool);
+}
+
+.barIndigo {
+  background: var(--atRainy);
+}
+
+.barAmber {
+  background: var(--atHot);
+}
+
+/* --------------------------------------------------------------------------
+   3) โครง section ร่วมกัน
+   -------------------------------------------------------------------------- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 16px;
+  min-width: 0;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sectionHeader h2 {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.sectionHeader p {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  max-width: 74ch;
+  overflow-wrap: anywhere;
+}
+
+.sectionCount {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--atSubtleBg, #f2f5ee);
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   4) แท็บภูมิภาค — เลื่อนแนวนอนบนจอแคบ พร้อม scroll-snap
+   -------------------------------------------------------------------------- */
+.tabBar {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--atLineSoft, #e7ece2);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: #44594d;
+  background: #f0f3ec;
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+.tab:hover {
+  background: #e5ecdf;
+  color: #1f3a2c;
+}
+
+.tabActive {
+  background: var(--white, #fff);
+  border-color: var(--line, #dce3d9);
+  border-bottom-color: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-weight: 600;
+}
+
+.tabCount {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #dfe8d6;
+  color: var(--atLeafInk, #46683a);
+  font-variant-numeric: tabular-nums;
+}
+
+.regionPanel {
+  min-width: 0;
+}
+
+.regionOverviewRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.regionMini {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-left: 4px solid #c9d5c4;
+  border-radius: var(--radius, 8px);
+  background: var(--atSubtleBg, #f2f5ee);
+  color: var(--ink, #21352b);
+  font-size: 12.5px;
+  line-height: 1.8;
+}
+
+.regionMini:hover {
+  background: #e9f0e2;
+  border-left-color: #7f9a6d;
+}
+
+.regionMini strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.regionMiniActivity {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--atLeafBg, #e4eddc);
+  color: var(--atLeafInk, #46683a);
+  overflow-wrap: anywhere;
+}
+
+/* การ์ดจุดเด่นของภาคที่เลือก */
+.regionFeature {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  min-width: 0;
+  border: 1px solid #cddcc6;
+  border-radius: var(--radius, 8px);
+  background: #f7faf2;
+}
+
+.regionFeatureHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--atLineSoft, #e7ece2);
+}
+
+.regionFeatureHeader h3 {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.regionFeatureSub {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.regionFeatureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.regionFeatureBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--white, #fff);
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: 6px;
+}
+
+.regionFeatureLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.highlightName {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.75;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.highlightName svg {
+  color: #5f7a53;
+  margin-top: 3px;
+}
+
+.productRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.productTag {
+  font-size: 11.5px;
+  line-height: 1.7;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: var(--atLeafBg, #e4eddc);
+  color: var(--atLeafInk, #46683a);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* --------------------------------------------------------------------------
+   5) ตัวกรองฤดู/เดือน + chips ร่วม
+   -------------------------------------------------------------------------- */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 13px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  border-radius: 999px;
+  border: 1px solid #cbd7c6;
+  background: #f6f8f3;
+  color: #45594b;
+  overflow-wrap: anywhere;
+}
+
+.chip:hover {
+  background: #e9f0e0;
+  border-color: #a8bd9d;
+}
+
+.chipActive {
+  background: var(--forest, #213d32);
+  border-color: var(--forest, #213d32);
+  color: #f2f7ea;
+  font-weight: 600;
+}
+
+.chipCount {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #dfe8d6;
+  color: var(--atLeafInk, #46683a);
+  font-variant-numeric: tabular-nums;
+}
+
+.chipActive .chipCount {
+  background: rgba(217, 232, 160, 0.28);
+  color: #eaf3d8;
+}
+
+.seasonFilterWrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.seasonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: #fafbf7;
+}
+
+.seasonGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.monthChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 58px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  border-radius: 6px;
+  border: 1px solid #cbd7c6;
+  background: var(--white, #fff);
+  color: #45594b;
+  font-variant-numeric: tabular-nums;
+}
+
+.monthChip:hover {
+  border-color: #8faa7f;
+  background: #eef4e6;
+}
+
+.monthChipActive {
+  background: var(--forest, #213d32);
+  border-color: var(--forest, #213d32);
+  color: #f2f7ea;
+  font-weight: 600;
+}
+
+/* น้ำเสียงตามฤดู — ใช้ทั้งในการ์ด ปฏิทิน และป้าย */
+.toneCool {
+  --atTone: var(--atCool);
+  --atToneBg: var(--atCoolBg);
+  --atToneSoft: var(--atCoolSoft);
+  border-color: var(--atCoolSoft, #cfe5e1);
+}
+
+.toneRainy {
+  --atTone: var(--atRainy);
+  --atToneBg: var(--atRainyBg);
+  --atToneSoft: var(--atRainySoft);
+  border-color: var(--atRainySoft, #d5dcea);
+}
+
+.toneHot {
+  --atTone: var(--atHot);
+  --atToneBg: var(--atHotBg);
+  --atToneSoft: var(--atHotSoft);
+  border-color: var(--atHotSoft, #f2e2bd);
+}
+
+.toneUnknown {
+  --atTone: var(--atUnknown);
+  --atToneBg: var(--atUnknownBg);
+  --atToneSoft: #dfe4dd;
+  border-color: #dfe4dd;
+}
+
+.seasonTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.7;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+.seasonTag {
+  background: var(--atToneBg, var(--atUnknownBg));
+  color: var(--atTone, var(--atUnknown));
+  border-color: var(--atToneSoft, #dfe4dd);
+}
+
+/* --------------------------------------------------------------------------
+   6) การ์ดแนะนำรายฤดู
+   -------------------------------------------------------------------------- */
+.seasonCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.seasonCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-top: 4px solid var(--atTone, #a4b6a0);
+  border-radius: var(--radius, 8px);
+  background: var(--white, #fff);
+}
+
+.seasonCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--atLineSoft, #e7ece2);
+}
+
+.seasonIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--atToneBg, var(--atSubtleBg));
+  color: var(--atTone, var(--forest));
+}
+
+.seasonCardTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.seasonMonths {
+  margin-left: auto;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.seasonPickList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: season-pick;
+}
+
+.seasonPickItem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 10px;
+  background: #f8faf5;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: 6px;
+}
+
+.seasonPickRank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 4px;
+  background: var(--atToneBg, var(--atLeafBg));
+  color: var(--atTone, var(--atLeafInk));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.seasonPickBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.seasonPickName {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.seasonPickMeta {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.seasonPickMonths {
+  display: block;
+  min-width: 0;
+}
+
+.columnEmpty {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: #7b8a7c;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   7) แผงรายละเอียดเดือนที่เลือก
+   -------------------------------------------------------------------------- */
+.monthPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-left: 4px solid var(--atTone, #9fb29a);
+  border-radius: var(--radius, 8px);
+  background: #f8faf5;
+}
+
+.monthPanelTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.monthPanelSeason {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--atToneBg, var(--atSubtleBg));
+  color: var(--atTone, var(--muted));
+}
+
+.monthPanelText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+}
+
+.monthPanelCount {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.fruitInlineList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.monthPickList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.monthPickList li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--white, #fff);
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: 6px;
+}
+
+.monthPickList strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.monthPickMeta {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   8) แผงตัวกรองแหล่งท่องเที่ยว
+   -------------------------------------------------------------------------- */
+.filterGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  min-width: 0;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: #fafbf7;
+}
+
+.searchField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 10px;
+  min-width: 0;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--white, #fff);
+  border: 1px solid #b3c3ac;
+  border-radius: 6px;
+}
+
+.searchField:focus-within {
+  border-color: #6e8a5a;
+  background: #fcfdfa;
+}
+
+.searchIcon {
+  display: flex;
+  align-items: center;
+  color: #657d5b;
+}
+
+.searchField input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink, #21352b);
+  outline: none;
+}
+
+.selectField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.selectField span {
+  overflow-wrap: anywhere;
+}
+
+.selectField select {
+  height: 44px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--ink, #21352b);
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filterLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.resultLine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  min-width: 0;
+}
+
+.resultLine strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.filterEcho {
+  align-self: flex-start;
+  font-size: 11.5px;
+  line-height: 1.8;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--atSubtleBg, #f2f5ee);
+  color: #4c624d;
+  overflow-wrap: anywhere;
+}
+
+.resetButton,
+.moreButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid #bdc9b7;
+  background: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.resetButton:hover,
+.moreButton:hover {
+  background: #edf2e7;
+  border-color: #9fb29a;
+}
+
+.moreButton {
+  background: var(--atLeafBg, #e4eddc);
+  border-color: #b9cab2;
+  color: var(--atLeafInk, #46683a);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   9) การ์ดแหล่งท่องเที่ยว (หัวใจของหน้า)
+   -------------------------------------------------------------------------- */
+.destGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.destCard {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  padding: 15px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-left: 4px solid #b5c98f;
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 1px 2px rgba(33, 61, 50, 0.04);
+}
+
+.destHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kindPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.7;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.kindPillAccent {
+  background: var(--forest, #213d32);
+  color: var(--accent, #d9e8a0);
+}
+
+.kindPillSoft {
+  background: var(--atLeafBg, #e4eddc);
+  color: var(--atLeafInk, #46683a);
+}
+
+.samplePill {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: #fbf3dd;
+  color: #7d5c14;
+  white-space: nowrap;
+}
+
+.destName {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.65;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.destPlace {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+}
+
+.destPlace svg {
+  color: #6f8a63;
+  align-self: center;
+}
+
+.destCode {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+}
+
+.destHighlight {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.amenityBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: var(--atSubtleBg, #f2f5ee);
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.amenityPlain {
+  border: 1px solid var(--atLineSoft, #e7ece2);
+}
+
+/* การเข้าถึง (wheelchair) และที่พักรับรอง (lodging) ต้องต่างจาก badge ทั่วไป */
+.amenityAccess {
+  border: 1px solid var(--atCoolSoft, #cfe5e1);
+  background: var(--atCoolBg, #e2f0ee);
+  color: #1f5d55;
+  font-weight: 700;
+}
+
+.amenityLodging {
+  border: 1px dashed var(--atHotSoft, #f2e2bd);
+  background: var(--atHotBg, #fbf1dd);
+  color: #8a5f10;
+  font-weight: 700;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.activityTag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef3e6;
+  color: #3f6134;
+  border: 1px solid #dbe6cf;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.destMonthRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.destMetaLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+}
+
+.monthPickRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.monthMiniChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 3px 9px;
+  font-size: 11px;
+  line-height: 1.6;
+  border-radius: 4px;
+  border: 1px solid #cddac7;
+  background: #f7f9f4;
+  color: #4a5f50;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.monthMiniChip:hover {
+  border-color: #8faa7f;
+  background: #eef4e6;
+}
+
+.monthMiniChipActive {
+  background: var(--atCool, #2f7d72);
+  border-color: var(--atCool, #2f7d72);
+  color: #f2f8f7;
+  font-weight: 700;
+}
+
+.monthTagRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.monthTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  line-height: 1.6;
+  border-radius: 4px;
+  background: #eef3e6;
+  color: #3f6134;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.monthTagRest {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+}
+
+.destCrops {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.destStats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--atLineSoft, #e7ece2);
+}
+
+.destStats div {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.destStats dt {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  min-width: 88px;
+  flex-shrink: 0;
+}
+
+.destStats dd {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink, #21352b);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stayYes {
+  color: #1f5d55;
+  font-weight: 600;
+}
+
+.stayNo {
+  color: var(--muted, #53645a);
+}
+
+.dayTripTag {
+  color: var(--atHot, #b07a17);
+  font-weight: 600;
+}
+
+.noneValue {
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #7b8a7c;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.travelNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: #2f4a38;
+  background: #f4f8ee;
+  border: 1px solid #dbe6cf;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.travelNote svg {
+  color: #5f7a53;
+  margin-top: 4px;
+}
+
+.travelNote strong {
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.moreNote {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  padding: 8px 10px;
+  background: var(--atSubtleBg, #f2f5ee);
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px 16px;
+  text-align: center;
+  border: 1px dashed #c3d1bd;
+  border-radius: var(--radius, 8px);
+  background: #f7faf2;
+}
+
+.emptyState h3 {
+  font-size: 16px;
+  color: var(--forest, #213d32);
+}
+
+.emptyState p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--muted, #53645a);
+  max-width: 62ch;
+  margin: 0 auto;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   10) ตารางร่วมกัน (ปฏิทินผลไม้ / วิสาหกิจชุมชน / จังหวัด)
+   -------------------------------------------------------------------------- */
+.tableScroll {
+  overflow: auto;
+  max-height: 640px;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: var(--white, #fff);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table {
+  width: 100%;
+  /* กันตารางบีบจนภาษาไทยอ่านไม่ออก — ล้นในซองที่เลื่อนได้แทนที่จะดันทั้งหน้า */
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.table caption {
+  text-align: left;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eff2e9;
+  color: var(--muted, #53645a);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line, #dce3d9);
+}
+
+.thName {
+  min-width: 168px;
+}
+
+.thNumeric {
+  min-width: 96px;
+}
+
+.thMonth {
+  min-width: 132px;
+}
+
+.thFruits {
+  min-width: 300px;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.sortButton:hover {
+  background: #e2e9dc;
+  color: var(--forest, #213d32);
+}
+
+.sortGlyph {
+  display: inline-flex;
+  color: #a6b3a4;
+}
+
+.sortGlyphActive {
+  color: var(--forest, #213d32);
+}
+
+.table tbody td,
+.table tbody th {
+  padding: 12px;
+  border-bottom: 1px solid var(--atLineSoft, #e7ece2);
+  vertical-align: top;
+  text-align: left;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.table tbody tr:hover td,
+.table tbody tr:hover th {
+  background: #f7faf2;
+}
+
+.rowActive th,
+.rowActive td {
+  background: #eef5e4;
+  box-shadow: inset 3px 0 0 var(--atCool, #2f7d72);
+}
+
+.numeric {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.numericStrong {
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.numeric .barTrack {
+  margin-top: 6px;
+  max-width: 104px;
+}
+
+.textCell {
+  color: var(--ink, #21352b);
+  min-width: 120px;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.nameCell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--white, #fff);
+  min-width: 178px;
+}
+
+.rowActive .nameCell {
+  background: #eef5e4;
+}
+
+.rowName {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.rowSub {
+  display: block;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.provinceButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.provinceButton:hover {
+  color: #3f6134;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ปฏิทินผลไม้ — เซลล์เดือนเป็นปุ่มเลือกเดือน */
+.monthCell {
+  min-width: 132px;
+}
+
+.monthRowButton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.monthRowButton:hover {
+  background: #e6eee0;
+}
+
+.monthRowButtonActive {
+  background: #e2efec;
+}
+
+.monthRowName {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  white-space: nowrap;
+}
+
+.fruitList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.fruitPill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  border-radius: 5px;
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  background: #f7f9f4;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.fruitPill strong {
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.fruitPill span {
+  font-size: 11px;
+  color: var(--muted, #53645a);
+}
+
+/* ให้ผลมากสุด = ทึบ / เทศกาล = เส้นประ */
+.fruitPillPeak {
+  background: var(--atLeafBg, #e4eddc);
+  border-color: #b9cab2;
+}
+
+.fruitPillFestival {
+  border-style: dashed;
+  border-color: var(--atHotSoft, #f2e2bd);
+  background: var(--atHotBg, #fbf1dd);
+}
+
+.fruitMark {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--forest, #213d32);
+  color: var(--accent, #d9e8a0);
+  white-space: nowrap;
+}
+
+.fruitPillFestival .fruitMark {
+  background: var(--atHot, #b07a17);
+  color: #fffdf6;
+}
+
+.fruitProvinces {
+  flex-basis: 100%;
+  font-size: 10.5px !important;
+  line-height: 1.7;
+  color: var(--muted, #53645a) !important;
+  overflow-wrap: anywhere;
+}
+
+.fruitMore {
+  font-size: 11px;
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+}
+
+.fruitSummary {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.table tfoot th,
+.table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #f2f5ee;
+  padding: 11px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  border-top: 2px solid var(--line, #dce3d9);
+  text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.limitRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.limitRow .moreNote {
+  flex: 1 1 240px;
+}
+
+/* --------------------------------------------------------------------------
+   11) เวิร์กช็อป
+   -------------------------------------------------------------------------- */
+.workshopGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.workshopCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--atSubtleBg, #f2f5ee);
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.workshopHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--atLineSoft, #e7ece2);
+}
+
+.workshopTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.workshopPlace {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.workshopPlace svg {
+  color: #6f8a63;
+  align-self: center;
+}
+
+.workshopStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.workshopStats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workshopStats dt {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.workshopStats dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.75;
+  color: var(--ink, #21352b);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.priceValue {
+  color: var(--atHot, #b07a17) !important;
+}
+
+.workshopAudience {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.workshopAudience strong {
+  color: var(--forest, #213d32);
+}
+
+.workshopSample {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7b8a7c;
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   12) คำแนะนำการเดินทาง
+   -------------------------------------------------------------------------- */
+.tipGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.tipCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--white, #fff);
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-left: 4px solid var(--atTone, #a4b6a0);
+  border-radius: var(--radius, 8px);
+}
+
+.tipHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tipTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.tipMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.tipSeasonPill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--atToneBg, var(--atSubtleBg));
+  color: var(--atTone, var(--muted));
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tipRange {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tipScope {
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: var(--atSubtleBg, #f2f5ee);
+  color: #4c624d;
+  overflow-wrap: anywhere;
+}
+
+.tipGuidance {
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.tipSample {
+  margin: auto 0 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7b8a7c;
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   13) ข้อกำกับการใช้ข้อมูลท้ายแดชบอร์ด
+   -------------------------------------------------------------------------- */
+.disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  min-width: 0;
+  background: var(--atSubtleBg, #f2f5ee);
+  border: 1px solid var(--atLineSoft, #e7ece2);
+  border-left: 4px solid var(--forest, #213d32);
+  border-radius: var(--radius, 8px);
+}
+
+.disclosureTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.disclosureTitle svg {
+  color: #5f7a53;
+}
+
+.disclosure p {
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.disclosureStamp {
+  font-size: 11.5px !important;
+  color: var(--atInkSoft, #5f7160) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   14) class ช่วยเข้าถึง (caption ของตาราง)
+   -------------------------------------------------------------------------- */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   15) Responsive — ขยับเป็นหลายคอลัมน์ที่ ≥720px และ ≥1080px
+   -------------------------------------------------------------------------- */
+@media (min-width: 720px) {
+  .section {
+    padding: 22px 24px;
+  }
+
+  .banner {
+    padding: 20px 22px;
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .searchField {
+    grid-column: 1 / -1;
+  }
+
+  .seasonFilterWrap {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .destStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sourceList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpiCardWide {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 1080px) {
+  .container {
+    gap: 28px;
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .searchField {
+    grid-column: 1 / span 2;
+  }
+
+  .seasonFilterWrap {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sourceList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .monthPanel {
+    padding: 16px 18px;
+  }
+
+  .table {
+    min-width: 940px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* กัน iOS auto-zoom ตอน focus ช่องกรอก/เลือก */
+  .searchField input,
+  .selectField select {
+    font-size: 16px;
+  }
+
+  .filterGrid {
+    padding: 12px;
+  }
+
+  .resultLine .resetButton {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .table tfoot th,
+  .table tfoot td {
+    position: static;
+  }
+
+  .nameCell,
+  .monthCell {
+    position: static;
+  }
+
+  .tabCount {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .kpiValue {
+    font-size: 23px;
+  }
+
+  .monthChip {
+    min-width: 52px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .chip {
+    font-size: 12px;
+    padding: 8px 11px;
+  }
+
+  .bannerMeta {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .destStats dt {
+    min-width: 78px;
+  }
+
+  .workshopStats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   16) Print — ตัด chrome ที่กดไม่ได้บนกระดาษ ออก และให้ตารางเต็มความกว้าง
+   -------------------------------------------------------------------------- */
+@media print {
+  .container {
+    gap: 14px;
+  }
+
+  .tabBar,
+  .seasonFilterWrap,
+  .searchField,
+  .selectField,
+  .filterGroup,
+  .resetButton,
+  .moreButton {
+    display: none;
+  }
+
+  .tableScroll {
+    overflow: visible;
+    max-height: none;
+    border: 0;
+  }
+
+  .table {
+    min-width: 0;
+    font-size: 10.5px;
+  }
+
+  .table thead th,
+  .table tfoot th,
+  .table tfoot td,
+  .nameCell {
+    position: static;
+  }
+
+  .section,
+  .destCard,
+  .workshopCard,
+  .tipCard,
+  .kpiCard {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   17) Focus ที่มองเห็นได้ + animation เมื่อผู้ใช้ไม่ปฏิเสธ motion
+   -------------------------------------------------------------------------- */
+.tab:focus-visible,
+.chip:focus-visible,
+.monthChip:focus-visible,
+.monthMiniChip:focus-visible,
+.monthRowButton:focus-visible,
+.sortButton:focus-visible,
+.provinceButton:focus-visible,
+.resetButton:focus-visible,
+.moreButton:focus-visible,
+.regionMini:focus-visible,
+.sourceLink:focus-visible,
+.selectField select:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 3px;
+}
+
+.searchField:focus-within {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+.tableScroll:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab,
+  .chip,
+  .monthChip,
+  .monthMiniChip,
+  .monthRowButton,
+  .sortButton,
+  .provinceButton,
+  .resetButton,
+  .moreButton,
+  .regionMini,
+  .barFill {
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, width 0.25s ease;
+  }
+}

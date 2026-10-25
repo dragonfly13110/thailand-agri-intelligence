@@ -29,7 +29,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from tadih.catalog import ROOT, load_provinces, load_sources
 from tadih.coverage_inventory import audit_national_coverage_inventory
-from tadih.project_register import audit_project_register
+from tadih.project_register import AgriculturalProject, audit_project_register, province_project_targets
 from tadih.spatial_evidence import audit_spatial_evidence
 
 DATA_SHARING_CONTRACT_PATH = ROOT / "data_contracts/data_sharing.schema.json"
@@ -179,23 +179,31 @@ def execute_data_sharing_query(
         if proj_result.get("audit_version") != 2:
             proj_result = audit_project_register(root)
 
-        projects = proj_result.get("projects", [])
+        projects = proj_result.get("projects")
+        if not isinstance(projects, list):
+            raise ValueError("Project proof must contain a project list")
+        project_ids = set()
+        for p in projects:
+            AgriculturalProject(**({"target_commodity":None} | p)).validate()
+            if p["project_id"] in project_ids:
+                raise ValueError("Duplicate project identity in current proof")
+            project_ids.add(p["project_id"])
         for p in projects:
             if query.license_scope == "public_only" and p.get("license_status") != "approved_public":
                 continue
             if query.fiscal_year and p.get("fiscal_year") != query.fiscal_year:
                 continue
-            if query.commodity and p.get("target_commodity") != query.commodity:
+            if query.commodity is not None and (not p.get("target_commodity") or not p["target_commodity"].strip()
+                                                or p["target_commodity"] != query.commodity):
                 continue
-            if query.province_code and p.get("target_area_codes"):
-                if "TH" not in p["target_area_codes"] and query.province_code not in p["target_area_codes"]:
-                    continue
+            if query.province_code is not None and query.province_code not in province_project_targets(p):
+                continue
             item = dict(p)
             data_records.append(item)
 
         feed_license_status = "pending"
         governance_notes = [
-            "No project-level target areas are verified; participation totals are not project targets",
+            "Projects retain native declared target grain; planned targets do not prove implementation coverage",
             "Pending project records are omitted from public-only feeds",
         ]
 

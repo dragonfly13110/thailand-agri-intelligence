@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thailand-agricultural-data-hub.example/api/v1.schema.json",
+  "title": "Thailand Agricultural Data Hub read API",
+  "description": "Shared response contract for the Next.js server, web client, and partner consumers.",
+  "$defs": {
+    "nullableDateTime": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ]
+    },
+    "nullableString": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "meta": {
+      "type": "object",
+      "required": ["availability", "freshness", "completeness", "access", "sourceIds", "retrievedAt", "dataAsOf", "sourceUpdatedAt", "datasetVersion", "warnings", "runtimeMode"],
+      "properties": {
+        "availability": { "enum": ["ready", "empty", "metadata_only", "unavailable"] },
+        "freshness": { "enum": ["fresh", "stale", "unknown"] },
+        "completeness": { "enum": ["complete", "partial", "unknown"] },
+        "access": { "enum": ["approved_public", "metadata_only"] },
+        "sourceIds": { "type": "array", "items": { "type": "string" } },
+        "retrievedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "sourceRetrievedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "dataAsOf": { "$ref": "#/$defs/nullableString" },
+        "sourceUpdatedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "datasetVersion": { "$ref": "#/$defs/nullableString" },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "runtimeMode": { "enum": ["database", "source_api_fallback"] }
+      },
+      "additionalProperties": false
+    },
+    "pagination": {
+      "type": "object",
+      "required": ["page", "pageSize", "total"],
+      "properties": {
+        "page": { "type": "integer", "minimum": 1 },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "total": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["id", "name", "baseUrl", "status", "lastSuccessAt"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "baseUrl": { "type": "string", "format": "uri" },
+        "status": { "enum": ["enabled", "deferred", "needs_access", "unavailable"] },
+        "lastSuccessAt": { "$ref": "#/$defs/nullableDateTime" }
+      },
+      "additionalProperties": false
+    },
+    "datasetSummary": {
+      "type": "object",
+      "required": ["id", "sourceId", "title", "description", "category", "owner", "sourceUrl", "modifiedAt", "resourceCount", "availability", "freshness", "access"],
+      "properties": {
+        "id": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "$ref": "#/$defs/nullableString" },
+        "owner": { "$ref": "#/$defs/nullableString" },
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "modifiedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "resourceCount": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "availability": { "enum": ["ready", "empty", "metadata_only"] },
+        "freshness": { "enum": ["fresh", "stale", "unknown"] },
+        "access": { "enum": ["approved_public", "metadata_only"] }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "required": ["id", "sourceResourceId", "name", "format", "accessStatus", "declaredLicense", "licenseUrl", "projectPublicationApproved", "grain", "activeRunId", "lastSuccessAt", "dataAsOf"],
+      "properties": {
+        "id": { "type": "string" },
+        "sourceResourceId": { "type": "string" },
+        "name": { "type": "string" },
+        "format": { "$ref": "#/$defs/nullableString" },
+        "accessStatus": { "enum": ["approved_public", "metadata_only"] },
+        "declaredLicense": { "$ref": "#/$defs/nullableString" },
+        "licenseUrl": { "$ref": "#/$defs/nullableString" },
+        "projectPublicationApproved": { "type": "boolean" },
+        "grain": { "$ref": "#/$defs/nullableString" },
+        "activeRunId": { "$ref": "#/$defs/nullableString" },
+        "lastSuccessAt": { "$ref": "#/$defs/nullableDateTime" },
+        "dataAsOf": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "datasetDetail": {
+      "allOf": [
+        { "$ref": "#/$defs/datasetSummary" },
+        {
+          "type": "object",
+          "required": ["sourceDatasetId", "resources"],
+          "properties": {
+            "sourceDatasetId": { "type": "string" },
+            "resources": { "type": "array", "items": { "$ref": "#/$defs/resource" } }
+          }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "required": ["rowKey", "seriesId", "periodStart", "periodEnd", "periodLabel", "locationCode", "locationKind", "locationName", "provinceCode", "cropCode", "cropName", "metricId", "metricName", "product", "grade", "market", "unit", "value", "dimensions", "qualityStatus", "sourceRowRef"],
+      "properties": {
+        "rowKey": { "type": "string" },
+        "seriesId": { "type": "string" },
+        "periodStart": { "$ref": "#/$defs/nullableString" },
+        "periodEnd": { "$ref": "#/$defs/nullableString" },
+        "periodLabel": { "$ref": "#/$defs/nullableString" },
+        "locationCode": { "$ref": "#/$defs/nullableString" },
+        "locationKind": { "$ref": "#/$defs/nullableString" },
+        "locationName": { "$ref": "#/$defs/nullableString" },
+        "provinceCode": { "$ref": "#/$defs/nullableString" },
+        "cropCode": { "$ref": "#/$defs/nullableString" },
+        "cropName": { "$ref": "#/$defs/nullableString" },
+        "metricId": { "$ref": "#/$defs/nullableString" },
+        "metricName": { "$ref": "#/$defs/nullableString" },
+        "product": { "$ref": "#/$defs/nullableString" },
+        "grade": { "$ref": "#/$defs/nullableString" },
+        "market": { "$ref": "#/$defs/nullableString" },
+        "unit": { "$ref": "#/$defs/nullableString" },
+        "value": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "dimensions": { "type": "object" },
+        "qualityStatus": { "type": "string" },
+        "sourceRowRef": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "series": {
+      "type": "object",
+      "required": ["id", "resourceId", "product", "grade", "market", "unit", "metricId", "metricName", "cropName", "observationCount", "from", "to"],
+      "properties": {
+        "id": { "type": "string" },
+        "resourceId": { "type": "string" },
+        "product": { "$ref": "#/$defs/nullableString" },
+        "grade": { "$ref": "#/$defs/nullableString" },
+        "market": { "$ref": "#/$defs/nullableString" },
+        "unit": { "$ref": "#/$defs/nullableString" },
+        "metricId": { "$ref": "#/$defs/nullableString" },
+        "metricName": { "$ref": "#/$defs/nullableString" },
+        "cropName": { "$ref": "#/$defs/nullableString" },
+        "observationCount": { "type": "integer", "minimum": 0 },
+        "from": { "$ref": "#/$defs/nullableString" },
+        "to": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "sourceRun": {
+      "type": "object",
+      "required": ["runId", "kind", "status", "startedAt", "completedAt", "recordsRead", "recordsWritten", "errorCode"],
+      "properties": {
+        "runId": { "type": "string", "format": "uuid" },
+        "kind": { "enum": ["metadata", "numeric"] },
+        "status": { "enum": ["running", "succeeded", "partial", "failed"] },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "recordsRead": { "type": "integer", "minimum": 0 },
+        "recordsWritten": { "type": "integer", "minimum": 0 },
+        "errorCode": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "sourceStatus": {
+      "type": "object",
+      "required": ["id", "name", "baseUrl", "status", "lastSuccessAt", "latestStatus", "recentRuns"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "baseUrl": { "type": "string", "format": "uri" },
+        "status": { "enum": ["enabled", "deferred", "needs_access", "unavailable"] },
+        "lastSuccessAt": { "$ref": "#/$defs/nullableDateTime" },
+        "latestStatus": { "enum": ["running", "succeeded", "partial", "failed", null] },
+        "recentRuns": { "type": "array", "items": { "$ref": "#/$defs/sourceRun" } }
+      },
+      "additionalProperties": false
+    },
+    "areaEvidence": {
+      "type": "object",
+      "required": ["datasetId", "title", "sourceId", "sourceName", "category", "evidenceCount", "grain", "dataAsOf", "lastSuccessAt"],
+      "properties": {
+        "datasetId": { "type": "string" },
+        "title": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "sourceName": { "type": "string" },
+        "category": { "$ref": "#/$defs/nullableString" },
+        "evidenceCount": { "type": "integer", "minimum": 0 },
+        "grain": { "$ref": "#/$defs/nullableString" },
+        "dataAsOf": { "$ref": "#/$defs/nullableString" },
+        "lastSuccessAt": { "$ref": "#/$defs/nullableDateTime" }
+      },
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": ["code", "message", "requestId"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" },
+            "requestId": { "type": "string", "format": "uuid" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "x-endpoints": {
+    "GET /api/v1/sources": { "data": "source[]", "pagination": true },
+    "GET /api/v1/sources/{id}/status": { "data": "sourceStatus" },
+    "GET /api/v1/datasets": { "data": "datasetSummary[]", "pagination": true, "query": ["q", "sourceId", "category", "provinceCode", "page", "pageSize"] },
+    "GET /api/v1/datasets/{id}": { "data": "datasetDetail" },
+    "GET /api/v1/datasets/{id}/records": { "data": "observation[]", "pagination": true, "query": ["resourceId", "provinceCode", "cropCode", "from", "to", "page", "pageSize"] },
+    "GET /api/v1/datasets/{id}/series": { "data": "series[]", "pagination": true, "query": ["resourceId", "product", "metric", "page", "pageSize"] },
+    "GET /api/v1/series/{id}/observations": { "data": "observation[]", "pagination": true, "query": ["from", "to", "page", "pageSize"] },
+    "GET /api/v1/areas/{provinceCode}": { "data": "areaEvidence[]", "pagination": true, "query": ["category", "page", "pageSize"] }
+  }
+}

@@ -14,3 +14,12 @@ exports/public/*/
 *.duckdb.wal
 dist/
 build/
+node_modules/
+.next/
+*.tsbuildinfo
+web/test-results/
+web/playwright-report/
+
+.wrangler/
+.impeccable/
+.mimocode/

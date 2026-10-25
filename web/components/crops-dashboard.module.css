@@ -1,0 +1,511 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Tab bar */
+.tabBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #dce5da;
+  padding-bottom: 0;
+}
+
+.tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: #f0f3ec;
+  color: #44594d;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 8px 8px 0 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  margin-bottom: -2px;
+}
+
+.tab:hover {
+  background: #e5ecdf;
+  color: #1a3328;
+}
+
+.tabActive {
+  background: #ffffff;
+  border-color: #dce5da;
+  color: #1a3328;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(33, 61, 50, 0.06);
+}
+
+/* Season selector (ข้าว นาปี/นาปรัง) */
+.seasonRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.seasonBtn {
+  border: 1px solid #c5d3c2;
+  background: #ffffff;
+  color: #385043;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+
+.seasonBtn:hover {
+  border-color: #43a047;
+  background: #f2f8f0;
+}
+
+.seasonBtnActive {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Profile head */
+.profileHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.profileHead h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a3328;
+  letter-spacing: -0.4px;
+}
+
+.profileDesc {
+  color: #556b60;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.yearNote {
+  color: #7b8e84;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.soilLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+  background: #e8f5e9;
+  border-radius: 8px;
+  padding: 9px 14px;
+  transition: background 0.15s ease;
+}
+
+.soilLink:hover {
+  background: #d8eeda;
+}
+
+/* Withheld statistics notice */
+.withheldCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fdf8e8;
+  border: 1px solid #f3e6bd;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.withheldCard svg {
+  color: #8a6d1f;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.withheldCard h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6b5514;
+  margin: 0 0 6px;
+}
+
+.withheldCard p {
+  font-size: 13px;
+  color: #6b5c2e;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.withheldCard a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.withheldCard a:hover {
+  text-decoration: underline;
+}
+
+/* Stat cards */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  background: #ffffff;
+  border: 1px solid #e1e8df;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(33, 61, 50, 0.08);
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #5d7367;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a3328;
+  letter-spacing: -0.5px;
+}
+
+.statUnit {
+  font-size: 13px;
+  font-weight: 400;
+  color: #7b8e84;
+  margin-left: 5px;
+}
+
+.statFoot {
+  font-size: 12px;
+  color: #7b8e84;
+}
+
+.statNote {
+  font-size: 12px;
+  color: #5d7367;
+  background: #f4f7f2;
+  border: 1px solid #e4ebe1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1.6;
+}
+
+.statSource {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #6b8a5d;
+}
+
+.statSource:hover {
+  text-decoration: underline;
+}
+
+/* Notes box */
+.noteBox {
+  background: #f8faf5;
+  border: 1px solid #dce5da;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #44594d;
+  line-height: 1.7;
+}
+
+.caution {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #8a6d1f;
+  background: #fdf8e8;
+  border: 1px solid #f3e6bd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.caution svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* Generic card */
+.card {
+  background: #ffffff;
+  border: 1px solid #e1e8df;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardHead h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a3328;
+}
+
+.cardHead h3 svg {
+  color: #4f7a42;
+}
+
+.cardHead p {
+  color: #7b8e84;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.7;
+}
+
+/* Calendar table */
+.calendarTableWrap {
+  overflow-x: auto;
+}
+
+.calendarTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+  min-width: 640px;
+}
+
+.calendarTable th {
+  background: #f4f7f3;
+  color: #2e4439;
+  font-weight: 600;
+  padding: 11px 14px;
+  border-bottom: 2px solid #dce5da;
+  white-space: nowrap;
+}
+
+.calendarTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2ed;
+  color: #1f3329;
+  vertical-align: top;
+}
+
+.calendarTable tbody tr:hover td {
+  background: #f9fbf9;
+}
+
+.stageCell {
+  white-space: nowrap;
+  font-weight: 600;
+  color: #2e7d32 !important;
+  background: #fbfcf9 !important;
+}
+
+.rangeText {
+  white-space: normal;
+  min-width: 190px;
+  line-height: 1.7;
+}
+
+.seasonInline {
+  font-style: normal;
+  font-weight: 600;
+  color: #5d7367;
+}
+
+/* Month bars */
+.monthBars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 320px;
+}
+
+.monthBarRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seasonTag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #4f7a42;
+  background: #eef4e6;
+  border: 1px solid #dce8cc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.monthCells {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  flex: 1;
+  max-width: 300px;
+}
+
+.monthCell {
+  height: 14px;
+  border-radius: 3px;
+  background: #edf1ea;
+}
+
+.monthCellOn {
+  background: linear-gradient(180deg, #66bb6a, #2e7d32);
+}
+
+.rangeLabel {
+  font-size: 11px;
+  color: #556b60;
+  white-space: nowrap;
+}
+
+.monthLegend {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  max-width: 300px;
+  margin-left: 8px;
+  font-size: 9px;
+  color: #8a9a8f;
+  text-align: center;
+}
+
+/* Varieties */
+.varietyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.varietyCard {
+  background: #fbfcf9;
+  border: 1px solid #e4ebe1;
+  border-radius: 10px;
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.varietyCard:hover {
+  border-color: #a5c99b;
+  transform: translateY(-2px);
+}
+
+.varietyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.varietyHead h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a3328;
+  margin: 0;
+}
+
+.varietyHead a {
+  color: #6b8a5d;
+  display: inline-flex;
+}
+
+.varietyHead a:hover {
+  color: #2e7d32;
+}
+
+.varietyCard ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #44594d;
+  line-height: 1.65;
+}
+
+.varietySource {
+  font-size: 11px;
+  color: #7b8e84;
+  border-top: 1px dashed #e0e8dd;
+  padding-top: 8px;
+  margin-top: auto;
+}
+
+/* Source note */
+.sourceNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #7b8e84;
+  line-height: 1.8;
+  background: #f4f7f2;
+  border: 1px solid #dce5da;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.sourceNote svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .tab {
+    padding: 9px 13px;
+    font-size: 13px;
+  }
+
+  .statValue {
+    font-size: 22px;
+  }
+
+  .card {
+    padding: 18px 16px;
+  }
+
+  .monthLegend {
+    display: none;
+  }
+}

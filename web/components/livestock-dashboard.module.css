@@ -1,0 +1,785 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* แบนเนอร์ข้อมูลตัวอย่าง — ต้องเด่นและอ่านออกบนมือถือ */
+.sampleBanner {
+  display: flex;
+  gap: 13px;
+  padding: 16px 18px;
+  background: #fdf5e2;
+  border: 1px solid #ecdcb2;
+  border-left: 4px solid #c69a35;
+  border-radius: 10px;
+}
+
+.sampleBannerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f4e3b4;
+  color: #7a5a12;
+}
+
+.sampleBannerBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sampleBannerBody strong {
+  display: block;
+  font-size: 15px;
+  color: #6d5210;
+  line-height: 1.6;
+}
+
+.sampleBannerBody p {
+  font-size: 13px;
+  color: #6d5a24;
+  line-height: 1.85;
+}
+
+.warningList {
+  margin: 2px 0 0;
+  padding-left: 20px;
+  font-size: 12.5px;
+  color: #6d5a24;
+  line-height: 1.9;
+}
+
+.warningList li + li {
+  margin-top: 3px;
+}
+
+/* แท็บหมวด */
+.tabBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #dce5da;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: #f0f3ec;
+  color: #44594d;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 8px 8px 0 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  margin-bottom: -2px;
+}
+
+.tab:hover {
+  background: #e5ecdf;
+  color: #1a3328;
+}
+
+.tabActive {
+  background: #ffffff;
+  border-color: #dce5da;
+  color: #1a3328;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(33, 61, 50, 0.06);
+}
+
+/* เลือกชนิดสัตว์ */
+.speciesRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.speciesBtn {
+  border: 1px solid #c5d3c2;
+  background: #ffffff;
+  color: #385043;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+
+.speciesBtn:hover {
+  border-color: #43a047;
+  background: #f2f8f0;
+}
+
+.speciesBtnActive {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* แถบตัวกรอง */
+.filterBar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: #f4f7f2;
+  border: 1px solid #e1e8df;
+  border-radius: 10px;
+}
+
+.filterField {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.filterField label {
+  display: block;
+  font-size: 12px;
+  color: #556b60;
+  margin-bottom: 7px;
+  font-weight: 500;
+}
+
+.filterField select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid #c5d3c2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1a3328;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.basisNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 12px;
+  color: #556b60;
+  line-height: 1.75;
+}
+
+.basisNote svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #4f7a42;
+}
+
+.basisNote strong {
+  color: #2e4439;
+}
+
+/* การ์ดตัวเลข */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 14px;
+}
+
+.statCard {
+  background: #ffffff;
+  border: 1px solid #e1e8df;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
+  min-width: 0;
+}
+
+.statHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #5d7367;
+  font-weight: 500;
+}
+
+.sampleChip {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a5a12;
+  background: #fdf3dc;
+  border: 1px solid #ecdcb2;
+  border-radius: 9999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a3328;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+
+.statUnit {
+  font-size: 13px;
+  font-weight: 400;
+  color: #7b8e84;
+  margin-left: 5px;
+}
+
+.statFoot {
+  font-size: 12px;
+  color: #7b8e84;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* กริดสองคอลัมน์: กราฟ/ตาราง และ จังหวัดเด่น/เมทาดาท้าย */
+.splitGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* การ์ดทั่วไป */
+.card {
+  background: #ffffff;
+  border: 1px solid #e1e8df;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.cardHead h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a3328;
+}
+
+.cardHead h3 svg {
+  color: #4f7a42;
+}
+
+.cardHead p {
+  color: #7b8e84;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.8;
+}
+
+/* กราฟแท่งแนวนอน (inline SVG) */
+.chart {
+  margin: 0;
+}
+
+.chartSvg {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.chartLabel {
+  font-size: 15px;
+  fill: #1a3328;
+  font-family: inherit;
+}
+
+.chartPercent {
+  font-size: 14px;
+  fill: #44594d;
+  font-family: inherit;
+}
+
+.chartValue {
+  font-size: 13px;
+  fill: #7b8e84;
+  font-family: inherit;
+}
+
+.chartTrack {
+  fill: #eef2ea;
+}
+
+.chartTrackUnknown {
+  fill: #f8faf6;
+  stroke: #dce5da;
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.chartBar {
+  fill: #2e7d32;
+}
+
+.chartRowDim {
+  opacity: 0.32;
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12px;
+  color: #7b8e84;
+  margin-top: 10px;
+}
+
+.chartLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legendBar {
+  width: 20px;
+  height: 9px;
+  border-radius: 2px;
+  background: #2e7d32;
+  display: inline-block;
+}
+
+.chartNote {
+  font-size: 12px;
+  color: #7b8e84;
+  line-height: 1.85;
+  margin: 0;
+}
+
+/* ตารางรายภาค */
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: #8ba575 #edf1e6;
+  border: 1px solid #eef2ed;
+  border-radius: 8px;
+}
+
+.dataTable {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.dataTable th {
+  background: #f4f7f3;
+  color: #2e4439;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 2px solid #dce5da;
+  white-space: nowrap;
+}
+
+.dataTable td,
+.dataTable tbody th {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2ed;
+  color: #1f3329;
+  vertical-align: top;
+}
+
+.dataTable tbody th {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dataTable tbody tr:hover td,
+.dataTable tbody tr:hover th {
+  background: #f9fbf9;
+}
+
+.rowActive td,
+.rowActive th {
+  background: #eef5ea;
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.basisCell {
+  color: #556b60;
+  font-size: 12px;
+}
+
+/* จังหวัดที่มีจำนวนสูงสุด */
+.provinceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.provinceList li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2ed;
+}
+
+.provinceList li:last-child {
+  border-bottom: none;
+}
+
+.provinceRank {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4f7a42;
+  font-variant-numeric: tabular-nums;
+}
+
+.provinceName {
+  font-size: 13.5px;
+  color: #1f3329;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.provinceValue {
+  font-size: 12.5px;
+  color: #556b60;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sampleHint {
+  font-size: 11.5px;
+  color: #7a5a12;
+  background: #fdf8e8;
+  border: 1px solid #f3e6bd;
+  border-radius: 6px;
+  padding: 7px 10px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.emptyNote {
+  font-size: 13px;
+  color: #7b8e84;
+  background: #f4f7f2;
+  border: 1px solid #e1e8df;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 0;
+  line-height: 1.8;
+}
+
+/* เมทาดาท้าย */
+.metaList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.metaList > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eef2ed;
+  font-size: 13px;
+}
+
+.metaList dt {
+  color: #7b8e84;
+}
+
+.metaList dd {
+  margin: 0;
+  color: #1f3329;
+  overflow-wrap: anywhere;
+}
+
+.caution {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #8a6d1f;
+  background: #fdf8e8;
+  border: 1px solid #f3e6bd;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.caution svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.linkRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.linkRow a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+  background: #e8f5e9;
+  border-radius: 8px;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+  transition: background 0.15s ease;
+}
+
+.linkRow a:hover {
+  background: #d8eeda;
+}
+
+/* ข้อจำกัดของข้อมูล */
+.gapList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.gapList li {
+  background: #fbfcf9;
+  border: 1px solid #e4ebe1;
+  border-left: 3px solid #c9a227;
+  border-radius: 8px;
+  padding: 13px 15px;
+}
+
+.gapList strong {
+  display: block;
+  font-size: 14px;
+  color: #1a3328;
+}
+
+.gapList p {
+  font-size: 12.5px;
+  color: #556b60;
+  line-height: 1.85;
+  margin-top: 5px;
+}
+
+.gapList a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #2e7d32;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.gapList a:hover {
+  text-decoration: underline;
+}
+
+/* แหล่งอ้างอิง */
+.sourceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.sourceList li {
+  border: 1px solid #e4ebe1;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.sourceHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sourceHead h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #1a3328;
+}
+
+.sourceStatus {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a5a12;
+  background: #fdf3dc;
+  border: 1px solid #ecdcb2;
+  border-radius: 9999px;
+  padding: 2px 9px;
+  overflow-wrap: anywhere;
+}
+
+.sourceMeta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.sourceMeta div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sourceMeta dt {
+  font-size: 11px;
+  color: #7b8e84;
+}
+
+.sourceMeta dd {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #1f3329;
+  overflow-wrap: anywhere;
+}
+
+.sourceNoteText {
+  font-size: 12.5px;
+  color: #556b60;
+  line-height: 1.85;
+  margin: 0;
+}
+
+/* ทมายเหตุท้ายหน้า */
+.sourceNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #7b8e84;
+  line-height: 1.85;
+  background: #f4f7f2;
+  border: 1px solid #dce5da;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+}
+
+.sourceNote svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* มือถือ: ไม่ให้ล้นแนวนอนและให้แตะง่าย */
+@media (max-width: 720px) {
+  .container {
+    gap: 18px;
+  }
+
+  .sampleBanner {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .sampleBannerBody strong {
+    font-size: 14px;
+  }
+
+  .tab {
+    padding: 10px 13px;
+    font-size: 13px;
+    min-height: 40px;
+  }
+
+  .speciesBtn {
+    padding: 10px 14px;
+    font-size: 12.5px;
+    min-height: 40px;
+  }
+
+  .filterBar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 13px;
+  }
+
+  .filterField {
+    flex: 1 1 auto;
+  }
+
+  .filterField select {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .statValue {
+    font-size: 21px;
+  }
+
+  .card {
+    padding: 16px 14px;
+  }
+
+  .cardHead h3 {
+    font-size: 15.5px;
+  }
+
+  .metaList > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .linkRow a {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 420px) {
+  .provinceList li {
+    grid-template-columns: 22px minmax(0, 1fr);
+    row-gap: 2px;
+  }
+
+  .provinceValue {
+    grid-column: 2;
+  }
+}

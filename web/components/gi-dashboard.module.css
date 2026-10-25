@@ -1,0 +1,1165 @@
+/* ==========================================================================
+   สินค้าสิ่งบ่งชี้ทางภูมิศาสตร์ (GI) Dashboard CSS Module
+   Mobile-first · ใช้ token จาก app/globals.css (เขียว/สีดิน) พร้อม fallback
+   class ในโมดูลเท่านั้น ไม่รั่วไป global · breakpoint 1024 / 768 / 640 / 420
+   + prefers-reduced-motion · no !important
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  color: var(--ink, #21352b);
+  /* น้ำเสียงสีเชิงความหมายเฉพาะโมดูล กระจายจากสีเขียวหลักของเว็บ */
+  --giSubtleBg: #f2f5ee;
+  --giLineSoft: #e7ece2;
+  --giAccentInk: #3f6134;
+  --giInternalBg: #e3efe6;
+  --giInternalInk: #2c6647;
+  --giExternalBg: #fbf3dd;
+  --giExternalInk: #7d5c14;
+  --giSyntheticBg: #f4efe4;
+  --giSyntheticInk: #7a5a12;
+}
+
+/* --------------------------------------------------------------------------
+   โครง section + header
+   -------------------------------------------------------------------------- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--giAccentInk, #3f6134);
+}
+
+.sectionTitle {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  margin-top: 2px;
+}
+
+.sectionMeta {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  max-width: 44ch;
+}
+
+/* --------------------------------------------------------------------------
+   1) KPI strip (คำนวณตามตัวกรอง)
+   -------------------------------------------------------------------------- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--giSubtleBg, #f2f5ee);
+  border: 1px solid var(--giLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.kpiLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.kpiLabel svg {
+  color: #5f7a53;
+}
+
+.kpiValue {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.3px;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.kpiUnit {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted, #53645a);
+}
+
+.kpiSub {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.kpiFootnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.kpiFootnote svg {
+  margin-top: 3px;
+  color: #657d5b;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2) แผงตัวกรอง
+   -------------------------------------------------------------------------- */
+.filterCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldSearch {
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--muted, #53645a);
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--ink, #21352b);
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+}
+
+.control:hover {
+  border-color: #a4b89d;
+}
+
+.control:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  min-width: 0;
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+}
+
+.searchField:focus-within {
+  border-color: #6e8a5a;
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+.searchIcon {
+  display: flex;
+  align-items: center;
+  color: #657d5b;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink, #21352b);
+  outline: none;
+}
+
+.filterFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--giLineSoft, #e7ece2);
+}
+
+.filterSummary {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.filterSummary strong {
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.resetButton {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #bdc9b7;
+  background: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.resetButton:hover:not(:disabled) {
+  background: #edf2e7;
+}
+
+.resetButton:disabled {
+  color: #97a498;
+  background: #f4f6f2;
+  cursor: not-allowed;
+}
+
+.resetButton:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   3) การ์ดสินค้า GI (จุดเด่นภาพ)
+   -------------------------------------------------------------------------- */
+.productGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.productCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--white, #fff);
+  border: 1px solid var(--giLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 1px 2px rgba(33, 61, 50, 0.04);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.productName {
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.productNameEn {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.commodityChip {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent, #d9e8a0);
+  color: var(--forest, #213d32);
+  white-space: nowrap;
+}
+
+.provinceLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.provinceLine svg {
+  color: #7c9370;
+  flex-shrink: 0;
+}
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* badge ควบคุม — สีจาก payload (inline style) มีข้อความกำกับเสมอ */
+.standardBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.originKnown,
+.originSynthetic {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  line-height: 1.6;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.originKnown {
+  background: var(--giInternalBg, #e3efe6);
+  color: var(--giInternalInk, #2c6647);
+}
+
+.originSynthetic {
+  background: var(--giSyntheticBg, #f4efe4);
+  color: var(--giSyntheticInk, #7a5a12);
+  border: 1px dashed #d8c79a;
+}
+
+.registrationLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.registrationNo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #3f5f34;
+  background: #e4eddc;
+  padding: 2px 8px;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.registrationNote {
+  font-size: 11px;
+  color: var(--muted, #53645a);
+  font-style: italic;
+}
+
+.metricList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--giLineSoft, #e7ece2);
+}
+
+.metricRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: var(--muted, #53645a);
+  flex-shrink: 0;
+}
+
+.metricValue {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--ink, #21352b);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.nullValue {
+  color: #7b8a7c;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.seasonBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.seasonHeading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.seasonStrip {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2px;
+  min-width: 0;
+}
+
+.seasonCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 4px 0;
+  font-size: 9.5px;
+  line-height: 1.4;
+  text-align: center;
+  border-radius: 3px;
+  background: var(--giSubtleBg, #f2f5ee);
+  border: 1px solid var(--giLineSoft, #e7ece2);
+  color: #97a498;
+  overflow: hidden;
+}
+
+.seasonCellActive {
+  background: var(--forest, #213d32);
+  border-color: var(--forest, #213d32);
+  color: var(--accent, #d9e8a0);
+  font-weight: 700;
+}
+
+/* รายละเอียดแบบ expand */
+.expandDetails {
+  border-top: 1px solid var(--giLineSoft, #e7ece2);
+  padding-top: 8px;
+  min-width: 0;
+}
+
+.expandSummary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--giAccentInk, #3f6134);
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.expandSummary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.expandSummary:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.expandBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.expandGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.expandLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.districtList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.districtItem {
+  font-size: 11.5px;
+  line-height: 1.6;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--giSubtleBg, #f2f5ee);
+  border: 1px solid var(--giLineSoft, #e7ece2);
+  color: #45594b;
+  overflow-wrap: anywhere;
+}
+
+.plotTable {
+  width: 100%;
+  min-width: 360px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.plotTable thead th {
+  background: #eff2e9;
+  color: var(--muted, #53645a);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line, #dce3d9);
+}
+
+.plotTable tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--giLineSoft, #e7ece2);
+  color: var(--ink, #21352b);
+}
+
+.descriptionText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.expandNote {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7b8a7c;
+}
+
+/* --------------------------------------------------------------------------
+   4) สรุปตามหมวดหมู่ (แถบ CSS %)
+   -------------------------------------------------------------------------- */
+.categoryBars {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.categoryBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.categoryBarHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.categoryBarLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.categoryBarMeta {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--giSubtleBg, #f2f5ee);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #4a6b3f;
+  transition: width 0.25s ease;
+}
+
+/* --------------------------------------------------------------------------
+   5) ตาราง (region / province) + scroll แนวนอน + sticky header
+   -------------------------------------------------------------------------- */
+.tableScroll {
+  overflow: auto;
+  max-height: 560px;
+  border: 1px solid var(--giLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  background: var(--white, #fff);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  min-width: 0;
+}
+
+.table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.tableHead thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eff2e9;
+  color: var(--muted, #53645a);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  text-align: left;
+  white-space: nowrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line, #dce3d9);
+}
+
+.rowHeadCell {
+  min-width: 150px;
+}
+
+.table tbody td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--giLineSoft, #e7ece2);
+  vertical-align: top;
+  text-align: left;
+  line-height: 1.7;
+  color: var(--ink, #21352b);
+}
+
+.table tbody th.rowHead {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--white, #fff);
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--giLineSoft, #e7ece2);
+  text-align: left;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  line-height: 1.7;
+  min-width: 150px;
+}
+
+.rowSub {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted, #53645a);
+}
+
+.table tbody tr:hover td,
+.table tbody tr:hover th.rowHead {
+  background: #f7faf2;
+}
+
+.numericCell {
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.categoryCell {
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+  min-width: 120px;
+  max-width: 240px;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sortButton:hover {
+  background: #e2e9dc;
+  color: var(--forest, #213d32);
+}
+
+.sortButton:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 1px;
+}
+
+.sortGlyph {
+  font-size: 11px;
+  color: var(--giAccentInk, #3f6134);
+  font-variant-numeric: tabular-nums;
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.moreButton {
+  min-height: 40px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid #bdc9b7;
+  background: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.moreButton:hover {
+  background: #edf2e7;
+}
+
+.moreButton:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+.moreNote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted, #53645a);
+}
+
+/* --------------------------------------------------------------------------
+   6) เปรียบเทียบระบบควบคุม
+   -------------------------------------------------------------------------- */
+.splitBar {
+  display: flex;
+  width: 100%;
+  height: 14px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--giSubtleBg, #f2f5ee);
+}
+
+.splitInternal {
+  background: #2f6b4f;
+}
+
+.splitExternal {
+  background: #c69a35;
+}
+
+.standardList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.standardItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--giSubtleBg, #f2f5ee);
+  border: 1px solid var(--giLineSoft, #e7ece2);
+}
+
+.standardItemName {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+}
+
+.standardItemValue {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   7) แหล่งข้อมูล + ข้อจำกัด
+   -------------------------------------------------------------------------- */
+.sourceList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.sourceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  min-width: 0;
+  background: var(--giSubtleBg, #f2f5ee);
+  border: 1px solid var(--giLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.sourceHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sourceName {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.licenseBadge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--giExternalBg, #fbf3dd);
+  color: var(--giExternalInk, #7d5c14);
+  white-space: nowrap;
+}
+
+.sourceAgency {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #5f7160;
+}
+
+.sourceRole {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.licenseStatus {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #7b8a7c;
+  overflow-wrap: anywhere;
+}
+
+.sourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--giAccentInk, #3f6134);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.sourceLink:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.warningBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius, 8px);
+  background: #fdf6e6;
+  border: 1px solid #ebdcb2;
+  min-width: 0;
+}
+
+.warningList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.warningItem {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #6f5a1f;
+  overflow-wrap: break-word;
+}
+
+.warningItem::marker {
+  color: #c69a35;
+}
+
+.coverageNote {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  max-width: 75ch;
+}
+
+/* --------------------------------------------------------------------------
+   Empty state
+   -------------------------------------------------------------------------- */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 18px;
+  text-align: center;
+  border: 1px dashed #c3d1bd;
+  border-radius: var(--radius, 8px);
+  background: #f7faf2;
+  min-width: 0;
+}
+
+.emptyState > svg {
+  color: #73845e;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  max-width: 60ch;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive — 2 คอลัมน์ที่ ≥640px, 3 คอลัมน์ที่ ≥1024px (card grid)
+   -------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .productGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sourceList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .section,
+  .filterCard {
+    padding: 22px 24px;
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fieldSearch {
+    grid-column: 1 / -1;
+  }
+
+  .metricList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 18px;
+  }
+
+  .categoryBars {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .kpiGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .productGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sourceList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  /* กัน iOS auto-zoom ตอน focus */
+  .control,
+  .searchInput {
+    font-size: 16px;
+  }
+
+  .filterFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .resetButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .kpiValue {
+    font-size: 22px;
+  }
+
+  .productName {
+    font-size: 15px;
+  }
+
+  .seasonCell {
+    font-size: 8.5px;
+  }
+
+  .commodityChip {
+    font-size: 10.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill,
+  .splitInternal,
+  .splitExternal,
+  .resetButton,
+  .moreButton,
+  .kpiCard,
+  .productCard,
+  .control,
+  .searchField {
+    transition: none;
+  }
+}

@@ -67,4 +67,4 @@ Unit/regression รวม 172 tests ผ่าน (19.820s) และ pip check �
 
 ทดสอบ capture/staging/resume/revisions/corruption/schema/partial failure และตัว verifier ด้วย `tests/test_doae.py` ตัวดึงปี 2569 เดิมใช้ downloader ตัวเดียวกัน แต่ยังคงคำสั่ง/ที่เก็บ/limit 2 MiB เดิม
 
-หลังดึงครบ ต้องตรวจข้อมูลและนิยามราย schema, DOPA temporal crosswalk, หน่วย, ขอบเขตปี/รอบ, coverage และสิทธิ์ก่อนเชื่อม Risk Signal/Power Query หรือคำนวณอัตราส่วน งาน P1 และ P2 ใน roadmap ยังเป็นรายการถัดไป ไม่ถือว่าจบแผน DOAE ทั้งหมดจากการดึง P0
+หลังดึงครบ ต้องตรวจข้อมูลและนิยามราย schema, DOPA temporal crosswalk, หน่วย, ขอบเขตปี/รอบ, coverage และสิทธิ์ก่อนเชื่อม Risk Signal/ชุดข้อมูลสำหรับเว็บ Next.js หรือคำนวณอัตราส่วน งาน P1 และ P2 ใน roadmap ยังเป็นรายการถัดไป ไม่ถือว่าจบแผน DOAE ทั้งหมดจากการดึง P0

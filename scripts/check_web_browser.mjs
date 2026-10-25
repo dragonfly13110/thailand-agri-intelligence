@@ -1,0 +1,177 @@
+// Run against the production server; reuse an installed Playwright via PLAYWRIGHT_MODULE_PATH.
+import { createRequire } from 'node:module';
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright');
+const base = process.env.TADIH_WEB_URL || 'http://127.0.0.1:3123';
+const folder = resolve('data/local/probes/web-v1');
+await mkdir(folder, {recursive:true});
+const browser = await chromium.launch({headless:true});
+const errors = [];
+const result = {base, checked_at:new Date().toISOString(), checks:[], screenshots:[], errors};
+const check = name => result.checks.push(name);
+async function settled(page) {
+  await page.locator('main h1').waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  assert.ok(await page.locator('main h1').isVisible());
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'horizontal overflow');
+  if (await page.locator('.record-main p').count()) {
+    assert.ok(await page.locator('.record-main p').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize) >= 14), 'description text too small');
+  }
+}
+async function capture(page, name) {
+  await settled(page);
+  await page.screenshot({path:resolve(folder,name), fullPage:true});
+  result.screenshots.push(name);
+}
+try {
+  const context = await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+  const page = await context.newPage();
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => {if (['error','warning'].includes(message.type())) errors.push(message.text());});
+  await page.goto(base, {waitUntil:'networkidle'});
+  await capture(page,'desktop-home.png');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'ข้ามไปเนื้อหา');
+  check('desktop home, Thai fonts, skip link, no overflow');
+  const inventoryRequests=[];
+  page.on('request',request=>{if(new URL(request.url()).pathname==='/api/local-data')inventoryRequests.push(request.url());});
+  await page.getByRole('navigation',{name:'เมนูหลัก'}).getByRole('link',{name:'ข้อมูลที่มี',exact:true}).click();
+  await page.waitForURL('**/data');
+  await capture(page,'desktop-data.png');
+  assert.equal(await page.locator('.inventory-records>li').count(),17);
+  assert.equal(await page.locator('.inventory-group').count(),6);
+  assert.equal(await page.locator('.primary-nav [aria-current="page"]').innerText(),'ข้อมูลที่มี');
+  assert.ok((await page.locator('.inventory-context').innerText()).includes('ยังไม่ใช่ข้อมูลทั้งหมด'));
+  const overview = await (await context.request.get(base+'/catalog.json')).json();
+  for(const record of overview.records) {
+    const item=page.locator('.inventory-records>li').filter({has:page.getByRole('heading',{name:record.title,exact:true})});
+    assert.equal(await item.count(),1);
+    for(const label of [record.source_label,record.grain,record.period??'ยังไม่ระบุในบัญชี',record.unit??'ยังไม่ระบุในบัญชี'])
+      assert.ok((await item.innerText()).includes(label));
+    assert.equal((await context.request.get(base+'/catalog/'+record.id)).status(),200);
+  }
+  assert.deepEqual(inventoryRequests,[]);
+  check('inventory: 17 reviewed records in six groups match snapshot, detail URLs valid, no numeric API read');
+  for(const query of ['dataset=rainfall-reanalysis&view=price_trend','dataset=short-crop-production&view=price_trend&province='+encodeURIComponent('นครปฐม'),'dataset=all-farmgate-prices&view=price_trend&year=invalid']) {
+    inventoryRequests.length=0;
+    await page.goto(base+'/explore?'+query,{waitUntil:'networkidle'});
+    assert.ok(await page.getByRole('heading',{name:'มุมมองและตัวกรองไม่ตรงกัน',exact:true}).isVisible());
+    const recovery=await page.getByRole('link',{name:'กลับไปตารางพร้อมตัวกรองเดิม',exact:true}).getAttribute('href');
+    assert.equal(new URL(recovery,base).searchParams.get('dataset'),new URLSearchParams(query).get('dataset'));
+    if(query.includes('province=')) assert.equal(new URL(recovery,base).searchParams.get('province'),'นครปฐม');
+    assert.deepEqual(inventoryRequests,[]);
+  }
+  check('incompatible price view never switches datasets or reads prices; recovery retains source context');
+  inventoryRequests.length=0;
+  await page.goto(base+'/projects',{waitUntil:'networkidle'});
+  await capture(page,'desktop-projects.png');
+  assert.equal(await page.locator('time').getAttribute('datetime'),'2023-04-04');
+  assert.equal(await page.getByRole('link',{name:'อ่านประกาศต้นทางของกรมส่งเสริมการเกษตร',exact:true}).getAttribute('href'),'https://doaenews.doae.go.th/archives/17775');
+  const projects=await page.locator('main').innerText();
+  for(const phrase of ['จังหวัดนครปฐม','ประกาศแผน/รับสมัคร','ปีงบประมาณ 2566 และ 2567','ยังไม่ยืนยันการดำเนินงาน','ข้าวนาปรัง','ข้าวนาปี'])assert.ok(projects.includes(phrase));
+  assert.deepEqual(inventoryRequests,[]);
+  await page.getByRole('link',{name:'เปิดแฟ้มหลักฐานข้าวนครปฐม',exact:true}).click();
+  await page.waitForURL('**/areas/73/rice');
+  check('projects: official dated announcement only, planned province/unknown results/season mismatch explicit, no numeric API read; pilot link valid');
+  await page.goto(base,{waitUntil:'networkidle'});
+  await page.getByRole('textbox',{name:'ค้นหาชุดข้อมูล',exact:true}).fill('หอมมะลิ');
+  await page.getByRole('button',{name:'ค้นหาข้อมูล',exact:true}).click();
+  await page.waitForURL('**/catalog?q=*');
+  assert.equal(await page.locator('.catalog-row').count(),1);
+  await page.getByRole('link',{name:'ราคาข้าวเปลือกหอมมะลิรายเดือน',exact:true}).click();
+  await page.waitForURL('**/catalog/farmgate-jasmine-rice');
+  await page.getByRole('heading',{name:'ราคาข้าวเปลือกหอมมะลิรายเดือน',exact:true}).waitFor();
+  assert.ok(await page.getByText('รอตรวจสิทธิ์การใช้และเผยแพร่',{exact:true}).isVisible());
+  check('home search to detail; source rights remain pending');
+  await page.goto(base+'/catalog');
+  await capture(page,'desktop-catalog.png');
+  await page.getByLabel('หมวดข้อมูล',{exact:true}).selectOption('crops');
+  await page.getByLabel('หน่วยงาน / ผู้ให้บริการ',{exact:true}).selectOption('กรมส่งเสริมการเกษตร');
+  await page.getByRole('button',{name:'ค้นหา',exact:true}).click();
+  await page.waitForURL('**/catalog?**category=crops**');
+  assert.equal(await page.locator('.catalog-row').count(),5);
+  assert.ok((await page.locator('.result-summary').innerText()).includes('5'));
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.getByLabel('หมวดข้อมูล',{exact:true}).inputValue(),'crops');
+  check('combined filters and shareable URL survive reload');
+  await page.getByRole('link',{name:'ล้างตัวกรอง',exact:true}).click();
+  await page.getByRole('link',{name:'ถัดไป',exact:true}).click();
+  await page.waitForURL('**page=2');
+  assert.equal(await page.locator('.catalog-row').count(),6);
+  assert.ok(await page.getByRole('link',{name:'สถานการณ์น้ำในอ่างเก็บน้ำ',exact:true}).isVisible());
+  check('pagination uses real snapshot order');
+  await page.goto(base+'/catalog?q='+encodeURIComponent('<script>alert(1)</script>'));
+  assert.ok(await page.getByRole('heading',{name:'ยังไม่พบข้อมูลที่ตรงกับคำค้น'}).isVisible());
+  assert.equal(await page.locator('script').filter({hasText:/^alert\(1\)$/}).count(),0);
+  check('empty search and escaped hostile query');
+  const download = await context.request.get(base+'/catalog.json');
+  assert.equal(download.status(),200);
+  const bytes = await download.body();
+  const data = JSON.parse(bytes.toString('utf8'));
+  assert.equal(data.records.length,17);
+  assert.ok(data.records.every(r => r.metadata_review === 'project_authored_public' && r.data_license_status === 'pending'));
+  assert.equal(download.headers().etag, '"'+createHash('sha256').update(bytes).digest('hex')+'"');
+  assert.equal(download.headers()['x-content-type-options'],'nosniff');
+  assert.equal(download.headers()['cache-control'],'no-store');
+  assert.ok(!bytes.toString().includes('data_records'));
+  check('metadata download: 17 reviewed records, checksum, headers, no observations');
+  assert.deepEqual(errors, []);
+  const missing = await context.request.get(base+'/catalog/not-a-dataset');
+  assert.equal(missing.status(),404);
+  check('unknown dataset returns HTTP 404');
+  const mobile = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
+  const phone = await mobile.newPage();
+  phone.on('pageerror', error => errors.push(error.message));
+  phone.on('console', message => {if (['error','warning'].includes(message.type())) errors.push(message.text());});
+  await phone.goto(base,{waitUntil:'networkidle'});
+  await capture(phone,'mobile-home.png');
+  await phone.getByRole('navigation',{name:'เมนูหลัก'}).getByRole('link',{name:'ข้อมูลที่มี',exact:true}).click();
+  await phone.waitForURL('**/data');
+  await capture(phone,'mobile-data.png');
+  await phone.getByRole('navigation',{name:'ไปยังหมวดข้อมูล'}).getByRole('link',{name:/ประมง/}).click();
+  assert.ok((await phone.url()).endsWith('#data-fisheries'));
+  await phone.locator('.inventory-related').getByRole('link',{name:'ดูแนวโน้มราคาในเครื่อง',exact:true}).click();
+  await phone.waitForURL('**/explore?dataset=all-farmgate-prices&view=price_trend');
+  assert.ok(await phone.getByRole('heading',{name:'สำรวจแนวโน้มราคา',exact:true}).isVisible());
+  await phone.goto(base+'/data',{waitUntil:'networkidle'});
+  await phone.getByRole('link',{name:'เปิดตารางในเครื่อง',exact:true}).first().click();
+  await phone.waitForURL('**/explore?dataset=short-crop-production');
+  check('mobile inventory navigation, anchors, correct table and price destinations, no overflow');
+  await phone.getByRole('navigation',{name:'เมนูหลัก'}).getByRole('link',{name:'โครงการและหลักฐาน',exact:true}).click();
+  await phone.waitForURL('**/projects');
+  await capture(phone,'mobile-projects.png');
+  await phone.getByRole('link',{name:'บัญชีข้อมูล',exact:true}).click();
+  await phone.waitForURL('**/catalog');
+  await capture(phone,'mobile-catalog.png');
+  await phone.getByLabel('คำค้น',{exact:true}).fill('ดิน');
+  await phone.getByRole('button',{name:'ค้นหา',exact:true}).click();
+  await phone.waitForURL('**/catalog?q=**');
+  assert.ok(await phone.getByRole('link',{name:'ความเหมาะสมของดินสำหรับปลูกข้าว',exact:true}).isVisible());
+  await phone.getByRole('link',{name:'ความเหมาะสมของดินสำหรับปลูกข้าว',exact:true}).click();
+  await phone.waitForURL('**/catalog/rice-soil-suitability');
+  await capture(phone,'mobile-detail.png');
+  check('mobile navigation, search, detail, no horizontal overflow');
+  const narrow=await browser.newContext({viewport:{width:693,height:654},reducedMotion:'reduce'});
+  const userPage=await narrow.newPage();
+  await userPage.goto(base+'/data',{waitUntil:'networkidle'});
+  await capture(userPage,'user-data.png');
+  await userPage.screenshot({path:resolve(folder,'user-data-top.png')});
+  result.screenshots.push('user-data-top.png');
+  await userPage.goto(base+'/projects',{waitUntil:'networkidle'});
+  await capture(userPage,'user-projects.png');
+  assert.deepEqual(errors,[]);
+  check('no browser console warnings or errors in observed flows');
+  result.status='passed';
+} catch(error) {
+  result.status='failed';
+  result.failure=error.message;
+  throw error;
+} finally {
+  await writeFile(resolve(folder,'browser-check.json'),JSON.stringify(result,null,2)+'\n');
+  await browser.close();
+  console.log(JSON.stringify(result,null,2));
+}

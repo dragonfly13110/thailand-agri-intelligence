@@ -1,0 +1,895 @@
+/* ==========================================================================
+   Land Reform & Agricultural Tenure Dashboard CSS Module
+   Uses the global green/paper design tokens with safe fallbacks.
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  color: var(--ink, #21352b);
+}
+
+/* --- 1. Governance banner --- */
+.governanceBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #fdf6e7;
+  border: 1px solid #ecd8a6;
+  border-left: 5px solid #c08a1c;
+  border-radius: var(--radius, 8px);
+  padding: 16px 18px;
+}
+
+.bannerIconWrap {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f5e6c2;
+  color: #7d5207;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bannerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bannerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #6f4a0b;
+  background: #f8ecd0;
+  border: 1px solid #e5d1a0;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.chipCode {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  padding: 0;
+}
+
+.bannerTitle {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #6b4508;
+  overflow-wrap: anywhere;
+}
+
+.bannerText {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #6b4e14;
+}
+
+/* --- 2. Header --- */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  min-width: 0;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.6px;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  max-width: 82ch;
+}
+
+.headerBadge {
+  flex-shrink: 0;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef3e6;
+  border: 1px solid #d3dfc7;
+  color: #3d5a35;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.headerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6e8551;
+  flex-shrink: 0;
+}
+
+/* --- 3. Filters --- */
+.filtersPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  padding: 16px 18px;
+}
+
+.filtersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filtersTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+}
+
+.resultsMeta {
+  font-size: 12px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.filterField label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid #c3cfbc;
+  border-radius: 6px;
+  background: var(--white, #ffffff);
+  color: var(--ink, #21352b);
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.select:hover {
+  border-color: #9fb298;
+}
+
+.helperText {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resetButton {
+  background: transparent;
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+  padding: 8px 14px;
+  min-height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.resetButton:hover:not(:disabled) {
+  background: #eef3e6;
+  border-color: #9fb298;
+}
+
+.resetButton:disabled {
+  color: #8a988d;
+  border-color: #d7dfd3;
+  cursor: default;
+}
+
+.noResults {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: #fbf7ec;
+  border: 1px solid #e8d9b4;
+  border-left: 4px solid #b98b2e;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: #6b4e14;
+}
+
+/* --- 4. KPI cards --- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce3d9);
+  border-top: 3px solid #5b7d4a;
+  border-radius: var(--radius, 8px);
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(33, 61, 50, 0.04);
+  transition: box-shadow 0.18s ease;
+}
+
+.kpiCard:hover {
+  box-shadow: 0 5px 14px rgba(33, 61, 50, 0.07);
+}
+
+.kpiArea {
+  border-top-color: #4d7040;
+}
+
+.kpiFarmers {
+  border-top-color: #7e9451;
+}
+
+.kpiDeed {
+  border-top-color: #a9873f;
+}
+
+.kpiTenure {
+  border-top-color: #4f7f7a;
+}
+
+.kpiTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kpiLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+}
+
+.kpiIcon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #eef3e6;
+  color: #4d6b3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpiValue {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.kpiHint {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line, #dce3d9);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted, #53645a);
+}
+
+/* --- 5. Charts --- */
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.chartCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  padding: 18px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+}
+
+.cardNote {
+  font-size: 12px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.donutLayout {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.donut {
+  width: 190px;
+  height: 190px;
+  flex-shrink: 0;
+}
+
+.donutValue {
+  font-size: 19px;
+  font-weight: 700;
+  fill: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.donutUnit {
+  font-size: 11px;
+  fill: var(--muted, #53645a);
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 170px;
+}
+
+.legendItem {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 1px;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  grid-row: 1 / 3;
+}
+
+.legendLabel {
+  min-width: 0;
+  font-weight: 600;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+}
+
+.legendValue {
+  text-align: right;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.legendArea {
+  grid-column: 2 / 4;
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.tenure {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.tenureBar {
+  display: flex;
+  width: 100%;
+  height: 22px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #edf1e7;
+  border: 1px solid #dde5d5;
+}
+
+.tenureOwned {
+  display: block;
+  height: 100%;
+  background: #4d7040;
+}
+
+.tenureRented {
+  display: block;
+  height: 100%;
+  background: #b98b5e;
+}
+
+.tenureLegend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tenureLegendItem {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--paper, #f6f7f2);
+  border-radius: 6px;
+}
+
+.tenureDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 6px;
+}
+
+.tenureDotOwned {
+  background: #4d7040;
+}
+
+.tenureDotRented {
+  background: #b98b5e;
+}
+
+.tenureLegendBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tenureLegendLabel {
+  font-size: 12px;
+  color: var(--muted, #53645a);
+}
+
+.tenureLegendValue {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.tenureRai {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.cardFootnote {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.chartEmpty {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--muted, #53645a);
+  background: var(--paper, #f6f7f2);
+  border-radius: 6px;
+}
+
+/* --- 6. Province table --- */
+.tableSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+}
+
+.sectionNote {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.scrollHint {
+  display: none;
+  font-size: 11.5px;
+  color: #6b7d64;
+}
+
+.tableCard {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  overflow: hidden;
+}
+
+.tableWrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tableWrap:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: -3px;
+}
+
+.table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #e7ece5;
+  vertical-align: middle;
+}
+
+.table thead th {
+  background: #eff2e9;
+  color: var(--muted, #53645a);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line, #dce3d9);
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: #fbfcf8;
+}
+
+.provinceCell {
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+.provinceName {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+}
+
+.provinceCode {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.numeric {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.statusNoArea {
+  background: #eef1ea;
+  color: #5c6b58;
+}
+
+.statusIssued {
+  background: #dfeedd;
+  color: #2f5d33;
+}
+
+.statusVerified {
+  background: #e8f0d8;
+  color: #4a6230;
+}
+
+.statusApplied {
+  background: #fbf2dc;
+  color: #765c20;
+}
+
+.statusNotApplied {
+  background: #f1f0ea;
+  color: #6b6754;
+}
+
+/* --- 7. Zero-area provinces --- */
+.zeroAreaSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce3d9);
+  border-left: 4px solid #a9873f;
+  border-radius: var(--radius, 8px);
+  padding: 16px 18px;
+}
+
+.zeroAreaList {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.zeroAreaList li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 0;
+  border-top: 1px solid #edf0e8;
+}
+
+.zeroAreaName {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.zeroAreaReason {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+/* --- 8. Footer --- */
+.footerNote {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line, #dce3d9);
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--muted, #53645a);
+}
+
+.footerMeta {
+  color: #46584b;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.warningList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #765c20;
+}
+
+/* ==========================================================================
+   Responsive breakpoints
+   ========================================================================== */
+
+@media (max-width: 1100px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .chartGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filterGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zeroAreaList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .container {
+    gap: 18px;
+  }
+
+  .governanceBanner {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .headerBadge {
+    font-size: 11px;
+  }
+
+  .filtersPanel {
+    padding: 14px;
+  }
+
+  .select {
+    font-size: 16px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpiValue {
+    font-size: 26px;
+  }
+
+  .filterActions {
+    justify-content: stretch;
+  }
+
+  .resetButton {
+    width: 100%;
+  }
+
+  .chartCard {
+    padding: 14px;
+  }
+
+  .donutLayout {
+    justify-content: center;
+  }
+
+  .donut {
+    width: 170px;
+    height: 170px;
+  }
+
+  .tenureLegend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scrollHint {
+    display: block;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container *,
+  .container *::before,
+  .container *::after {
+    transition: none;
+    animation: none;
+  }
+}

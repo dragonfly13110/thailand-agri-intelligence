@@ -1,10 +1,10 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
-รอบ P2/acquisition audit วันที่ 23 ต.ค. 2569 เพิ่ม exact resource 12 รายการ (คำขอสินค้า 1, RAR รายชื่อ/ที่ตั้ง 4, reference CSV 7) รวมทะเบียน **70 รายการ** ทุกชุดยัง pending ตรวจ live catalog ครบ pagination และ raw hashes แล้ว ดู [ขอบเขต/หลักฐาน](doae-acquisition-audit.md) ข้อมูลชื่อ/รหัส/ติดต่อ/free text ไม่ออก public artifacts การรับข้อมูลครบไม่ได้อนุมัติใช้ซ้ำหรือรับรองโมเดล
+หลังรอบ P2/acquisition audit และตรวจ CHIRPS เพิ่มวันที่ 25 ต.ค. 2569 ทะเบียนมี **82 รายการ**: CHIRPS v3 exact file หนึ่งรายการเป็น `approved_public`; อีก 81 รายการยัง `pending`. ตรวจนับซ้ำเมื่อ 25 ต.ค. 2569 ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` แล้วได้ `82 Counter({'pending': 81, 'approved_public': 1})`. ตรวจ live catalog ครบ pagination และ raw hashes แล้ว ดู [ขอบเขต/หลักฐาน](doae-acquisition-audit.md) ข้อมูลชื่อ/รหัส/ติดต่อ/free text ไม่ออก public artifacts การรับข้อมูลครบไม่ได้อนุมัติใช้ซ้ำหรือรับรองโมเดล
 
-ตรวจวันที่ 22 และ 23 ตุลาคม 2569 (2026-10-22 และ 2026-10-23) จาก metadata และเงื่อนไขของผู้ให้บริการโดยตรง ผลแบบอ่านด้วยโปรแกรมอยู่ใน [resource_licenses.json](../config/resource_licenses.json) พร้อม URL หลักฐาน วันที่ตรวจ และ SHA-256 ของคำตอบที่ตรวจผ่านคำขอจริงเมื่อมี
+ตรวจวันที่ 22–25 ตุลาคม 2569 จาก metadata และเงื่อนไขของผู้ให้บริการโดยตรง ผลแบบอ่านด้วยโปรแกรมอยู่ใน [resource_licenses.json](../config/resource_licenses.json) พร้อม URL หลักฐาน วันที่ตรวจ และ SHA-256 ของคำตอบที่ตรวจผ่านคำขอจริงเมื่อมี
 
-ยังไม่มีรายการใดถูกตั้งเป็น `approved_public` การตรวจครั้งนี้เก็บข้อเท็จจริงเรื่องสิทธิ์และเงื่อนไขที่ยังต้องปิดก่อนเผยแพร่ โดยไม่เปลี่ยนสถานะใน warehouse หรือทะเบียน sources เดิม
+มีเพียง CHIRPS v3.0 Daily final RNL วันที่ 2026-09-30 ที่ได้รับ `approved_public` ในทะเบียน จาก license ของ CHC ซึ่งครอบคลุมชุด CHIRPS3 และ CC BY 4.0; เทียบ source values 3 cells แล้ว แต่ยังไม่มี active D1 run/observation หรือ numeric public API output. รายการอื่นคง pending ตามหลักฐานราย resource.
 
 | Resource ที่ตรวจ | หลักฐานที่พบ | สถานะโครงการ |
 |---|---|---|
@@ -21,6 +21,8 @@
 | DLD มูลค่าผลผลิตปศุสัตว์ระดับประเทศ `a512df83-39d0-420b-979e-942666863b00` | ระบุ Open Data Common; ยังไม่ระบุรุ่นและเงื่อนไขเผยแพร่ซ้ำ | pending |
 | DOAE ผลผลิตพืชอายุยาวระดับตำบล ปี 2566 `61f3f241-92c7-4cdc-9918-41ce73545268` | ระบุ Open Data Common; มี 5 repeated identities และ 3 ค่าพื้นที่ติดลบ | pending |
 | DOAE แผนเพาะปลูกฤดูแล้งรายตำบล ปี 2569 `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` | ตรวจเพิ่ม 23 ต.ค. 2569 ระบุ `อื่นๆ`; ยังไม่มีสิทธิ์เผยแพร่ซ้ำที่ยืนยัน | pending |
+| LDD สถิติแผนและผลโครงการ PGS `2feb3230-cf86-4560-95f5-93e58270a7d8` | ระบุ CC Attribution Non-Commercial No-Derivs; หน่วยงานผู้รายงานไม่เท่ากับพื้นที่เป้าหมาย | pending |
+| CHIRPS v3.0 daily final RNL `2026-09-30` | CHC ระบุ public domain และ CC BY 4.0; บันทึก exact file, ETag, grid metadata และ attribution; เทียบ 3 source cells ด้วย ETag-pinned ranges แล้ว | approved_public ในทะเบียน; D1 write/API acceptance ยัง pending |
 
 
 ## DOAE ผลผลิตรายตำบล
@@ -51,7 +53,7 @@
 
 รอบ P0 ขยายทะเบียนเพิ่ม exact CSV resources ครบ 21 ไฟล์ใน 10 datasets โดยคง pending และบันทึก metadata snapshot/hash, URL และ raw CSV hash/ขนาดของทุกไฟล์ ดู [ผลดึงและขอบเขต](doae-p0-ingestion.md) รอบ P0 ทั้งทะเบียนรวมแหล่งเดิมมี 33 รายการ ไม่มีรายการใหม่อนุมัติเผยแพร่จากการดาวน์โหลดสำเร็จ
 
-ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 70; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
+ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 82 (pending 81, approved_public 1; ตรวจนับ 25 ต.ค. 2569) ไม่ได้เปลี่ยนสถานะของ resource ใดในรอบนี้; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
 
 ## DDPM ขอบเขตจังหวัด
 
@@ -103,7 +105,19 @@
 
 ชุดข้อมูลระบุ `Open Data Common` แบบไม่มีรุ่นกำกับเช่นเดียวกับพืชอายุสั้น และจากการตรวจสอบพบประเด็นข้อมูลค้าง: 5 กลุ่ม repeated identities ที่มีค่าขัดแย้ง และ 3 แถวที่ค่าพื้นที่ติดลบ จึงต้องคงสถานะเป็น `pending` และเก็บใน staging/quarantine ไม่นำเข้า warehouse จนกว่าจะได้ข้อยุติ
 
+## LDD สถิติแผนและผลโครงการ PGS
+
+ตรวจทรัพยากร `2feb3230-cf86-4560-95f5-93e58270a7d8` (202 แถว) และพจนานุกรมข้อมูล `186d7cee-2443-4fc7-8a77-c7b7d574ea77` (11 แถว) บน [LDD Catalog](https://lddcatalog.ldd.go.th/dataset/ord02)
+
+ชุดข้อมูลระบุสัญญาอนุญาต `Creative Commons Attribution Non-Commercial No-Derivs` พจนานุกรมระบุขอบเขตเปิดเผยเป็น Open Data แต่ยังไม่ได้รับการอนุมัติการเผยแพร่ต่อในระดับโครงการ จึงคงสถานะเป็น `pending` ข้อมูลถูกจัดเก็บในเครื่องเพื่อแสดงใน Workstation Session และหน้า `/projects` โดยรักษา Native Reporting Unit (หน่วยงานผู้รายงาน) ไม่เทียบเท่ากับพื้นที่เป้าหมายหรือจังหวัดที่ได้รับประโยชน์ และคงตัวตรวจกรองความปลอดภัยไม่คำนวณร้อยละเมื่อเป้าหมายเป็นศูนย์หรือขาดค่า
+
+## CHIRPS v3.0 Daily final RNL วันที่ 2026-09-30
+
+ตรวจ [หน้า CHC CHIRPS v3](https://www.chc.ucsb.edu/data/chirps3), [daily README](https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/readme.txt), [diagnostics](https://www.chc.ucsb.edu/data/chirps3/diagnostics) และ exact [GeoTIFF](https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif) วันที่ 25 ต.ค. 2569. CHC ระบุ CHIRPS3 เป็น public domain และ CC BY 4.0; ต้องให้เครดิต, ลิงก์ license, แจ้งการเปลี่ยนแปลง และอ้าง DOI `10.15780/G2JQ0P` กับ Funk et al. (2026). จึงอนุมัติสิทธิ์เฉพาะ file URL นี้สำหรับการเผยแพร่ภายใต้ attribution ข้างต้น.
+
+ตรวจ directory ถึงวันที่ข้อมูล 30 ก.ย. 2569, HTTP 200, ETag `6ad152d4-119211a`, Last-Modified 15 ต.ค. 2569; header ยืนยัน EPSG:4326, 0.05° grid, float32 และ pixel-is-area. Grain เป็น grid cell × UTC date; daily RNL กระจายยอด pentad โดย ERA5 ไม่ใช่ daily gauge observation และไม่ใช่จังหวัด. ค่า bad/missing `-9999` ต้องเป็น null. License ผ่าน M4 และ M5 เทียบ 3 cells กับค่าจาก source revision เดียวกันแล้ว; ก่อนเปิด API ยังต้องตรวจ live D1 ingestion และ API/UI บน current preview.
+
 ## การใช้ทะเบียนนี้
 
-ทะเบียนนี้ไม่มีผลอนุมัติอัตโนมัติ `pending` หมายถึงยังปิดเงื่อนไขสำหรับการใช้และเผยแพร่ของโครงการไม่ครบ เมื่อได้หลักฐานเพิ่ม ให้เก็บ URL หรือเอกสารสิทธิ์ วันที่ตรวจ เงื่อนไขการใช้งาน และผู้รับผิดชอบก่อนเปลี่ยนสถานะของ resource จริง การอนุมัติต้องตรงกับไฟล์หรือ endpoint ที่ใช้ รวมถึงเครดิตใน CSV, Parquet, Power BI และหน้าที่แสดงข้อมูล
+ทะเบียนนี้ไม่มีผลอนุมัติอัตโนมัติ `pending` หมายถึงยังปิดเงื่อนไขสำหรับการใช้และเผยแพร่ของโครงการไม่ครบ เมื่อได้หลักฐานเพิ่ม ให้เก็บ URL หรือเอกสารสิทธิ์ วันที่ตรวจ เงื่อนไขการใช้งาน และผู้รับผิดชอบก่อนเปลี่ยนสถานะของ resource จริง การอนุมัติต้องตรงกับไฟล์หรือ endpoint ที่ใช้ รวมถึงเครดิตใน CSV, Parquet, API, หน้าเว็บ Next.js และไฟล์ดาวน์โหลด; ห้ามส่ง pending/restricted หรือข้อมูลส่วนบุคคลผ่าน public HTML/JSON/props/cache
 

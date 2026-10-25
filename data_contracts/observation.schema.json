@@ -102,6 +102,7 @@
         "province",
         "station",
         "grid_point",
+        "grid_cell",
         "national",
         "reservoir"
       ]

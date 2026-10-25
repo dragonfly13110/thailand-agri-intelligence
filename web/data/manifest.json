@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "file": "catalog.json",
+  "record_count": 17,
+  "sha256": "18d4ceaed75817a1b3ab923295f9ddcdcd35c5fdffe37c9ae4b764a78dcb3c3d",
+  "review_sha256": "be34af51d61294839aaf6caf8276fe0d35af9bc23f8064aa70777c6db8291cf8",
+  "rights_sha256": "69d91d84444f995bbcfef54b1e742100001f4af43cbbddc49ad0ef61521d50fa",
+  "contains_observations": false
+}

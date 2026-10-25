@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from tadih.catalog import load_sources
 from tadih.publish import build_exports, verify_exports, write_coverage_view
 from tadih.quality import validate_observation
 from tadih.transform import weather_observations
@@ -114,7 +115,7 @@ class PipelineTests(unittest.TestCase):
             result = write_coverage_view(snapshot, path)
             with path.open(encoding="utf-8-sig", newline="") as stream:
                 rows = list(csv.DictReader(stream))
-            self.assertEqual(result["rows"], 77 * 16)
+            self.assertEqual(result["rows"], 77 * len(load_sources()))
             self.assertEqual(len({r["province_code"] for r in rows}), 77)
             self.assertEqual({r["coverage_status"] for r in rows}, {"UNVERIFIED"})
             self.assertTrue(any(r["province_name"] == "กรุงเทพมหานคร" for r in rows))
@@ -175,7 +176,7 @@ class PipelineTests(unittest.TestCase):
             with (snapshot / "fact_data_coverage.csv").open(encoding="utf-8-sig", newline="") as handle:
                 rows = list(csv.DictReader(handle))
 
-            self.assertEqual(len(rows), 77 * 16)
+            self.assertEqual(len(rows), 77 * len(load_sources()))
             # Validate every single coverage row against JSON contract
             for r in rows:
                 contract_row = {

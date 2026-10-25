@@ -6,7 +6,7 @@
 ```
 ผลลัพธ์โครงสร้าง JSON บันทึกที่ `data/local/probes/temporal-crosswalk-audit.json`
 
-เอกสารนี้บันทึกผลการตรวจสอบและตรรกะการแก้ไขข้อขัดแย้งของรหัสและชื่อพื้นที่ระหว่างชุดข้อมูลดิบของ DOAE กับฐานข้อมูลทะเบียนราษฎร DOPA snapshot วันที่ 1 กันยายน 2566 ตามข้อกำหนดใน [HANDOFF.md](../HANDOFF.md) และ [national-agriculture-data-center.md](national-agriculture-data-center.md)
+เอกสารนี้บันทึกผลการตรวจสอบและตรรกะการแก้ไขข้อขัดแย้งของรหัสและชื่อพื้นที่ระหว่างชุดข้อมูลดิบของ DOAE กับฐานข้อมูลทะเบียนราษฎร DOPA snapshot วันที่ 1 กันยายน 2566 ตามข้อกำหนดใน [HANDOFF.md](../HANDOFF.md) และ [national-agriculture-data-center.md](../SYSTEM_DESIGN.md)
 
 ---
 

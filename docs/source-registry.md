@@ -1,6 +1,6 @@
 # ทะเบียนแหล่งข้อมูลและรหัสจังหวัด
 
-Registry ใน `config/sources.json` มี 16 ระบบ ครอบคลุมพืช ราคา อากาศ น้ำ ดิน ดาวเทียม ภัยพิบัติ ปศุสัตว์และประมง ตาม [สเปก v1.4](../Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ส่วน 48 แต่ละแหล่งยังต้องตรวจ resource, schema, ปีข้อมูล, key, quota และสิทธิ์เผยแพร่เป็นรายชุด ก่อนนำข้อมูลออกสาธารณะ
+Registry ใน `config/sources.json` มี 16 ระบบ ครอบคลุมพืช ราคา อากาศ น้ำ ดิน ดาวเทียม ภัยพิบัติ ปศุสัตว์และประมง ตาม [สเปก v1.4](archive/2026-10-24-redesign/Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md) ส่วน 48 แต่ละแหล่งยังต้องตรวจ resource, schema, ปีข้อมูล, key, quota และสิทธิ์เผยแพร่เป็นรายชุด ก่อนนำข้อมูลออกสาธารณะ
 
 ผลสำรวจที่กว้างกว่า connector ตั้งต้นอยู่ใน [แผนที่ข้อมูล/API](accessible-data-map.md) และ `data/local/access-map/` รวมระบบในสเปก บัญชีกลาง บัญชีเจ้าของ และ environment ไม่เปลี่ยน `runtime_verified` ของทั้งแหล่งเพราะอ่านสำเร็จเพียง endpoint เดียว และไม่ใช้จำนวน catalog แทน coverage จังหวัด
 

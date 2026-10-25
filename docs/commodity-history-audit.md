@@ -61,6 +61,6 @@ Checklist item **B2** requires: *"ตรวจรายชื่อสินค�
 
 ## 4. Methodological Note for Analysis & Semantic Model
 
-1. **No False Missingness:** Analysts and DAX measures must **not** mark pre-2559 data for cassava 25% or pre-2566 data for oil palm fruit as "missing" or "incomplete" in data quality dashboards; these series did not exist prior to those dates.
+1. **No False Missingness:** Analysts, API calculations and web views must **not** mark pre-2559 data for cassava 25% or pre-2566 data for oil palm fruit as "missing" or "incomplete" in data quality dashboards; these series did not exist prior to those dates.
 2. **Grain Integrity:** The 3 size grades for duck eggs (`ไข่เป็ด ขนาดเล็ก/กลาง/ใหญ่`) coexist with the general grade (`ไข่เป็ดสด คละ` which spans all 189 months 2011–2026). They must remain distinct identities and must never be averaged or summed together.
 3. **Immutability:** This audit is reproducible from the local immutable snapshots in `data/local/raw/oae/historical-product-names-*/`.

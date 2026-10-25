@@ -1,0 +1,1092 @@
+/* ==========================================================================
+   แดชบอร์ดสหกรณ์การเกษตร / วิสาหกิจชุมชน / แปลงใหญ่ — CSS Module
+   Mobile-first · ใช้ token จาก app/globals.css (เขียว/สีดิน) พร้อม fallback
+   class ในโมดูลเท่านั้น ไม่รั่วไป global · ไม่ใช้ !important
+   breakpoint 1024 / 768 / 640 / 420 + prefers-reduced-motion
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  color: var(--ink, #21352b);
+  /* น้ำเสียงสีเชิงความหมายเฉพาะโมดูล กระจายจากสีเขียวหลักของเว็บ */
+  --coopSubtleBg: #f2f5ee;
+  --coopLineSoft: #e7ece2;
+  --coopAccentInk: #35592c;
+  --coopGridLine: #cfdac6;
+  --coopSelectedBg: #eaf2dd;
+  --coopTier1Bg: #dceccf;
+  --coopTier1Ink: #2f6132;
+  --coopTier2Bg: #fbf2da;
+  --coopTier2Ink: #7a5c15;
+  --coopTier3Bg: #f3e6de;
+  --coopTier3Ink: #85502d;
+}
+
+/* --------------------------------------------------------------------------
+   โครง section + header
+   -------------------------------------------------------------------------- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.7;
+  color: var(--coopAccentInk, #35592c);
+}
+
+.sectionTitle {
+  margin-top: 2px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.sectionMeta {
+  max-width: 46ch;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+/* --------------------------------------------------------------------------
+   1) แถบ KPI (คำนวณตามตัวกรอง)
+   -------------------------------------------------------------------------- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--coopSubtleBg, #f2f5ee);
+  border: 1px solid var(--coopLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.kpiLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+}
+
+.kpiLabel svg {
+  color: #5a7549;
+}
+
+.kpiValue {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.3px;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.kpiUnit {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted, #53645a);
+}
+
+.kpiNote {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.kpiFootnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.kpiFootnote svg {
+  margin-top: 3px;
+  flex-shrink: 0;
+  color: #657d5b;
+}
+
+/* --------------------------------------------------------------------------
+   2) แผงตัวกรอง
+   -------------------------------------------------------------------------- */
+.filterCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldSearch {
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  letter-spacing: 0.2px;
+  color: var(--muted, #53645a);
+}
+
+.fieldHint {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7b8a7c;
+  overflow-wrap: break-word;
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--ink, #21352b);
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+}
+
+.control:hover {
+  border-color: #a4b89d;
+}
+
+.control:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  min-width: 0;
+  padding: 0 12px;
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+}
+
+.searchField:focus-within {
+  border-color: #6e8a5a;
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+.searchIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #657d5b;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink, #21352b);
+  outline: none;
+}
+
+.chipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.chipLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.chip {
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--coopSubtleBg, #f2f5ee);
+  border: 1px solid var(--coopLineSoft, #e7ece2);
+  color: #45594b;
+  overflow-wrap: anywhere;
+}
+
+.filterFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--coopLineSoft, #e7ece2);
+}
+
+.filterSummary {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+}
+
+.filterSummary strong {
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.resetButton,
+.moreButton {
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid #bdc9b7;
+  border-radius: 6px;
+  background: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.resetButton:hover:not(:disabled),
+.moreButton:hover {
+  background: #edf2e7;
+}
+
+.resetButton:disabled {
+  color: #97a498;
+  background: #f4f6f2;
+  cursor: not-allowed;
+}
+
+.resetButton:focus-visible,
+.moreButton:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   3) เรดาร์ CAMELS (SVG เขียนมือ) + รายการมิติข้างเคียง
+   -------------------------------------------------------------------------- */
+.radarGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-width: 0;
+}
+
+.radarPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.radarSvgWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--coopSubtleBg, #f2f5ee);
+  border: 1px solid var(--coopLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+}
+
+.radarSvg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ringPoly {
+  fill: none;
+  stroke: var(--coopGridLine, #cfdac6);
+  stroke-width: 1;
+}
+
+.axisLine {
+  stroke: var(--coopGridLine, #cfdac6);
+  stroke-width: 1;
+}
+
+.ringLabel {
+  font-size: 10px;
+  fill: #86958a;
+  font-variant-numeric: tabular-nums;
+}
+
+.polySelected {
+  fill: rgba(53, 89, 44, 0.24);
+  stroke: #2f6132;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.polyAverage {
+  fill: none;
+  stroke: #8a6b25;
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  stroke-linejoin: round;
+}
+
+.vertexDot {
+  fill: #2f6132;
+  stroke: var(--white, #fff);
+  stroke-width: 1.2;
+}
+
+.vertexGroup {
+  pointer-events: none;
+}
+
+.vertexLabel {
+  font-size: 13px;
+  fill: var(--forest, #213d32);
+}
+
+.vertexScore {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--coopAccentInk, #35592c);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.swatch {
+  flex-shrink: 0;
+  width: 22px;
+  height: 12px;
+  margin-top: 5px;
+  border-radius: 2px;
+}
+
+.swatchSelected {
+  background: rgba(47, 97, 50, 0.24);
+  border: 2px solid #2f6132;
+}
+
+.swatchAverage {
+  background: transparent;
+  border: 0;
+  border-top: 2px dashed #8a6b25;
+  border-radius: 0;
+}
+
+.legendText {
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.radarNote,
+.radarFootnote {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.radarNote {
+  padding: 8px 10px;
+  background: #fdf6e6;
+  border: 1px solid #ebdcb2;
+  border-radius: 6px;
+  color: #6f5a1f;
+}
+
+.radarSide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sideHead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sideTitle {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.sideSub {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.factList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--coopLineSoft, #e7ece2);
+}
+
+.factRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.factLabel {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted, #53645a);
+}
+
+.factValue {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--ink, #21352b);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.evidenceNote {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.75;
+  color: #7b8a7c;
+  overflow-wrap: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   4) ตาราง: ล้างแนวนอนใน-wrapper เท่านั้น (หน้า 390px ไม่เกินออก)
+   -------------------------------------------------------------------------- */
+.tableWrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 560px;
+  min-width: 0;
+  background: var(--white, #fff);
+  border: 1px solid var(--coopLineSoft, #e7ece2);
+  border-radius: var(--radius, 8px);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.tableCaption {
+  position: sticky;
+  left: 0;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  text-align: left;
+  color: var(--muted, #53645a);
+  background: var(--coopSubtleBg, #f2f5ee);
+}
+
+.tableHead thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px 12px;
+  background: #eff2e9;
+  border-bottom: 1px solid var(--line, #dce3d9);
+  color: var(--muted, #53645a);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.nameCell {
+  min-width: 190px;
+}
+
+.cellNote {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: #86958a;
+  white-space: nowrap;
+}
+
+.table tbody td,
+.table tbody th.rowHead {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--coopLineSoft, #e7ece2);
+  vertical-align: top;
+  text-align: left;
+  line-height: 1.7;
+  color: var(--ink, #21352b);
+}
+
+.table tbody th.rowHead {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 190px;
+  max-width: 260px;
+  background: var(--white, #fff);
+  color: var(--forest, #213d32);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rowSub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.textCell {
+  min-width: 120px;
+  max-width: 260px;
+  overflow-wrap: break-word;
+}
+
+.numericCell {
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.row:hover td,
+.row:hover th.rowHead {
+  background: #f7faf2;
+}
+
+.rowSelected td,
+.rowSelected th.rowHead {
+  background: var(--coopSelectedBg, #eaf2dd);
+}
+
+.totalRow td,
+.totalRow th.rowHead {
+  background: var(--coopSubtleBg, #f2f5ee);
+  font-weight: 700;
+}
+
+.selectButton {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.selectButton:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--coopAccentInk, #35592c);
+}
+
+.selectButton:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sortButton:hover {
+  background: #e2e9dc;
+  color: var(--forest, #213d32);
+}
+
+.sortButton:focus-visible {
+  outline: 3px solid #728d3c;
+  outline-offset: 1px;
+}
+
+.sortGlyph {
+  font-size: 10.5px;
+  color: var(--coopAccentInk, #35592c);
+  font-variant-numeric: tabular-nums;
+}
+
+.tableFootNote {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.moreNote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted, #53645a);
+}
+
+/* --------------------------------------------------------------------------
+   5) badge ชั้น CAMELS — มีชื่อชั้นเขียนกำกับเสมอ สีไม่ใช่สัญญาณเดียว
+   -------------------------------------------------------------------------- */
+.classBadge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.badgeTier1 {
+  background: var(--coopTier1Bg, #dceccf);
+  color: var(--coopTier1Ink, #2f6132);
+  border-color: #b7d3a8;
+}
+
+.badgeTier2 {
+  background: var(--coopTier2Bg, #fbf2da);
+  color: var(--coopTier2Ink, #7a5c15);
+  border-color: #e5d3a3;
+}
+
+.badgeTier3 {
+  background: var(--coopTier3Bg, #f3e6de);
+  color: var(--coopTier3Ink, #85502d);
+  border-color: #ddc3b2;
+}
+
+/* --------------------------------------------------------------------------
+   6) แผงรอง: แถบสรุปตามประเภท / ชั้น
+   -------------------------------------------------------------------------- */
+.panelGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.barList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.barRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.barHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.barLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, #213d32);
+  overflow-wrap: break-word;
+}
+
+.barMeta {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.barTrack {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--coopSubtleBg, #f2f5ee);
+  border: 1px solid var(--coopLineSoft, #e7ece2);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #4a6b3f;
+  transition: width 0.25s ease;
+}
+
+.barFillTier1 {
+  background: #2f6132;
+}
+
+.barFillTier2 {
+  background: #b58a2b;
+}
+
+.barFillTier3 {
+  background: #96603a;
+}
+
+/* --------------------------------------------------------------------------
+   7) ข้อความว่าง / ค่า null / ข้อกำกับท้ายแผง
+   -------------------------------------------------------------------------- */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 28px 18px;
+  text-align: center;
+  background: #f7faf2;
+  border: 1px dashed #c3d1bd;
+  border-radius: var(--radius, 8px);
+}
+
+.emptyState > svg {
+  color: #73845e;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.emptyText {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+  overflow-wrap: break-word;
+}
+
+.nullValue {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #7b8a7c;
+  font-style: italic;
+  overflow-wrap: break-word;
+}
+
+.coverageNote {
+  margin: 0;
+  max-width: 75ch;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--muted, #53645a);
+}
+
+.datasetMeta {
+  margin: 0;
+  max-width: 75ch;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #7b8a7c;
+  overflow-wrap: anywhere;
+}
+
+.warningBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  background: #fdf6e6;
+  border: 1px solid #ebdcb2;
+  border-radius: var(--radius, 8px);
+}
+
+.expandLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6f5a1f;
+}
+
+.warningList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.warningItem {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #6f5a1f;
+  overflow-wrap: break-word;
+}
+
+.warningItem::marker {
+  color: #c69a35;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive — mobile-first; 390px ไม่มีคลาสใดบังคับกว้างเกิน container
+   -------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .factList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 18px;
+  }
+}
+
+@media (min-width: 768px) {
+  .section,
+  .filterCard {
+    padding: 22px 24px;
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fieldSearch {
+    grid-column: 1 / -1;
+  }
+
+  /* เรดาร์ + ตารางมิติ เป็น 2 คอลัมน์เฉพาะหน้าจอ ≥768px */
+  .radarGrid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: start;
+    gap: 22px;
+  }
+
+  .panelGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .kpiGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .fieldSearch {
+    grid-column: span 2;
+  }
+
+  .radarGrid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}
+
+@media (max-width: 760px) {
+  /* กัน iOS auto-zoom ตอน focus */
+  .control,
+  .searchInput {
+    font-size: 16px;
+  }
+
+  .filterFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .resetButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  /* ตารางยาวให้อ่านใน-scroll แนวตั้งด้วย และลดความสูง header ค้าง */
+  .tableHead thead th {
+    position: static;
+  }
+
+  .table tbody th.rowHead {
+    position: static;
+    max-width: 220px;
+  }
+
+  .vertexLabel,
+  .vertexScore {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .kpiValue {
+    font-size: 22px;
+  }
+
+  .sectionTitle {
+    font-size: 17px;
+  }
+
+  .sideTitle {
+    font-size: 15px;
+  }
+
+  .barLabel {
+    font-size: 13px;
+  }
+
+  .table {
+    font-size: 12.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill,
+  .resetButton,
+  .moreButton,
+  .kpiCard,
+  .control,
+  .searchField,
+  .selectButton,
+  .sortButton,
+  .polySelected,
+  .polyAverage {
+    transition: none;
+  }
+}

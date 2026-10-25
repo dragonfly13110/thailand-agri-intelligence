@@ -1,0 +1,1639 @@
+/* ==========================================================================
+   Smart Farming & Agri-IoT Dashboard CSS Module
+   ทุกกฎใช้ token จาก globals.css พร้อม fallback ปลอดภัย (แบบเดียวกับ
+   early-warning-dashboard.module.css) — breakpoint 1024 / 640 / 390
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--ink, #21352b);
+}
+
+/* ---------------------------------------------------------------- Banner */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff8e6;
+  border: 1px solid #f2d184;
+  border-left: 5px solid #d97706;
+  border-radius: var(--radius, 8px);
+}
+
+.bannerIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #b45309;
+}
+
+.bannerBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bannerTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bannerBadge {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+}
+
+.bannerHeadline {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #92400e;
+}
+
+.bannerText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #78350f;
+  overflow-wrap: anywhere;
+}
+
+.bannerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metaChip {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: ui-monospace, 'SFMono-Regular', 'Segoe UI Mono', monospace;
+  color: #78350f;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #f0dca8;
+  border-radius: 999px;
+}
+
+.details {
+  margin-top: 2px;
+  border-top: 1px dashed #ecc980;
+  padding-top: 8px;
+}
+
+.detailsSummary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #92400e;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.detailsSummary:hover {
+  text-decoration: underline;
+}
+
+.warningList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.warningItem {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #78350f;
+  overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------- Sections */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
+  color: var(--forest, #213d32);
+}
+
+.sectionMeta {
+  font-size: 12.5px;
+  color: var(--muted, #53645a);
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted, #53645a);
+}
+
+.leadPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-left: 4px solid var(--forest, #213d32);
+  border-radius: var(--radius, 8px);
+}
+
+.leadTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.leadText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  max-width: 88ch;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------- KPI grid */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.kpiLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.kpiValue {
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiUnit {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.kpiSub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiSplit {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.kpiFootnote {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  background: #f2f5ee;
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------- Filters */
+.filterCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #edf1e7;
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.filterFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.control {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  color: var(--ink, #21352b);
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 5px;
+  min-width: 0;
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--forest, #213d32);
+  outline-offset: 1px;
+}
+
+.searchField {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  color: #687d5c;
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 34px;
+}
+
+.resetButton {
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  background: var(--white, #fff);
+  border: 1px solid #bdc9b7;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.resetButton:hover:not(:disabled) {
+  background: var(--accent, #d9e8a0);
+  border-color: #9fb27f;
+}
+
+.resetButton:disabled {
+  color: var(--muted, #53645a);
+  background: #f2f5ee;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.filterSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--muted, #53645a);
+}
+
+.filterSummary strong {
+  color: var(--forest, #213d32);
+  font-weight: 700;
+}
+
+.selectedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--forest, #213d32);
+  background: var(--accent, #d9e8a0);
+  border: 1px solid #b3c977;
+  border-radius: 999px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------- Farm cards */
+.farmGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.farmCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-left: 4px solid transparent;
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.farmCard:hover {
+  border-color: #a9b9a2;
+  box-shadow: 0 4px 12px rgba(33, 61, 50, 0.08);
+}
+
+.farmCard:focus-visible {
+  outline: 2px solid var(--forest, #213d32);
+  outline-offset: 2px;
+}
+
+.farmCardActive {
+  border-color: #9fb27f;
+  border-left-color: var(--forest, #213d32);
+  background: #f7faf1;
+  box-shadow: 0 4px 14px rgba(33, 61, 50, 0.1);
+}
+
+.farmCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.farmName {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--forest, #213d32);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.farmSub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.farmTypeBadge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+  background: #eaf0df;
+  border: 1px solid #cfdcc0;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.farmMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+}
+
+.farmMetaRow strong {
+  color: var(--ink, #21352b);
+  font-weight: 600;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line, #dce3d9);
+}
+
+.countCell {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+}
+
+.countCell strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.countOffline strong {
+  color: #b91c1c;
+}
+
+.batteryRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.batteryTrack {
+  position: relative;
+  flex: 1;
+  min-width: 48px;
+  max-width: 96px;
+  height: 8px;
+  background: #e6ebe1;
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.batteryFill {
+  display: block;
+  height: 100%;
+  background: #15803d;
+  border-radius: 999px;
+}
+
+.batteryMid {
+  background: #b45309;
+}
+
+.batteryLow {
+  background: #b91c1c;
+}
+
+.batteryLabel {
+  font-size: 11px;
+  color: var(--muted, #53645a);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.batteryLabelLow {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.seenCell {
+  font-size: 11px;
+  color: var(--muted, #53645a);
+  white-space: nowrap;
+}
+
+.chipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.chipNeutral {
+  color: var(--muted, #53645a);
+  background: #f2f5ee;
+  border-color: var(--line, #dce3d9);
+}
+
+.chipSaturated {
+  color: #1e40af;
+  background: #e5edff;
+  border-color: #bcd2fb;
+}
+
+.chipAdequate {
+  color: #15803d;
+  background: #e8f6ec;
+  border-color: #bbe6c9;
+}
+
+.chipWatch {
+  color: #92400e;
+  background: #fdf3d9;
+  border-color: #f0dca8;
+}
+
+.chipDeficit {
+  color: #c2410c;
+  background: #fdecdf;
+  border-color: #f7cfab;
+}
+
+.chipCritical {
+  color: #b91c1c;
+  background: #fdeaea;
+  border-color: #f5c2c2;
+}
+
+.chipPriorityNow {
+  color: #fff;
+  background: #b91c1c;
+  border-color: #9c1616;
+}
+
+.chipPriorityToday {
+  color: #4a2a05;
+  background: #fbbf24;
+  border-color: #e0a51c;
+}
+
+.chipPriorityScheduled {
+  color: #fff;
+  background: #1d4ed8;
+  border-color: #1a44bd;
+}
+
+.chipPrioritySkip {
+  color: #fff;
+  background: #15803d;
+  border-color: #12692f;
+}
+
+/* --------------------------------------------------------------- Details */
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--forest, #213d32);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.panelMeta {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.panelNote {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------------------------------- Gauge */
+.gaugeWrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.gaugeSvg {
+  display: block;
+  width: 100%;
+  max-width: 216px;
+  height: auto;
+}
+
+.gaugeTrackArc {
+  fill: none;
+  stroke: #e6ebe1;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.gaugeValueArc {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.gaugeArcSaturated {
+  stroke: #2563eb;
+}
+
+.gaugeArcAdequate {
+  stroke: #15803d;
+}
+
+.gaugeArcWatch {
+  stroke: #d97706;
+}
+
+.gaugeArcDeficit {
+  stroke: #ea580c;
+}
+
+.gaugeArcCritical {
+  stroke: #dc2626;
+}
+
+.gaugeArcUnknown {
+  stroke: #b9c4b6;
+  stroke-dasharray: 5 7;
+  stroke-width: 8;
+}
+
+.gaugeTick {
+  stroke: var(--forest, #213d32);
+  stroke-width: 2;
+}
+
+.gaugeTickLabel {
+  font-size: 10.5px;
+  fill: var(--muted, #53645a);
+}
+
+.gaugeNumber {
+  font-size: 30px;
+  font-weight: 700;
+  fill: var(--forest, #213d32);
+}
+
+.gaugeUnit {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--muted, #53645a);
+}
+
+.gaugeCaption {
+  font-size: 10.5px;
+  fill: var(--muted, #53645a);
+}
+
+.gaugeReadouts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: #f6f8f3;
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.readoutLabel {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.readoutValue {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.readoutUnit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+/* ------------------------------------------------------------ Irrigation */
+.irrigationHeadline {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.irrigationTime {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #21352b);
+  font-variant-numeric: tabular-nums;
+}
+
+.irrigationReason {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink, #21352b);
+  background: #f6f8f3;
+  border-left: 3px solid var(--accent, #d9e8a0);
+  border-radius: 0 6px 6px 0;
+  overflow-wrap: anywhere;
+}
+
+.irrigationStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  min-width: 0;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: 6px;
+}
+
+.statLabel {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.statValue {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.statUnit {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted, #53645a);
+}
+
+.estimatePanel {
+  padding: 10px 12px;
+  background: #eef3e6;
+  border: 1px solid #d5dfc8;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.estimateValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+  font-variant-numeric: tabular-nums;
+}
+
+.estimateNote {
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ Chart */
+.chartRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 268px);
+  gap: 14px;
+  align-items: start;
+}
+
+.chart {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chartSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.gridLine {
+  stroke: #e6ebe1;
+  stroke-width: 1;
+}
+
+.axisLine {
+  stroke: #c6d1c1;
+  stroke-width: 1;
+}
+
+.axisLabel {
+  font-size: 10.5px;
+  fill: var(--muted, #53645a);
+}
+
+.axisUnit {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--muted, #53645a);
+}
+
+.hourLabel {
+  font-size: 11px;
+  fill: var(--muted, #53645a);
+}
+
+/* ปิดป้ายแกนย่อยเมื่อจอแคบ เพื่อให้อ่านออกโดยไม่ต้องเลื่อนหน้าจอในแนวนอน */
+.minorLabel {
+  display: inline;
+}
+
+.tempLine {
+  fill: none;
+  stroke: #c2410c;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.moistureLine {
+  fill: none;
+  stroke: #1d4ed8;
+  stroke-width: 2.4;
+  stroke-dasharray: 7 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.rainBar {
+  fill: #7ba7d3;
+  opacity: 0.85;
+}
+
+.tempDot {
+  fill: #c2410c;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+  background: #c2410c;
+}
+
+.legendSwatchMoisture {
+  background: #1d4ed8;
+}
+
+.legendSwatchRain {
+  width: 10px;
+  height: 12px;
+  border-radius: 2px;
+  background: #7ba7d3;
+}
+
+.miniStats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* -------------------------------------------------------------------- NPK */
+.npkRows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.npkRow {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) 82px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.npkName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink, #21352b);
+  overflow-wrap: anywhere;
+}
+
+.npkTrack {
+  position: relative;
+  height: 12px;
+  background: #e6ebe1;
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.npkBar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #15803d;
+}
+
+.npkBarLow {
+  background: #d97706;
+}
+
+.npkBarHigh {
+  background: #7c3aed;
+}
+
+.npkValue {
+  font-size: 11.5px;
+  color: var(--muted, #53645a);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.levelTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.levelLow {
+  color: #92400e;
+  background: #fdf3d9;
+  border-color: #f0dca8;
+}
+
+.levelOptimal {
+  color: #15803d;
+  background: #e8f6ec;
+  border-color: #bbe6c9;
+}
+
+.levelHigh {
+  color: #6d28d9;
+  background: #efe9fd;
+  border-color: #d6c9f7;
+}
+
+/* ------------------------------------------------------------- Data table */
+.tableScroll {
+  overflow-x: auto;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-radius: var(--radius, 8px);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.tableHead th {
+  position: sticky;
+  top: 0;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--muted, #53645a);
+  background: #f2f5ee;
+  border-bottom: 1px solid var(--line, #dce3d9);
+  white-space: nowrap;
+}
+
+.tableRow {
+  min-width: 0;
+}
+
+.tableBody td {
+  padding: 10px 12px;
+  vertical-align: top;
+  border-bottom: 1px solid #eef1ea;
+  color: var(--ink, #21352b);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tableBody tr:last-child td {
+  border-bottom: none;
+}
+
+.tableBody tr:hover td {
+  background: #f7faf1;
+}
+
+.sensorName {
+  font-weight: 600;
+  color: var(--forest, #213d32);
+}
+
+.sensorKind {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted, #53645a);
+}
+
+.numericCell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.valueNull {
+  color: var(--muted, #53645a);
+  font-style: italic;
+}
+
+.firmware {
+  font-family: ui-monospace, 'SFMono-Regular', 'Segoe UI Mono', monospace;
+  font-size: 11px;
+  color: var(--muted, #53645a);
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.pillOnline {
+  color: #15803d;
+  background: #e8f6ec;
+  border-color: #bbe6c9;
+}
+
+.pillOffline {
+  color: #b91c1c;
+  background: #fdeaea;
+  border-color: #f5c2c2;
+}
+
+.pillBattery {
+  color: #92400e;
+  background: #fdf3d9;
+  border-color: #f0dca8;
+}
+
+.pillMaintenance {
+  color: #334155;
+  background: #eceff4;
+  border-color: #d5dbe5;
+}
+
+.scrollHint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted, #53645a);
+}
+
+/* -------------------------------------------------------- Sources & gaps */
+.sourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sourceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: #eaf0e0;
+  border: 1px solid #d5dfc8;
+  border-radius: var(--radius, 8px);
+  min-width: 0;
+}
+
+.sourceTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sourceName {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sourceId {
+  font-family: ui-monospace, 'SFMono-Regular', 'Segoe UI Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.sourceNote {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+.sourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--forest, #213d32);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 40px;
+  overflow-wrap: anywhere;
+}
+
+.metaOnlyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #47613a;
+  background: var(--white, #fff);
+  border: 1px solid #cfdcc0;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.gapList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gapItem {
+  padding: 12px 14px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, #dce3d9);
+  border-left: 3px solid #d97706;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.gapTitle {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--forest, #213d32);
+  overflow-wrap: anywhere;
+}
+
+.gapDetail {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------- Empty & meta */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 34px 20px;
+  text-align: center;
+  background: var(--white, #fff);
+  border: 1px dashed #bdc9b7;
+  border-radius: var(--radius, 8px);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--forest, #213d32);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted, #53645a);
+  max-width: 62ch;
+}
+
+.generatedAt {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, #53645a);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Responsive — 1024 / 900 / 640 / 390
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .farmGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detailGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chartRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .miniStats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sourceGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scrollHint {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    gap: 18px;
+  }
+
+  .banner {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpiValue {
+    font-size: 20px;
+  }
+
+  .farmGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filterGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filterFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .resetButton {
+    width: 100%;
+  }
+
+  .field {
+    width: 100%;
+  }
+
+  .control,
+  .resetButton {
+    font-size: 14px;
+    min-height: 44px;
+  }
+
+  .farmCard {
+    padding: 12px;
+  }
+
+  .statusRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .batteryRow {
+    width: 100%;
+  }
+
+  .batteryTrack {
+    max-width: none;
+  }
+
+  .irrigationStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gaugeReadouts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .miniStats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .npkRow {
+    grid-template-columns: minmax(0, 1fr) 68px;
+    row-gap: 4px;
+  }
+
+  .npkTrack {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  /* ข้อความใน SVG เป็นหน่วย user units จึงขยายที่จอแคบให้อ่านออกเมื่อ viewBox ถูกลดเหลือ ~326px */
+  .axisLabel,
+  .hourLabel {
+    font-size: 16px;
+  }
+
+  .axisUnit {
+    font-size: 13px;
+  }
+
+  .minorLabel {
+    display: none;
+  }
+
+  .gaugeTickLabel {
+    font-size: 13px;
+  }
+
+  .gaugeCaption {
+    font-size: 12px;
+  }
+
+  /* ตารางเซนเซอร์ย่อยเป็นแถวซ้อน พร้อมป้ายชื่อคอลัมน์จาก data-label */
+  .tableHead {
+    display: none;
+  }
+
+  .table,
+  .tableBody,
+  .tableRow {
+    display: block;
+    width: 100%;
+  }
+
+  .tableRow {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line, #dce3d9);
+  }
+
+  .tableRow td,
+  .tableBody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 3px 0;
+    border-bottom: none;
+    text-align: right;
+  }
+
+  .tableRow td::before,
+  .tableBody td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted, #53645a);
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .scrollHint {
+    display: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .sectionTitle {
+    font-size: 15.5px;
+  }
+
+  .gaugeSvg {
+    max-width: 190px;
+  }
+
+  .panel,
+  .sourceCard,
+  .farmCard {
+    padding: 12px;
+  }
+
+  .irrigationStats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chip,
+  .statusPill,
+  .farmTypeBadge {
+    font-size: 11px;
+  }
+}
+
+/* ลดการเคลื่อนไหวสำหรับผู้ใช้ตั้ง prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .farmCard,
+  .resetButton {
+    transition: none;
+  }
+
+  .farmCard:hover {
+    transform: none;
+  }
+}

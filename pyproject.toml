@@ -9,6 +9,10 @@ description = "Thailand-first agricultural decision intelligence data pipeline"
 requires-python = ">=3.11"
 dependencies = ["duckdb>=1.4,<2", "jsonschema>=4.23,<5"]
 
+[project.optional-dependencies]
+hub = ["psycopg[binary]>=3.2,<4"]
+geo = ["rasterio>=1.4,<2"]
+
 [project.scripts]
 tadih = "tadih.cli:main"
 

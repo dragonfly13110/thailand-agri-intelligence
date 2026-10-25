@@ -1,0 +1,653 @@
+{
+  "verified_at": "2026-10-24T23:41:54.204301+07:00",
+  "database": "tadih-hub",
+  "expected_source_ids": [
+    "acfs",
+    "alro",
+    "cad",
+    "dld",
+    "doae",
+    "dof",
+    "hii",
+    "ldd",
+    "nabc",
+    "oae",
+    "opsmoac",
+    "royalrain"
+  ],
+  "datasets_per_source": {
+    "acfs": 26,
+    "alro": 50,
+    "cad": 49,
+    "dld": 36,
+    "doae": 39,
+    "dof": 72,
+    "hii": 36,
+    "ldd": 30,
+    "nabc": 591,
+    "oae": 202,
+    "opsmoac": 78,
+    "royalrain": 28
+  },
+  "resources_per_source": {
+    "acfs": 34,
+    "alro": 90,
+    "cad": 74,
+    "dld": 78,
+    "doae": 90,
+    "dof": 207,
+    "hii": 76,
+    "ldd": 106,
+    "nabc": 1954,
+    "oae": 528,
+    "opsmoac": 464,
+    "royalrain": 76
+  },
+  "totals": {
+    "sources": 12,
+    "datasets": 1237,
+    "resources": 3777,
+    "sync_runs": 19,
+    "observations": 0,
+    "locations": 0
+  },
+  "sync_runs_by_status": {
+    "failed": 3,
+    "partial": 3,
+    "succeeded": 13,
+    "running": 0
+  },
+  "sync_runs_per_source": {
+    "acfs": {
+      "succeeded": 2
+    },
+    "alro": {
+      "succeeded": 1
+    },
+    "cad": {
+      "succeeded": 1
+    },
+    "dld": {
+      "succeeded": 1
+    },
+    "doae": {
+      "failed": 2,
+      "partial": 2,
+      "succeeded": 1
+    },
+    "dof": {
+      "succeeded": 1
+    },
+    "hii": {
+      "succeeded": 1
+    },
+    "ldd": {
+      "succeeded": 1
+    },
+    "nabc": {
+      "succeeded": 1
+    },
+    "oae": {
+      "failed": 1,
+      "partial": 1,
+      "succeeded": 1
+    },
+    "opsmoac": {
+      "succeeded": 1
+    },
+    "royalrain": {
+      "succeeded": 1
+    }
+  },
+  "latest_run_per_source": {
+    "doae": {
+      "run_id": "aff9a728-cb37-40b5-9d7b-785314750d80",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:26:27.003327Z",
+      "completed_at": "2026-10-24T16:26:30.446800Z",
+      "duration_seconds": 3.443,
+      "source_retrieved_at": "2026-10-24T16:26:30.446800Z",
+      "records_read": 201,
+      "records_written": 129,
+      "records_quarantined": 162,
+      "payload_sha256": "d7280dd131f9938c5acdb578afcdcdf49197ebb231065c276c27f0b051dfe683",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "oae": {
+      "run_id": "7235d007-416d-4ab2-84bd-68f94f9106c8",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:26:37.134355Z",
+      "completed_at": "2026-10-24T16:26:40.495289Z",
+      "duration_seconds": 3.361,
+      "source_retrieved_at": "2026-10-24T16:26:40.495289Z",
+      "records_read": 202,
+      "records_written": 730,
+      "records_quarantined": 0,
+      "payload_sha256": "629771e58854b32b87aa29d8bfce1b8d8dd34f8939ba9dd75d1d3d39a4ff58fd",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "ldd": {
+      "run_id": "260976b0-37b9-4e27-8bcb-d7c3cfb5a4e9",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:27:13.493336Z",
+      "completed_at": "2026-10-24T16:27:16.549888Z",
+      "duration_seconds": 3.057,
+      "source_retrieved_at": "2026-10-24T16:27:16.549888Z",
+      "records_read": 30,
+      "records_written": 136,
+      "records_quarantined": 0,
+      "payload_sha256": "5083d5f29625c87a382528cf3063e0b10ad4cb27d7c1a2c26b4159686f366db9",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "dld": {
+      "run_id": "7c14f2bd-a13e-47b9-845f-a56fac1b0a85",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:27:23.445359Z",
+      "completed_at": "2026-10-24T16:27:26.668699Z",
+      "duration_seconds": 3.223,
+      "source_retrieved_at": "2026-10-24T16:27:26.668699Z",
+      "records_read": 36,
+      "records_written": 114,
+      "records_quarantined": 0,
+      "payload_sha256": "ea216693e2c6aae87cf408687c802bc2d11836f2286c798fddb4b11ced316177",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "dof": {
+      "run_id": "ba321c56-e69c-48b3-844a-1838478ee5f6",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:27:33.598040Z",
+      "completed_at": "2026-10-24T16:27:37.186616Z",
+      "duration_seconds": 3.589,
+      "source_retrieved_at": "2026-10-24T16:27:37.186616Z",
+      "records_read": 72,
+      "records_written": 279,
+      "records_quarantined": 0,
+      "payload_sha256": "cc0f9b8de9d0678105e3543f9085e286265c04c7f6916e56408790e62283278e",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "nabc": {
+      "run_id": "677ad4bc-aed9-46bf-8603-6ba1cb14e063",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:27:50.903352Z",
+      "completed_at": "2026-10-24T16:28:10.099419Z",
+      "duration_seconds": 19.196,
+      "source_retrieved_at": "2026-10-24T16:28:10.099419Z",
+      "records_read": 591,
+      "records_written": 2545,
+      "records_quarantined": 0,
+      "payload_sha256": "a8976b3dbe787114f8c1829b1371f3ab5bbd9cedd794ef5da89eac7e1c591b78",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "cad": {
+      "run_id": "52512212-9dc1-4cf8-b23c-d3e0f54f7eb2",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:30:10.397798Z",
+      "completed_at": "2026-10-24T16:30:11.975860Z",
+      "duration_seconds": 1.578,
+      "source_retrieved_at": "2026-10-24T16:30:11.975860Z",
+      "records_read": 49,
+      "records_written": 123,
+      "records_quarantined": 0,
+      "payload_sha256": "57061298afe51293f3c06a396a398fab0c8a7c7759e790f5f9ff188830a9843c",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "alro": {
+      "run_id": "41906c2d-d327-4326-bc72-3b6260c8808a",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:30:17.962236Z",
+      "completed_at": "2026-10-24T16:30:19.716523Z",
+      "duration_seconds": 1.754,
+      "source_retrieved_at": "2026-10-24T16:30:19.716523Z",
+      "records_read": 50,
+      "records_written": 140,
+      "records_quarantined": 0,
+      "payload_sha256": "a3d3bb2d7f2fbfa6ddab87e17a816eac4ab15fccf23ba2a9313963ce9abe70a5",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "acfs": {
+      "run_id": "a761585a-18d8-46ca-8bb4-6396fd378094",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:35:07.039682Z",
+      "completed_at": "2026-10-24T16:35:07.918017Z",
+      "duration_seconds": 0.878,
+      "source_retrieved_at": "2026-10-24T16:35:07.918017Z",
+      "records_read": 26,
+      "records_written": 60,
+      "records_quarantined": 0,
+      "payload_sha256": "c1ed6b3cf89ec04e8cf2d6428fa8bb719f80a49b596e3afaec91aebd1471d187",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "royalrain": {
+      "run_id": "69826459-3c32-4425-8a6b-a3acdf78cfda",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:30:30.666819Z",
+      "completed_at": "2026-10-24T16:30:32.389073Z",
+      "duration_seconds": 1.722,
+      "source_retrieved_at": "2026-10-24T16:30:32.389073Z",
+      "records_read": 28,
+      "records_written": 104,
+      "records_quarantined": 0,
+      "payload_sha256": "e47bc5fd400aac51f0919035652bdc2b6fab69ade640fdfaa586b06b75bb6725",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "hii": {
+      "run_id": "62104da8-d580-4982-94fb-0dad8baaf488",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:30:38.252841Z",
+      "completed_at": "2026-10-24T16:30:39.614509Z",
+      "duration_seconds": 1.362,
+      "source_retrieved_at": "2026-10-24T16:30:39.614509Z",
+      "records_read": 36,
+      "records_written": 112,
+      "records_quarantined": 0,
+      "payload_sha256": "686005cefd73b1435938bec1b1b4a9e400dd209d400eeac1de16ed2e80651466",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    },
+    "opsmoac": {
+      "run_id": "2c7be4e9-eaf9-47f9-8f03-e01a5a56340a",
+      "status": "succeeded",
+      "started_at": "2026-10-24T16:30:46.634144Z",
+      "completed_at": "2026-10-24T16:30:50.978462Z",
+      "duration_seconds": 4.344,
+      "source_retrieved_at": "2026-10-24T16:30:50.978462Z",
+      "records_read": 78,
+      "records_written": 542,
+      "records_quarantined": 0,
+      "payload_sha256": "81b2265b646ab4b4651c4ea8eb6c67be6555c5d934f85bb1f263663f3ff5243f",
+      "adapter_version": "hub-ckan-metadata-v1",
+      "error_code": null
+    }
+  },
+  "run_history": [
+    {
+      "source_id": "doae",
+      "run_id": "1fde4d98-301a-47a4-9fa9-954b22938667",
+      "status": "partial",
+      "duration_seconds": 1.7,
+      "records_read": 5,
+      "records_written": 2,
+      "records_quarantined": 4,
+      "error_code": "PAGE_LIMIT_REACHED"
+    },
+    {
+      "source_id": "doae",
+      "run_id": "6d05373b-34fb-48d9-9a51-72e1ff5d222f",
+      "status": "failed",
+      "duration_seconds": 3.086,
+      "records_read": 0,
+      "records_written": 0,
+      "records_quarantined": 0,
+      "error_code": "D1_HTTP_ERROR"
+    },
+    {
+      "source_id": "oae",
+      "run_id": "2cc7b75f-8469-4772-b5fc-c7b3ebe7dbfb",
+      "status": "failed",
+      "duration_seconds": 2.05,
+      "records_read": 0,
+      "records_written": 0,
+      "records_quarantined": 0,
+      "error_code": "D1_HTTP_ERROR"
+    },
+    {
+      "source_id": "doae",
+      "run_id": "6ac4b686-db6a-452d-ad93-7a7653d3572c",
+      "status": "failed",
+      "duration_seconds": 1.748,
+      "records_read": 0,
+      "records_written": 0,
+      "records_quarantined": 0,
+      "error_code": "D1_HTTP_ERROR"
+    },
+    {
+      "source_id": "doae",
+      "run_id": "6fdbb7db-4fa9-4469-bd98-c4f12942738c",
+      "status": "partial",
+      "duration_seconds": 1.925,
+      "records_read": 100,
+      "records_written": 81,
+      "records_quarantined": 77,
+      "error_code": "PAGE_LIMIT_REACHED"
+    },
+    {
+      "source_id": "oae",
+      "run_id": "a84dd54d-a38c-4df2-bf96-7c2df6a6f948",
+      "status": "partial",
+      "duration_seconds": 1.908,
+      "records_read": 100,
+      "records_written": 363,
+      "records_quarantined": 0,
+      "error_code": "PAGE_LIMIT_REACHED"
+    },
+    {
+      "source_id": "doae",
+      "run_id": "aff9a728-cb37-40b5-9d7b-785314750d80",
+      "status": "succeeded",
+      "duration_seconds": 3.443,
+      "records_read": 201,
+      "records_written": 129,
+      "records_quarantined": 162,
+      "error_code": null
+    },
+    {
+      "source_id": "oae",
+      "run_id": "7235d007-416d-4ab2-84bd-68f94f9106c8",
+      "status": "succeeded",
+      "duration_seconds": 3.361,
+      "records_read": 202,
+      "records_written": 730,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "ldd",
+      "run_id": "260976b0-37b9-4e27-8bcb-d7c3cfb5a4e9",
+      "status": "succeeded",
+      "duration_seconds": 3.057,
+      "records_read": 30,
+      "records_written": 136,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "dld",
+      "run_id": "7c14f2bd-a13e-47b9-845f-a56fac1b0a85",
+      "status": "succeeded",
+      "duration_seconds": 3.223,
+      "records_read": 36,
+      "records_written": 114,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "dof",
+      "run_id": "ba321c56-e69c-48b3-844a-1838478ee5f6",
+      "status": "succeeded",
+      "duration_seconds": 3.589,
+      "records_read": 72,
+      "records_written": 279,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "nabc",
+      "run_id": "677ad4bc-aed9-46bf-8603-6ba1cb14e063",
+      "status": "succeeded",
+      "duration_seconds": 19.196,
+      "records_read": 591,
+      "records_written": 2545,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "cad",
+      "run_id": "52512212-9dc1-4cf8-b23c-d3e0f54f7eb2",
+      "status": "succeeded",
+      "duration_seconds": 1.578,
+      "records_read": 49,
+      "records_written": 123,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "alro",
+      "run_id": "41906c2d-d327-4326-bc72-3b6260c8808a",
+      "status": "succeeded",
+      "duration_seconds": 1.754,
+      "records_read": 50,
+      "records_written": 140,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "acfs",
+      "run_id": "74bf072d-f485-4926-9d1e-8a96b0f245db",
+      "status": "succeeded",
+      "duration_seconds": 0.967,
+      "records_read": 26,
+      "records_written": 60,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "royalrain",
+      "run_id": "69826459-3c32-4425-8a6b-a3acdf78cfda",
+      "status": "succeeded",
+      "duration_seconds": 1.722,
+      "records_read": 28,
+      "records_written": 104,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "hii",
+      "run_id": "62104da8-d580-4982-94fb-0dad8baaf488",
+      "status": "succeeded",
+      "duration_seconds": 1.362,
+      "records_read": 36,
+      "records_written": 112,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "opsmoac",
+      "run_id": "2c7be4e9-eaf9-47f9-8f03-e01a5a56340a",
+      "status": "succeeded",
+      "duration_seconds": 4.344,
+      "records_read": 78,
+      "records_written": 542,
+      "records_quarantined": 0,
+      "error_code": null
+    },
+    {
+      "source_id": "acfs",
+      "run_id": "a761585a-18d8-46ca-8bb4-6396fd378094",
+      "status": "succeeded",
+      "duration_seconds": 0.878,
+      "records_read": 26,
+      "records_written": 60,
+      "records_quarantined": 0,
+      "error_code": null
+    }
+  ],
+  "source_registry": [
+    {
+      "source_id": "acfs",
+      "source_name": "ACFS Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://catalog-acfs.data.go.th",
+      "updated_at": "2026-10-24T16:35:07.039682Z"
+    },
+    {
+      "source_id": "alro",
+      "source_name": "ALRO Open Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://opendata.alro.go.th",
+      "updated_at": "2026-10-24T16:30:17.962236Z"
+    },
+    {
+      "source_id": "cad",
+      "source_name": "CAD Open Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://cadckan.cad.go.th",
+      "updated_at": "2026-10-24T16:30:10.397798Z"
+    },
+    {
+      "source_id": "dld",
+      "source_name": "DLD Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://dld.gdcatalog.go.th",
+      "updated_at": "2026-10-24T16:27:23.445359Z"
+    },
+    {
+      "source_id": "doae",
+      "source_name": "DOAE Open Data",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://ckan.doae.go.th",
+      "updated_at": "2026-10-24T16:26:27.003327Z"
+    },
+    {
+      "source_id": "dof",
+      "source_name": "DOF Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://catalog.fisheries.go.th",
+      "updated_at": "2026-10-24T16:27:33.598040Z"
+    },
+    {
+      "source_id": "hii",
+      "source_name": "HII Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://data.hii.or.th",
+      "updated_at": "2026-10-24T16:30:38.252841Z"
+    },
+    {
+      "source_id": "ldd",
+      "source_name": "LDD Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://lddcatalog.ldd.go.th",
+      "updated_at": "2026-10-24T16:27:13.493336Z"
+    },
+    {
+      "source_id": "nabc",
+      "source_name": "NABC Agricultural Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://nabc-catalog1.oae.go.th",
+      "updated_at": "2026-10-24T16:27:50.903352Z"
+    },
+    {
+      "source_id": "oae",
+      "source_name": "OAE Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://catalog.oae.go.th",
+      "updated_at": "2026-10-24T16:26:37.134355Z"
+    },
+    {
+      "source_id": "opsmoac",
+      "source_name": "OPS MoAC Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://datacatalog.opsmoac.go.th",
+      "updated_at": "2026-10-24T16:30:46.634144Z"
+    },
+    {
+      "source_id": "royalrain",
+      "source_name": "Royal Rain Data Catalog",
+      "connector_kind": "ckan",
+      "status": "enabled",
+      "metadata_access_status": "metadata_only",
+      "base_url": "https://catalog.royalrain.go.th",
+      "updated_at": "2026-10-24T16:30:30.666819Z"
+    }
+  ],
+  "resource_access_status": {
+    "pending": 3777
+  },
+  "dataset_metadata_access_status": {
+    "metadata_only": 1237
+  },
+  "resources_with_declared_license": 64,
+  "resources_publication_approved": 0,
+  "resources_with_active_run": 0,
+  "integrity": {
+    "resources_without_dataset": 0,
+    "datasets_without_source": 0,
+    "datasets_without_title": 0,
+    "datasets_without_source_url": 0,
+    "resources_without_name": 0,
+    "resources_without_url": 67,
+    "duplicate_source_dataset_ids": 0,
+    "duplicate_resource_ids": 0,
+    "runs_still_running": 0,
+    "runs_missing_completion": 0
+  },
+  "checks": [
+    {
+      "check": "all_expected_sources_present_in_datasets",
+      "passed": true,
+      "detail": "missing: none"
+    },
+    {
+      "check": "no_source_falls_back_to_a_later_run",
+      "passed": true,
+      "detail": "sources without datasets: none"
+    },
+    {
+      "check": "sync_runs_not_left_running",
+      "passed": true,
+      "detail": "running runs: 0"
+    },
+    {
+      "check": "every_run_has_completion_timestamp",
+      "passed": true,
+      "detail": "runs without completed_at: 0"
+    },
+    {
+      "check": "no_orphan_resources",
+      "passed": true,
+      "detail": "orphan resources: 0"
+    },
+    {
+      "check": "no_orphan_datasets",
+      "passed": true,
+      "detail": "orphan datasets: 0"
+    },
+    {
+      "check": "no_duplicate_identifiers",
+      "passed": true,
+      "detail": "duplicate dataset keys: 0, duplicate resource ids: 0"
+    },
+    {
+      "check": "no_numeric_observations_published",
+      "passed": true,
+      "detail": "observations rows: 0 (metadata sync must not write values)"
+    },
+    {
+      "check": "no_resource_marked_publication_approved",
+      "passed": true,
+      "detail": "resources with project_publication_approved=1: 0"
+    },
+    {
+      "check": "no_resource_marked_approved_public",
+      "passed": true,
+      "detail": "resources with access_status=approved_public: 0"
+    },
+    {
+      "check": "no_source_failed_in_latest_run",
+      "passed": true,
+      "detail": "failed sources: none"
+    }
+  ],
+  "all_checks_passed": true
+}

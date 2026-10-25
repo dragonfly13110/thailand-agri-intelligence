@@ -52,9 +52,9 @@ Audit คืน exit 1 เมื่อ catalog มี CSV ที่ยังข�
 |---|---|---|
 | P0 แผนฤดูแล้ง/รต.01-04/น้ำ/ฤดูฝน | มี raw/staging ครบ CSV ตาม resource และตรวจทุกแถว | หน่วย/ปี/รอบ, temporal DOPA crosswalk, revisions และ subtotal; รต.01-02 ยังเป็น mock |
 | P0 Risk Signal และ actual/plan | มีข้อมูลต้นทางที่แยก grain ไว้ | ยังไม่เชื่อมโมเดลหรือรับรองอัตราส่วน ต้องมีพื้นที่/สินค้า/ช่วงเวลา/หน่วยตรงกันก่อน |
-| P1 สำนักงาน/GIS/วิสาหกิจ/มูลค่า | มี selected native sources ครบชุด | ยังไม่เป็น Power BI Dimension/แผนที่หรือผลวิเคราะห์ที่รับรองแล้ว |
+| P1 สำนักงาน/GIS/วิสาหกิจ/มูลค่า | มี selected native sources ครบชุด | ยังไม่เป็นตารางอ้างอิง/ชั้นแผนที่สำหรับเว็บหรือผลวิเคราะห์ที่รับรองแล้ว |
 | P2 RAR และคำขอสินค้า | คลายและ stage พร้อม lineage/private flags | ตัวเลขวงเล็บ 173 แถว, คอลัมน์ออนไลน์ 524 แถว และหน่วย native fields ยังต้องยืนยัน |
 | P2 ทะเบียนและภัยรายบุคคล | มี metadata และร่าง Data Contract สำหรับสถิติรวม | ยังไม่ได้รับอนุมัติหรือรับข้อมูลจาก doae_11_02/03 และ doae_12_01/02/04/05 ไม่ใช้ข้อมูลบุคคลทดแทน aggregate |
-| เผยแพร่/Power BI | คง pending และเก็บ data/local ที่ถูก ignore | สิทธิ์/quality/refresh/DAX runtime/visual ยังต้องผ่านเกณฑ์เดิม |
+| เผยแพร่ผ่านเว็บ Next.js | คง pending และเก็บ data/local ที่ถูก ignore | ตรวจสิทธิ์/quality/contract/ค่าที่ render และ browser ตาม [แผนเว็บ](../IMPLEMENTATION_PLAN.md) ก่อนเผยแพร่ |
 
 ผลนี้ปิดช่องว่างด้าน CSV acquisition ที่ตรวจพบ ยังไม่ใช่การปิด roadmap ทั้งแผนหรือการอนุมัติเผยแพร่

@@ -2,6 +2,7 @@
 
 import csv
 import json
+import math
 from pathlib import Path
 import tempfile
 
@@ -480,7 +481,9 @@ def init_national_hub_tables(db):
 
 def sync_national_hub_data(db, root_dir=None):
     """Synchronize national agriculture intelligence probes into DuckDB warehouse."""
-    from .catalog import ROOT, load_provinces, load_sources
+    from .catalog import ROOT, PROVINCE_CODES, load_provinces, load_sources
+    from .project_register import AgriculturalProject, province_project_targets
+    from .spatial_evidence import ProvinceEvidenceCard
 
     root = Path(root_dir) if root_dir else ROOT
     probes_dir = root / "data/local/probes"
@@ -492,6 +495,37 @@ def sync_national_hub_data(db, root_dir=None):
         verified_probes[name] = json.loads(path.read_text(encoding="utf-8"))
         if verified_probes[name].get("audit_version") != 2:
             raise ValueError(f"Stale {name}; rerun its audit before syncing the warehouse")
+
+    # Preflight every project/card before creating tables or replacing any existing data.
+    projects = verified_probes["project-register-audit.json"].get("projects")
+    cards = verified_probes["spatial-evidence-audit.json"].get("province_cards")
+    if not isinstance(projects, list) or not isinstance(cards, list):
+        raise ValueError("Project and spatial proofs require explicit record lists")
+    project_targets = {}
+    for project in projects:
+        AgriculturalProject(**({"target_commodity":None} | project)).validate()
+        if project["project_id"] in project_targets:
+            raise ValueError("Duplicate project identity in current proof")
+        project_targets[project["project_id"]] = province_project_targets(project)
+    declared_count = verified_probes["project-register-audit.json"].get("registered_projects_count", len(projects))
+    if type(declared_count) is not int or declared_count != len(projects):
+        raise ValueError("Project proof count does not match its records")
+    seen_provinces, seen_evidence = set(), set()
+    for card in cards:
+        ProvinceEvidenceCard(**card).validate()
+        if card["province_code"] not in PROVINCE_CODES or card["province_code"] in seen_provinces:
+            raise ValueError("Spatial proof requires unique valid province identities")
+        seen_provinces.add(card["province_code"])
+        for evidence in card["evidence_records"]:
+            try:
+                finite = math.isfinite(evidence["metric_value"])
+            except (TypeError, OverflowError):
+                finite = False
+            if not finite or evidence["evidence_id"] in seen_evidence:
+                raise ValueError("Spatial evidence must have finite values and unique identities")
+            seen_evidence.add(evidence["evidence_id"])
+    provinces = load_provinces()
+    sources = load_sources()
     init_national_hub_tables(db)
 
     results = {
@@ -512,7 +546,6 @@ def sync_national_hub_data(db, root_dir=None):
     }
 
     # 0. Sync dim_province (77 DOPA Provinces)
-    provinces = load_provinces()
     db.execute("DELETE FROM dim_province")
     prov_rows = [
         (p["province_code"], p["name_th"], p["admin_level"], p["source_url"], p["verification_status"])
@@ -522,7 +555,6 @@ def sync_national_hub_data(db, root_dir=None):
     results["dim_province"] = len(prov_rows)
 
     # 0.1 Sync dim_source (Catalog Sources + planetary_computer)
-    sources = load_sources()
     db.execute("DELETE FROM dim_source")
     src_rows = [
         (s["source_id"], s["name"], s["owner"], s["category"], s["url"], s["type"],
@@ -571,11 +603,7 @@ def sync_national_hub_data(db, root_dir=None):
 
     # 2. Sync Projects & Project Coverage
     proj_path = probes_dir / "project-register-audit.json"
-    provinces = load_provinces()
-    all_codes = [p["area_code"] for p in provinces]
     if proj_path.exists():
-        proj_data = verified_probes[proj_path.name]
-        projects = proj_data.get("projects", [])
         db.execute("DELETE FROM dim_project")
         db.execute("DELETE FROM fact_project_coverage")
         cov_count = 0
@@ -601,12 +629,8 @@ def sync_national_hub_data(db, root_dir=None):
                 p.get("target_area_rai"),
                 p.get("actual_area_rai"),
             ])
-            # Expand coverage
-            if "TH" in p.get("target_area_codes", []) or p.get("target_area_grain") == "country":
-                target_codes = all_codes
-            else:
-                target_codes = p.get("target_area_codes", [])
-            for c in target_codes:
+            # is_targeted is a declared province plan, never proof of implementation.
+            for c in project_targets[p["project_id"]]:
                 db.execute("INSERT OR REPLACE INTO fact_project_coverage VALUES (?, ?, TRUE)", [p["project_id"], c])
                 cov_count += 1
         results["dim_project"] = len(projects)

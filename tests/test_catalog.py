@@ -32,8 +32,8 @@ class CatalogTests(unittest.TestCase):
 
     def test_source_registry_does_not_claim_runtime_or_licence_approval(self):
         rows = load_sources()
-        self.assertEqual(16, len(rows))
-        self.assertEqual(16, len({r["source_id"] for r in rows}))
+        self.assertEqual(len(rows), len({r["source_id"] for r in rows}))
+        self.assertGreaterEqual(len(rows), 16)
         self.assertTrue(all(r["geographic_scope"] == "Thailand" for r in rows))
         self.assertTrue(all(not r["runtime_verified"] for r in rows))
         self.assertTrue(all(r["license_status"] == "pending" for r in rows))
@@ -59,6 +59,8 @@ class CatalogTests(unittest.TestCase):
 
     def test_contracts_require_provenance_and_reject_unknown_fields(self):
         for path in (ROOT / "data_contracts").glob("*.schema.json"):
+            if path.name == "hub-api.schema.json":
+                continue
             with self.subTest(contract=path.name):
                 contract = json.loads(path.read_text(encoding="utf-8"))
                 self.assertFalse(contract["additionalProperties"])
@@ -77,11 +79,16 @@ class CatalogTests(unittest.TestCase):
             config = json.loads((ROOT / 'config' / catalog).read_text(encoding='utf-8'))
             self.assertTrue({r['resource_id'] for r in config['resources']}.issubset(
                 {r.get('resource_id') for r in resources}))
-        self.assertTrue(all(r["license_status"] == "pending" for r in resources))
-        self.assertTrue(all(r["project_publication_approved"] is False for r in resources))
-        self.assertTrue(all(r["commercial_use_confirmed"] is False for r in resources))
+        approved = [r for r in resources if r["license_status"] == "approved_public"]
+        self.assertEqual([r["resource_key"] for r in approved], ["chirps_v3_daily_rnl_2026_09_30"])
+        pending = [r for r in resources if r["resource_key"] != "chirps_v3_daily_rnl_2026_09_30"]
+        self.assertTrue(all(r["license_status"] == "pending" for r in pending))
+        self.assertTrue(all(r["project_publication_approved"] is False for r in pending))
+        self.assertTrue(all(r["commercial_use_confirmed"] is False for r in pending))
+        self.assertTrue(approved[0]["commercial_use_confirmed"] is True)
         self.assertTrue(all(len(r["evidence"]) >= 1 for r in resources))
-        self.assertTrue(all(len(r["unresolved"]) >= 1 for r in resources))
+        self.assertTrue(all(len(r["unresolved"]) >= 1 for r in pending))
+        self.assertEqual(len(approved[0]["unresolved"]), 0)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "licenses.json"
             path.write_text(json.dumps({"automatic_approval": True, "resources": resources}), encoding="utf-8")

@@ -64,6 +64,6 @@ Verifier คลาย RAR ซ้ำเป็น digest แบบจำกัด�
 
 ## งานต่อ
 
-ยังต้องตรวจหน่วย/ปี/รอบและคอลัมน์คลาดเคลื่อนกับหลักฐานต้นทาง, แยก revisions/duplicate identities, ทำ temporal area crosswalk, ตรวจ subtotal/coverage และสิทธิ์ก่อนเชื่อม Risk Signal/actual-vs-plan/Power BI ไม่รับรอง model หรือ DAX runtime จากผล staging นี้
+ยังต้องตรวจหน่วย/ปี/รอบและคอลัมน์คลาดเคลื่อนกับหลักฐานต้นทาง, แยก revisions/duplicate identities, ทำ temporal area crosswalk, ตรวจ subtotal/coverage และสิทธิ์ก่อนเชื่อม Risk Signal/actual-vs-plan/เว็บ Next.js ไม่รับรองสูตรคำนวณ API หรือค่าที่ render จากผล staging นี้
 
 P2 มี [ร่าง Data Contract สำหรับสถิติรวม](doae-aggregate-data-contract-draft.md) แล้ว ยังไม่ส่งหรือเชื่อมระบบทะเบียนรายบุคคล การประสานและสิทธิ์ต้องดำเนินการผ่านผู้รับผิดชอบที่ได้รับอนุญาต

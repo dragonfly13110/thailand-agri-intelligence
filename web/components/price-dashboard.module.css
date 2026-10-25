@@ -1,0 +1,331 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.titleRow h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a3328;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #c8e6c9;
+}
+
+.pulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2e7d32;
+  box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(46, 125, 50, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+}
+
+.subtitle {
+  color: #556b60;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Category Filter Tabs */
+.categoryTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tabBtn {
+  padding: 8px 18px;
+  border-radius: 9999px;
+  border: 1px solid #c5d3c2;
+  background: #ffffff;
+  color: #385043;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tabBtn:hover {
+  background: #edf5eb;
+  border-color: #43a047;
+}
+
+.tabBtnActive {
+  background: #213d32;
+  color: #ffffff;
+  border-color: #213d32;
+}
+
+.tabBtnActive:hover {
+  background: #1a3328;
+}
+
+/* Ticker Grid */
+.tickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.tickerCard {
+  background: #ffffff;
+  border: 1px solid #e1e8df;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tickerCard:hover,
+.tickerCardActive {
+  transform: translateY(-2px);
+  border-color: #43a047;
+  box-shadow: 0 8px 20px rgba(46, 125, 50, 0.1);
+}
+
+.tickerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.commodityName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a3328;
+  line-height: 1.4;
+}
+
+.categoryTag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #edf2e8;
+  color: #4c623d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.priceValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a3328;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.priceUnit {
+  font-size: 13px;
+  color: #7b8e84;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.changeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.changeUp {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.changeDown {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.changeFlat {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+.tickerMeta {
+  font-size: 11px;
+  color: #7b8e84;
+  border-top: 1px solid #f0f4ef;
+  padding-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Detail & Chart Panel */
+.detailCard {
+  background: #ffffff;
+  border: 1px solid #e1e8df;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 2px 10px rgba(33, 61, 50, 0.05);
+}
+
+.detailHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.detailTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a3328;
+}
+
+.marketTag {
+  font-size: 12px;
+  color: #556b60;
+  background: #f4f7f2;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* SVG Chart */
+.chartContainer {
+  width: 100%;
+  height: 220px;
+  background: #fafbfa;
+  border: 1px solid #eef2ed;
+  border-radius: 8px;
+  padding: 16px 20px;
+  position: relative;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.chartGridLine {
+  stroke: #e2e8df;
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.chartLine {
+  fill: none;
+  stroke: #2e7d32;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chartArea {
+  fill: url(#priceGradient);
+  opacity: 0.25;
+}
+
+.chartDot {
+  fill: #ffffff;
+  stroke: #2e7d32;
+  stroke-width: 2.5;
+  cursor: pointer;
+  transition: r 0.15s ease;
+}
+
+.chartDot:hover {
+  r: 6;
+  fill: #2e7d32;
+}
+
+.chartLabel {
+  font-size: 11px;
+  fill: #7b8e84;
+  text-anchor: middle;
+}
+
+/* Comparison Table */
+.compareTableWrap {
+  overflow-x: auto;
+}
+
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.compareTable th {
+  background: #f4f7f3;
+  color: #2e4439;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 2px solid #dce5da;
+  text-align: left;
+}
+
+.compareTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2ed;
+  color: #1f3329;
+}
+
+.compareTable tr:hover td {
+  background: #f9fbf9;
+}
+
+@media (max-width: 768px) {
+  .tickerGrid {
+    grid-template-columns: 1fr;
+  }
+}

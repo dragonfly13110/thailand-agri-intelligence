@@ -1,0 +1,1081 @@
+/* ==========================================================================
+   Water & Disaster Early Warning Dashboard CSS Module
+   Theme support: Works with global CSS variables and safe fallbacks
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--ink, #1a2e22);
+}
+
+/* --- Demo & Governance Banner --- */
+.governanceBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #fff8e6;
+  border: 1px solid #f2d184;
+  border-left: 5px solid #d97706;
+  border-radius: var(--radius, 8px);
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.governanceBannerDark {
+  background: #2a2415;
+  border-color: #634714;
+  border-left-color: #f59e0b;
+}
+
+.bannerIcon {
+  color: #b45309;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bannerContent {
+  flex: 1;
+}
+
+.bannerHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.bannerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.bannerTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.bannerText {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #78350f;
+  margin: 0;
+}
+
+/* --- Dashboard Header --- */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.titleGroup h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+  letter-spacing: -0.6px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: var(--muted, #4b6354);
+  margin-top: 6px;
+  line-height: 1.6;
+  max-width: 960px;
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid #fca5a5;
+  box-shadow: 0 1px 2px rgba(185, 28, 28, 0.1);
+}
+
+.pulseRed {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #dc2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  animation: pulseAlarm 2s infinite;
+}
+
+@keyframes pulseAlarm {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { box-shadow: 0 0 0 9px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* --- KPI Summary Cards --- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.kpiCard {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: var(--radius, 8px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.kpiCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.kpiCard.floodAlert {
+  border-top: 4px solid #dc2626;
+  background: linear-gradient(180deg, rgba(254, 226, 226, 0.35) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.kpiCard.droughtAlert {
+  border-top: 4px solid #ea580c;
+  background: linear-gradient(180deg, rgba(255, 237, 213, 0.35) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.kpiCard.provinceAlert {
+  border-top: 4px solid #b91c1c;
+  background: linear-gradient(180deg, rgba(254, 242, 242, 0.35) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.kpiCard.rainIndex {
+  border-top: 4px solid #2563eb;
+  background: linear-gradient(180deg, rgba(219, 234, 254, 0.35) 0%, rgba(255, 255, 255, 1) 40%);
+}
+
+.kpiTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kpiLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted, #4b6354);
+}
+
+.kpiIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpiIconWrap.red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.kpiIconWrap.orange {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.kpiIconWrap.purple {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.kpiIconWrap.blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.kpiValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.kpiValue {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--forest, #1b382b);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiUnit {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted, #556b60);
+}
+
+.kpiFooter {
+  font-size: 12px;
+  color: var(--muted, #556b60);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px dashed var(--line, #e2e8df);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.kpiSubtag {
+  font-weight: 600;
+}
+
+.tagCritical {
+  color: #b91c1c;
+}
+
+.tagWarning {
+  color: #c2410c;
+}
+
+.tagInfo {
+  color: #1d4ed8;
+}
+
+/* --- Filter & Controls Section --- */
+.controlCard {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: var(--radius, 8px);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.searchAndTypeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper, #f7f9f5);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+
+.searchBox input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink, #1b382b);
+  font-size: 14px;
+  outline: none;
+}
+
+.searchBox input::placeholder {
+  color: #798b80;
+}
+
+.typeButtonGroup {
+  display: inline-flex;
+  background: var(--paper, #edf2ea);
+  border-radius: 6px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.typeBtn {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted, #4b6354);
+  transition: all 0.15s ease;
+}
+
+.typeBtn:hover {
+  color: var(--forest, #1b382b);
+}
+
+.typeBtn.active {
+  background: var(--white, #ffffff);
+  color: var(--forest, #1b382b);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dropdownFiltersRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.selectLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted, #4b6354);
+}
+
+.selectInput {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13.5px;
+  color: var(--forest, #1b382b);
+  outline: none;
+  min-width: 140px;
+}
+
+.selectInput:focus {
+  border-color: #527958;
+}
+
+.resetBtn {
+  background: transparent;
+  border: 1px dashed var(--line, #bccac0);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--muted, #4b6354);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.resetBtn:hover {
+  background: var(--paper, #edf2ea);
+  color: var(--forest, #1b382b);
+}
+
+.resultsMeta {
+  font-size: 13px;
+  color: var(--muted, #4b6354);
+}
+
+/* --- Navigation Tabs --- */
+.tabsContainer {
+  display: flex;
+  border-bottom: 2px solid var(--line, #e2e8df);
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabsContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 18px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--muted, #556b60);
+  margin-bottom: -2px;
+  transition: color 0.18s ease, border-color 0.18s ease;
+  white-space: nowrap;
+}
+
+.tabBtn:hover {
+  color: var(--forest, #1b382b);
+}
+
+.tabBtn.activeTab {
+  color: var(--forest, #1b382b);
+  border-bottom-color: var(--forest, #213d32);
+}
+
+.tabCounter {
+  background: var(--paper, #edf2ea);
+  color: var(--muted, #4b6354);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
+.tabBtn.activeTab .tabCounter {
+  background: var(--accent, #d9e8a0);
+  color: var(--forest, #213d32);
+}
+
+/* --- Section 1: Provincial Risk Matrix & Table --- */
+.matrixSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+  margin: 0;
+}
+
+.sectionNote {
+  font-size: 13px;
+  color: var(--muted, #556b60);
+}
+
+.tableCard {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: var(--radius, 8px);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.responsiveTableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.riskTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+.riskTable th {
+  background: var(--paper, #eff3eb);
+  color: var(--muted, #4b6354);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line, #dce4d9);
+  white-space: nowrap;
+}
+
+.riskTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line, #e7ece5);
+  vertical-align: top;
+}
+
+.riskTable tr:last-child td {
+  border-bottom: none;
+}
+
+.riskTable tr:hover {
+  background: #fbfdf9;
+}
+
+.provinceCell {
+  min-width: 170px;
+}
+
+.provName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+}
+
+.basinTag {
+  display: inline-block;
+  font-size: 11.5px;
+  color: var(--muted, #556b60);
+  background: var(--paper, #f0f4ed);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.riskMeterCell {
+  min-width: 150px;
+}
+
+.meterHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.meterLabel {
+  font-weight: 600;
+}
+
+.meterScore {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.meterBarBg {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.meterBarFill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.meterBarFill.critical {
+  background: #dc2626;
+}
+
+.meterBarFill.warning {
+  background: #f97316;
+}
+
+.meterBarFill.normal {
+  background: #16a34a;
+}
+
+.waterIndexCell {
+  min-width: 130px;
+}
+
+.waterIndexLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.cropsCell {
+  min-width: 180px;
+  max-width: 220px;
+}
+
+.cropBadgeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cropBadge {
+  font-size: 11.5px;
+  background: #f1f5eb;
+  color: #3b533d;
+  border: 1px solid #dbe5d3;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.advisoryCell {
+  min-width: 280px;
+}
+
+.advisoryText {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink, #1b382b);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.detailsToggleBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #2e6044;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detailsToggleBtn:hover {
+  text-decoration: underline;
+}
+
+/* Expanded Actions Dropdown inside Table */
+.expandedActionsRow {
+  background: #f8faf6;
+}
+
+.expandedContainer {
+  padding: 16px 20px;
+  border-left: 4px solid var(--forest, #213d32);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actionHeading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.actionList li {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #274032;
+}
+
+.reservoirLinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted, #4b6354);
+}
+
+.rsvTag {
+  background: #e8f0e5;
+  color: #1b4d2a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* --- Section 2: 14-Day Simulation Forecast Timeline --- */
+.timelineSection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.timelineBanner {
+  background: #ebf5fb;
+  border: 1px solid #c2e0f4;
+  border-radius: var(--radius, 8px);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timelineBannerText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1b4f72;
+}
+
+.forecastGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.dayCard {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: var(--radius, 8px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dayCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.06);
+}
+
+.dayCard.peakDay {
+  border: 1.5px solid #dc2626;
+  background: linear-gradient(180deg, rgba(254, 226, 226, 0.25) 0%, rgba(255, 255, 255, 1) 50%);
+}
+
+.dayCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line, #edf2ea);
+  padding-bottom: 10px;
+}
+
+.dayNumber {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+}
+
+.trendBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.trendBadge.up {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.trendBadge.down {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.trendBadge.stable {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.dayMetricsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dayMetricItem {
+  background: var(--paper, #f7f9f5);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metricKey {
+  font-size: 11px;
+  color: var(--muted, #556b60);
+  font-weight: 600;
+}
+
+.metricVal {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+  margin-top: 2px;
+}
+
+.probabilityBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.probHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted, #4b6354);
+}
+
+.probScore {
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.dayFrontText {
+  font-size: 12px;
+  color: #4b6354;
+  line-height: 1.5;
+  background: #f8faf6;
+  border-left: 3px solid #739e82;
+  padding: 6px 10px;
+  border-radius: 0 4px 4px 0;
+}
+
+.dayAdvisoryText {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink, #1b382b);
+  font-weight: 500;
+}
+
+/* --- Section 3: Critical Reservoirs Breakdown --- */
+.reservoirsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rsvSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.rsvCard {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--line, #dce4d9);
+  border-radius: var(--radius, 8px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.rsvCard.overflow {
+  border-left: 4px solid #dc2626;
+}
+
+.rsvCard.drought {
+  border-left: 4px solid #ea580c;
+}
+
+.rsvTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rsvName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--forest, #1b382b);
+}
+
+.rsvRegion {
+  font-size: 12px;
+  color: var(--muted, #4b6354);
+  margin-top: 2px;
+}
+
+.rsvPercentTag {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rsvPercentTag.overflow {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rsvPercentTag.drought {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.rsvStatsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted, #4b6354);
+}
+
+.rsvStatBox {
+  background: var(--paper, #f7f9f5);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.rsvAdvisory {
+  font-size: 12.5px;
+  color: var(--ink, #1b382b);
+  line-height: 1.5;
+  background: #fbfdf9;
+  border: 1px dashed var(--line, #dce4d9);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* --- Badges & Utility --- */
+.badgeStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badgeStatus.critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badgeStatus.warning {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.badgeStatus.normal {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.emptyState {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--muted, #4b6354);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyState p {
+  font-size: 14px;
+  max-width: 400px;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   - Mobile: <= 640px (covers 390px iPhone)
+   - Tablet: 641px - 1024px (covers 768px iPad)
+   - Desktop: >= 1025px (covers 1440px desktop)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .titleRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    gap: 18px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .titleGroup h1 {
+    font-size: 22px;
+  }
+
+  .controlCard {
+    padding: 14px;
+  }
+
+  .searchAndTypeRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .typeButtonGroup {
+    display: flex;
+    justify-content: stretch;
+  }
+
+  .typeBtn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .dropdownFiltersRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterGroup {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selectInput {
+    width: 100%;
+  }
+
+  .riskTable th,
+  .riskTable td {
+    padding: 10px 12px;
+  }
+
+  .forecastGrid,
+  .rsvSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -555,7 +555,7 @@ def survey_meteostat_inventory():
 
 def survey_spec_systems():
     """Inventory every TH/GL/RS source entry from the blueprint, not just implemented connectors."""
-    source = ROOT / "Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md"
+    source = ROOT / "docs/archive/2026-10-24-redesign/Thailand_Agricultural_Decision_Intelligence_Hub_Thailand_First_v1.4_2026.md"
     rows = {}
     for line in source.read_text(encoding="utf-8").splitlines():
         cells = [c.strip() for c in line.split("|")]

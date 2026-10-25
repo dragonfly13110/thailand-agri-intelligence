@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0.0",
-  "reviewed_at": "2026-10-23",
+  "reviewed_at": "2026-10-25",
   "scope": "Exact resources currently investigated for Thailand Core",
   "review_kind": "read_only_official_metadata_and_terms",
   "automatic_approval": false,
-  "status_note": "pending means project-specific licence review remains open; this register does not change warehouse/source flags or grant rights. Public access, a generic licence list, or another dataset licence cannot approve an exact resource.",
+  "status_note": "Each approval is scoped to its exact resource; pending means project-specific licence review remains open. This register does not change warehouse/source flags or grant rights. Public access, a generic licence list, or another dataset licence cannot approve an exact resource.",
   "resources": [
     {
       "resource_key": "doae_production_subdistrict_2023",
@@ -651,6 +651,580 @@
           "kind": "live_datastore_query",
           "reviewed_at": "2026-10-22",
           "sha256": "e43f8d358baf49f281f76d7ae073ae2544bdc77347cc7e08c2eb965d2f89f5fd"
+        }
+      ]
+    },
+    {
+      "resource_key": "dld_livestock_cattle_province",
+      "source_id": "dld",
+      "resource_id": "d3667ca5-5982-4c9e-9b0d-04e729dbe31b",
+      "dataset_id": "1bef9bc7-2f81-45c2-a21e-baba3743b456",
+      "name": "จำนวนโคเนื้อ รายจังหวัด กรมปศุสัตว์",
+      "resource_url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=d3667ca5-5982-4c9e-9b0d-04e729dbe31b&limit=500",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DLD CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 385,
+        "unit": "ตัว",
+        "years_be": "2564-2568",
+        "provinces": 77,
+        "regions": 4,
+        "grain": "จังหวัด × ปี (พ.ศ.)",
+        "columns": "year,particular,region,livestock_area,province,value,unit,source"
+      },
+      "rights_facts": [
+        "DLD catalog declares Open Data Common without variant URL or specific version.",
+        "385 rows = 77 provinces x 5 Buddhist years 2564-2568, counted in head (ตัว).",
+        "Spatial grain is province; the region column uses DLD's own 4-region grouping and counts eastern provinces inside ภาคกลาง, with no ภาคตะวันออก.",
+        "live CKAN API host is dld.gdcatalog.go.th; the legacy catalog.dld.go.th host recorded on dld_national_livestock_value no longer resolves."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention (DLD livestock reference year)",
+        "Meaning of the `year` column relative to the DLD livestock production cycle"
+      ],
+      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=1bef9bc7-2f81-45c2-a21e-baba3743b456",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "6af453e1601d409546d6db30ff36b2f813c393a01779680ddf4c533db32fedc2"
+        },
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=d3667ca5-5982-4c9e-9b0d-04e729dbe31b&limit=500",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "1bf2a7d6b04d8aebf22dfb7e92b61438d2465903d60c82ea50bf56a70c27af98"
+        }
+      ]
+    },
+    {
+      "resource_key": "dld_livestock_dairy_province",
+      "source_id": "dld",
+      "resource_id": "34dc17e6-7619-4194-89e7-99f4ece84b89",
+      "dataset_id": "eed9283e-51b2-4384-a9b6-245b0c8c7262",
+      "name": "จำนวนโคนม รายจังหวัด กรมปศุสัตว์",
+      "resource_url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=34dc17e6-7619-4194-89e7-99f4ece84b89&limit=500",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DLD CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 385,
+        "unit": "ตัว",
+        "years_be": "2564-2568",
+        "provinces": 77,
+        "regions": 4,
+        "grain": "จังหวัด × ปี (พ.ศ.)",
+        "columns": "year,particular,region,livestock_area,province,value,unit,source"
+      },
+      "rights_facts": [
+        "DLD catalog declares Open Data Common without variant URL or specific version.",
+        "385 rows = 77 provinces x 5 Buddhist years 2564-2568, counted in head (ตัว).",
+        "Spatial grain is province; the region column uses DLD's own 4-region grouping, not the standard 5-region scheme.",
+        "Dairy cattle are concentrated in the Central and Northeastern regions; the resource carries no sub-breed or grade dimension."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention (DLD livestock reference year)",
+        "Meaning of the `year` column relative to the DLD livestock production cycle"
+      ],
+      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=eed9283e-51b2-4384-a9b6-245b0c8c7262",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "03db180aef310e595a662d3d1e4fe8fe585e61ca19a44b509c50ad4ac2a341c6"
+        },
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=34dc17e6-7619-4194-89e7-99f4ece84b89&limit=500",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "697b38625c6b486f0297fc80cf812a47e455196be2e71042a15a9f250f7f1f09"
+        }
+      ]
+    },
+    {
+      "resource_key": "dld_livestock_swine_province",
+      "source_id": "dld",
+      "resource_id": "47bbe7c0-fcd3-4eb6-b06b-c7ef3b51970a",
+      "dataset_id": "161c766e-3ab4-475f-9976-60cfa1b7ada4",
+      "name": "จำนวนสุกร รายจังหวัด กรมปศุสัตว์",
+      "resource_url": "https://dld.gdcatalog.go.th/dataset/161c766e-3ab4-475f-9976-60cfa1b7ada4/resource/47bbe7c0-fcd3-4eb6-b06b-c7ef3b51970a/download/dld_01_0501.csv",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DLD CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 385,
+        "unit": "ตัว",
+        "years_be": "2564-2568",
+        "provinces": 77,
+        "regions": 4,
+        "grain": "จังหวัด × ปี (พ.ศ.)",
+        "columns": "year,particular,region,livestock_area,province,value,unit,source",
+        "delivery": "CSV download only (datastore_active = false)"
+      },
+      "rights_facts": [
+        "DLD catalog declares Open Data Common without variant URL or specific version.",
+        "385 rows = 77 provinces x 5 Buddhist years 2564-2568, counted in head (ตัว).",
+        "Resource is distributed as a CSV download and is not loaded into the CKAN datastore, so aggregation must parse the file.",
+        "Spatial grain is province; the region column uses DLD's own 4-region grouping."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention (DLD livestock reference year)",
+        "Meaning of the `year` column relative to the DLD livestock production cycle"
+      ],
+      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=161c766e-3ab4-475f-9976-60cfa1b7ada4",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "dc3168e76e6a2f8fc08cb258ee07ba145545d5778795cf66dc1a95355a6e8f86"
+        },
+        {
+          "url": "https://dld.gdcatalog.go.th/dataset/161c766e-3ab4-475f-9976-60cfa1b7ada4/resource/47bbe7c0-fcd3-4eb6-b06b-c7ef3b51970a/download/dld_01_0501.csv",
+          "kind": "live_csv_download",
+          "reviewed_at": "2026-10-25",
+          "sha256": "88ca43e604d1723783926db38c417eba575a0953295501e10a5c6d7e36247853"
+        }
+      ]
+    },
+    {
+      "resource_key": "dld_livestock_poultry_province",
+      "source_id": "dld",
+      "resource_id": "64366e81-13d2-485a-82a1-3ddc2d89869b",
+      "dataset_id": "ae4d2bdf-5cff-482f-86f4-aea93a51c018",
+      "name": "จำนวนไก่ รายจังหวัด กรมปศุสัตว์",
+      "resource_url": "https://dld.gdcatalog.go.th/dataset/ae4d2bdf-5cff-482f-86f4-aea93a51c018/resource/64366e81-13d2-485a-82a1-3ddc2d89869b/download/dld_01_0601.csv",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DLD CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 385,
+        "unit": "ตัว",
+        "years_be": "2564-2568",
+        "provinces": 77,
+        "regions": 4,
+        "grain": "จังหวัด × ปี (พ.ศ.)",
+        "columns": "year,particular,region,livestock_area,province,value,unit,source",
+        "delivery": "CSV download only (datastore_active = false)"
+      },
+      "rights_facts": [
+        "DLD catalog declares Open Data Common without variant URL or specific version.",
+        "385 rows = 77 provinces x 5 Buddhist years 2564-2568, counted in head (ตัว).",
+        "The catalog publishes only a combined poultry count (จำนวนไก่); no separate broiler (ไก่เนื้อ) or layer (ไก่ไข่) dataset exists, so a meat/egg split cannot be sourced.",
+        "Resource is distributed as a CSV download and is not loaded into the CKAN datastore."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention (DLD livestock reference year)",
+        "Broiler/layer split is not published by DLD and must not be derived",
+        "Meaning of the `year` column relative to the DLD livestock production cycle"
+      ],
+      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion; ask whether a broiler/layer breakdown exists outside the CKAN catalogue.",
+      "evidence": [
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=ae4d2bdf-5cff-482f-86f4-aea93a51c018",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "52fa958161e9293c4f1f74b3a9e4a2f22fdd7258aabc28e8d29bb2f968bc115b"
+        },
+        {
+          "url": "https://dld.gdcatalog.go.th/dataset/ae4d2bdf-5cff-482f-86f4-aea93a51c018/resource/64366e81-13d2-485a-82a1-3ddc2d89869b/download/dld_01_0601.csv",
+          "kind": "live_csv_download",
+          "reviewed_at": "2026-10-25",
+          "sha256": "5e42956fbcda35111758db4e858bb5908077d3e9e0c7b6d238f78fe8f327358f"
+        }
+      ]
+    },
+    {
+      "resource_key": "dld_livestock_duck_province",
+      "source_id": "dld",
+      "resource_id": "c97081bc-e59d-47e1-aac9-0905b8983e08",
+      "dataset_id": "58d2c7a6-14eb-4703-a113-403c0fc86f4b",
+      "name": "จำนวนเป็ด รายจังหวัด กรมปศุสัตว์",
+      "resource_url": "https://dld.gdcatalog.go.th/dataset/58d2c7a6-14eb-4703-a113-403c0fc86f4b/resource/c97081bc-e59d-47e1-aac9-0905b8983e08/download/dld_01_0701.csv",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DLD CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 385,
+        "unit": "ตัว",
+        "years_be": "2564-2568",
+        "provinces": 77,
+        "regions": 4,
+        "grain": "จังหวัด × ปี (พ.ศ.)",
+        "columns": "year,particular,region,livestock_area,province,value,unit,source",
+        "delivery": "CSV download only (datastore_active = false)"
+      },
+      "rights_facts": [
+        "DLD catalog declares Open Data Common without variant URL or specific version.",
+        "385 rows = 77 provinces x 5 Buddhist years 2564-2568, counted in head (ตัว).",
+        "Ducks are reported as a single combined count; no layer/meat or breed dimension is published.",
+        "Resource is distributed as a CSV download and is not loaded into the CKAN datastore."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention (DLD livestock reference year)",
+        "Meaning of the `year` column relative to the DLD livestock production cycle"
+      ],
+      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=58d2c7a6-14eb-4703-a113-403c0fc86f4b",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "f001307b62e71503f2086f2aa8cbe0ee2c557c6cfbd23c4476342d100b0216d7"
+        },
+        {
+          "url": "https://dld.gdcatalog.go.th/dataset/58d2c7a6-14eb-4703-a113-403c0fc86f4b/resource/c97081bc-e59d-47e1-aac9-0905b8983e08/download/dld_01_0701.csv",
+          "kind": "live_csv_download",
+          "reviewed_at": "2026-10-25",
+          "sha256": "ce7c92b2fd62f7d309990f1af42d95679687ccd3cce9f28cbb5bf62be612bdb0"
+        }
+      ]
+    },
+    {
+      "resource_key": "dof_shrimp_production_2567",
+      "source_id": "dof",
+      "resource_id": "15267952-1a27-451b-bac2-1b5de7cdedc2",
+      "dataset_id": "4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
+      "name": "ผลผลิตกุ้งทะเล ปี 2567 กรมประมง",
+      "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=15267952-1a27-451b-bac2-1b5de7cdedc2&limit=1000",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DOF CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 770,
+        "unit": "ตัน",
+        "years_be": "2567",
+        "provinces": 35,
+        "regions": 6,
+        "grain": "จังหวัด × เดือน × ชนิดกุ้ง",
+        "columns": "จังหวัด,ภาค,เดือน,ปี,ชนิด,จำนวน",
+        "species": "กุ้งขาว, กุ้งกุลาดำ"
+      },
+      "rights_facts": [
+        "DOF catalog declares Open Data Common without variant URL or specific version.",
+        "770 rows cover 35 coastal provinces, 12 months and two shrimp species (กุ้งขาว = whiteleg shrimp, กุ้งกุลาดำ) in tonnes.",
+        "The ภาค column uses DOF's own 6-region scheme, which splits the South into three regions and differs from DLD's 4-region scheme.",
+        "Catalog geo_coverage is declared as ไม่มี even though a province column is present."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention for the DOF production year",
+        "Whether monthly จำนวน values are cumulative or period totals"
+      ],
+      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "1da18d2e31e6a1cd4f837001f1e369fc8c29a48548be2e6c9f40188e9a3ad324"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=15267952-1a27-451b-bac2-1b5de7cdedc2&limit=1000",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "8caf2245312ebdf4d859e8d9578b27aaab0322fd4a45f7091cf8ed842466499a"
+        }
+      ]
+    },
+    {
+      "resource_key": "dof_shrimp_production_2568",
+      "source_id": "dof",
+      "resource_id": "5936ac73-5902-41f5-984d-0b472555ae65",
+      "dataset_id": "4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
+      "name": "ผลผลิตกุ้งทะเล ปี 2568 กรมประมง",
+      "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=5936ac73-5902-41f5-984d-0b472555ae65&limit=1000",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DOF CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 280,
+        "unit": "ตัน",
+        "years_be": "2568",
+        "provinces": 35,
+        "regions": 6,
+        "grain": "จังหวัด × เดือน × ชนิดกุ้ง",
+        "columns": "จังหวัด,ภาค,เดือน,ปี,ชนิด,จำนวน",
+        "species": "กุ้งขาว, กุ้งกุลาดำ"
+      },
+      "rights_facts": [
+        "DOF catalog declares Open Data Common without variant URL or specific version.",
+        "280 rows cover 35 coastal provinces in Buddhist year 2568, in tonnes.",
+        "Row count is far lower than the 770 rows of the 2567 resource for the same province and month coverage, so the two releases are not directly comparable without clarification.",
+        "The ภาค column uses DOF's own 6-region scheme."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention for the DOF production year",
+        "Why the 2568 release has far fewer rows than the 2567 release for the same province and month coverage",
+        "Whether monthly จำนวน values are cumulative or period totals"
+      ],
+      "next_action": "Confirm licence terms, year convention and release completeness with DOF maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "1da18d2e31e6a1cd4f837001f1e369fc8c29a48548be2e6c9f40188e9a3ad324"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=5936ac73-5902-41f5-984d-0b472555ae65&limit=1000",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "9c50be5c8bc3459c5ce49cc1e69bb74e8a73b2c831b9d866675684f708ac7dd4"
+        }
+      ]
+    },
+    {
+      "resource_key": "dof_shrimp_production_2569",
+      "source_id": "dof",
+      "resource_id": "890c72ed-8e35-4b82-9f8a-898dbfc26de9",
+      "dataset_id": "4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
+      "name": "ผลผลิตกุ้งทะเล ปี 2569 กรมประมง",
+      "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=890c72ed-8e35-4b82-9f8a-898dbfc26de9&limit=1000",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DOF CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 826,
+        "unit": "ตัน",
+        "years_be": "2569",
+        "provinces": 35,
+        "regions": 6,
+        "grain": "จังหวัด × เดือน × ชนิดกุ้ง",
+        "columns": "จังหวัด,ภาค,เดือน,Attribute,Value",
+        "species": "กุ้งขาว, กุ้งกุลาดำ"
+      },
+      "rights_facts": [
+        "DOF catalog declares Open Data Common without variant URL or specific version.",
+        "826 rows cover 35 coastal provinces and 12 months in Buddhist year 2569, in tonnes.",
+        "This release renames the species and value columns to Attribute and Value and drops the ปี column, so the year is implied by the resource rather than stated per row.",
+        "The ภาค column uses DOF's own 6-region scheme."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention for the DOF production year",
+        "The ปี column is absent; the reference year is implied by the resource only",
+        "Whether monthly Value figures are cumulative or period totals"
+      ],
+      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "1da18d2e31e6a1cd4f837001f1e369fc8c29a48548be2e6c9f40188e9a3ad324"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=890c72ed-8e35-4b82-9f8a-898dbfc26de9&limit=1000",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "ac056e6d0e5b9706027ef1e04d35f6a818eec04d4eb780445b219c363ba2db63"
+        }
+      ]
+    },
+    {
+      "resource_key": "dof_aquaculture_freshwater",
+      "source_id": "dof",
+      "resource_id": "5ef25e0e-eef0-4a6a-af5f-5303410c7f5f",
+      "dataset_id": "c02de756-f5d6-475f-9d52-971f98a2b9c1",
+      "name": "ปริมาณและมูลค่าผลผลิตสัตว์น้ำจืดจากการเพาะเลี้ยง กรมประมง",
+      "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=5ef25e0e-eef0-4a6a-af5f-5303410c7f5f&limit=1000",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DOF CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 15410,
+        "unit": "จำนวนฟาร์ม (แห่ง), เนื้อที่เลี้ยง (ไร่), ปริมาณ (ตัน), มูลค่า (พันบาท)",
+        "years_be": "2559-2567",
+        "provinces": 77,
+        "regions": 0,
+        "grain": "จังหวัด × ปี (พ.ศ.) × ประเภทการเลี้ยง × ชนิดสัตว์น้ำ",
+        "columns": "ปี,ประเภทการเพาะเลี้ยง,จังหวัด,ประเภทการเลี้ยง,ชนิดสัตว์น้ำ,จำนวนฟาร์ม,เนื้อที่เลี้ยง,ปริมาณ,มูลค่า",
+        "species": "20 distinct after trimming, incl. ปลานิล (2056 rows) and ปลาดุก (1568 rows)",
+        "farming_methods": "บ่อ, กระชัง, นา, ร่องสวน"
+      },
+      "rights_facts": [
+        "DOF catalog declares Open Data Common without variant URL or specific version.",
+        "15410 rows cover 77 provinces and Buddhist years 2559-2567 with quantity in tonnes and value in thousand THB.",
+        "The resource has no ภาค column, so any regional rollup needs an external province-to-region crosswalk and must be labelled as derived rather than source-provided.",
+        "Raw species labels contain trailing-whitespace duplicates, so a naive distinct returns 38 instead of 20; consumers must trim before comparing.",
+        "ปริมาณ and มูลค่า carry different units and must never be summed together."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention for the DOF production year",
+        "Whether monthly and annual rows overlap or must be de-duplicated before summing",
+        "Whether the ปริมาณ totals cover all production or only the surveyed provinces"
+      ],
+      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=c02de756-f5d6-475f-9d52-971f98a2b9c1",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "5046b0a10e9ea11ea52253df6427ac1e7b5eb39f99a46a39fd76b8b73c29a9d1"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=5ef25e0e-eef0-4a6a-af5f-5303410c7f5f&limit=1000",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "b9ae7640876d1db56a5562b8cb8c755b78156f22093b038660cf3c4664823632"
+        }
+      ]
+    },
+    {
+      "resource_key": "dof_aquaculture_marine_fish",
+      "source_id": "dof",
+      "resource_id": "9936f81a-f5ec-457b-a5cf-7401d874b504",
+      "dataset_id": "c02de756-f5d6-475f-9d52-971f98a2b9c1",
+      "name": "ปริมาณและมูลค่าผลผลิตปลาน้ำกร่อยจากการเพาะเลี้ยง กรมประมง",
+      "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=9936f81a-f5ec-457b-a5cf-7401d874b504&limit=1000",
+      "reviewed_at": "2026-10-25",
+      "license_status": "pending",
+      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "declared_license": {
+        "license_id": "Open Data Common",
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "DOF CKAN resource"
+      },
+      "access_evidence": {
+        "records_returned": 581,
+        "unit": "จำนวนฟาร์ม (แห่ง), เนื้อที่เลี้ยง (ไร่), ปริมาณ (ตัน), มูลค่า (พันบาท)",
+        "years_be": "2559-2567",
+        "provinces": 37,
+        "regions": 0,
+        "grain": "จังหวัด × ปี (พ.ศ.) × ประเภทการเลี้ยง × ชนิดสัตว์น้ำ",
+        "columns": "ปี,ประเภทการเพาะเลี้ยง,จังหวัด,ประเภทการเลี้ยง,ชนิดสัตว์น้ำ,จำนวนฟาร์ม,เนื้อที่เลี้ยง,ปริมาณ,มูลค่า",
+        "species": "9 distinct after trimming, incl. ปลากะพง and ปลากะรัง"
+      },
+      "rights_facts": [
+        "DOF catalog declares Open Data Common without variant URL or specific version.",
+        "581 rows cover 37 coastal provinces and Buddhist years 2559-2567 with quantity in tonnes and value in thousand THB.",
+        "The resource has no ภาค column, so any regional rollup needs an external province-to-region crosswalk.",
+        "Same species-label trailing-whitespace issue as the freshwater resource."
+      ],
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "attribution_text": null,
+      "unresolved": [
+        "Exact ODC licence variant and redistribution permission",
+        "Calendar vs fiscal year convention for the DOF production year",
+        "Whether the ปริมาณ totals cover all production or only the surveyed provinces"
+      ],
+      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "evidence": [
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=c02de756-f5d6-475f-9d52-971f98a2b9c1",
+          "kind": "live_catalog_metadata",
+          "reviewed_at": "2026-10-25",
+          "sha256": "5046b0a10e9ea11ea52253df6427ac1e7b5eb39f99a46a39fd76b8b73c29a9d1"
+        },
+        {
+          "url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=9936f81a-f5ec-457b-a5cf-7401d874b504&limit=1000",
+          "kind": "live_datastore_query",
+          "reviewed_at": "2026-10-25",
+          "sha256": "f021261032b14a99f688d35927f283e318c3114ca8be51a37f03ba3b50f10d77"
         }
       ]
     },
@@ -2936,6 +3510,109 @@
         "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
+      ]
+    },
+    {
+      "resource_key": "ldd_pgs_program_progress",
+      "source_id": "ldd",
+      "resource_id": "2feb3230-cf86-4560-95f5-93e58270a7d8",
+      "dataset_id": "ord02",
+      "name": "สถิติแผนและผลโครงการ PGS จำแนกตามหน่วยงาน",
+      "resource_url": "https://lddcatalog.ldd.go.th/dataset/ord02",
+      "reviewed_at": "2026-10-24",
+      "license_status": "pending",
+      "review_outcome": "source_dictionary_reviewed_reporting_units_are_not_target_provinces_rights_unresolved",
+      "declared_license": {
+        "license_id": "Creative Commons Attribution Non-Commercial No-Derivs",
+        "license_url": null,
+        "version": null,
+        "scope": "Package ord02; dictionary describes open data; no project publication approval"
+      },
+      "project_publication_approved": false,
+      "commercial_use_confirmed": false,
+      "unresolved": [
+        "Confirm reuse, derivation and redistribution terms for this exact statistical resource",
+        "Confirm reporting cutoff and differences between source group-stage labels and dictionary",
+        "Reporting-unit names do not establish beneficiary or project target areas"
+      ],
+      "next_action": "Keep statistics in local workstation mode; review exact reuse terms and stage semantics before any public numeric output.",
+      "evidence": [
+        {
+          "url": "https://lddcatalog.ldd.go.th/dataset/ord02",
+          "kind": "official_package_metadata",
+          "reviewed_at": "2026-10-24"
+        },
+        {
+          "url": "https://lddcatalog.ldd.go.th/api/3/action/datastore_search?resource_id=186d7cee-2443-4fc7-8a77-c7b7d574ea77&limit=20",
+          "kind": "official_data_dictionary",
+          "reviewed_at": "2026-10-24"
+        }
+      ]
+    },
+    {
+      "resource_key": "chirps_v3_daily_rnl_2026_09_30",
+      "source_id": "chirps",
+      "resource_id": "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif",
+      "dataset_id": "chirps-v3.0-daily-final-rnl",
+      "name": "CHIRPS v3.0 Daily final RNL 2026-09-30",
+      "resource_url": "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif",
+      "reviewed_at": "2026-10-25",
+      "license_status": "approved_public",
+      "review_outcome": "official_chc_public_domain_and_cc_by_4_0_cover_exact_chirps3_file",
+      "declared_license": {
+        "license_id": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "version": "4.0",
+        "scope": "CHIRPS v3.0 dataset; exact daily final RNL file URL recorded on this resource"
+      },
+      "access_evidence": {
+        "http_status": 200,
+        "content_type": "image/tiff",
+        "size_bytes": 18424090,
+        "last_modified": "2026-10-15T22:25:24Z",
+        "etag": "6ad152d4-119211a",
+        "crs": "EPSG:4326",
+        "width": 7200,
+        "height": 2400,
+        "pixel_spacing_degrees": 0.05,
+        "pixel_support": "area",
+        "sample_type": "float32",
+        "compression": "LZW",
+        "nodata_tag": null
+      },
+      "rights_facts": [
+        "CHC identifies CHIRPS v3 as public domain and licensed under CC BY 4.0.",
+        "CC BY 4.0 permits sharing and adaptation, including commercial use, with attribution and a link to the licence.",
+        "CHC requests citation of the CHIRPS3 Data Repository DOI 10.15780/G2JQ0P and Funk et al. (2026)."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "CHIRPS3 Data Repository, DOI: 10.15780/G2JQ0P; Funk et al. (2026), Scientific Data 13, 718. Licensed under CC BY 4.0. Accessed 2026-10-25.",
+      "attribution_url": "https://www.chc.ucsb.edu/data/chirps3",
+      "unresolved": [],
+      "next_action": "For M5, retain grid-cell × UTC-date grain, normalize -9999 to null, capture ETag or SHA-256 per batch, and compare at least three cells with this source file before public use.",
+      "evidence": [
+        {
+          "url": "https://www.chc.ucsb.edu/data/chirps3",
+          "kind": "official_dataset_license_and_citation",
+          "reviewed_at": "2026-10-25"
+        },
+        {
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/readme.txt",
+          "kind": "official_daily_product_definition_and_utc_convention",
+          "reviewed_at": "2026-10-25"
+        },
+        {
+          "url": "https://www.chc.ucsb.edu/data/chirps3/diagnostics",
+          "kind": "official_missing_value_definition",
+          "reviewed_at": "2026-10-25"
+        },
+        {
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif",
+          "kind": "exact_resource_headers_and_geotiff_metadata",
+          "reviewed_at": "2026-10-25",
+          "etag": "6ad152d4-119211a"
+        }
       ]
     }
   ]

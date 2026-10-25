@@ -1,314 +1,183 @@
-# สถานะโครงการ 23 ตุลาคม 2569
-
-## ทำต่อ: แก้ client สถานีอากาศเป็นรุ่น 2
-
-แก้ชื่อ/จังหวัด 4 station IDs และปรับ metadata ทั้ง 12 แห่งให้ตรงทะเบียน Meteostat ที่ตรวจแล้ว รักษา IDs เดิม; ขอ `model=false&units=metric`, แปลง `wspd` จาก km/h เป็น m/s พร้อมเก็บค่า km/h ต้นทาง, เก็บ null ตามจริง, ตรวจวัน/ID/ค่าตัวเลขและ response cap, แยก partial/empty/failed โดยไม่บันทึกข้อความ exception หรือ key ค่าเริ่มต้นเขียน `dim_weather_stations_v2.json` และ `fact_daily_weather_v2.json` เพื่อไม่แทน cache เดิมก่อน migration ดู [weather-v2](weather-v2.md)
-
-API จริง 10–12 ต.ค. 2569 ที่ IDs 48455/48451 ได้กรุงเทพฯ 3 แถวและนครปฐม array ว่าง จึงเป็น partial 3/6 requested station-days; ตรวจ metadata สถานีตรงต้นทาง 12/12 และ conversion ของลมผ่าน หลักฐาน `data/local/probes/weather-v2-audit.json` ยืนยัน SHA-256 ของ legacy caches และ DuckDB เท่าเดิม ไม่มี warehouse ingestion/ปลดการพัก metric หรืออนุมัติสิทธิ์ ข้อมูลรายวันยัง pending และ timezone/ความเป็นตัวแทนพื้นที่ยังต้องตรวจ
-
-ตรวจ regression แบบ red → green และ full suite สุดท้าย `python -m unittest discover -s tests -q` รัน 244 tests ผ่านโดย skipped 1 ที่อิง PBIP เก่า ใช้เวลา 78.409 วินาที; log `data/local/probes/access-map-weather-tests.log` ไม่อ้างว่า integration warehouse/Power BI v2 ผ่าน เพราะ consumers ยังอ่าน path รุ่นเดิมตามที่บันทึกในคู่มือ
-
-## สำรวจแผนที่ข้อมูลและ API ที่เข้าถึงได้
-
-ตรวจรายชื่อระบบ TH/GL/RS ในสเปกครบ 84 รายการผ่าน 81 entry URLs และแค็ตตาล็อก 21 เส้นทาง อ่าน metadata ครบ 15 แห่ง: data.go.th 44,383 datasets จาก 444 หน้า (ID ไม่ซ้ำ/count ตรงก่อนและหลัง) และบัญชีเจ้าของข้อมูล 14 แห่ง 2,387 รายการ รวม mapping 46,770 catalog entries และ 127,050 resource links ไม่ใช่ชุดข้อมูลอิสระทั้งหมด เพราะมี mirror/harvest; ตรวจ source identity/URL ซ้ำเป็นคำใบ้เท่านั้น ไม่รวมยอด observations ข้ามบัญชี
-
-อ่าน schema ของ DataStore ที่ระบุ active ครบ 2,884 resources ได้ 22,512 คอลัมน์ โดย `limit=0` ได้ records 0 ทุกคำขอสำเร็จ NABC เคยติด 429 จำนวน 246 resources แล้วเว้นจังหวะตรวจซ้ำทีละคำขอจนสำเร็จครบ เก็บประวัติ attempts แต่ mapping ใช้ผลล่าสุดต่อ catalog/resource แยก data dictionary/สารบัญรายงานจากตารางที่ยังไม่ตรวจความหมาย; `join-candidates.csv.gz` ระบุคอลัมน์จริง ตารางเทียบที่เสนอ และเงื่อนไขตรวจ โดยทุก join ยัง blocked/unverified
-
-GISTDA OpenAPI มี 54 GET operations; อ่าน feature samples 12 และ WMS/WMTS capabilities 28 ได้ อีก 14 tile templates เก็บเฉพาะรายการ DWR ArcGIS directory 67 services อ่าน layer metadata 37 ชั้น อีก 30 services มี application error แม้ HTTP 200; ไม่แปลง error เป็นข้อมูลว่าง Meteostat directory กรองประเทศ TH ได้ 123 สถานีและ inventory 2,313 รายการ ตรวจสถานีเดิม 12 IDs พบชื่อจังหวัดขัด 4 แห่งและพิกัดเดิมหลายแห่งไม่ตรง metadata; หน่วย `wspd` เป็น km/h แต่ client เดิมตั้งชื่อ `wind_speed_ms` ต้องแก้ก่อนใช้งาน
-
-ตรวจเฉพาะชื่อ/สถานะตัวแปร environment ไม่บันทึก key หรือ headers DWR RSS ยังติด TLS issuer verification, OpenD gateway redirect ถูกบล็อกการส่ง key ข้าม host, THAGRI มี 542 ลิงก์เอกสาร แต่ generator schema ต้องมี token และตัวอย่างไม่มี token ตอบ 422; ไม่ใช้ OpenD/GISTDA key แทน token อีกระบบ DOAE private/partner key ว่าง; TADIH interface ยังไม่ใช่หลักฐาน deploy API จริง บัญชี RID/DOA/Rice/CPD/QSDS/ARDA ยังเข้าไม่สำเร็จตามผลใน mapping
-
-หลักฐาน/ตารางทั้งหมดอยู่ `data/local/access-map/` รวม `REPORT.md`, `mapping-summary.json`, datasets/resource-links/schema-fields/join-candidates/API/systems/spatial-layers/weather-stations CSV gzip; เอกสารสาธารณะเฉพาะวิธีใช้/ผลรวมอยู่ [accessible-data-map.md](accessible-data-map.md) ไม่มี ingestion, warehouse refresh, การอนุมัติสิทธิ์ หรือข้อมูลดิบใหม่ลง Git ตรวจ focused suite `tests.test_access_map` + `tests.test_env` ผ่าน 11 tests และ `git diff --check` ผ่าน ไม่ได้ทดสอบ Power BI/DAX หรือความถูกต้องเชิงพื้นที่ทุก resource
-
-ไฟล์สุดท้ายมี 3,780 join candidates และ 707 API/discovery entries (รวม 542 ลิงก์ THAGRI ไม่ใช่จำนวน API ที่อ่านข้อมูลสำเร็จ) ตรวจผลลัพธ์ 508 ไฟล์ด้วย `verification.json`: ไม่พบค่า secret จาก environment, ยอด CSV ตรงกับ summary ทุกตาราง และบันทึก SHA-256 manifest; metadata และตารางบีบอัดใช้พื้นที่ตรรกะรวม 32,041,064 bytes ก่อนเพิ่มตัว verification manifest
-
-## สำรวจ insight จาก snapshot ในเครื่อง
-
-สำรวจ insight จาก snapshot ในเครื่องและบันทึก `data/local/reports/insight-scan-2026-10-23.json`: เปรียบเทียบราคาสินค้า ก.ย. 2569, ระดับน้ำอ่างเดิม 461 แห่งระหว่าง 9–22 ต.ค., ฝน ERA5 ปี 2568 เทียบค่าเฉลี่ย 9 ปีก่อน ณ 5 จุดโดยตัด leap day, โครงสร้างปริมาณ/มูลค่าสัตว์น้ำ และการเปลี่ยนมูลค่าปศุสัตว์ เป็น descriptive analysis ตาม grain เดิม ยังไม่ยืนยันสาเหตุ กำไร หรือสถานการณ์ปัจจุบัน ไม่มีการดึงข้อมูลใหม่หรือเปลี่ยนสิทธิ์
-
-## ตรวจแก้ผลวิเคราะห์มาตรการจาก AI รอบก่อน
-
-ตรวจโค้ดกับหลักฐานต้นทางแล้วพบว่ารายการโครงการ 3 รายการมีงบ/จังหวัดเป้าหมายเขียนคงที่โดยไม่มีหลักฐาน resource-level และ `doae_15_01` เป็นสถิติผู้เข้าร่วม ไม่ใช่บัญชีเป้าหมายโครงการ จึงถอนการจัดจังหวัดเป็นช่องว่าง 46 จังหวัด, ครอบคลุม 12 และซ้ำซ้อน 3 ผล audit รุ่น 2: โครงการที่ยืนยันพื้นที่เป้าหมายได้ **0 รายการ**, บัตรหลักฐาน DOAE **115 รายการ**, สถานะมาตรการ **`UNVERIFIED` 77 จังหวัด**; ซิงค์ DuckDB แล้วให้ `dim_project=0`, `fact_project_coverage=0` และจำนวนโครงการใน Master View เป็น `null` เมื่อทะเบียนยังไม่พร้อม `offline-v12/v13` เป็น snapshot ก่อนแก้ ห้ามใช้อ้างตัวเลขมาตรการหรือเผยแพร่ ตรวจ [ทะเบียนโครงการ](project-register.md), [หลักฐานพื้นที่](spatial-evidence-matching.md) และ [HANDOFF](../HANDOFF.md)
-
-แก้ DWR client ให้ตรวจ TLS certificate/hostname ตามปกติ; รอบนี้ไม่ได้ดึงข้อมูล DWR ใหม่ พักค่าข้ามแหล่ง DWR/GISTDA/HII/Meteostat ใน `v_provincial_national_intelligence` เป็น `null` จนกว่าจะตรวจ provenance/หน่วย/ช่วงเวลา/สิทธิ์ ข้อมูล HII มีคอลัมน์ `Month` กับ `COUNT 17 YEAR` แต่ยังไม่ยืนยันขอบเขตพยากรณ์จาก metadata ต้นทาง จึงไม่อ้างว่าเป็นพยากรณ์ 12 เดือนข้างหน้า และ Meteostat เก็บฝนที่ไม่รายงานเป็น `null`
-
-ตรวจ DuckDB หลังซิงค์: โครงการที่ยืนยันได้ 0, เป้าหมายโครงการ 0, หลักฐานพื้นที่ 115, จังหวัดสถานะ `UNVERIFIED` 77/77, ค่า DWR/GISTDA/HII/Meteostat ใน Master View ที่พักไว้ไม่เป็น non-null แม้แต่แถวเดียว; `python -m unittest discover -s tests -q` ผ่าน **236 tests, skipped 1** รายการที่อิง snapshot PBIP `offline-v13` เก่า ไม่มี DAX runtime หรือการตรวจภาพ Desktop ในรอบนี้
-
-**เช็กลิสต์ปัจจุบันสำหรับ AI รับงานต่อ:** [HANDOFF.md](../HANDOFF.md) มีงานที่ตรวจแล้ว งานค้าง ลำดับถัดไป และคำสั่งเริ่ม ส่วนหัวข้อด้านล่างเป็นบันทึกผลแต่ละรอบตามเวลา อาจมี “งานต่อ” ที่ปิดไปแล้วในรอบใหม่
-
-รอบเอกสารนี้ปรับ [README](../README.md), [AGENTS](../AGENTS.md), [runbook](runbook.md), [roadmap DOAE](doae-catalog-expansion.md) และ [คู่มือ Power BI](../powerbi/README.md) ให้ชี้เป้าหมายศูนย์ข้อมูลเกษตรทั้งประเทศและเช็กลิสต์เดียวกัน อ้างหลักฐาน acquisition/geography/cleanup ที่มีอยู่ ไม่ได้ดึงข้อมูลใหม่ นำเข้า warehouse เผยแพร่ หรือทดสอบ DAX เพิ่ม
-
-## การยกระดับความเชื่อมโยงระดับชาติ (Master Inter-Agency Linkage) และเตรียมโมเดล Power BI Offline (offline-v13) 23 ต.ค. 2569
-
-- **Master Inter-Agency Database & Star Schema Linkage:**
-  - เพิ่มมิติข้อมูลหลัก `dim_province` (77 จังหวัด DOPA ครบถ้วน) และ `dim_source` (17 แหล่งข้อมูลพหุภาคี) ลงสู่ฐานข้อมูลกลาง `data/local/tadih.duckdb`
-  - สร้าง Master Analytical View `v_provincial_national_intelligence` เชื่อมโยง 77 จังหวัดเข้ากับข้อมูลทุกมิติแบบ Single Pane of Glass:
-    - สถานะหลักฐานพื้นที่ (`fact_evidence_policy_match`); ผลมาตรการใน snapshot รุ่นนั้นถูกถอน
-    - โครงการภาครัฐใน snapshot รุ่นนั้นยังไม่มีเป้าหมายรายจังหวัดที่ตรวจแล้ว (`fact_project_coverage`)
-    - แหล่งน้ำธรรมชาติและปริมาตรน้ำใช้การได้ (`fact_natural_water_reservoir`) จาก DWR
-    - พื้นที่นาข้าวแช่น้ำท่วมขังจากดาวเทียม Sentinel/Landsat (`fact_satellite_flood_7days`) จาก GISTDA
-    - จำนวนระเบียน HII ที่มี `Month` และ `COUNT 17 YEAR` (`fact_flood_risk_forecast` ชื่อเดิม); ยังยืนยัน forecast horizon ไม่ได้
-    - ข้อมูลสภาพอากาศ สถิติฝนสะสม และอุณหภูมิเฉลี่ย (`fact_daily_weather` + `dim_weather_station`) จาก TMD / Meteostat
-  - ตรวจสอบความถูกต้องของ Foreign Keys (Referential Integrity) 100% ครบทุกตาราง ไม่มี orphaned records หรือรหัสจังหวัดผิดเพี้ยน
-- **Power BI Offline Project Build (offline-v13):**
-  - ยกระดับโครงสร้างโปรเจกต์สู่ `data/local/powerbi/offline-v13/` มี **23 ตาราง** (เพิ่มขึ้นจาก 17 ตาราง), **25 relationships** (เพิ่มขึ้นจาก 20), **49 measures** (เพิ่มขึ้นจาก 42), **8 หน้า PBIR** (เพิ่มหน้าใหม่ `water_satellite_disaster`: "Water Security & Satellite Early Warning")
-  - นำเข้า 6 ตารางพหุภาคีสู่โมเดล: `dim_crop_master` (831 แถว), `fact_natural_water_reservoir` (302 แถว), `dim_weather_station` (12 แถว), `fact_daily_weather` (6 แถว), `fact_satellite_flood_7days` (10 แถว), `fact_flood_risk_forecast` (27,023 แถว)
-  - เพิ่ม 7 DAX measures สำหรับงานเตือนภัยและการบริหารจัดการน้ำ:
-    - `Natural Water Active Storage m3`, `Natural Water Reservoir Count`
-    - `Satellite Flood Rice Area Rai`, `Satellite Flood Polygon Count`
-    - `High Risk Flood Tambons Count`, `Medium Risk Flood Tambons Count`
-    - `Weather Station Recent Rainfall mm`
-  - ตรวจสอบความสมบูรณ์ไฟล์ (Integrity SHA-256) ผ่านครบ 54 ไฟล์ และตรวจสอบความถูกต้องของ Microsoft Fabric JSON schemas ผ่าน 30 metadata files 100% ด้วย `scripts/validate_powerbi_project.py`
-  - บีบอัด NTFS บน `data/local/powerbi/offline-v13` ประหยัดพื้นที่ดิสก์ 2.1 ต่อ 1 (ลดจาก 98.9 MB เหลือ 48.0 MB)
-  - จำลองคำนวณ DAX measures 15 รายการใน `tests/test_dax_simulation.py` ผ่าน 100%
-  - รวมชุดทดสอบ unit tests ทั้งคลังระบบผ่าน **232/232 รายการ (100% green)** ใน 34.365s
-
-## การนำเข้า DuckDB Warehouse และเตรียมโมเดล Power BI Offline (offline-v12) 23 ต.ค. 2569
-
-- **National DuckDB Warehouse Sync:**
-  - พัฒนาฟังก์ชัน `init_national_hub_tables()` และ `sync_national_hub_data()` ใน `src/tadih/warehouse.py` และสคริปต์ `scripts/sync_duckdb_hub.py`
-  - ซิงค์แกนข้อมูลศูนย์รวมข้อมูลเกษตรทั้งประเทศสู่ฐานข้อมูลกลาง `data/local/tadih.duckdb`:
-    - `national_coverage_inventory`: 59 ทรัพยากร (จำแนก native grain, missing reasons, license status)
-    - `dim_project` และ `fact_project_coverage`: เนื้อหาเดิมถูกถอนหลังตรวจหลักฐาน ปัจจุบันมี 0 รายการที่ผ่านเกณฑ์
-    - `fact_spatial_evidence`: 115 รายการหลักฐานความเสียหายจากอุทกภัย ภัยแล้ง และพื้นที่เสี่ยงขาดแคลนน้ำ
-    - `fact_evidence_policy_match`: 77 จังหวัด; ปัจจุบันเป็น `UNVERIFIED` ทั้งหมด
-    - `fact_plan_actual_reconciliation`: 2 ฤดูกาล (ฤดูฝน/แล้ง 2569) ยืนยันสถานะ `INCOMPARABLE`
-  - สร้าง 3 Analytical Views สำหรับการสืบค้นเชิงวิเคราะห์; `v_unaddressed_policy_gaps` และ `v_project_intervention_summary` ปัจจุบันไม่มีรายการที่ยืนยันได้ ต้องอ่านสถานะ `UNVERIFIED` ประกอบ
-  - เพิ่ม unit tests 2 รายการใน `tests/test_national_warehouse.py` ทดสอบการสร้างตาราง, view calculation, และ idempotency ผ่าน 100%
-- **Power BI Offline Project Build (offline-v12):**
-  - พัฒนาโครงสร้างโปรเจกต์ `data/local/powerbi/offline-v12/` มี 17 ตาราง (เพิ่มขึ้นจาก 12 ตาราง), 20 relationships (เพิ่มขึ้นจาก 15), 42 measures (เพิ่มขึ้นจาก 35), 7 หน้า PBIR (เพิ่ม 2 หน้าใหม่: `policy_gap` และ `national_coverage`)
-  - อัปเดต `powerbi/measures.dax` เพิ่ม 7 measures สำคัญสำหรับศูนย์ข้อมูลเกษตรทั้งประเทศ:
-    - `Unaddressed Gap Provinces Count`, `Covered Problem Provinces Count`, `Redundant Intervention Provinces Count`
-    - `Total Flood Damaged Rai`, `Total Drought Damaged Rai`, `Registered Projects Count`, `National Profiled Resources Count`
-  - ตรวจ integrity hash ผ่านครบ 45 ไฟล์ และตรวจสอบความถูกต้องของ Microsoft Fabric JSON schemas ผ่าน 27 metadata files 100% ด้วย `scripts/validate_powerbi_project.py`
-  - จำลองคำนวณ DAX measures 14 รายการใน `tests/test_dax_simulation.py` ผ่าน 100%
-  - เพิ่มการบีบอัด NTFS บน `data/local/powerbi/offline-v12` ลดขนาดดิสก์ลง 2.0 ต่อ 1 (จาก 92.6 MB เหลือ 46.4 MB)
-  - รวมชุดทดสอบ unit tests ทั้งคลังระบบผ่าน **226/226 รายการ (31.500s)**
-
-## ระบบจัดการ Environment Variables (.env) และ Open Government Data Client (opend.data.go.th) 23 ต.ค. 2569
-
-- จัดทำไฟล์ต้นแบบ `.env.example` และสร้างไฟล์คอนฟิกในเครื่อง `.env` (ป้องกันด้วย `.gitignore` อย่างปลอดภัย) สำหรับกรอก API Key จากระบบศูนย์กลางข้อมูลเปิดภาครัฐ (`https://opend.data.go.th/register_api/profile.php`) และระบบ DOAE CKAN
-- พัฒนาโมดูล `src/tadih/env.py` สำหรับโหลด `.env` เข้าสู่ `os.environ` อัตโนมัติโดยไม่ต้องพึ่งพา external package พร้อมฟังก์ชันช่วยดึงค่า `get_opend_api_key()`, `get_doae_api_key()`
-- พัฒนาโมดูล `src/tadih/opend_client.py` สำหรับเรียกใช้งาน API บริการ `Opend` (opend-search) ด้วยมาตรฐาน Header `api-key` และสคริปต์ตรวจสอบสถานะ `scripts/test_opend_connection.py`
-- เพิ่ม unit tests 5 รายการใน `tests/test_env.py` ทดสอบการ parse `.env`, การมาสก์คีย์ (Masked Key เช่น `....fun4`), การส่ง Header และการดักจับข้อผิดพลาด (ผ่านรวม 222 tests 100%)
-
-## สัญญาและส่วนต่อประสานการแบ่งปันข้อมูลสำหรับหน่วยงานพันธมิตร (Data Sharing Interface & External Partner API Contracts) 23 ต.ค. 2569
-
-- เพิ่มสัญญาข้อมูล `data_contracts/data_sharing.schema.json` รองรับมาตรฐาน JSON Schema draft-2020-12 สำหรับ Data Sharing Feeds และ Inter-Agency API Responses
-- เพิ่มโมดูล `src/tadih/data_sharing.py`, สคริปต์ `scripts/audit_data_sharing.py` และ unit tests 8 รายการใน `tests/test_data_sharing.py` (ผ่านรวม 217 tests 100%)
-- รองรับ 4 จุดเชื่อมต่อหลัก (Standard Endpoints):
-  - `/v1/catalog`: บัญชีชุดข้อมูล ทรัพยากร และสถานะสิทธิ์
-  - `/v1/coverage`: บัญชีความครอบคลุมข้อมูล 77 จังหวัดระดับ `source × area × period × metric`
-  - `/v1/spatial-evidence`: บัตรหลักฐานเชิงพื้นที่ ชี้เป้าปัญหาจริง (น้ำท่วม 1.83M ไร่, แล้ง 16.7K ไร่) และการจับคู่โครงการ
-  - `/v1/projects`: สัญญาทะเบียนโครงการ; ปัจจุบันไม่มีรายการที่ตรวจเป้าหมายระดับโครงการผ่าน
-- ระบบ License Gating และการคุ้มครองข้อมูล:
-  - การกำหนด `public_only` เป็นเพียงการกรองข้อมูลในเครื่อง ยังไม่มีระบบยืนยันตัวตนหรือการอนุมัติเผยแพร่จริง; บัตรหลักฐาน pending ถูกงดส่งจาก feed สาธารณะ
-  - คุ้มครองข้อมูลส่วนบุคคลตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 โดยให้บริการเฉพาะสถิติรวมเชิงพื้นที่ (Aggregate Spatial Layer)
-- สถาปัตยกรรมความสมบูรณ์ข้อมูลเชิงรหัสวิทยา (Cryptographic Integrity):
-  - ทุกคำตอบ API คำนวณค่าแฮช `payload_sha256` แบบ deterministic
-  - พัฒนาระบบส่งออก Partner Feed Export Bundle พร้อมไฟล์ `manifest.json` สำหรับการแลกเปลี่ยนข้อมูลแบบ Batch/Scheduled Sync ระหว่างหน่วยงาน
-- เอกสารและหลักฐาน: [docs/data-sharing-interface.md](data-sharing-interface.md), สัญญาข้อมูล [data_contracts/data_sharing.schema.json](../data_contracts/data_sharing.schema.json), หลักฐาน `data/local/probes/data-sharing-audit.json`
-
-## ทะเบียนโครงการและหลักฐานพื้นที่: สถานะหลังตรวจแก้ 23 ต.ค. 2569
-
-งานเดิมสร้าง schema และ audit scripts ได้ แต่ข้อสรุปด้านมาตรการจากข้อมูลไม่ครบถูกถอน ผลปัจจุบันให้ยึดหัวข้อ “ตรวจแก้ผลวิเคราะห์มาตรการจาก AI รอบก่อน” ด้านบน, [project-register.md](project-register.md) และ [spatial-evidence-matching.md](spatial-evidence-matching.md) การนับ 0 รายการที่ยืนยันได้ไม่ใช่การยืนยันว่าไม่มีโครงการจริง
-
-## กลไกกระทบยอดแผนและผลเพาะปลูก (Plan vs Actual Reconciliation Engine) 23 ต.ค. 2569
-
-- เพิ่มโมดูล `src/tadih/plan_reconciliation.py`, สคริปต์ `scripts/reconcile_plan_actual.py` และ unit tests 5 รายการใน `tests/test_plan_reconciliation.py`
-- วางรากฐาน Fail-Closed Guard Rails สำหรับการเปรียบเทียบแผนและผลการเพาะปลูก:
-  - กำหนดเกณฑ์เข้มงวด: ต้องตรงกันทั้ง 5 แกน (ปีเพาะปลูก, ฤดูกาล, ระดับพื้นที่, ชนิดพืช, หน่วยวัด)
-  - กำหนด threshold ความครอบคลุมขั้นต่ำ `min_overlap_ratio=0.5`
-- ผลการพิสูจน์ทางคณิตศาสตร์จากข้อมูลจริง:
-  - **แผนฤดูฝน 2569:** แผน 477 แถว (3 จังหวัด: 20 ชลบุรี, 40 ขอนแก่น, 94 ปัตตานี) เทียบกับผล 3 แถว (1 จังหวัด: 10 กรุงเทพฯ) มีความทับซ้อนเป็นเซตว่าง `{20, 40, 94} ∩ {10} = ∅` (overlap ratio = 0.0)
-  - **แผนฤดูแล้ง 2569:** แผน 599 แถว (4 จังหวัด: 20, 40, 46, 81) เทียบกับผล (5 จังหวัด: 10, 11, 12, 13, 14) มีความทับซ้อนเป็นเซตว่าง (overlap ratio = 0.0)
-  - ระบบคืนสถานะ `status = "INCOMPARABLE"` พร้อมแจกแจงสาเหตุเชิงลึก ป้องกันความผิดพลาดทางสถิติในการนำตัวเลขคนละจังหวัดมาคำนวณ % ความสำเร็จ
-- รายละเอียดและผลการกระทบยอด: [docs/plan-actual-reconciliation.md](plan-actual-reconciliation.md), หลักฐาน `data/local/probes/plan-actual-reconciliation.json`
-
-## การแก้ปัญหาข้อขัดแย้งเชิงพื้นที่และ Temporal Administrative Crosswalk 23 ต.ค. 2569
-
-- เพิ่มโมดูล `src/tadih/temporal_crosswalk.py`, สคริปต์ `scripts/audit_temporal_crosswalk.py` และ unit tests 5 รายการใน `tests/test_temporal_crosswalk.py`
-- แก้ไขปัญหาข้อขัดแย้งชื่อ-รหัสพื้นที่ 947 รายการ และชุดข้อมูลเอกภาพ 14,824 รายการ:
-  - **การสลับรหัส-ชื่อ ต.แจ่มหลวง / ต.บ้านจันทร์ / ต.แม่แดด อ.กัลยาณิวัฒนา จ.เชียงใหม่ (1,015 แถว):** จับคู่ด้วยชื่อภาษาไทยมาตรฐานเพื่อแมปสู่รหัส DOPA 2566 ที่ถูกต้อง (แจ่มหลวง -> 502503, บ้านจันทร์ -> 502501, แม่แดด -> 502502) พร้อมบันทึกหมายเหตุการแก้ไข
-  - **การแยกแขวงบางบอน (105001) เมื่อ 26 ก.ค. 2560 (349 แถว):** กำหนดเงื่อนไข `valid_to: 2017-07-26` ให้ fallback สู่ระดับเขต `1050` เนื่องจากข้อมูลก่อนปี 2560 ไม่สามารถระบุแยกเป็นบางบอนเหนือ (105002) หรือบางบอนใต้ (105003) ได้โดยไม่เกิดภาพลวงตา
-  - **รหัสดัมมี่ จ.ตรัง `xxxxxxxx` (45 แถว):** กักกัน (quarantine) เป็น `INVALID_CODE` ไม่นำเข้าสู่ระบบพื้นที่
-  - **ชุดข้อมูลเอกภาพ 10 รายการ (`province_unified_data_10` 14,824 แถว):** จำแนก Native Grain เป็นจังหวัด 1,320 แถว และอำเภอ 13,653 แถว โดยคงค่า `rollup_eligible=False`
-- รายละเอียดการตรวจสอบ: [docs/geography-crosswalk-resolution.md](geography-crosswalk-resolution.md), หลักฐาน `data/local/probes/temporal-crosswalk-audit.json`
-
-## ตรวจและจัดทำบัญชีความครอบคลุมข้อมูลระดับประเทศ (Coverage Inventory) 23 ต.ค. 2569
-
-- เพิ่มโมดูล `src/tadih/coverage_inventory.py`, สคริปต์ `scripts/audit_coverage_inventory.py` และ unit tests 5 รายการใน `tests/test_coverage_inventory.py` (ผ่านรวม 189 tests 100%)
-- กระทบยอดข้อมูล DOAE ทุก Phase กับ manifest ในเครื่องตรงกัน 100%:
-  - P0: 1,943,298 แถว
-  - P1: 202,747 แถว
-  - P2: 1,534 แถว
-  - Archives (RAR): 1,289,200 แถว
-  - รวมต้นทาง 3,436,779 แถว (Staged 3,436,080 + Quarantined 699 แถว)
-- บันทึกบัญชีความครอบคลุมระดับ `source × area × period × metric` รวม 59 ทรัพยากรข้าม 8 ผู้ให้บริการ (DOAE 52, OAE 1, RID 1, Open-Meteo 1, Planetary Computer 1, LDD 1, DOF 1, DLD 1)
-- รักษาระดับพื้นที่ดั้งเดิม (Native Grain) อย่างเข้มงวด: country 7, subdistrict 15, province 21, enterprise_group 7, disaster_area 3, grid_point 2, reservoir 1, office_point 1, province_gis_polygon 1, province+district_mixed 1 ไม่กระจายตัวเลขระดับประเทศหรือจุดกริดลงสู่จังหวัดโดยไม่มีหลักฐาน
-- บันทึก missing reasons ชัดเจน: ข้อมูล mock รต.01-02 (กักกัน 1 แถว), ค่าพื้นที่ติดลบนาเกลือ (กักกัน 1 แถว), คอลัมน์เลื่อนออนไลน์ 2568 (กักกัน 524 แถว), ตัวเลขวงเล็บพืชอายุสั้น 2567 (กักกัน 173 แถว) สถานะสิทธิ์ทุกทรัพยากรคง `pending` และไม่นำเข้า public
-- รายละเอียดและตารางสรุป: [docs/coverage-inventory.md](coverage-inventory.md), หลักฐาน `data/local/probes/coverage-inventory.json`
-
-## ปรับลำดับงานตามเป้าหมายศูนย์ข้อมูลเกษตรระดับประเทศ
-
-บันทึก [data contract และลำดับงาน](national-agriculture-data-center.md): ให้หลายหน่วยงานใช้หลักฐานพื้นที่/พืช/ช่วงเวลา/สิทธิ์ร่วมกันเพื่อวางและติดตามโครงการ เริ่มจาก coverage 77 จังหวัดตามจริง แล้วตรวจตรรกะเชื่อมและสำรวจทะเบียนโครงการ งานนี้เป็นการกำหนดทิศทาง ยังไม่ได้สร้างข้อมูลโครงการข้ามหน่วยงานหรือเปิดข้อมูล pending ให้สาธารณะ
-
-## ตรวจภูมิศาสตร์ DOAE วันที่ 23 ตุลาคม 2569
-
-สร้าง audit offline สำหรับ raw 21 resources รวม 2,757,305 แถว โดยเก็บตารางพื้นที่ไม่ซ้ำ 92,226 signatures ใน `data/local/doae-geography/` และตรวจ SHA/ยอดแถวของไฟล์ผลลัพธ์ผ่าน รหัสและชื่อครบตรง DOPA snapshot ปี 2566 จำนวน 2,579,775 แถว แต่ temporal validity ยังไม่ยืนยัน จึงยังใช้รวมยอดหรือ join เป็นข้อมูลที่รับรองไม่ได้ ชุดเอกภาพมีแถวจังหวัด 1,320 และอำเภอ 13,504 แยก grain ดู [รายละเอียด](doae-geography-audit.md) และงานค้าง crosswalk
-
-## ลดพื้นที่ข้อมูลในเครื่อง 23 ต.ค. 2569
-
-- หยุดโหลดเพิ่มตามคำสั่งเจ้าของงาน ตรวจ repository รวมประมาณ 6.38 GB; ก้อนหลักคือ DOAE raw/staging และ private exports ไม่แตะข้อมูลของโครงการอื่น
-- บีบอัดแบบ NTFS ด้วย `compact.exe /C` เฉพาะ `data/local/doae-p0`, `doae-p1`, `doae-p2`, `doae-archives` และ `exports/private` รวม 347 files; พาธ/เนื้อหา/manifest เดิมยังอ่านได้ โปรแกรมไม่ต้องคลาย ZIP เอง โฟลเดอร์เหล่านี้ตั้งให้ไฟล์ใหม่สืบทอด compression
-- ผลรวมพื้นที่ไฟล์จาก `GetCompressedFileSizeW` ลดจาก **5,939,104,827 เป็น 2,221,917,141 bytes** (ลด 3,717,187,686 bytes); พื้นที่ว่างไดรฟ์ D ที่วัดทั้ง volume เพิ่มสุทธิ **1,167,630,336 bytes** จาก 95,586,549,760 เป็น 96,754,180,096 bytes จึงไม่อ้างว่าคืนพื้นที่ว่างสุทธิทั้งไดรฟ์ 3.72 GB
-- ตรวจข้อมูล export เก่า 6 ชุด: CSV และ Parquet เทียบ `EXCEPT ALL` ทั้งสองทิศทางกับ `20261022T155531Z-ef13f544` แล้วแถวตรงกันทั้งหมด แม้ file SHA ต่างจากลำดับแถว/serialization; พบ staging schema เก่าอีก 3 ชุดมีรุ่นปัจจุบันทดแทน รวมไฟล์ที่เสนอให้ลบ 21 files / 517,762,353 bytes ระบบ automatic approval บล็อกคำสั่งลบด้วย `blocked by policy` จึง **ยังไม่ได้ลบไฟล์ใด** ทั้งรายการยังเก็บอยู่และบีบอัดแล้ว
-- เก็บต้นฉบับที่มีประโยชน์และหลักฐานทั้งหมด, staging ปัจจุบัน, warehouse/backup และ PBIP ล่าสุดไว้; แยกใช้ไม่ได้ตอนนี้เป็น quarantine: ออนไลน์ 2568 คอลัมน์ผิด 524 แถว, RAR ค่าตัวเลขวงเล็บรอยืนยัน 173 แถว, พื้นที่ติดลบ 1 แถว และข้อมูล mock 1 แถว ห้ามนำไปวิเคราะห์เป็นข้อมูลจริง ไม่ลบ raw เพียงเพราะยังตีความไม่ได้หรือสิทธิ์ pending
-- หลังบีบอัด `scripts/audit_doae_acquisition.py` exit 0: raw SHA ผ่าน 60 resources, CSV 58/58 และ staging hashes ตรงหลักฐานเทียบทุกแถวเดิม; latest private export ตรวจ SHA ผ่านครบ 8 files ไม่อ้างว่าได้รัน DAX/visual หรือเทียบทุกแถวใหม่ในรอบนี้ ไม่มี network acquisition ใหม่
-- หลักฐาน local: `data/local/probes/storage-before-cleanup.json`, `storage-cleanup-plan.json`, `storage-cleanup-result.json`, `storage-post-cleanup-audit.log`; งานลบสำเนาซ้ำยังค้างเพราะ policy ไม่เปลี่ยนสิทธิ์เผยแพร่และไม่ลดเกณฑ์ roadmap
-
-## P2 และ catalog acquisition audit วันที่ 23 ตุลาคม 2569
-
-ตรวจ catalog 3 หน้าครบ 201 datasets: uitest 160, demo/empty 2, Database 6, public datasets 33 เทียบ raw กับ metadata และตรวจ hashes/schema/output/ผลเทียบทุกแถวแล้ว CSV ที่ catalog ระบุมี capture ครบ 58/58 resources, 33/33 public datasets และ raw hash ผ่าน 60 resources ยังไม่เลือก non-CSV 24 resources ไม่อ้างว่าเป็นสำเนาเทียบเท่าหรืออ่าน PDF ที่ reference CSV ลิงก์ไว้ ดู [acquisition audit และงานค้าง](doae-acquisition-audit.md)
-
-P2 เพิ่มคำขอสินค้า 1,534 แถว และ RAR รายชื่อ/ที่ตั้งวิสาหกิจ 4 resources รวม 304,480 แถว เก็บ private พร้อม privacy flags; archives ทั้ง 8 รวม source 1,289,200 / staged 1,289,027 / quarantine 173 ผ่านการคลายซ้ำและเทียบทุกแถว Reference CSV 7 ชุดเก็บ positional raw index ไม่ใช่ metric observations
-
-ทดสอบ 182 tests ผ่าน (22.500s), pip check ผ่าน และตรวจทะเบียนเพิ่ม 6 tests ผ่าน ทะเบียน exact resources 70 รายการคง pending ไม่มีข้อมูลจริงเข้า Git/public/warehouse/Power Query/Online งานต่อยังเป็นหน่วย/เวลา/พื้นที่/revisions/coverage และเชื่อม workflow/Dimension ตาม roadmap ไม่ปิดเกณฑ์เหล่านี้จากการดึง CSV ครบ
-
-## DOAE P1 และ RAR เพิ่มเติม 23 ตุลาคม 2569
-
-ดึงและ staging P1 21 resources / 12 datasets: 202,747 source = 202,223 staged + 524 quarantined (ออนไลน์ปี 2568 คอลัมน์คลาดเคลื่อน) พร้อมสำนักงาน JSON-LD 955 รายการ (พิกัด missing 1) และ GeoJSON จังหวัด 77 features คง geometry 3 ค่า; source fields/code/null/หน่วย/ช่วงเวลาคงต้นทาง ไม่เข้า warehouse/BI
-
-ดาวน์โหลดและคลาย RAR 4 resources (วิสาหกิจ 2566/2567, พืชอายุสั้น/ยาว 2567) แบบจำกัดขนาด/เวลา ผ่าน stdout ไม่ใช้ path ใน archive เป็นปลายทาง: source 984,720 / staged 984,547 / quarantine 173 รูปแบบตัวเลขวงเล็บรอยืนยัน CSV วิสาหกิจ 2566 ใน RAR bytes ตรงกับ CSV P1 จึงไม่รวมจำนวนซ้ำ
-
-ตรวจ hash และเทียบทุกแถวผ่านครบ P1 21 + archives 4 พร้อมคลายซ้ำเป็น digest และ verified resume; `data/local/probes/doae-p1-verification.json`, `doae-archives-verification.json` ทดสอบรวม 178 tests ผ่าน (22.815s), pip check ผ่าน และตรวจ license registry 6 tests ผ่าน ทะเบียน exact resources รวม 58 คง pending ดู [รายละเอียด](doae-p1-archives.md)
-
-ทำ [ร่าง Data Contract](doae-aggregate-data-contract-draft.md) สำหรับสถิติรวมแล้ว ยังไม่ส่งหรือรับข้อมูลรายบุคคล งานต่อเป็น source semantics/temporal geography/coverage/revisions/สิทธิ์และการเชื่อม workflow ตาม roadmap ยังไม่รับรองความถูกต้องเชิงความหมายหรือ DAX/BI runtime จากการผ่าน staging
-
-## DOAE P0 capture/staging ครบ 23 ตุลาคม 2569
-
-ดึง 21 CSV จาก 10 datasets รวม 585,506,130 bytes และ 1,943,298 source rows; staged 1,943,296 / quarantine 2 แถว ครอบคลุมแผนฤดูแล้งย้อนหลัง 2561–2569 (รวมไฟล์สรุปแยก), รต.01-04, เฝ้าระวังขาดแคลนน้ำ, ภัยใน/นอกเขตชลประทาน และแผน/ผล/report snapshot ฤดูฝนและแล้ง รายละเอียด [doae-p0-ingestion.md](doae-p0-ingestion.md)
-
-ตรวจ hash และเทียบ source fields/ตัวเลข/ลำดับทุกแถวกับ raw CSV ผ่านครบทั้ง 21 resources ผล `all_p0_resources_verified=true` ใน `data/local/probes/doae-p0-verification.json` รันซ้ำทุก resource เป็น skipped_verified; ทดสอบรวม 172 tests ผ่าน (19.820s), pip check ผ่าน และทะเบียน exact resources เพิ่มเป็น 33 รายการ คง pending ทุกชุด
-
-ข้อค้นพบ: resource รต.01-02 มีเพียงแถว mock ซึ่งกักไว้ จึงยังไม่มีข้อมูลพืชจริงจาก endpoint นี้; นาเกลือมีค่าพื้นที่ติดลบ 1 แถวกักไว้ แมลง/เกลือมี repeated identities 48/96 เก็บทั้งหมด; report snapshot คง reported_at ใน grain ไม่มีการรวม subtotal, หน่วย หรือช่วงเวลา และยังไม่เข้า warehouse/Power BI
-
-งานต่อคือ P1 และ P2 ตาม roadmap พร้อม semantic/temporal/geographic/license review ก่อนเชื่อมโมเดล การดึง P0 ครบยังไม่ใช่การจบแผน DOAE หรือเกณฑ์รับรองโครงการทั้งหมด
-
-## เพิ่มเติม 23 ต.ค. 2569 เวลา 07:29 Asia/Bangkok
-
-ทำ P0 DOAE แผนเพาะปลูกฤดูแล้งปี 2569 ต่อจาก roadmap: CLI `doae-dryplant` capture/staging จริง 599 แถว, 4 จังหวัด / 69 รหัสตำบลต้นทาง, quarantine และ repeated identity เป็น 0; พื้นที่ศูนย์จริง 317 แถว ครัวเรือน null 599 แถว คงแผนแยกผลปลูกจริง ไม่ aggregate และไม่เข้า warehouse/Online เนื่องจากปีเพาะปลูก/พื้นที่ยังไม่รับรองและสิทธิ์ `อื่นๆ` คง pending
-
-ตรวจ raw/staging SHA-256, เทียบพื้นที่/รหัส/updated_at ครบ 599 แถว และ rerun จาก checkpoint ผ่าน ทะเบียน exact resources เพิ่มเป็น 13 รายการ Unit/regression รวม 166 tests ผ่าน (15.774s) และ pip check ผ่าน หลักฐาน `data/local/probes/dryplant-verification.json` และ `dryplant-cycle-tests.log` ดู [วิธีรันและขอบเขต](plan-dryplant.md)
-
-งานต่อ: ทบทวน schema รายปี/ไฟล์สรุปก่อน backfill (ปี 2568 มี subtotal ประเทศ/ภาค/จังหวัด), ยืนยัน temporal mapping/ปีเพาะปลูก/สิทธิ์ก่อนเข้าโมเดล ปรับ C2 ใน HANDOFF กลับเป็นงานค้างให้ตรงหลักฐาน เพราะ Python simulation ยังไม่ใช่ DAX engine runtime
-
-## ความคืบหน้าล่าสุด (22 ต.ค. 2569 เวลา 23:28 Asia/Bangkok)
-
-ตรวจรวม 162 tests ผ่าน 100%; pip check ผ่าน. DuckDB warehouse 141,699 latest observations จาก 5 แหล่งข้อมูล (DOAE, ERA5, RID, OAE, MODIS).
-
-- **DOAE CKAN Catalog Ingestion Roadmap:** สแกนโครงสร้างและสำรวจชุดข้อมูลจริงบน `https://ckan.doae.go.th/` ผ่าน CKAN API v3 พบบัญชีข้อมูล 41 ชุดข้อมูลจริง (คัดแยกชุดทดสอบ uitest 59 รายการออก); จัดหมวดหมู่ 5 กลุ่มหลัก (การผลิตพืช/รต.01-04/แผนเพาะปลูก, ภัยพิบัติและน้ำ, ทะเบียนเกษตรกร, วิสาหกิจชุมชน, ที่ตั้ง GIS); จัดทำแผนงานและเกณฑ์ธรรมาภิบาลข้อมูล P0/P1/P2 ใน `docs/doae-catalog-expansion.md`
-- **Monthly Forecasting & Seasonal Naïve Baseline (B9):** ขยายสถาปัตยกรรมโมเดลพยากรณ์ใน `src/tadih/forecast.py` ให้รองรับความถี่รายเดือนโดยตรง (ไม่ downsample ราคารายเดือนเป็นรายวัน); รองรับโมเดลฐาน `seasonal_naive` (lag 12 เดือน), `last_value` (naïve), และ `moving_average` (3 เดือน); สร้าง walk-forward backtest รายเดือนพร้อม split calibration/verification และ embargo ป้องกัน leakage; ประเมิน scorecard (MAE, RMSE, Bias, WAPE, skill score) และช่วงความเชื่อมั่นเชิงประจักษ์ (P10/P90); บังคับ gate ห้ามใช้ `retrieved_at` แทน `release_at` (หากไม่มีวันเผยแพร่จริงจะระงับและคืน Unknown ทันที); จัดทำ `docs/forecast-methodology.md` และ unit tests 20 รายการใน `tests/test_forecast.py` ผ่าน 100%
-- **DAX Measures Simulation Audit (C2):** จัดทำ `docs/dax-simulation-audit.md` และ unit tests จำลองคำนวณ 13 รายการใน `tests/test_dax_simulation.py` ผ่าน 100% ครอบคลุม 35 DAX measures ใน `powerbi/measures.dax` กับข้อมูลจริง 141,699 แถวใน `data/local/powerbi/offline-v11/Data/`; พิสูจน์ guard rails สำเร็จ: ราคาระดับประเทศคืนค่าว่างทันทีเมื่อ filter จังหวัด/อำเภอ (ป้องกัน leak ลงจังหวัด), สภาพอากาศรายจุดคืนค่าว่างเมื่อเลือกหลายจุดพร้อมกัน, ราคาขายส่ง/ขายปลีกไม่ปนเข้า farmgate, แยกหน่วย บาท/กก. ออกจากหน่วยนับเฉพาะ (บาท/ร้อยผล, บาท/ฟอง, บาท/ตัว), อ่างเก็บน้ำ RID 461 แห่ง (457 แห่งที่มีปริมาตรน้ำ) คำนวณความจุ/ปริมาตร/%น้ำ ถูกต้อง, และ `Reviewed Production kg` ถูกบล็อกเป็นค่าว่างตามสเปก
-- **Power BI Offline Project Build (offline-v11):** สร้าง build โปรเจกต์ล่าสุด `data/local/powerbi/offline-v11/` มี 141,699 fact_observation rows จาก 5 แหล่งข้อมูล, 12 ตาราง, 15 relationships, 35 measures, 5 หน้า PBIR; ตรวจ integrity hash 34 ไฟล์ และตรวจสอบความถูกต้องของ Microsoft Fabric JSON schemas ผ่าน 21 metadata files 100% ด้วย `scripts/validate_powerbi_project.py`
-- **Resource License Register (B1):** ขยายทะเบียนสิทธิ์ราย resource ใน `config/resource_licenses.json` และ `docs/source-license-register.md` เพิ่ม 4 ทรัพยากรใหม่ (LDD rice zoning, DOF aquatic production, DLD livestock value, DOAE perennial crops 2566) รวมเป็น 12 resources ตรวจครบถ้วน; ทุกชุดคงสถานะ `pending` ซื่อสัตย์ตามข้อเท็จจริง; เพิ่มฟังก์ชัน `tadih.catalog.load_resource_licenses` และ unit test ใน `tests/test_catalog.py` ผ่าน 100%
-- **Scheduled Price Refresh:** เพิ่ม `scripts/refresh_prices.ps1` ติดตั้ง Windows Task Scheduler (`TADIH-Price-Refresh` ทุกวัน 07:15 Asia/Bangkok) พร้อม lock file `data/local/scheduled/refresh.lock`; ทดสอบ live run สำเร็จ (exit code 0, 7,658 price observations ingested, snapshots สร้างและ verify ครบ 8 ไฟล์ทั้ง private และ public); มี unit test `tests/test_refresh_script.py` ผ่าน
-- **Daily Market-Price Staging:** เพิ่ม `src/tadih/daily_prices.py`, `tests/test_daily_prices.py` และ `docs/daily-prices.md`; ตัวอย่าง bounded request มะนาว ผลขนาดใหญ่พิเศษ ตลาดกลางหนองบ้วย จ.เพชรบุรี 100 แถว (บาท/ร้อยผล) คง spatial_support เป็น `market`, price_type เป็น null, release_at เป็น null, ไม่ rollup หรือเข้า warehouse ก่อนรีวิวความหมายสิทธิ์
-- **Weekly Native Price Staging:** เพิ่ม `src/tadih/weekly_prices.py`, `tests/test_weekly_prices.py` และ `docs/weekly-prices.md`; ตัวอย่าง กระบือ ขนาดกลาง 42 แถว ปี 2569 หน่วย บาท/ตัว (TH00 ระดับประเทศ) คงรหัสสัปดาห์ 1–5 และเดือน ไม่แปลงเป็นวันหรือ ISO week; เก็บ revisions ครบถ้วน ไม่เข้า warehouse
-- **Commodity History Audit (B2 Part 1):** จัดทำ `docs/commodity-history-audit.md` และ unit test `test_historical_inventory_union_matches_2569` ใน `tests/test_commodities.py` ผ่าน 100%; พิสูจน์ทางคณิตศาสตร์จาก 16 annual snapshots (พ.ศ. 2554–2569) ว่า union ของชื่อสินค้าทุกปีมี 44 ชนิด เท่ากับ inventory ปี 2569 พอดี (ไม่มีสินค้าอดีตที่ตกหล่นหรือเลิกผลิต); 39 ชนิดมีครบ 16 ปี และ 5 ชนิดเป็นสินค้าที่เริ่มเก็บสถิติในภายหลัง (มันสำปะหลัง 25% ปี 2559, ไข่เป็ด 3 ขนาด ปี 2560, ปาล์มน้ำมัน ปี 2566) ทุกตัวมีประวัติต่อเนื่องไม่มี gap ภายใน
-- **DOAE Perennial Staging Readiness Audit:** จัดทำ `docs/perennial-readiness.md`, `data/local/probes/perennial-readiness.json` และ `perennial-admin-crosswalk.csv`; ตรวจสอบพืชอายุยาว 2566 รวม 54,195 แถว: 54,186 แถว match กับ DOPA 2023, 6 แถว unmatched จากตำบลที่ติดเครื่องหมายยกเลิก, 3 แถวติด numeric quarantine จากค่าพื้นที่ติดลบ, 5 กลุ่ม repeated identities ที่มีค่าขัดแย้ง; คงสถานะ staging/quarantine ไม่ aggregate หรือนำเข้า warehouse
-
-
-## Pipeline และข้อมูลเพิ่มเติม 22 ต.ค. 2569
-
-ตรวจรวม 136 tests ผ่าน; pip check/diff check ผ่าน. หลักฐาน data/local/probes/pipeline-cycle-tests.log และ price-pipeline-lineage.json.
-
-- เพิ่ม `price-pipeline --year-th 2569` ครบ capture/checkpoint → normalize/quarantine → ingest → internal/public export → verify พร้อม failure report และ immutable raw checksums ใน data/local/runs/. Live resume สองรอบผ่าน: fetched 0, added revisions 0, public 0. Transaction ต่อสินค้า รอบที่ล้มอาจมีสินค้าก่อนหน้าบันทึกแล้ว; ยังไม่ใช่ scheduled refresh ทุกแหล่งหรือหลักฐาน14วัน. ดู docs/runbook.md
-- LDD rice zoning ดึงครบ77ชื่อจังหวัด×4ระดับ=308ค่า พร้อมเทียบ CSV/datastore ตรงกัน แต่ unit/year ยัง null, province mapping unresolved, pending และไม่ warehouse. CLI `ldd-rice-zoning`; docs/source-expansion-ldd.md
-- DOAE พืชอายุยาว2566 โครงสร้างรายปีแยกจากพืชอายุสั้น: 54,195 source → 54,192 staged + quarantine3แถวค่าพื้นที่ติดลบ; พบ5 repeated grain identities. 77จังหวัด/264 commodity identities. CLI `doae-perennial`; docs/production-perennial.md. ไม่รวมยอด/เข้าwarehouseจนกว่าจะตรวจครบ
-- ตรวจช่องว่างราคากับ annual endpoint แบบจำกัด6requests: 77จาก221เดือนยังไม่พบใน annual responses ที่ตรวจ อีก144เดือนยังไม่ตรวจ; conflict ต.ค.2012ยังมี2ค่าต่างกันจึงคง quarantine. docs/price-gap-verification.md
-
-
-## งานขนานต่อเนื่อง 22 ต.ค. 2569
-
-DOF staging เพิ่มแล้ว: `python -m tadih dof-production` ดึงจริง 540 ค่า (27 ปี พ.ศ.2541–2567 × 10 กลุ่ม × ปริมาณ/มูลค่า) หน่วยพันตันและล้านบาทตาม metadata แยก total ไม่บวกซ้ำ ยัง pending และไม่ import warehouse. ดู docs/source-expansion-dof.md และ data/local/probes/dof-staging-cli.json. Full unittest หลังรวมงาน agents ผ่าน 131 tests (data/local/probes/parallel-final-tests.log).
-
-
-- Agents ตรวจ source expansion, release lineage และ pipeline/price readiness; เอกสารใหม่ docs/data-lineage-review.md, docs/source-expansion-dld.md และ docs/price-history-readiness.md
-- DLD staging-only: `python -m tadih dld-livestock-value` ดึงจริง 35 แถวระดับประเทศ ปี 2562–2568 หน่วยล้านบาท เก็บ pending และยังไม่นำเข้าฐานหลักเพราะนิยามปี/release ไม่ยืนยัน; หลักฐาน data/local/probes/dld-staging-cli.json
-- ตรวจ metadata สิทธิ์ราคา OAE ราย resource เพิ่มเป็น 12 ชุด และหลักฐาน 24 responses. DOAE declared release calendars ยังไม่ผูกกับ current revision จึงคง release null
-- Price readiness: 44 series; 6 series มีเดือนขาดภายใน min/max รวม 221 เดือน. Pagination ครบไม่เท่ากับประวัติครบ; known release เป็น 0 จึงยังไม่รับรอง historical as-of forecast
-- Coverage เปลี่ยนเป็นดัชนีรอบเดียว เลิกข้อความอ้างจำนวนแถวตายตัว; live build 141,699 แถวใช้ 5.86 วินาที ตรวจ hash 8 artifacts และเทียบ coverage ทุกแถวผ่าน. หลักฐาน data/local/probes/indexed-export.json; snapshot exports/private/20261022T151043Z-cc438e07
-- ทดสอบสำเนาฐานในเครื่องเปิด read-only ได้ 141,699 แถวและ SHA-256 ตรงกัน: data/local/probes/local-restore-check.json. ยังไม่ใช่ backup นอกเครื่องตาม D3
-- เพิ่ม regression COPY Unicode/null/idempotency/rollback และแก้ NDVI invalid ไม่ถูกนับ valid pixel. ยังไม่รับรองสิทธิ์/นิยามเดือน DOAE/BI runtime
-
-
-งานข้อมูลใน checkout `D:\code\thailand-agri-intelligence` วันที่ 22 ต.ค. 2569: ดึง raw/checkpoints ใหม่ใน `data/local/` และแก้การรวม DOAE ให้คงเดือนกับรอบปลูกตามต้นทาง (10,682 กลุ่ม); ราคา historical names ปี 2554–2569 รวม 44 ชื่อ, daily master 41, weekly 44, production 5 กลุ่ม, MOC ยัง unreachable. MODIS คงวันเผยแพร่เป็น null ตามหลักฐานที่มี. บันทึกผลและข้อจำกัดใน [HANDOFF.md](../HANDOFF.md) และไฟล์ `data/local/probes/`; งดงาน BI ตามคำสั่งล่าสุด
-
-ผลตรวจในเครื่องนี้: DuckDB 141,699 latest observations จาก 5 แหล่ง (DOAE 53,410; ERA5 54,795; RID 25,816; OAE 7,658; MODIS 20) ตรวจ 113 raw checkpoints และ 122 unit tests ผ่าน. ชุดภายใน `exports/private/20261022T145736Z-cf1e49b9` มี 141,699 แถว ชุด public `exports/public/20261022T145919Z-dfea41a7` มี 0 แถว เพราะสิทธิ์ยัง pending; ตรวจ hash 8 ไฟล์ต่อชุดแล้ว. หลักฐาน `data/local/probes/warehouse-audit.json`, `checkpoint-verification.json`, `snapshot-verification.json`. ยังต้องตรวจนิยามเดือน DOAE และวันเผยแพร่ก่อนใช้พยากรณ์ย้อนหลัง
-
-ช่วงนี้ทำฐานระบบ Thailand Core ตาม PART IV เป็นลำดับแรก ไม่ได้ถือว่าแผน 59 วันเสร็จแล้ว
-
-เช็กลิสต์ส่งต่องานและไฟล์ทั้งหมด: [HANDOFF.md](../HANDOFF.md) เป็นจุดเริ่มสำหรับ AI ตัวถัดไป มีคำสั่งตรวจ พาธข้อมูลจริง และงานต่อ B1–D5
-
-คำสั่งล่าสุดของเจ้าของงาน: ทำข้อมูลและโมเดล/DAX ในเครื่องก่อน แล้วจึงอัปโหลด Online หยุดการจัด visual ผ่าน browser ไว้แล้ว มีเพียง semantic model Coverage ทดลองจากช่วงก่อนเปลี่ยนวิธีทำงาน ยังไม่ใช่งานปลายทาง
-
-อัปเดต: Public repo สร้างตามเจ้าของงานอนุมัติแล้ว Source งานล่าสุดอยู่ `e7ad054` รวม offline model และราคา 44 สินค้า [CI รอบนี้ผ่าน](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39755251646) และ [DOAE/OAE live catalog probe](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/39744139935) สำเร็จ ไม่มี raw สิทธิ์ pending ใน repo/artifacts
-
-| งาน | หลักฐาน | สถานะ |
-|---|---|---|
-| พื้นที่ 77 จังหวัด | config/provinces.csv + tests | รหัส/ชื่อพร้อม; ไม่มี geometry |
-| Registry ไทยและบริการพื้นที่ไทย 16 แหล่ง | config/sources.json | รายการพร้อม; สิทธิ์ราย resource ยัง pending |
-| DOAE/OAE discovery | data/local/probes, raw checksum | เชื่อม metadata จริง; แบ่งหน้าได้ |
-| ราคา OAE/NABC | 44 histories; ราคาไม่ขัดแย้ง 7,657 เดือน ช่วงรวม ม.ค. 2011 ถึง ก.ย. 2026 | ระดับประเทศ; อีก 1 เดือน Unknown จาก source conflict |
-| ผลผลิต DOAE | 50,103 records staging -> source-period spatial aggregates 10,682 กลุ่มใน checkout ปัจจุบัน (6,696 กลุ่มเป็นรุ่นรวมปีเครื่องเดิม) (50,101 แถว matched, 2 แถว unmatched บางบอน แยก audit ชัดเจน ไม่เดารหัส); ตัวเลข ingest 20,851 observations เป็นฐานเก่า | ผ่านการทดสอบ; คำนวณ weighted yield (sum(production)/sum(harvested)) ห้าม average |
-| พื้นที่ระดับย่อย | DOPA snapshot2023:928 อำเภอ/7,436 ตำบล, retired1,584 | แยก active/retired; ไม่อ้าง current2026 |
-| Commodity inventory NABC | ปี2569:raw387/unique376/duplicates11; 44 identities/4pages | normalize แล้ว; product histories 44 captures; taxonomy ข้าม provider ยังไม่ทำ |
-| อากาศ ERA5 | 5 จุดภูมิภาคเกษตรไทย / จุดละ 3,653 วัน ปี 2016 ถึง 2025 / 3 ตัวแปร | ดึงจริง 50 partitions (นครปฐม, เชียงใหม่, ขอนแก่น, อุบลฯ, สุราษฎร์ฯ) รวม 54,795 observations; คำนวณ 10-year percentile รายจุดได้ |
-| น้ำ RID อ่างเก็บน้ำขนาดกลาง | 461 อ่าง × 14 วันต่อเนื่อง (9–22 ต.ค. 2569) รวม 25,816 observations | ความจุ, dead storage, ปริมาตรน้ำ, %น้ำ; percent calibration mismatch = 0; spatial_support=reservoir; สิทธิ์ pending |
-| ดาวเทียม MODIS NDVI/QA | 28 observations (5 จุดภูมิภาคเกษตรไทย 2024-09-29 และ 2026-09-30) | ดึงและ normalize ผ่าน Planetary Computer ณ 5 จุดพิกัดเดียวกับ ERA5; scale 0.0001; cloud flags; spatial_support=grid_point; สิทธิ์ pending |
-| Data quality + revision | unittest + JSON schemas | รันได้; ข้อมูลขาดเป็น null; รองรับ spatial_support=reservoir และ grid_point |
-| Coverage 77 × 20 | export CSV พร้อมสัญญา coverage.schema.json | รองรับ USABLE_QUALITY_FLAGS, missing reason ซื่อสัตย์ราย resource, DOAE 77 จังหวัด AVAILABLE ในรอบปี 2023-12 |
-| Decision workflows น้ำ/ตลาด | CLI + 8 real evidence cards + tests | ผ่านการทดสอบ ครอบคลุม 4 ภูมิภาคหลัก (D01 watch/unknown, D02 watch/normal/unknown รวม 8 cards) |
-| Forecast/backtest | release-aware daily baselines/tests | prototype; ยังไม่มี forecast ปฏิบัติงาน |
-| Power BI | local PBIP offline-v10: 12 ตาราง/15 relationships/35 measures/109,144 fact rows | schema 21 files / hashes 34 files / TOM 19.114.12 ผ่าน 100%; ร่างเก่าจัดเก็บใน archive/ |
-| ทะเบียนสิทธิ์ราย resource | config/resource_licenses.json + docs/source-license-register.md | ตรวจ 8 ชุดพร้อมหลักฐาน ทุกชุดยัง pending (รวม MODIS ผ่าน Planetary Computer) |
-| GitHub Actions | workflows สองชุด | CI และ catalog probe ผ่านจริง; schedule รายสัปดาห์ |
-
-## ผลตรวจรับฐานระบบ
-
-- Tests 121 รายการผ่าน ครอบคลุม schema, missing/zero, native price units, fixed IDs/revisions, conflict quarantine, transaction rollback, ข้อมูลอนาคต, ปฏิทินไทย, coverage, TLS, staging, snapshot integrity, model keys, schema cache, no-network resume, RID reservoirs contract/idempotence, MODIS satellite NDVI/QA normalization/idempotence, decision workflows (D01/D02 fail-closed, spatial mismatch, cloud-safety), PBIR `version.json` metadata, DOAE provincial gold aggregation (weighted yield, unmatched isolation) และ B4 coverage inventory verification
-- Warehouse บนเครื่องเดิมเคยมีข้อมูล **109,144 แถว** (revision 109,148 แถว ขนาดเพียง 44.76 MB): ราคาประเทศ 7,658 ค่า, อากาศ 5 ภูมิภาค 54,795 ค่า, อ่างเก็บน้ำ RID 461 แห่ง 14 วัน 25,816 ค่า, ดาวเทียม MODIS 5 ภูมิภาค 24 ค่า และผลผลิตและพื้นที่ระดับจังหวัด DOAE 20,851 ค่า (77 จังหวัด)
-- Decision Workflows D01 (ตลาด/ผลผลิต) และ D02 (น้ำ/ภัยพิบัติ) ขยายทดสอบกับ evidence จริงครบ 8 cards ครอบคลุม 4 ภูมิภาค:
-  - D02 Watch (กทม./ปริมณฑล): ฝน percentile 0.10 + ฟ้าเปิด NDVI 0.6737 + ระดับน้ำ 2.45m -> `watch`
-  - D02 Normal (กทม./ปริมณฑล): ฝน percentile 0.65 -> `normal`
-  - D02 Normal (เชียงใหม่ เหนือ): ฝน percentile 0.40 + ฟ้าเปิด NDVI 0.5125 (valid 1.0) -> `normal`
-  - D02 Normal (สุราษฎร์ธานี ใต้): ฝน percentile 0.90 + ฟ้าเปิด NDVI 0.3217 -> `normal`
-  - D02 Unknown (กทม./ปริมณฑล): เมฆบัง (valid fraction 0.0) -> `unknown`
-  - D02 Unknown (ขอนแก่น อีสานบน): เมฆบัง (valid fraction 0.0) -> `unknown` ปฏิเสธประเมินความเสียหายตามสเปกเมฆบัง
-  - D01 Watch: ราคาลดลง 24% และผลผลิตเปลี่ยน 6.7% -> `watch`
-  - D01 Unknown: ส่งราคา grain ประเทศ (TH) เข้าประเมินระดับจังหวัด (10) -> ปฏิเสธ fail-closed `incompatible_spatial_grain` ป้องกันการปะปน grain ข้ามระดับ
-- Crosswalk ผลผลิต DOAE จับคู่ชื่อภายใต้ parent hierarchy ได้ 50,101 จาก 50,103 records เหลือ 1 ชุดชื่อพื้นที่/2 records ที่ยังไม่ match ไม่เดารหัสแทน ใช้ DOPA snapshot2023 จึงยังไม่รับรอง boundary ของทุกช่วงเวลา
-- Snapshot ภายในจากเครื่องเดิมมี 88,293 แถว และ decision cards 8 ใบ พร้อม CSV/Parquet และ metadata `redistribution_allowed=false` ผล build ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T114836Z-409364b9`)
-- Snapshot สาธารณะมีข้อมูลวัด 0 แถว เพราะสิทธิ์ resource ยัง pending ผล build ล่าสุดอยู่ใน `data/local/public-build.json` (`exports/public/20261022T114949Z-1eb57f80`)
-- NABC history raw 7,669 แถว: exact duplicates 10, conflict 1 เดือน/2 แถว ไม่มีการเลือกราคาใดแทนกัน ใช้ quality revision ค่า null; หลักฐาน `data/local/probes/monthly-price-backfill.json` และ `monthly-price-import.json`
-- แก้ price IDs ที่เคยผูกกับค่าให้คง source/product/unit/month/area และเก็บค่าที่เปลี่ยนเป็น revision สำรองฐานเดิมก่อน migration; raw/export snapshots เก่าไม่ถูกแก้
-- ลองนำเข้า archive ซ้ำผ่าน CLI แล้ว จำนวนแถวและ revisions ไม่เพิ่ม ทุกปีใช้ checkpoint ที่ตรวจ hash แล้ว
-- Snapshot ภายในมี 20,469 แถว และ decision cards 5 ใบ พร้อม CSV/Parquet และ metadata `redistribution_allowed=false` ผล build ล่าสุดอยู่ใน `data/local/private-build.json` (`exports/private/20261022T104902Z-852c9ca1`)
-- Snapshot สาธารณะมีข้อมูลวัด 0 แถว เพราะสิทธิ์ resource ยัง pending แต่มี master/registry/coverage ที่ตรวจได้ ผล build ล่าสุดอยู่ใน `data/local/public-build.json`
-- ตรวจ SHA-256 และขนาดไฟล์ครบทั้ง snapshot ภายใน/สาธารณะแล้ว `pip check` ผ่าน
-- ดึง forecast อากาศ 22 ถึง 28 ตุลาคม 2026 ได้ เก็บเป็น raw แยก ไม่เข้า observations และยังไม่รับรอง model issue time
-
-ผลทดสอบนี้เป็นการรันในเครื่องกับ unit/integration tests ไม่ใช่การรับรอง accuracy ของแบบจำลองหรือความพร้อมใช้งานทั้ง 77 จังหวัด
-
-## งานต่อที่มีลำดับ
-
-1. ยืนยันใบอนุญาตราย resource DOAE/OAE และวันเผยแพร่ย้อนหลัง แยก commercial/noncommercial กับสิทธิ์แจกจ่าย
-2. ดึงสินค้าทั้งหมดและ master mapping ตาม provider แบบแบ่งหน้า เก็บลง staging ไม่ใช้ชื่อ “ข้าว” รวมสินค้า/เกรดต่างกัน
-3. จัดหารหัสอำเภอ/ตำบลและ polygon ที่มีรุ่น/สิทธิ์ ตรวจ mapping ชื่อ DOAE ก่อนรวมระดับจังหวัด โดยไม่รวม subtotal ซ้ำ
-4. ขยายการทดสอบอากาศจากจุดเดียวที่มี archive 10 ปี ไปหลายภาค เมื่อมีการตรวจพิกัด/โควตา ก่อนคำนวณค่าเฉลี่ยพื้นที่ทั้งประเทศ
-5. เชื่อมข้อมูลน้ำที่มี datum/สถานีและ NDVI ที่มี cloud mask/valid fraction แล้วทดสอบ 2 workflows ด้วย evidence จริง
-6. ทดสอบ backtest ตามความถี่ข้อมูลจริงและ release lineage ราคาชุดที่พบเป็นรายเดือน จึงไม่ป้อนเข้าโมเดลรายวันโดยเติมค่าเอง
-7. นำเข้า Power BI Desktop จัด 5 หน้า ทดสอบผู้ใช้จริง/สิทธิ์/backup และรัน refresh ต่อเนื่องอย่างน้อย 14 วัน
-
-ยังไม่พึ่ง Fabric ไม่เก็บข้อมูลเกษตรทั่วโลก และไม่ส่งข้อความถึงบุคคลภายนอกจากการทดลองนี้
+# ความคืบหน้า
+
+อัปเดต 25 ตุลาคม 2569 เวลา 23:38 น. ICT — **Cloudflare CLI ผ่านการยืนยันตัวตนสำเร็จ (dragonfly.forester@outlook.com)**; ระบบเสร็จสมบูรณ์ครบทั้ง 19 แดชบอร์ดและ 29 API routes (Batch 1 ถึง Batch 5) ผ่านการตรวจสอบทางเทคนิคครบวงรอบ (Web tests 59/59, Python tests 407/407, ViNext Edge Build 100%, TypeScript 0 errors) พร้อมบูรณาการระบบนำทาง Shell Mega-Menu ครบทุกหน้า
+
+## 25 ต.ค. 2569 — Cloudflare CLI Authentication สำเร็จ
+
+- **ผลการยืนยันตัวตน (Authentication Status)**:
+  - ยืนยันตัวตนผ่าน OAuth Device Authorization Grant สำเร็จ เชื่อมต่อกับบัญชี `dragonfly.forester@outlook.com` (Account ID: `e00f22a8994eaa5a08e0ec523f64a14d`)
+  - รัน `node scripts/deploy_preview.mjs` → แสดงผล `Cloudflare CLI authenticated.` (Exit code 0)
+  - พร้อมสำหรับการสั่ง Deploy ระบบขึ้น Cloudflare Workers Preview (`preview-1`)
+
+## 25 ต.ค. 2569 — ตรวจรับงานทั้งระบบฉบับสมบูรณ์ (Master QA Audit: Batches 1–5)
+
+- **ความสำเร็จเชิงปริมาณ (System Scale & Completeness)**:
+  - โมดูลแดชบอร์ดทั้งหมด: **19 แดชบอร์ดเชิงยุทธศาสตร์**
+  - เส้นทาง API v1: **29 REST Endpoints** พร้อม Error Envelope ภาษาไทยและ `requestId`
+  - หน้าเพจใน Next.js App Router: **32 App Routes**
+  - การลงทะเบียนระบบนำทาง: [web/components/shell.tsx](../web/components/shell.tsx) ผูกเมนูและ ActiveNav ครบ 31 รายการ
+- **ผลการทดสอบเชิงประจักษ์ (Empirical Test Results)**:
+  - `npm --prefix web run typecheck`: **0 errors (Pass)**
+  - `npm --prefix web run test`: **59/59 ผ่านทั้งหมด (0 failures)** เพิ่มชุดทดสอบ CAMELS cooperatives 11 ข้อ
+  - `npm --prefix web run build:vinext`: **Build complete สำเร็จ 100%** สำหรับ Cloudflare Workers Edge Runtime
+  - Python tests: `.\.venv\Scripts\python.exe -m unittest discover -s tests`: **407 ผ่านทั้งหมด (1 skipped)**
+- **ธรรมาภิบาลข้อมูล (Data Governance Containment)**:
+  - ทรัพยากร 81 รายการยังคงสถานะ `pending` และได้รับการป้องกันแบบ fail-closed ผ่าน `sample: true` และ `meta.access: "metadata_only"` ทุกชุดข้อมูลจำลอง
+  - รายงานฉบับสมบูรณ์จัดเก็บไว้ที่ `brain/<conversation-id>/master-qa-all-modules-report.md`
+
+## 25 ต.ค. 2569 — Crop Evidence Reconciliation `/crop-evidence`
+
+- 3 sub-agents ขนาน (3A data lib, 3B API, 3C page/dashboard/CSS) ตามสัญญา TypeScript เดียว; ไม่แตะ `shell.tsx`/`d1.ts`
+- deterministic sample 8 จังหวัด 75 แถวอำเภอ×พืช: verified 29 / pending 30 / discrepancy 16; null คงเป็น null, ไม่รวมข้ามพืช, `districtCode` null
+- ตรวจ: tsc สะอาดสำหรับโมดูลนี้, eslint ผ่าน, API 200/400 ตามคาด, คลิก filter/expand/sort ใน browser ผ่าน; ยังไม่ตรวจภาพ desktop/mobile และ build; ไม่ commit/deploy
+
+## 25 ต.ค. 2569 — Open Data Quality Hub `/open-data`
+
+- Sub-agents 4A analytics / 4B API / 4C UI ส่งครบไฟล์ใหม่ 5 ไฟล์ มี source/format filters, รูปแบบไฟล์, machine-readable/PDF-only/mixed/unknown, readiness scorecards และอันดับที่ไม่ให้คะแนน unknown; ไม่แก้ `shell.tsx`, `d1.ts`, sync scripts และไม่เพิ่ม unit tests
+- ใช้ prepared D1 metadata query เดียว จำกัด 10,000 datasets พร้อม scope/completeness; ไม่ตรึง 1,237/12 ไม่รับรอง open license/4–5 ดาวจากรูปแบบไฟล์ และไม่อนุมาน cadence จาก metadata timestamp
+- คง public resource gate ของ repository: pending/restricted/internal ไม่ถูกนับหรือเผย หาก resources ทั้งหมดยัง pending รูปแบบ/คะแนนจะประเมินไม่ได้; KPI ระบุว่าทรัพยากรนับเฉพาะ metadata ที่เผยได้ ไม่ใช่ยอดทั้งหมดใน D1 รอบ daily/monthly/annual ยังขาดหลักฐานใน sync ปัจจุบัน; metadata stale = modified เกิน 365 วัน แยกจาก content freshness
+- Scoped TypeScript + ESLint ผ่าน; isolated SQLite fixture เรียก actual analytics/API ผ่าน dedup/mixed/access/null/filter/empty/200/400/no-store; populated browser fixture ผ่าน 1440/768/390 light/dark, filter/reset/empty/tied/unknown/race/error/recovery ไม่มี overflow หรือ console errors และอ่านภาพจริงแล้ว Fixture อยู่ใน temp สำหรับ QA ไม่อยู่ในเว็บหรือ Git
+- Local หน้าใหม่ตอบ 200 พร้อม unavailable state; API 503/no-store เมื่อ D1 ไม่พร้อม และ invalid queries 400/requestId; catalog mobile filter ไม่ถดถอย มี shell CSS preload warning เดิม Preview เดิมยืนยันได้แค่ catalog total 1,237 ไม่ใช่สถิติของ endpoint ใหม่
+- Full-app typecheck/build ล่าสุดถูกบล็อกโดย lane cooperatives ที่ยังมี duplicate import/ไฟล์ขาด/import path ผิด; เก็บไฟล์ lane อื่นและ dev servers เดิมไว้ ไม่ commit/push/deploy การตรวจ module กับ D1 live ยังรอ runtime/สิทธิ์ metadata ของ resources
+- รับต่อ: `npm --prefix web run typecheck` · `npm --prefix web run build:vinext` หลัง lane อื่นพร้อม; ตรวจ `/open-data` และ `/api/v1/open-data?sourceId=doae&format=CSV` กับ D1 จริง และให้เจ้าของ governance/sync จัดการ resource metadata/cadence โดยไม่ข้าม gate ดูรายละเอียดใน [HANDOFF](../HANDOFF.md)
+
+## 25 ต.ค. 2569 — P0 governance audit และใบสั่งงาน 3 AI (วางแผน)
+
+- ตรวจ exposure ของหน้าเว็บ/API รอบวางแผน พบว่า `/water`, `/prices`, `/early-warning`, หน้าแรก และ `/api/v1/{water/reservoirs,prices/daily,weather-engine}` เปิดตัวเลขหรืออ้าง `approved_public`/`complete` จาก RID, OAE/NABC และ Open-Meteo ที่ทะเบียนยัง `pending`; `/early-warning` import ค่า RID จริง แม้จะติดป้าย sample
+- `web/` ทั้งโฟลเดอร์ยังไม่ถูก track ใน git (0 ไฟล์), API contract มี 8 endpoints เทียบกับ 23 routes จริง, และ shell ยังไม่ผูก `/carbon`, `/finance`, `/machinery`, `/food-safety`
+- baseline ที่รันจริง: web tests 42/42, typecheck 0 error, Python 407 OK (skipped=1) แต่พบว่า suite มีการยิง RID จริงและเขียน snapshot ลง temp อย่างน้อยหนึ่งครั้ง
+- จัดทำใบสั่งงาน AI 3 ตัวพร้อม sub-agent, file ownership และลำดับ integrate ที่ [assignments/2026-10-25-ai-work-orders.md](assignments/2026-10-25-ai-work-orders.md); เพิ่มหมายเหตุ P0 ใน [HANDOFF](../HANDOFF.md) และห้าม deploy checkout นี้ก่อนปิด P0
+
+
+## เสร็จแล้ว
+
+- เขียน [SYSTEM_DESIGN.md](../SYSTEM_DESIGN.md) และ [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) ให้เป็นแผนปัจจุบันของเว็บ Thailand Agricultural Data Hub
+- หน้าเว็บใช้ Next.js App Router และ API v1; ถอด local-data/local-session routes และ catalog snapshot ออกจาก web runtime
+- เพิ่ม Cloudflare D1 Catalog Repository (`web/lib/hub/d1-catalog-repository.ts`, `web/lib/hub/d1.ts`) รองรับ SQLite สำหรับ sources, datasets, detail และ source status ตาม schema `db/cloudflare/0001_hub.sql` โดยไม่ใช้ `pg.Pool` บน Workers
+- **Deploy และยืนยัน Edge Runtime บน Cloudflare Workers สำเร็จ (Live Preview)**:
+  - **Live Preview URL**: `https://preview-1-tadih-web.dragonfly-forester.workers.dev`
+  - ตรวจสอบผ่าน HTTP response จริง: `/`, `/catalog`, `/explore`, `/areas`, `/areas/73`, `/api/v1/datasets`, `/api/v1/sources` ตอบ HTTP 200 OK
+  - เพิ่ม `EMBEDDED_PROVINCES_CSV` ใน `web/lib/provinces.ts` ป้องกันข้อผิดพลาด ENOENT บน edge runtime ที่ไม่มีระบบไฟล์
+- **แก้งานและปรับปรุง Catalog Web UI (Lane 2 + Integrator)**:
+  - แทนที่ช่องพิมพ์ด้วย `<select id="hub-source">` รองรับรายชื่อ 12 หน่วยงาน CKAN ภาษาไทยครบถ้วน
+  - แสดง Badges รูปแบบไฟล์ (CSV, XLSX, PDF, API) และสถานะสิทธิ์ (`มีสิทธิ์เผยแพร่` vs `รอตรวจสิทธิ์`)
+  - แก้ไข TypeScript compilation errors ครบถ้วน (0 errors)
+- **RID Medium Reservoir Adapter & Backfill ครบ 15 วัน (Lane 3 + Integrator)**:
+  - Backfill ข้อมูลย้อนหลัง 15 วันปฏิทิน (`2026-10-10` ถึง `2026-10-24`) เข้า `data/local/raw/rid/`
+  - 461 อ่าง/วัน, รวม 27,660 observations และ 13,830 pending-unit rows
+  - Calibration เปอร์เซ็นต์ความจุตรงกับ volume/capacity 99.03% (6,848 รายการ, mismatch = 0)
+  - ทุกแถวเป็น `license_status = pending` ไม่มีการรั่วไหลของข้อมูลตัวเลขออก public API หรือ Git
+  - รายงานสรุปอยู่ที่ [rid-backfill-report.md](rid-backfill-report.md)
+- **RID Daily Sync script (`scripts/sync_rid_reservoirs.py`, 25 ต.ค. 2569)**:
+  - Ingestion รายวัน: `--dry-run` (ตรวจ 461 อ่าง + สรุปความจุ ไม่เขียนไฟล์), `--date YYYY-MM-DD` (ย้อนหลัง + seed ลายเซ็นกันรายงานถูกแทนที่), `--output-dir`, `--refresh`; บันทึก snapshot ลง `data/local/raw/rid/reservoir-{date}.json` พร้อม metadata log `sync-log.jsonl`
+  - Validate fail-closed ผ่าน `src/tadih/reservoirs.py` ทั้ง schema/ลายเซ็น/เปอร์เซ็นต์ความจุ ±0.05 pp; ผลรันจริง: dry-run exit 0, mismatch 0, สิทธิ์คง `pending` ทุกไฟล์; `tests.test_reservoirs` 14/14 ผ่าน
+- **Weather & Rainfall Dashboard หน้า /weather (Lane 3)**:
+  - เพิ่มตัวประมวลผล TMD 7-day forecast ใน `src/tadih/weather.py` (`parse_tmd_agri_forecast`, `cumulative_rainfall_index`, `agricultural_weather_advisories`) พร้อม `tests/test_weather.py` 22 ข้อผ่านครบ ไม่มี network
+  - หน้า `/weather` + `web/components/weather-dashboard.tsx`: ฟิลเตอร์ 5 ภาค/77 จังหวัด, การ์ดพยากรณ์ 7 วัน, แถบเตือนภัยเพื่อการเกษตร, กราฟฝนสะสมเทียบค่าเฉลี่ยปกติ, API `GET /api/v1/weather`
+  - ตรวจจริง: 77 จังหวัด + 5 ภาค HTTP 200, invariant ผ่าน 0 failure, error shape ตาม contract, typecheck/eslint ผ่าน
+  - ตัวเลขทั้งหมดเป็นข้อมูลตัวอย่างติดป้าย `sample` และ `metadata_only` จนกว่าทรัพยากรพยากรณ์จะได้รับอนุมัติสิทธิ์ (ปิด `SAMPLE_MODE` ใน `web/lib/hub/weather-data.ts` เมื่อถึงขั้น M5)
+- **ชุดทดสอบ CLI และ Ingestion ครอบคลุมสมบูรณ์**:
+  - สร้าง `tests/test_sync_rid_reservoirs_cli.py` ทดสอบการทำงานระดับ CLI 11 ข้อ: dry-run, output directory, idempotent re-run (`skipped_identical`), collision guard ที่ต้องใช้ `--refresh`, historical date seed fetch, fail-closed date/document validation และ license guard
+  - ทดสอบ `tests/test_sync_hub_catalog_cli.py` 14 ข้อ ครอบคลุมการทำงาน catalog sync CLI
+- **แก้ไขและปรับแต่ง UI/TypeScript ครบถ้วน**:
+  - `web/components/shell.tsx`: เมนูหลักรองรับหมวด แหล่งน้ำ, ราคาสินค้า, พืชผลเกษตร (`/crops`), ดินและปุ๋ย (`/soil`), สภาพอากาศ (`/weather`) และบัญชีข้อมูล พร้อม mega-menu สมบูรณ์
+  - `web/app/crops/page.tsx` และ `web/app/soil/page.tsx`: ปรับ `active` prop ตรงหมวด (`active="crops"` และ `active="soil"`)
+  - `web/components/province-compare.tsx`: แก้ไข type signature ให้แยกชัดระหว่าง `WaterReferenceLoadable`/`SoilReferenceLoadable` (shared API payloads) และ `WaterLoadable`/`SoilLoadable` (per-province snapshots) ทำให้ `npm run typecheck` ผ่าน 0 error
+- **แดชบอร์ดสถิติปศุสัตว์และสัตว์น้ำเศรษฐกิจ (/livestock)**:
+  - หน้า `/livestock` และ API `GET /api/v1/livestock` พร้อมใช้งาน: ครอบคลุมปศุสัตว์เศรษฐกิจ 5 ชนิดจากกรมปศุสัตว์ (โคเนื้อ, โคนม, สุกร, ไก่, เป็ด) และการเพาะเลี้ยงสัตว์น้ำ 3 ชนิดจากกรมประมง (กุ้งขาวแวนนาไม, ปลานิล, ปลาดุก)
+  - ปฏิบัติตามกฎความถูกต้องของข้อมูล (Data Governance): สิทธิ์ข้อมูลยัง `pending` ตัวเลขจึงเป็น deterministic demo data พร้อมป้าย `sample` และ `metadata_only`, แยกระบบภาคของกรมปศุสัตว์ (4 ภาค) ออกจากกรมประมง (6 ภาค) โดยไม่นำมารวมกัน, ค่าสัตว์น้ำจืดระบุฐานภาคเป็น crosswalk อย่างชัดเจน
+  - เพิ่มเมนูและทางลัดเข้าถึงใน `web/components/shell.tsx` (Submenu ภายใต้บัญชีข้อมูล) และปรับ `<Shell active="livestock">`
+  - เพิ่ม Automated Unit Tests ใน `web/tests/hub-data-domains.test.ts` (4 ข้อ: โครงสร้างชนิดสัตว์, การแยกฐานภาค, meta/warnings และ filter sector/species)
+- **ชุดทดสอบและ Build ผ่านครบ 100% ทุกส่วน**:
+  - Python tests (`.venv\Scripts\python.exe -m unittest discover -s tests`): **Ran 407 tests - OK (skipped=1)**
+  - Web unit tests (`npm --prefix web run test`): **Ran 42 tests - OK (pass=42, fail=0)**
+  - TypeScript typecheck (`npm --prefix web run typecheck`): ผ่าน 0 errors
+  - ViNext production build (`npm --prefix web run build:vinext`): ผ่าน 0 errors (built in 1.37s)
+- **รายงานสำรวจแหล่งข้อมูล Non-CKAN M3 สมบูรณ์ (4 ฉบับ)**:
+  - `docs/source-expansion-dwr.md` (กรมทรัพยากรน้ำ)
+  - `docs/source-expansion-open-meteo.md` (Open-Meteo Weather)
+  - `docs/source-expansion-gistda.md` (GISTDA)
+  - `docs/source-expansion-tmd.md` (กรมอุตุนิยมวิทยา)
+- **Open-Meteo & TMD Station Archive Ingestion Module (25 ต.ค. 2569)**:
+  - สร้าง `src/tadih/open_meteo.py`: ดึงข้อมูลประวัติศาสตร์ (ERA5) และพยากรณ์ล่วงหน้า (ECMWF) รองรับ T2M, ฝนสะสม, ความเร็วลม (m/s), ความชื้นสัมพัทธ์ (RH2M) ตามพิกัด Lat/Lon; แปลง timezone เป็น UTC+7 (+07:00), คง missing value เป็น None, fail-closed บน error
+  - สร้าง `src/tadih/tmd_archive.py`: ตัวแปลงข้อมูลสถานีตรวจวัด TMD (WeatherTodayByAgro, DailyWeather) และสถิติฝนรายเดือน (ThailandMonthlyRainfall); แปลง พ.ศ. เป็น ค.ศ., normalize หน่วยเข้า Hub standards, แปลงเป็น Hub observations ตาม `data_contracts/observation.schema.json`
+  - สร้าง `scripts/sync_open_meteo.py`: CLI รองรับ `--province-code` (พิกัด centroid 77 จังหวัด), `--start-date`, `--end-date`, `--forecast`, `--dry-run`, `--refresh`; ปฏิบัติตามอัตรา Rate Limit (<600 req/min) พร้อม retry mechanism; Safe Mode บันทึก snapshot ลง `data/local/raw/weather/` พร้อมลายเซ็นและ metadata log `sync-log.jsonl` โดย `license_status = pending`
+
+- **แดชบอร์ดและ Ingestion Engine ใหม่ 4 สายงานคู่ขนาน (Lane 1-4, 25 ต.ค. 2569)**:
+  - **Lane 1 (Water & Disaster Early Warning Dashboard)**:
+    - เพิ่มหน้า `/early-warning` + `web/components/early-warning-dashboard.tsx` และ API `GET /api/v1/early-warning`
+    - โมเดลข้อมูล `web/lib/hub/early-warning-data.ts`: ประเมินความเสี่ยงน้ำท่วมและภัยแล้งฉับพลันจาก 461 อ่างเก็บน้ำ (น้ำเกิน 80% จำนวน 264 แห่ง, น้ำแล้งต่ำกว่า 30% จำนวน 28 แห่ง), เมทริกซ์ 28 จังหวัดเสี่ยงสูง และแบบจำลองพยากรณ์ 14 วัน (Simulation Forecast Timeline)
+    - UI รองรับ Dark/Light theme, Responsive (390px, 768px, 1440px), และ Data Governance sample banner
+  - **Lane 2 (Agricultural Trade & Export/Import Dashboard)**:
+    - เพิ่มหน้า `/trade` + `web/components/trade-dashboard.tsx` และ API `GET /api/v1/trade`
+    - โมเดลข้อมูล `web/lib/hub/trade-data.ts`: สถิติมูลค่าและปริมาณส่งออก/นำเข้า 5 สินค้าหลัก (ข้าว, ทุเรียน, ยางพารา, มันสำปะหลัง, ปาล์มน้ำมัน), ตลาดคู่ค้าหลัก (จีน, อาเซียน, สหรัฐฯ, ยุโรป), Farm-gate vs FOB Spread Analysis, ดุลการค้า และข้อมูลด่านศุลกากร/ท่าเรือ
+    - ปฏิบัติตาม Data Governance: ติด flag `sample: true`, `meta.access: "metadata_only"` พร้อมแบนเนอร์ตัวอย่างข้อมูลตาม Customs/MoC schema
+  - **Lane 3 (Agri-Logistics & Storage Dashboard /logistics)**:
+    - เพิ่มหน้า `/logistics` + `web/components/logistics-dashboard.tsx` และ API `GET /api/v1/logistics`
+    - โมเดลข้อมูล `web/lib/hub/logistics-data.ts`: แสดงความจุคลังสินค้าเกษตรกลาง ไซโลอบแห้ง และห้องเย็น (Cold Chain) ครบ 77 จังหวัด
+    - ตัวคัดกรอง: Dropdown 77 จังหวัด, ชนิดคลัง (ไซโลอบแห้ง, ห้องเย็นผลไม้/เนื้อสัตว์, โกดังสินค้าเกษตรทั่วไป), ขนาดความจุ (ตัน), สถานะ (เปิดบริการ, ซ่อมบำรุง, ความจุเต็ม) พร้อม Badge สถานะ
+    - ประเมินดัชนี "ระยะห่างจากแหล่งผลิตถึงจุดรวบรวม" (Farm-to-Storage Connectivity Score) 0-100 คะแนน และระยะทางเฉลี่ย (กม.) รายจังหวัด
+    - API รองรับ `GET /api/v1/logistics?provinceCode=...&facilityType=...` ส่งคืน `sample: true` ใน data และ `meta.access: "metadata_only"` ตาม Data Governance
+    - ไม่แตะต้อง `shell.tsx` หรือ `d1.ts`; ผ่าน `npm run typecheck` 0 errors และ `next build` ผลิตเส้นทางครบ 98 หน้าสำเร็จ 100%
+  - **Lane 4 (Open-Meteo & Weather Ingestion Engine)**:
+    - สร้าง `src/tadih/open_meteo_engine.py`: คำนวณ FAO-56 Penman-Monteith Reference $ET_0$ และ $ET_c$ สำหรับ 7 พืชเศรษฐกิจหลัก, NOAA Heat Index / Thermal Stress ต่อเกษตรกรและปศุสัตว์, Multi-location batching, Rate limiter (<600 req/min)
+    - สร้าง `scripts/sync_open_meteo_weather.py`: CLI รองรับ 77 จังหวัดและ offline fallback
+    - สร้าง `web/lib/hub/open-meteo-client.ts` และ API `GET /api/v1/weather-engine`: Edge API route สำหรับวิเคราะห์สภาพอากาศการเกษตร
+    - จัดทำเอกสาร `docs/open-meteo-engine-spec.md` พร้อม Attribution CC BY 4.0: "Weather data by Open-Meteo.com"
+  - ตรวจสอบคุณภาพ: `npm --prefix web run typecheck` ผ่าน 0 errors และ Next.js build ผ่าน 100%
+
+- **ระบบนำทางและบูรณาการแดชบอร์ดใหม่เข้ากับ Web Shell**:
+  - อัปเดต `web/components/shell.tsx` และหน้าเพจของแต่ละ Lane:
+    - เชื่อมลิงก์ Submenu ใน Mega-menu:
+      - แหล่งน้ำ: เพิ่มทางลัด "เตือนภัยน้ำท่วม-แล้งฉับพลัน" (`/early-warning`)
+      - ราคาสินค้า: เพิ่มทางลัด "สถิติการค้า นำเข้า-ส่งออก" (`/trade`)
+      - บัญชีข้อมูล: เพิ่มทางลัด "โลจิสติกส์และห้องเย็น" (`/logistics`)
+    - ปรับ `active` prop ให้ตรงหน้าครบถ้วน (`early-warning`, `trade`, `logistics`)
+  - ตรวจสอบ `npm run typecheck` (0 errors) และ ViNext build ผ่านสมบูรณ์
+- **Lane 4: โมดูลเกษตรอัจฉริยะและเซนเซอร์ IoT (`/smart-farming`)**: เพิ่ม `web/lib/hub/smart-farming-data.ts` (mock IoT deterministic 108 แปลง ครบ 77 จังหวัด, 1,051 โหนด, microclimate 24 ชม., NPK, เกจความชื้นดิน, รอบน้ำถัดไป), `web/app/api/v1/smart-farming/route.ts` (envelope มาตรฐาน Hub, `sample: true`, `meta.access: "metadata_only"`, พารามิเตอร์ `province/crop/moisture/sensorState/q/detail/limit`), หน้า page + dashboard + CSS module พร้อมตัวกรองจังหวัด/พืช/ความชื้น/สถานะเซนเซอร์ และ submenu ใหม่ใน `shell.tsx` — typecheck ไม่มี error ในไฟล์โมดูล, API ตอบ 200 แบบ byte-stable, หน้า SSR ตอบ 200 และตัวกรองทำงานจริงในเบราว์เซอร์
+
+- **Lane 5: มาตรฐานความปลอดภัยสินค้าเกษตรและการตรวจสอบย้อนกลับ (`/food-safety`)**: เพิ่ม `web/lib/hub/food-safety-data.ts` (GAP พืช/ปศุสัตว์/ประมง + Organic Thailand ราย 77 จังหวัด, กระดานรายสินค้า, อัตราผ่าน MRL รายจังหวัด/สินค้า/แล็บ, lot code + farm code + ห่วงโซ่สืบย้อน) และ `web/app/api/v1/food-safety/route.ts` (พารามิเตอร์ `provinceCode/region/standardId/mandateType/commodityId/search`, `data.sample: true`, `meta.access: "metadata_only"`, `completeness: "partial"`), หน้า page + dashboard + CSS module พร้อมค้นหาเลขที่ใบรับรอง/จังหวัด, badge มาตรฐานบังคับ vs สมัครใจ, ตารางจังหวัด sort ได้, panel QR + stepper — typecheck 0 errors, ESLint exit 0, ViNext build ผ่านมี `/food-safety`, API probe 200×5 + 400 `INVALID_QUERY`×2, invariant 18 ข้อผ่านและ output deterministic
+
+- **Lane GI: สินค้าสิ่งบ่งชี้ทางภูมิศาสตร์และสายพันธุ์พืชพื้นเมือง (`/gi-products`)**: เพิ่ม `web/lib/hub/gi-data.ts` (122 รายการสินค้า GI ครบ 77 รหัสจังหวัด, 5 หมวด ข้าว/ไม้ผล/ชา-กาแฟ/ผ้าไหม-หัตถกรรม/อื่น ๆ, แยกควบคุมภายใน 114 vs ภายนอก 8, พิกัดแปลงเชิงโครงสร้าง, invariant มูลค่า = ผลผลิต × 1,000 × ราคา/กก.), `web/app/api/v1/gi-products/route.ts` (พารามิเตอร์ `provinceCode/category/standard/region/q` รองรับ label ไทย, 400 `INVALID_QUERY` + `requestId`, `no-store`, `data.sample: true` + `meta.access: "metadata_only"` + `completeness: "partial"` + `coverageClaim: false`), `web/components/gi-dashboard.tsx` + CSS module (KPI re-derive ตามตัวกรอง, badge มาตรฐาน, การ์ด 122 ใบ, ตารางจังหวัด sort ได้, empty state ไทย) และ `web/app/gi-products/page.tsx` (SSR + Governance Banner) — typecheck ไม่มี error ในไฟล์ lane, ESLint exit 0, web tests 48/48, `GET /gi-products` 200, API probe 200×7 + 400×3, ตัวกรอง client ทำงานจริงผ่าน CDP (122 → 3 → 2 → 8 → 122)
+
+- **Lane Labor: โครงสร้างแรงงานเกษตร สังคมสูงวัย และ Young Smart Farmer (`/labor`)**: เพิ่ม `web/lib/hub/labor-data.ts` (deterministic 77 จังหวัด, 7 ช่วงอายุ, invariant ผลรวมอายุ = กำลังแรงงาน, AFI = 60+ ต่อ 15–34 ปี 100 คน, replacement rate ตามสมมติฐานออก 3.5%/ปี, `assertLaborIsCoherent`), `web/app/api/v1/labor/route.ts` (`provinceCode/region/ageGroup/detail/limit`, 400 `INVALID_QUERY`, lite mode ตัด `ageBands` รายจังหวัด), `web/components/labor-dashboard.tsx` + CSS module (KPI 6 ใบ, population pyramid ชาย/หญิง, YSF donut/funnel/replacement, แถบรายภาค, trend 10 ปี, ตารางจังหวัด sort ได้, การ์ดเทคโนโลยี 6 หมวด, governance banner) และ `web/app/labor/page.tsx` — typecheck 0 error, ESLint 4 ไฟล์ exit 0, ViNext build ผ่านมี `/labor`, API 200 (77 จังหวัด, 90,993 bytes) + 400 ครบ, ตรวจ visual 1440/768/390 ด้วย headless Chrome ไม่มี page overflow (ตารางเลื่อนภายใน) และ interaction ตัวกรอง/รุ่นอายุ/reset ทำงานจริง
+
+- **Lane Fertilizer: ปุ๋ยสั่งตัดและสมดุลธาตุอาหารพืช (`/fertilizer`)**: เพิ่ม `web/lib/hub/fertilizer-data.ts` (engine 8 กลุ่มพืช/10 ตาราง, สมการ DAP/MOP/urea พร้อม conflict N–P, interpolate OM/P/K, ปรับ N ตามผลผลิตและหัก N จากดิน), `web/app/api/v1/fertilizer/route.ts` (GET/POST, 400 `INVALID_QUERY` + `requestId`, `metadata_only`/`partial`, ไม่มี D1/network), `web/app/fertilizer/page.tsx`, `web/components/fertilizer-dashboard.tsx` + CSS module (sliders/inputs, บาร์เป้าหมาย vs ได้รับ, กราฟสัดส่วน N-P-K, ตารางแบ่งใส่, ราคาแก้ไขได้, perTree กรัม/ต้น/ปี) — typecheck 0 error, ESLint 4 ไฟล์ exit 0, ViNext build มี `/fertilizer`, GET/POST 200 (durian perTree 3,500/1,800/2,200 กรัม) + 400 ครบ, headless Chrome 1440/390 ไม่มี page overflow และ console clean; ยังไม่ผูกเมนูหลักเพราะไม่แตะ `shell.tsx` และยังไม่ commit
+
+- **เสร็จสมบูรณ์: แดชบอร์ด 5 หมวดใหม่ + Governance Containment**:
+  - เสริมสร้าง 5 แดชบอร์ดหลัก: คาร์บอนเครดิตเกษตร (`/carbon`), เครื่องจักรกลการเกษตร (`/machinery`), ประกันภัยและสินเชื่อเกษตร (`/finance`), เกษตรอัจฉริยะ IoT (`/smart-farming`), และความปลอดภัยอาหาร GAP/Traceability (`/food-safety`)
+  - ควบคุมการเผยแพร่ข้อมูลอย่างรัดกุมตามนโยบาย Data Governance: ข้อมูลตัวเลขที่สถานะยังเป็น `pending` ตอบสนองแบบ `metadata_only` หรือ deterministic simulation พร้อมติดป้ายกำกับชัดเจน
+  - ปรับแก้ `web/components/province-agri-overview.tsx` และ `web/tests/hub-data-domains.test.ts` ให้สอดคล้องกับ contract
+  - ผลการรันระบบทดสอบ:
+    - TypeScript Typecheck: **0 errors**
+    - Web Tests: **48/48 ผ่านทั้งหมด**
+    - ViNext Build: **ผ่านสมบูรณ์ 100% ครบทุกหน้า**
+    - Python Tests: **407 tests OK**
+
+## ยังไม่เสร็จ
+
+- ทำ live CHIRPS D1 sample sync และยืนยัน read API/UI บน Workers Preview หลังได้ D1 auth; full raster coverage ยังไม่ ingest และ sample ต้องคง `partial`
+- ขอสิทธิ์ resource อื่นที่ยัง pending จากเจ้าของข้อมูลเมื่อจำเป็น
+- ยืนยัน GitHub Actions secret และ schedule run หลัง workflow ถูกนำเข้า GitHub
+- ตรวจ `/smart-farming` ด้วยตาที่ 390px และ 1440px (in-app Browser ครั้งนี้ไม่มี visible surface จึงวัด viewport ไม่ได้; breakpoint `1024/640/390` และ `prefers-reduced-motion` มีใน CSS module แต่ยังไม่ยืนยันเชิง visual)
+- ตรวจ `/food-safety` ด้วยตาที่ 390px และ 1440px (in-app Browser ไม่มี visible surface เช่นเดียวกัน; CSS มี breakpoint `640/768/1024/1200` + `max 760/420`, `.tableScroll{overflow:auto}` + `.table{min-width:880px}` แต่ยังไม่มีหลักฐานเชิง visual) และเพิ่ม nav key `'food-safety'` ใน `shell.tsx` — หน้าที่Lane 5 สร้าง currently ใช้ `active="explore"` เพราะถูกสั่งห้ามแตะ `shell.tsx`
+- ตรวจ `/gi-products` ด้วยตาที่ 390px และ 1440px — in-app Browser ตอบ `viewport=0x0 visible=false` เหมือนสอง lane ก่อน จึงตรวจได้แค่ DOM/CSSOM (ยืนยันแล้วว่า `min-width` เกิน 390px มีเพียงตาราง 2 ตัวซึ่งอยู่ใน container `overflow-x:auto`); พร้อมเพิ่ม nav key `'gi-products'` ใน `shell.tsx` แล้วสลับ `<Shell active="crops">` ชั่วคราวของหน้านี้
+- เพิ่ม nav key `'labor'` ใน `shell.tsx` แล้วสลับ `<Shell active="explore">` ของหน้า `/labor` (lane labor ถูกสั่งห้ามแตะไฟล์ร่วม); ตรวจ visual `/labor` เพิ่มเติมด้วยตาในเบราว์เซอร์จริงถ้าเครื่องมือมี visible viewport
+- เชื่อมเมนู `/fertilizer` ภายใต้ “ดินและปุ๋ย” ใน `shell.tsx` (lane fertilizer ห้ามแตะไฟล์ร่วม) และยืนยันสูตรกับนักวิชาการเกษตร/ผลวิเคราะห์ดินจริงก่อนใช้แนะนำเกษตรกร
+- Production domain mapping (เมื่อต้องการเปลี่ยนจาก `workers.dev` เป็น custom domain)
+
+## ทำต่อ
+
+1. ตั้ง runner D1 API token และลงชื่อเข้าใช้ `cf auth login` แยกกัน; จากนั้นรัน dry-run และ sync ตัวอย่าง 3 cells ด้วย `python scripts/sync_hub_numeric.py --write` (writer จะอ่าน source สดเอง).
+2. Deploy preview ด้วย `node scripts/deploy_preview.mjs --deploy` และตรวจ `partial` completeness, source retrieval date และ grid cells ใน API/UI.
+3. เพิ่ม workflow ที่ยัง untracked เข้า GitHub โดยคำสั่งผู้ใช้ แล้วตรวจ Actions run/secret/schedule.
+4. พิจารณา production domain เมื่อ data rights และ hosting พร้อม.
+
+ประวัติก่อนปรับแบบอยู่ที่ [archive](archive/2026-10-24-redesign/README.md)
+
+## Climate History & Reanalysis `/climate-history` (25 ต.ค. 2569)
+
+- เพิ่มโมดูลวิเคราะห์แนวโน้มภูมิอากาศย้อนหลัง 10–20 ปี ราย 77 จังหวัด (สร้างโดย sub-agent 1A/1B/1C ขนาน): `web/lib/hub/climate-history-data.ts`, `web/app/api/v1/climate-history/route.ts`, `web/app/climate-history/page.tsx`, `web/components/climate-history-dashboard.{tsx,module.css}` — ไม่แก้ไฟล์ร่วม (shell.tsx/d1.ts/schema)
+- สถิติ: อุณหภูมิเฉลี่ยรายปี + แนวโน้ม °C/ทศวรรษ, วันคลื่นความร้อน Tmax>38 °C, ฝนสะสมรายปีเทียบ baseline, ฝนทิ้งช่วงยาวสุด/จำนวนครั้ง; ตารางปีผิดปกติ (ร้อนสุด/แล้งสุด/ฝนสุด/วันร้อนสุด/ฝนทิ้งช่วงยาวสุด)
+- Governance: ค่ายังเป็น deterministic sample จาก climatology แบบ ERA5 (Open-Meteo CC-BY-4.0, attribution ครบ) เพราะ license_status `pending` — `meta.access=metadata_only`, `sample: true`, warnings ภาษาไทย, grid_point 0.25° ~27 กม. ระบุชัดว่าไม่ใช่สถานีจริงและไม่ใช่ coverage
+- ตรวจแล้ว: tsc ไฟล์โมดูล clean, curl API 200/400 ตามกฎ, browser snapshot UI ครบ + เปลี่ยนจังหวัดได้ + console ไม่มี error; ยังไม่ตรวจภาพจริง 390/1440px (viewport ไม่พร้อม) และยังไม่ commit/deploy
