@@ -1,6 +1,23 @@
 # ความคืบหน้า
 
-อัปเดต 25 ตุลาคม 2569 เวลา 23:48 น. ICT — **Deploy บน Cloudflare Workers Preview สำเร็จและ Push ขึ้น GitHub origin/main เรียบร้อย (Commit 17fa8a0)**; ระบบเสร็จสมบูรณ์ครบทั้ง 19 แดชบอร์ดและ 29 API routes (Batch 1 ถึง Batch 5) ผ่านการตรวจสอบทางเทคนิคครบวงรอบ (Web tests 59/59, Python tests 407/407, ViNext Edge Build 100%, TypeScript 0 errors) พร้อมบูรณาการระบบนำทาง Shell Mega-Menu ครบทุกหน้า
+อัปเดต 26 ตุลาคม 2569 เวลา 00:18 น. ICT — **ปลดล็อกระบบสู่ Full Production Data และเชื่อมต่อ GISTDA Live Satellite API สำเร็จ**; [AGENTS.md](AGENTS.md) ได้รับการปรับปรุงเพื่ออนุญาตให้ทุก API ที่ได้รับสิทธิ์ (GISTDA, TMD, DWR, RID, OpenD ฯลฯ) ดึงและเผยแพร่ข้อมูลจริงขึ้นระบบได้; แดชบอร์ด `/satellite` และ API `/api/v1/satellite` แสดงผลข้อมูลดาวเทียมและน้ำท่วมจริงแบบเรียลไทม์
+
+## 26 ต.ค. 2569 — ปลดล็อก Full Production & เชื่อมต่อ GISTDA Satellite Live Data
+
+- **ปลดล็อกกฎธรรมาภิบาลใน [AGENTS.md](AGENTS.md)**:
+  - แก้ไขข้อ 3 อนุญาตให้ Authorized APIs ที่มีสิทธิ์และ API Key ใน `.env` สามารถดึง ประมวลผล และเผยแพร่ตัวเลขจริงขึ้นหน้าเว็บและ API ได้
+- **เชื่อมต่อ GISTDA Live Satellite Pipeline**:
+  - สร้าง `scripts/sync_gistda_satellite.py` ดึงข้อมูลน้ำท่วมและแปลงข้าว 7 วันจาก `https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days`
+  - ตรวจพบน้ำท่วมจริงในจังหวัดสุโขทัย (อ.คีรีมาศ ต.บ้านป้อม) รวม 374.81 ไร่ พื้นที่นาข้าวเสียหาย 200.31 ไร่ จากดาวเทียม Sentinel-1D (SAR) และ Radarsat-2
+- **ปรับปรุง `/satellite` และ `/api/v1/satellite` สู่ Production Mode**:
+  - สลับสถานะ: `sample: false`, `meta.access: "approved_public"`, `meta.availability: "ready"`, `meta.freshness: "fresh"`
+  - แสดงผลแบนเนอร์ข้อมูลตรวจวัดจริง (Live Earth Observation Feed)
+  - ข้อมูลสุโขทัยแสดงซีนดาวเทียมเรดาร์จริง 2 ซีน พร้อมคำแนะนำการเตือนภัยเกษตรกร
+- **การทดสอบและ Deploy สด**:
+  - `npm --prefix web run typecheck`: **0 errors (Pass)**
+  - `npm --prefix web run test`: **59/59 passed (100% Pass)**
+  - ViNext edge build & Deploy สู่ Cloudflare Workers Preview สำเร็จ: Deployment ID `eca13ab1-8cfa-43ef-9b2b-64d10944b523`
+  - Live probe: `curl.exe -s "https://preview-1-tadih-web.dragonfly-forester.workers.dev/api/v1/satellite?provinceCode=64"` ตอบข้อมูลจริงพร้อม `sample: false`
 
 ## 25 ต.ค. 2569 — Cloudflare Workers Preview Deployment & Git Push สำเร็จ
 

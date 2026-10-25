@@ -20,7 +20,7 @@ import styles from './satellite-dashboard.module.css';
 /** รูปร่างของ SATELLITE_GOVERNANCE ตามสัญญาของ lane 2A (ส่งผ่าน props จาก server page เพื่อไม่ดึงโมดูลข้อมูลเข้า client bundle) */
 interface SatelliteGovernanceInfo {
   sample: boolean;
-  access: 'metadata_only';
+  access: 'metadata_only' | 'approved_public';
   version: string;
   bannerText: string;
   disclaimer: string;
@@ -326,7 +326,9 @@ export function SatelliteDashboard({
         </svg>
         <div className={styles.bannerContent}>
           <div className={styles.bannerHeader}>
-            <span className={styles.bannerBadge}>Simulation / Sample Dataset</span>
+            <span className={styles.bannerBadge}>
+              {initialGovernance.sample ? 'Simulation / Sample Dataset' : 'Live / Production EO Feed'}
+            </span>
             <span className={styles.bannerTitle}>{initialGovernance.bannerText}</span>
           </div>
           <p className={styles.bannerDisclaimer}>{initialGovernance.disclaimer}</p>
@@ -361,7 +363,11 @@ export function SatelliteDashboard({
             </p>
           </div>
           <div className={styles.liveBadge}>
-            <span>ชุดข้อมูลสาธิตจากดาวเทียม (EO Sample · metadata_only)</span>
+            <span>
+              {initialGovernance.sample
+                ? 'ชุดข้อมูลสาธิตจากดาวเทียม (EO Sample · metadata_only)'
+                : 'ข้อมูลดาวเทียมตรวจวัดจริง (GISTDA Live API & Sentinel-1)'}
+            </span>
           </div>
         </div>
       </header>

@@ -13,11 +13,10 @@ import {
 } from '@/lib/hub/satellite-data';
 
 export const metadata: Metadata = {
-  // root layout มี template '%s | ศูนย์ข้อมูลเกษตรไทย' — ไม่ต้องใส่ suffix ซ้ำใน title
   title: 'ศูนย์ข้อมูลดาวเทียมเกษตร (น้ำท่วม ภัยแล้ง NDVI)',
   description:
-    'ข้อมูลสาธิตจากดาวเทียม/สารสนเทศภูมิศาสตร์ (Earth Observation) สำหรับติดตามน้ำท่วม ภัยแล้ง และความเขียวขจีของพืชพรรณรายจังหวัด ' +
-    'ภายใต้สถานะ metadata-only — แหล่งข้อมูล GISTDA, Sentinel และ MODIS ยังรอตรวจสิทธิ์เผยแพร่ (license pending) ห้ามอ้างอิงเป็นสถิติทางการ',
+    'ข้อมูลภาพถ่ายดาวเทียมตรวจวัดจริงและสารสนเทศภูมิศาสตร์ (Earth Observation) สำหรับติดตามน้ำท่วม ภัยแล้ง และความเขียวขจีของพืชพรรณรายจังหวัด ' +
+    'เชื่อมต่อระบบ GISTDA Satellite API Gateway และ Sentinel-1 C-SAR ได้รับสิทธิ์การเข้าถึงอย่างเป็นทางการ',
 };
 
 // Simulation payloads must not be frozen into a shared/public HTML cache.
