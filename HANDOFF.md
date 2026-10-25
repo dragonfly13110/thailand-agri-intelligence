@@ -1,6 +1,6 @@
 # HANDOFF — Thailand Agricultural Data Hub
 
-อัปเดต 25 ตุลาคม 2569 เวลา 23:38 น. ICT — **Cloudflare CLI ยืนยันตัวตนสำเร็จ (Authenticated as dragonfly.forester@outlook.com)**. ผ่านการตรวจรับทางเทคนิคครบทั้ง 19 แดชบอร์ดและ 29 API routes (Batch 1 ถึง Batch 5). Web tests 59/59 ผ่านทั้งหมด, Python tests 407 ผ่านทั้งหมด (1 skipped), TypeScript typecheck ผ่าน 0 errors, และ ViNext Edge Build สำเร็จ 100%. ระบบนำทาง Shell Mega-Menu เชื่อมต่อสมบูรณ์ครบทุกหน้า. Fail-closed governance containment ทำงานถูกต้องสำหรับ 81 ทรัพยากรที่ยัง `pending`. `node scripts/deploy_preview.mjs` พร้อม Deploy สู่ Workers Preview (`preview-1`).
+อัปเดต 25 ตุลาคม 2569 เวลา 23:48 น. ICT — **Deploy บน Cloudflare Workers Preview สำเร็จและ Push ขึ้น GitHub origin/main เรียบร้อยแล้ว (Commit 17fa8a0)**. ตรวจสอบสดบน Edge Runtime ผ่าน `curl.exe -I` ตอบ HTTP 200 OK ทุกเส้นทางสำคัญ. ผ่านการตรวจรับทางเทคนิคครบทั้ง 19 แดชบอร์ดและ 29 API routes (Batch 1 ถึง Batch 5). Web tests 59/59 ผ่านทั้งหมด, Python tests 407 ผ่านทั้งหมด (1 skipped), TypeScript typecheck ผ่าน 0 errors, และ ViNext Edge Build สำเร็จ 100%. ระบบนำทาง Shell Mega-Menu เชื่อมต่อสมบูรณ์ครบทุกหน้า. Fail-closed governance containment ทำงานถูกต้องสำหรับ 81 ทรัพยากรที่ยัง `pending`.
 
 > **25 ต.ค. 2569 — P0 governance finding (รอบวางแผน):** checkout นี้ยังไม่ควร deploy เพราะหน้าแรก `/water` `/prices` `/early-warning` และ API water/prices/weather-engine เปิดตัวเลขหรืออ้างสิทธิ์ RID, OAE/NABC และ Open-Meteo ที่ทะเบียนยัง `pending`; `web/` ทั้งโฟลเดอร์ยังไม่ถูก track ใน git. ใบสั่งงาน AI 3 ตัว ลำดับแก้ และ file ownership อยู่ที่ [docs/assignments/2026-10-25-ai-work-orders.md](docs/assignments/2026-10-25-ai-work-orders.md). ห้าม deploy ก่อนปิด P0 และ QA ผ่าน
 
@@ -236,13 +236,12 @@
 ## งานถัดไป
 
 1. ตั้ง runner D1 API token (`CF_D1_TOKEN`/`CF_API_TOKEN`) แยกจากการ sign in `cf auth login` สำหรับ deploy; ห้ามส่ง token ในแชต. หลัง runner auth พร้อม ให้รัน dry-run แล้ว `python scripts/sync_hub_numeric.py --write`; writer จะอ่าน sample สดเอง. ตรวจ active run/3 observations แบบ read-only.
-2. **หลังปิด P0 governance exposure และ QA ผ่าน** deploy checkout ปัจจุบันไป Workers Preview ผ่าน `node scripts/deploy_preview.mjs --deploy` หลัง `cf auth login` แล้วตรวจ dataset detail, records, series, completeness=`partial`, `sourceRetrievedAt` และ Explorer grid labels บน browser. ห้าม deploy checkout ก่อนแก้ water/prices/early-warning/weather-engine ตาม [ใบสั่งงาน](docs/assignments/2026-10-25-ai-work-orders.md).
-3. Workflow GitHub Actions ยัง untracked; default branch ตอบ 404 จึงยังตรวจ schedule/secret/run ไม่ได้. เก็บงานค้างและไฟล์ dirty อื่นไว้; ยังไม่ได้ commit/push.
-4. ผล M3 API audit: NASA POWER เหมาะสำหรับ metadata discovery เท่านั้น; Open-Meteo เป็น numeric candidate แบบมีเงื่อนไข non-commercial/attribution; RID และ NABC ยังขาดสิทธิ์เผยแพร่, MOC timeout และ GISTDA ต้องมี key. ดู [M3 API candidate audit](docs/m3-api-candidate-audit-2026-10-25.md).
-5. Production domain ค่อยตัดสินใจหลัง hosting, database, ต้นทุน และสิทธิ์พร้อม.
+2. ตรวจสอบสถานะการรัน GitHub Actions บน remote repository หลัง push commit `17fa8a0`
+3. ทบทวนสิทธิ์และผลการตรวจสอบ M3 API audit สำหรับแหล่งข้อมูลภายนอก (RID, OAE/NABC, Open-Meteo, NASA POWER, GISTDA)
+4. การตัดสินใจเรื่อง Production domain และ Database scaling เมื่อทรัพยากรได้รับการอนุมัติสิทธิ์ (License clearance)
 
 ## Repository และข้อควรระวัง
 
-- Branch `main` นำ `origin/main` อยู่ 10 commits; working tree มีไฟล์แก้และไฟล์ใหม่จำนวนมาก อย่า reset, clean, commit หรือ push โดยไม่ตรวจคำสั่งล่าสุด
-- ข้อมูลใน `data/local/` และ `exports/private/` ห้ามนำเข้า git หรือ bundle ลง web
-- ในทะเบียน resource 72 รายการ CHIRPS v3 exact file หนึ่งรายการเป็น `approved_public` ตาม license ทางการของ CHC; อีก 71 รายการยัง `pending`. D1 ยังไม่มี active CHIRPS run/observations และ public API ยังไม่มีตัวเลขจาก sample นี้
+- Branch `main` ซิงก์ตรงกับ `origin/main` เรียบร้อยแล้ว (Commit `17fa8a0`); working tree สะอาด
+- ข้อมูลใน `data/local/` และ `exports/private/` ห้ามนำเข้า git หรือ bundle ลง web อย่างเด็ดขาด
+- ในทะเบียน resource ทั้ง 82 รายการ มีเพียง CHIRPS v3 exact file 1 รายการที่เป็น `approved_public` ตาม license ทางการของ CHC; อีก 81 รายการยังคงสถานะ `pending`. D1 ยังไม่มี active CHIRPS run/observations และ public API ยังไม่มีตัวเลขจริงจากชุดข้อมูลที่ pending

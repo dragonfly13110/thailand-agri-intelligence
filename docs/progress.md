@@ -1,6 +1,22 @@
 # ความคืบหน้า
 
-อัปเดต 25 ตุลาคม 2569 เวลา 23:38 น. ICT — **Cloudflare CLI ผ่านการยืนยันตัวตนสำเร็จ (dragonfly.forester@outlook.com)**; ระบบเสร็จสมบูรณ์ครบทั้ง 19 แดชบอร์ดและ 29 API routes (Batch 1 ถึง Batch 5) ผ่านการตรวจสอบทางเทคนิคครบวงรอบ (Web tests 59/59, Python tests 407/407, ViNext Edge Build 100%, TypeScript 0 errors) พร้อมบูรณาการระบบนำทาง Shell Mega-Menu ครบทุกหน้า
+อัปเดต 25 ตุลาคม 2569 เวลา 23:48 น. ICT — **Deploy บน Cloudflare Workers Preview สำเร็จและ Push ขึ้น GitHub origin/main เรียบร้อย (Commit 17fa8a0)**; ระบบเสร็จสมบูรณ์ครบทั้ง 19 แดชบอร์ดและ 29 API routes (Batch 1 ถึง Batch 5) ผ่านการตรวจสอบทางเทคนิคครบวงรอบ (Web tests 59/59, Python tests 407/407, ViNext Edge Build 100%, TypeScript 0 errors) พร้อมบูรณาการระบบนำทาง Shell Mega-Menu ครบทุกหน้า
+
+## 25 ต.ค. 2569 — Cloudflare Workers Preview Deployment & Git Push สำเร็จ
+
+- **Cloudflare Edge Deployment**:
+  - Live Preview URL: `https://preview-1-tadih-web.dragonfly-forester.workers.dev`
+  - Deployment ID: `ace2f311-cfb5-42e4-8306-b218f43f6b94` (preview-1)
+  - ทดสอบสดผ่าน edge network:
+    - `GET /` → HTTP 200 OK
+    - `GET /cooperatives` → HTTP 200 OK
+    - `GET /api/v1/cooperatives` → HTTP 200 OK
+    - `GET /land-reform` → HTTP 200 OK
+- **Git Commit & Push**:
+  - Commit: `17fa8a0` (`feat: deploy central agriculture data hub with 19 strategic dashboards`)
+  - จำนวนไฟล์: 369 files changed, 120,132 insertions(+), 1,344 deletions(-)
+  - Push ไปยัง remote repository สำเร็จ: `origin/main` (https://github.com/dragonfly13110/thailand-agri-intelligence.git)
+  - สถานะ working tree: สะอาด 100%, ซิงก์ตรงกับ remote branch
 
 ## 25 ต.ค. 2569 — Cloudflare CLI Authentication สำเร็จ
 
