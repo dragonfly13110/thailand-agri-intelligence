@@ -22,7 +22,7 @@
 .titleRow h1 {
   font-size: 26px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   margin: 0;
   letter-spacing: -0.5px;
 }
@@ -56,7 +56,7 @@
 }
 
 .subtitle {
-  color: #556b60;
+  color: var(--muted);
   font-size: 14px;
   margin: 0;
   line-height: 1.6;
@@ -70,8 +70,8 @@
 }
 
 .kpiCard {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 18px 20px;
   display: flex;
@@ -95,20 +95,20 @@
 .kpiValue {
   font-size: 26px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   letter-spacing: -0.5px;
 }
 
 .kpiUnit {
   font-size: 13px;
   font-weight: 400;
-  color: #7b8e84;
+  color: var(--muted);
   margin-left: 4px;
 }
 
 .kpiFoot {
   font-size: 12px;
-  color: #7b8e84;
+  color: var(--muted);
   margin-top: 4px;
 }
 
@@ -137,8 +137,8 @@
 
 /* Filter Bar */
 .filterBar {
-  background: #f4f7f2;
-  border: 1px solid #dce5da;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
   display: grid;
@@ -165,8 +165,8 @@
   padding: 0 12px;
   border: 1px solid #c5d3c2;
   border-radius: 6px;
-  background: #ffffff;
-  color: #1f3329;
+  background: var(--white);
+  color: var(--ink);
   font-size: 13px;
   outline: none;
   transition: border-color 0.15s ease;
@@ -187,7 +187,7 @@
 .searchIcon {
   position: absolute;
   left: 12px;
-  color: #7b8e84;
+  color: var(--muted);
   pointer-events: none;
 }
 
@@ -204,8 +204,8 @@
 }
 
 .regionCard {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px 14px;
   cursor: pointer;
@@ -221,7 +221,7 @@
 .regionName {
   font-size: 13px;
   font-weight: 600;
-  color: #1a3328;
+  color: var(--ink);
   display: flex;
   justify-content: space-between;
 }
@@ -249,8 +249,8 @@
 
 /* Data Table Container */
 .tableCard {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
@@ -261,7 +261,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid #eef2ed;
+  border-bottom: 1px solid var(--surface-muted);
   background: #fafbfa;
 }
 
@@ -288,7 +288,7 @@
   color: #2e4439;
   font-weight: 600;
   padding: 12px 16px;
-  border-bottom: 2px solid #dce5da;
+  border-bottom: 2px solid var(--line);
   white-space: nowrap;
   position: sticky;
   top: 0;
@@ -297,8 +297,8 @@
 
 .table td {
   padding: 12px 16px;
-  border-bottom: 1px solid #eef2ed;
-  color: #1f3329;
+  border-bottom: 1px solid var(--surface-muted);
+  color: var(--ink);
   white-space: nowrap;
 }
 
@@ -308,7 +308,7 @@
 
 .reservoirName {
   font-weight: 600;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .gaugeWrap {
@@ -344,7 +344,7 @@
   align-items: center;
   padding: 14px 20px;
   background: #fafbfa;
-  border-top: 1px solid #eef2ed;
+  border-top: 1px solid var(--surface-muted);
   font-size: 13px;
 }
 
@@ -357,8 +357,8 @@
   padding: 6px 14px;
   border-radius: 6px;
   border: 1px solid #c5d3c2;
-  background: #ffffff;
-  color: #1f3329;
+  background: var(--white);
+  color: var(--ink);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease;

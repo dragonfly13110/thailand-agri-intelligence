@@ -168,7 +168,22 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
 
   return (
     <div className={styles.container}>
-      {/* 1. Data governance banner */}
+      {/* 1. Header */}
+      <header className={styles.header}>
+        <div className={styles.titleGroup}>
+          <h1 className={styles.title}>เขตปฏิรูปที่ดิน ส.ป.ก. และกรรมสิทธิ์ที่ดินเกษตรกรรม</h1>
+          <p className={styles.subtitle}>
+            ภาพรวมเนื้อที่เขตปฏิรูปที่ดิน เอกสารสิทธิ์ และความมั่นคงในการถือครองที่ดินรายจังหวัด
+            จากแบบจำลองเชิงโครงสร้างเพื่อการสาธิต — ไม่ใช่สถิติหรือประกาศทางการของ ส.ป.ก.
+          </p>
+        </div>
+        <span className={styles.headerBadge}>
+          <span className={styles.headerDot} aria-hidden="true" />
+          แบบจำลองเชิงโครงสร้าง · ยังไม่เปิดเผยตัวเลขต้นทาง
+        </span>
+      </header>
+
+      {/* 2. Data governance banner */}
       <aside
         className={styles.governanceBanner}
         role="note"
@@ -199,21 +214,6 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
           </p>
         </div>
       </aside>
-
-      {/* 2. Header */}
-      <header className={styles.header}>
-        <div className={styles.titleGroup}>
-          <h1 className={styles.title}>เขตปฏิรูปที่ดิน ส.ป.ก. และกรรมสิทธิ์ที่ดินเกษตรกรรม</h1>
-          <p className={styles.subtitle}>
-            ภาพรวมเนื้อที่เขตปฏิรูปที่ดิน เอกสารสิทธิ์ และความมั่นคงในการถือครองที่ดินรายจังหวัด
-            จากแบบจำลองเชิงโครงสร้างเพื่อการสาธิต — ไม่ใช่สถิติหรือประกาศทางการของ ส.ป.ก.
-          </p>
-        </div>
-        <span className={styles.headerBadge}>
-          <span className={styles.headerDot} aria-hidden="true" />
-          แบบจำลองเชิงโครงสร้าง · ยังไม่เปิดเผยตัวเลขต้นทาง
-        </span>
-      </header>
 
       {/* 3. Filters */}
       <section className={styles.filtersPanel} aria-labelledby="land-reform-filters-title">

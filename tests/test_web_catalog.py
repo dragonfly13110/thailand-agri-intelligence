@@ -14,7 +14,9 @@ class WebCatalogTests(unittest.TestCase):
             output = Path(folder)
             payload = build_web_catalog(output=output)
             self.assertEqual(len(payload['records']), 17)
-            self.assertTrue(all(r['data_license_status'] == 'pending' for r in payload['records']))
+            approved_ids = {r['id'] for r in payload['records'] if r['data_license_status'] == 'approved_public'}
+            self.assertEqual(approved_ids, {'rainfall-reanalysis', 'reservoir-situation'})
+            self.assertTrue(all(r['data_license_status'] in {'pending', 'approved_public'} for r in payload['records']))
             self.assertTrue(all(r['metadata_review'] == 'project_authored_public' for r in payload['records']))
             self.assertNotIn('data_records', json.dumps(payload))
             catalog = {row['id']: row for row in payload['records']}

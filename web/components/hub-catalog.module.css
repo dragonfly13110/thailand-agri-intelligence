@@ -7,13 +7,13 @@
 .catalog{min-width:0}
 .filters{display:grid;grid-template-columns:minmax(190px,1.3fr) minmax(145px,.8fr) minmax(150px,.8fr) auto;gap:14px;align-items:end;padding:20px;background:#edf1e7;border:1px solid var(--line);border-radius:var(--radius)}
 .filters label{display:block;margin-bottom:7px;font-size:12px;font-weight:500}
-.filters input,.filters select{width:100%;max-width:100%;height:44px;min-width:0;padding:0 12px;border:1px solid #bdc9b7;border-radius:5px;background:#fff;color:var(--ink);font-size:13px}
+.filters input,.filters select{width:100%;max-width:100%;height:44px;min-width:0;padding:0 12px;border:1px solid var(--line-strong);border-radius:5px;background:#fff;color:var(--ink);font-size:13px}
 .filters select{text-overflow:ellipsis}
-.query>div{display:flex;align-items:center;gap:9px;height:44px;padding:0 11px;border:1px solid #bdc9b7;border-radius:5px;background:#fff;color:#687d5c}
+.query>div{display:flex;align-items:center;gap:9px;height:44px;padding:0 11px;border:1px solid var(--line-strong);border-radius:5px;background:#fff;color:#687d5c}
 .query input{height:40px;padding:0;border:0;outline:0}
 .searchButton,.secondaryButton{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:9px 17px;border:1px solid var(--forest);border-radius:6px;background:var(--forest);color:#fff;font-size:13px;font-weight:500;cursor:pointer}
 .searchButton:hover{background:#365c45}
-.secondaryButton{border-color:#bdc9b7;background:#fff;color:var(--forest)}
+.secondaryButton{border-color:var(--line-strong);background:#fff;color:var(--forest)}
 .secondaryButton:hover{background:#edf2e7}
 .summary{display:flex;align-items:center;gap:12px;margin:22px 0 13px;font-size:13px}
 .summary strong{font-variant-numeric:tabular-nums}
@@ -21,7 +21,7 @@
 .results{margin:0;padding:0;list-style:none;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:#fff}
 .results li+li{border-top:1px solid #e7ebe3}
 .row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(140px,180px) 32px;gap:16px;align-items:center;padding:19px 20px}
-.row:hover{background:#fbfcf8}
+.row:hover{background:var(--surface-muted)}
 .categoryIcon{display:flex;align-items:center;justify-content:center;width:40px;height:42px;border-radius:6px;background:#eef3e5;color:#526c39}
 .tone-prices{background:#f8f0dc;color:#876c2f}
 .tone-water{background:#e9f1f1;color:#3f6d6c}

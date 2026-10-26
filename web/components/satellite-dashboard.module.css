@@ -135,14 +135,14 @@
 .titleGroup h1 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   letter-spacing: -0.6px;
   margin: 0;
 }
 
 .subtitle {
   font-size: 14.5px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   margin-top: 6px;
   line-height: 1.6;
   max-width: 960px;
@@ -170,8 +170,8 @@
 }
 
 .kpiCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 20px;
   display: flex;
@@ -217,7 +217,7 @@
 .kpiLabel {
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
 }
 
 .kpiIconWrap {
@@ -251,7 +251,7 @@
 .kpiFigureLabel {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
   min-width: 92px;
 }
 
@@ -259,7 +259,7 @@
   font-size: 26px;
   font-weight: 700;
   line-height: 1.1;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   font-variant-numeric: tabular-nums;
 }
 
@@ -272,12 +272,12 @@
 .kpiUnit {
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
 }
 
 .kpiFooter {
   font-size: 12px;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -295,7 +295,7 @@
 
 .coverageNote {
   font-size: 12.5px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   background: var(--paper, #f0f4ed);
   border: 1px dashed var(--line, #c6d2bd);
   border-radius: 6px;
@@ -303,7 +303,7 @@
 }
 
 .coverageNote strong {
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
 }
 
 /* --- Licence status panel --- */
@@ -320,8 +320,8 @@
 }
 
 .licenceCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-left: 4px solid #c69a35;
   border-radius: var(--radius, 8px);
   padding: 16px 18px;
@@ -340,14 +340,14 @@
 
 .licenceOwner {
   font-size: 11.5px;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
   font-weight: 600;
 }
 
 .licenceName {
   font-size: 14.5px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   margin-top: 2px;
 }
 
@@ -388,7 +388,7 @@
 }
 
 .licenceMetaList dt {
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
   font-weight: 600;
 }
 
@@ -430,8 +430,8 @@
 
 /* --- Filter & Controls Section --- */
 .controlCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 16px 20px;
   display: flex;
@@ -454,7 +454,7 @@
   align-items: center;
   gap: 10px;
   background: var(--paper, #f7f9f5);
-  border: 1px solid var(--line, #dce4d9);
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   padding: 8px 14px;
 }
@@ -463,7 +463,7 @@
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--ink, #1b382b);
+  color: var(--ink, var(--forest-deep));
   font-size: 14px;
   outline: none;
 }
@@ -485,15 +485,15 @@
   border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   transition: all 0.15s ease;
 }
 
-.typeBtn:hover { color: var(--forest, #1b382b); }
+.typeBtn:hover { color: var(--forest, var(--forest-deep)); }
 
 .typeBtn.active {
-  background: var(--white, #ffffff);
-  color: var(--forest, #1b382b);
+  background: var(--white, var(--white));
+  color: var(--forest, var(--forest-deep));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -518,16 +518,16 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
 }
 
 .selectInput {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13.5px;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   outline: none;
   min-width: 140px;
 }
@@ -540,14 +540,14 @@
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 12.5px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .resetBtn:hover {
   background: var(--paper, #edf2ea);
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
 }
 
 .resetBtn:disabled {
@@ -557,7 +557,7 @@
 
 .resultsMeta {
   font-size: 13px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
 }
 
 /* --- Navigation Tabs --- */
@@ -581,22 +581,22 @@
   padding: 12px 18px;
   font-size: 14.5px;
   font-weight: 600;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
   margin-bottom: -2px;
   transition: color 0.18s ease, border-color 0.18s ease;
   white-space: nowrap;
 }
 
-.tabBtn:hover { color: var(--forest, #1b382b); }
+.tabBtn:hover { color: var(--forest, var(--forest-deep)); }
 
 .tabBtn.activeTab {
-  color: var(--forest, #1b382b);
-  border-bottom-color: var(--forest, #213d32);
+  color: var(--forest, var(--forest-deep));
+  border-bottom-color: var(--forest, var(--forest));
 }
 
 .tabCounter {
   background: var(--paper, #edf2ea);
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
@@ -604,8 +604,8 @@
 }
 
 .tabBtn.activeTab .tabCounter {
-  background: var(--accent, #d9e8a0);
-  color: var(--forest, #213d32);
+  background: var(--accent, var(--accent));
+  color: var(--forest, var(--forest));
 }
 
 /* --- Sections generic --- */
@@ -626,19 +626,19 @@
 .sectionTitle {
   font-size: 18px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   margin: 0;
 }
 
 .sectionNote {
   font-size: 13px;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
 }
 
 /* --- NDVI vigour ramp --- */
 .ndviRampCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 16px 20px;
   display: flex;
@@ -656,7 +656,7 @@
   display: flex;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid var(--line, #dce4d9);
+  border: 1px solid var(--line, var(--line));
 }
 
 .rampBand {
@@ -705,7 +705,7 @@
 .rampMarkerFlag {
   font-size: 10.5px;
   font-weight: 700;
-  background: var(--forest, #1b382b);
+  background: var(--forest, var(--forest-deep));
   color: #fff;
   border-radius: 4px;
   padding: 1px 6px;
@@ -716,7 +716,7 @@
 .rampMarkerNeedle {
   width: 2px;
   height: 14px;
-  background: var(--forest, #1b382b);
+  background: var(--forest, var(--forest-deep));
 }
 
 .rampReadoutRow {
@@ -725,11 +725,11 @@
   gap: 14px;
   flex-wrap: wrap;
   font-size: 12.5px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
 }
 
 .rampReadoutRow strong {
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   font-variant-numeric: tabular-nums;
 }
 
@@ -749,8 +749,8 @@
 
 /* --- Spatial schematic (non-geographic) --- */
 .schematicCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 18px 20px;
   display: flex;
@@ -775,7 +775,7 @@
   gap: 10px;
   flex-wrap: wrap;
   font-size: 11.5px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
 }
 
 .legendChip {
@@ -817,12 +817,12 @@
 .regionName {
   font-size: 14px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
 }
 
 .regionMeta {
   font-size: 11.5px;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
 }
 
 .provinceTileGrid {
@@ -851,12 +851,12 @@
 }
 
 .provinceTile:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
 .provinceTile.selected {
-  border-color: var(--forest, #1b382b);
+  border-color: var(--forest, var(--forest-deep));
   box-shadow: 0 0 0 2px rgba(33, 61, 50, 0.35);
 }
 
@@ -900,8 +900,8 @@
 
 /* --- Province detail panel --- */
 .detailPanel {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 18px 20px;
   display: flex;
@@ -923,13 +923,13 @@
 .detailTitle {
   font-size: 18px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   margin: 0;
 }
 
 .detailSub {
   font-size: 12.5px;
-  color: var(--muted, #556b60);
+  color: var(--muted, var(--muted));
   margin-top: 2px;
 }
 
@@ -948,7 +948,7 @@
 }
 
 .layerBlock {
-  border: 1px solid var(--line, #dce4d9);
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   padding: 12px 14px;
   background: #fbfdf9;
@@ -970,7 +970,7 @@
 .layerBlockTitle {
   font-size: 14px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
 }
 
 .metricGrid {
@@ -989,12 +989,12 @@
   padding: 3px 0;
 }
 
-.metricGrid dt { color: var(--muted, #556b60); }
+.metricGrid dt { color: var(--muted, var(--muted)); }
 
 .metricGrid dd {
   margin: 0;
   font-weight: 600;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -1003,7 +1003,7 @@
   margin-top: 8px;
   font-size: 12.5px;
   line-height: 1.6;
-  color: var(--ink, #1b382b);
+  color: var(--ink, var(--forest-deep));
   background: #f8faf6;
   border-left: 3px solid #739e82;
   padding: 6px 10px;
@@ -1045,7 +1045,7 @@
 }
 
 .sceneMetaCard {
-  border: 1px solid var(--line, #dce4d9);
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   padding: 12px 14px;
   background: #f7f9f5;
@@ -1055,7 +1055,7 @@
 .sceneMetaTitle {
   font-size: 13.5px;
   font-weight: 700;
-  color: var(--forest, #1b382b);
+  color: var(--forest, var(--forest-deep));
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -1078,7 +1078,7 @@
   padding: 4px 0;
 }
 
-.sceneMetaList dt { color: var(--muted, #556b60); font-weight: 600; }
+.sceneMetaList dt { color: var(--muted, var(--muted)); font-weight: 600; }
 
 .sceneMetaList dd {
   margin: 0;
@@ -1089,7 +1089,7 @@
 
 .detailPlaceholder {
   font-size: 13.5px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   background: var(--paper, #f0f4ed);
   border: 1px dashed var(--line, #bccac0);
   border-radius: 6px;
@@ -1099,8 +1099,8 @@
 
 /* --- Tables (basins, scenes) --- */
 .tableCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce4d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
@@ -1120,12 +1120,12 @@
 
 .dataTable th {
   background: var(--paper, #eff3eb);
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.3px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--line, #dce4d9);
+  border-bottom: 1px solid var(--line, var(--line));
   white-space: nowrap;
 }
 
@@ -1172,7 +1172,7 @@
 .emptyState {
   padding: 48px 24px;
   text-align: center;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1194,7 +1194,7 @@
 
 .paginationMeta {
   font-size: 13px;
-  color: var(--muted, #4b6354);
+  color: var(--muted, var(--muted));
 }
 
 /* ==========================================================================

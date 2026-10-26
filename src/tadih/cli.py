@@ -2,9 +2,12 @@
 
 import argparse
 import hashlib
+import importlib
+import inspect
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 import sys
 from urllib.error import URLError
 
@@ -12,6 +15,12 @@ import duckdb
 
 from .warehouse import connect, load_json_rows, ingest_rows
 from .publish import build_exports, verify_exports
+
+# Numeric connector lanes publish through one shared adapter contract:
+#   src/tadih/ingest_<name>_d1.py exposing run_adapter/run/main.
+ADAPTER_MODULE_TEMPLATE = "tadih.ingest_{name}_d1"
+ADAPTER_ENTRYPOINTS = ("run_adapter", "run", "main")
+ADAPTER_NAME_PATTERN = re.compile(r"[a-z][a-z0-9_]*")
 
 
 def parser():
@@ -49,8 +58,12 @@ def parser():
     build.add_argument("--output", help="Snapshot directory; defaults to exports/build or exports/private")
     build.add_argument("--period", help="Coverage month YYYY-MM")
     build.add_argument("--audience", choices=("public", "internal"), default="public")
-    ingest = commands.add_parser("ingest", help="Validate and load a normalized JSON array")
-    ingest.add_argument("file")
+    ingest = commands.add_parser("ingest", help="Validate and load a normalized JSON array, or publish a numeric adapter batch")
+    ingest.add_argument("file", nargs="?", help="Normalized JSON array; omit when --adapter is used")
+    ingest.add_argument("--adapter", help="Numeric adapter name; module tadih.ingest_<name>_d1 publishes to D1")
+    ingest.add_argument("--dry-run", action="store_true", help="Prepare the adapter batch without writing to D1")
+    ingest.add_argument("--write", action="store_true", help="Publish the adapter batch to Cloudflare D1")
+    ingest.add_argument("--date", help="Batch date YYYY-MM-DD for the adapter run")
     verify = commands.add_parser("verify", help="Verify export checksums")
     verify.add_argument("snapshot")
     coverage = commands.add_parser("coverage-view", help="Flatten verified public coverage labels for Power BI CSV import")
@@ -139,6 +152,15 @@ def parser():
     satellite.add_argument("--output", default="data/local/raw")
     satellite.add_argument("--license-status", choices=("pending", "approved_public", "restricted"), default="pending")
     satellite.add_argument("--ingest", action="store_true", help="Ingest normalized observations into local DuckDB warehouse")
+    nwp = commands.add_parser("tmd-nwp", help="Fetch TMD NWP daily forecast by place or point; pending licence stays local")
+    place = nwp.add_mutually_exclusive_group(required=True)
+    place.add_argument("--province", help="Thai province name, e.g. นครปฐม")
+    place.add_argument("--latitude", type=float, help="Latitude for a model grid point")
+    nwp.add_argument("--longitude", type=float, help="Longitude for a model grid point")
+    nwp.add_argument("--amphoe", help="Thai amphoe name; requires --province")
+    nwp.add_argument("--tambon", help="Thai tambon name; requires --amphoe")
+    nwp.add_argument("--fields", default="tc_max,tc_min,cond", help="Comma-separated TMD NWP field codes")
+    nwp.add_argument("--output", help="Optional explicit JSON output path")
     commands.add_parser("status", help="Count actual imported records, no inferred coverage")
     return p
 
@@ -147,8 +169,13 @@ def main(argv=None):
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
+    argv, passthrough = _split_adapter_passthrough(sys.argv[1:] if argv is None else list(argv))
     args = parser().parse_args(argv)
     try:
+        if args.command == "ingest" and getattr(args, "adapter", None):
+            return _run_adapter_command(args, passthrough)
+        if args.command == "ingest" and not getattr(args, "file", None):
+            raise _UsageError("ingest needs a JSON file or --adapter <name>")
         if args.command == "verify":
             output = verify_exports(args.snapshot)
         elif args.command == "coverage-view":
@@ -316,6 +343,22 @@ def main(argv=None):
             if args.ingest:
                 with connect(args.db) as db:
                     output["validated_input_rows"] = ingest_rows(db, normalized["observations"])
+        elif args.command == "tmd-nwp":
+            from .tmd_nwp import fetch_nwp_daily_place, fetch_nwp_daily_point
+            if args.province:
+                envelope = fetch_nwp_daily_place(
+                    args.province, amphoe=args.amphoe, tambon=args.tambon,
+                    fields=args.fields, output_path=args.output)
+            else:
+                if args.longitude is None:
+                    raise ValueError("--longitude is required with --latitude")
+                envelope = fetch_nwp_daily_point(
+                    args.latitude, args.longitude, fields=args.fields,
+                    output_path=args.output)
+            output = {key: envelope[key] for key in (
+                "status", "record_count", "spatial_support", "location", "valid_dates",
+                "requested_fields", "license_status", "unit_status",
+                "condition_mapping_status", "path")}
         else:
             with connect(args.db) as db:
                 if args.command == "ingest":
@@ -361,6 +404,146 @@ def main(argv=None):
                               "latest_observations": db.execute("SELECT count(*) FROM latest_observations").fetchone()[0]}
         print(json.dumps(output, ensure_ascii=False, indent=2, default=str))
         return 0
+    except _UsageError as exc:
+        print(f"TADIH: {exc}", file=sys.stderr)
+        return 2
     except (ValueError, OSError, KeyError, TypeError, URLError, duckdb.Error) as exc:
         print(f"TADIH: {exc}", file=sys.stderr)
         return 1
+
+
+class _UsageError(ValueError):
+    """The command line itself is wrong; the CLI exits with code 2."""
+
+
+def _fail(code, message, **extra):
+    payload = {"status": "failed", "errorCode": code, "message": message}
+    payload.update(extra)
+    print(json.dumps(payload, ensure_ascii=False), file=sys.stderr)
+    return 2
+
+
+def _split_adapter_passthrough(argv):
+    """Split ``-- flag value`` tokens destined for an ingest adapter from CLI flags."""
+    if "--adapter" not in argv or "--" not in argv:
+        return argv, []
+    index = argv.index("--")
+    return argv[:index], argv[index + 1:]
+
+
+def _adapter_module(name):
+    """Import the adapter module of a lane, or None when it is not shipped yet."""
+    if not isinstance(name, str) or not ADAPTER_NAME_PATTERN.fullmatch(name):
+        return None
+    module_name = ADAPTER_MODULE_TEMPLATE.format(name=name)
+    try:
+        return importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:
+        if exc.name and exc.name != module_name:
+            raise
+        return None
+
+
+def adapter_argv(args, passthrough=()):
+    """Build the adapter command line; dry-run is the default and never implicit-write."""
+    flags = ["--write"] if getattr(args, "write", False) else ["--dry-run"]
+    if getattr(args, "date", None):
+        flags += ["--date", args.date]
+    return flags + list(passthrough or ())
+
+
+def call_adapter(module, argv, *, client=None):
+    """Run an adapter module through the shared entry-point contract.
+
+    Contract (plan §3.2 / lanes C-F): ``main(argv: list[str], *, client=None) -> int``
+    honouring ``--dry-run`` (default), ``--write`` and ``--date YYYY-MM-DD``, with any
+    extra flags forwarded verbatim. An entry point that declares ``dry_run``/``write``/
+    ``date`` (or ``**kwargs``) keyword parameters receives the flags as keywords; one
+    that only parses its own ``argv`` receives the flags positionally, because a
+    keyword-only call would drop them and publish nothing.
+    """
+    for name in ADAPTER_ENTRYPOINTS:
+        function = getattr(module, name, None)
+        if not callable(function):
+            continue
+        try:
+            parameters = inspect.signature(function).parameters
+        except (TypeError, ValueError):
+            parameters = {}
+        positional = [
+            parameter for parameter in parameters.values()
+            if parameter.kind in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        accepts_flag_keywords = any(
+            parameter.name in ("dry_run", "write", "date")
+            or parameter.kind is parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
+        if list(argv) and positional and not accepts_flag_keywords:
+            # This entry point parses its own flags, so argv has to arrive
+            # positionally; a keyword-only call would silently drop --write,
+            # --date and the lane-specific flags.
+            client_kwargs = {"client": client} if "client" in parameters else {}
+            return function(list(argv), **client_kwargs)
+        kwargs = {}
+        for key, value in (("client", client),
+                           ("dry_run", "--dry-run" in argv),
+                           ("write", "--write" in argv),
+                           ("date", argv[argv.index("--date") + 1] if "--date" in argv else None)):
+            if any(parameter.kind is parameter.VAR_KEYWORD for parameter in parameters.values()) \
+                    or key in parameters:
+                kwargs[key] = value
+        return function(**kwargs)
+    raise _UsageError(
+        f"adapter module {module.__name__} exposes none of {', '.join(ADAPTER_ENTRYPOINTS)}")
+
+
+def _run_adapter_command(args, passthrough=()):
+    """Publish one numeric adapter batch to D1 under the shared licence gate."""
+    from .env import load_dotenv
+
+    # D1 and the upstream API keys live in .env; without this the D1 client
+    # fails with D1_UNAUTHORIZED because the wrangler fallback token expired.
+    load_dotenv(override=True)
+    if args.dry_run and args.write:
+        return _fail("ADAPTER_FLAGS_CONFLICT", "--dry-run and --write cannot be combined")
+    if args.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", args.date):
+        return _fail("ADAPTER_DATE_INVALID", "--date must use the YYYY-MM-DD format")
+    module_name = ADAPTER_MODULE_TEMPLATE.format(name=args.adapter if isinstance(args.adapter, str) else "")
+    adapter = _adapter_module(args.adapter)
+    if adapter is None:
+        return _fail(
+            "ADAPTER_NOT_FOUND",
+            f"adapter module {module_name} is not available in this checkout yet "
+            "(lane module must be src/tadih/ingest_<name>_d1.py)",
+            adapter=args.adapter,
+            expected_module=module_name,
+        )
+    write = bool(args.write)
+    client = None
+    if write:
+        from .hub_catalog_sync import connect_d1_client
+        try:
+            client = connect_d1_client()
+        except Exception as exc:
+            code = getattr(exc, "code", None) or "D1_NOT_CONFIGURED"
+            return _fail(code, str(exc)[:300])
+    argv = adapter_argv(args, passthrough)
+    try:
+        result = call_adapter(adapter, argv, client=client)
+    except _UsageError:
+        raise
+    except SystemExit as exc:  # adapters keep the CLI exit code contract
+        return int(exc.code or 0)
+    except Exception as exc:
+        code = getattr(exc, "code", None) or type(exc).__name__
+        return _fail(code, str(exc)[:300])
+    if isinstance(result, int):
+        return result
+    print(json.dumps({
+        "adapter": args.adapter,
+        "mode": "write" if write else "dry_run",
+        "result": result,
+    }, ensure_ascii=False, indent=2, default=str))
+    return 0
+

@@ -165,12 +165,12 @@
 
 .kpiCardHighlight {
   border-left: 4px solid #588147;
-  background: linear-gradient(180deg, #fbfdf9 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #fbfdf9 0%, var(--white) 100%);
 }
 
 .kpiCardRisingStar {
   border-left: 4px solid #e27d35;
-  background: linear-gradient(180deg, #fffbf7 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #fffbf7 0%, var(--white) 100%);
 }
 
 .kpiCardHeader {
@@ -627,7 +627,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 6px;
-  background: #fbfcf9;
+  background: var(--surface-muted);
   border: 1px solid #edf1e8;
   font-size: 13px;
 }

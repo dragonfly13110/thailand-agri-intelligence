@@ -26,12 +26,17 @@ export const API_GROUPS: ApiGroup[] = [
   {
     id: 'weather',
     label: 'อากาศและฝน',
-    description: 'พยากรณ์ 7 วันรายจังหวัดหรือรายภาค พร้อมฝนสะสมและคำแนะนำเกษตร',
+    description: 'พยากรณ์ 7 วันรายจังหวัดหรือรายภาค พร้อมฝนสะสมและคำแนะนำเกษตร และค่าตรวจวัดจริงรายสถานี',
   },
   {
     id: 'water',
     label: 'อ่างเก็บน้ำ',
     description: 'ภาพรวมอ่างเก็บน้ำขนาดกลางของกรมชลประทานจาก snapshot รายวัน',
+  },
+  {
+    id: 'nwp',
+    label: 'พยากรณ์กริด NWP',
+    description: 'พยากรณ์กริด 3 กม. รายรอบ พร้อมค่าจังหวัดและระดับความเสี่ยงจากเกณฑ์ภายใน',
   },
   {
     id: 'crops',
@@ -384,6 +389,55 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'ไม่ระบุทั้งสองตัวเลือกหรือรหัสไม่ถูกต้อง → 400 INVALID_QUERY',
     ],
   },
+  {
+    id: 'weather-observations',
+    group: 'weather',
+    method: 'GET',
+    path: '/api/v1/weather/observations',
+    title: 'ข้อมูลอากาศรายวันจากสถานีตรวจวัด (ตัวเลขจริง)',
+    description:
+      'คืนค่าตรวจวัดจริงรายสถานีของกรมอุตุนิยมวิทยาประจำวันตรวจวัดเดียว พร้อมชุด reanalysis ERA5 รายวันระดับกริดของจังหวัดที่มีข้อมูล และที่มาของแต่ละรอบข้อมูลที่อ่านจากคลังข้อมูลกลาง',
+    access: 'approved_public',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<WeatherObservationsPayload>',
+    query: [
+      {
+        name: 'provinceCode',
+        type: 'string',
+        description:
+          'รหัสจังหวัด 2 หลักจากทะเบียน 77 รหัส; ใช้กรองสถานีและบล็อก ERA5 ของจังหวัดนั้น ไม่ระบุ = ทุกสถานีที่รายงาน',
+        example: '10',
+      },
+      {
+        name: 'date',
+        type: 'date',
+        description: 'วันตรวจวัด YYYY-MM-DD; ไม่ระบุ = วันตรวจวัดล่าสุดใน batch ที่เผยแพร่ได้',
+        example: '2026-10-26',
+      },
+      {
+        name: 'page',
+        type: 'integer',
+        description: 'หน้าที่ต้องการของตารางสถานี ค่าเริ่มต้น 1 และรับได้ไม่เกิน 10000',
+        example: '1',
+        minimum: 1,
+        maximum: 10_000,
+      },
+      {
+        name: 'pageSize',
+        type: 'integer',
+        description: 'จำนวนสถานีต่อหน้า ค่าเริ่มต้น 25 สูงสุด 100',
+        example: '25',
+        minimum: 1,
+        maximum: 100,
+      },
+    ],
+    notes: [
+      'คนละ endpoint กับ /api/v1/weather ซึ่งยังเป็นการพยากรณ์ตัวอย่าง (sample: true) — ชุดนี้คือค่าตรวจวัดจริง ไม่ใช่การพยากรณ์',
+      'unit=null และ unit_status=pending_official_confirmation ทุกค่า เพราะห้ามเดาหน่วย; หน่วยที่ต้นทางระบุอยู่ใน declaredUnits ต่อสถานี (ความเร็วลมแปลงเป็น ม./วิ ตามขั้นตอนที่บันทึกไว้แล้ว)',
+      'ค่าว่างคือต้นทางไม่รายงาน ไม่ใช่ 0 และไม่มีค่าเฉลี่ยระดับจังหวัด/ภาค: สถานีไม่ใช่จังหวัด รหัส 77 จังหวัดเป็นทะเบียนไม่ใช่ coverage',
+      'อ่านได้เฉพาะแถวที่อยู่ใน active run kind=numeric สถานะ succeeded/partial และ resource approved_public; ไม่มี batch ที่เผยแพร่ได้ → ตอบ metadata_only พร้อม warnings ไม่ใช่ 0',
+    ],
+  },
 
   /* ------------------------------------------------------------------ */
   /* water                                                               */
@@ -449,6 +503,111 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'resource RID ยัง pending ในทะเบียนสิทธิ์ snapshot นี้จึงไม่ใช่การอนุมัติให้เผยแพร่ซ้ำ',
       'เป็น snapshot คงที่ reportDate 2026-10-24 ไม่ใช่ข้อมูลเรียลไทม์ และค่า null หมายถึงไม่มีค่า ไม่ใช่ศูนย์',
       'ไม่ระบุ region/risk หรือส่ง all ถือว่าไม่กรอง; page/pageSize ถูก clamp แทนการตอบ 400',
+    ],
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* nwp                                                                 */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'nwp-grid',
+    group: 'nwp',
+    method: 'GET',
+    path: '/api/v1/nwp/grid',
+    title: 'กริดพยากรณ์ NWP',
+    description:
+      'คืนกริดพยากรณ์ 3 กม. ที่ลดขนาดเป็น 0.15° ของตัวแปรหนึ่ง ณ เวลาพยากรณ์หนึ่ง พร้อมค่าเฉลี่ยและค่าสูงสุดต่อเซลล์',
+    access: 'pending',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<NwpGridResponse>',
+    query: [
+      {
+        name: 'runId',
+        type: 'string',
+        description: 'รหัสรอบพยากรณ์จาก /api/v1/nwp/runs ต้องตรงรูปแบบ ^[a-z0-9_]{8,80}$',
+        example: 'tmd_hpc_d02_2026102600',
+      },
+      {
+        name: 'variable',
+        type: 'enum',
+        description: 'ตัวแปรพยากรณ์ที่รองรับ 5 ตัว; ค่าที่ไม่รู้จักตอบ 400 INVALID_QUERY',
+        example: 'p24h',
+        values: ['p1h', 'p24h', 't2m', 'rhum', 'ws10m'],
+      },
+      {
+        name: 'validAt',
+        type: 'string',
+        description: 'เวลาพยากรณ์รูปแบบ ISO 8601 UTC เช่น 2026-10-27T00:00:00Z',
+        example: '2026-10-27T00:00:00Z',
+      },
+    ],
+    notes: [
+      'mean/max เป็น row-major โดย row 0 = เหนือสุด (lat สูงสุด) และ column 0 = ตะวันตกสุด (lon ต่ำสุด); ความยาว array ต้องเท่ากับ nx*ny ทุกครั้ง',
+      'ช่องที่ต้นทางไม่มีข้อมูลคงเป็น null ไม่ถูกแทนด้วย 0; ค่า 0 จากต้นทางเป็นค่าจริงและไม่ใช่ missing',
+      'ค่าทุกค่าเป็นพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด; unit เป็น null จนกว่าหน่วย/นิยามจะได้รับการยืนยันจากต้นทาง',
+      'payload จำกัด ≤ 250KB ต่อ request; เกินขนาด → 500 NWP_PAYLOAD_TOO_LARGE; run/snapshot ไม่พบ → 404 NWP_NOT_FOUND',
+      'runId/variable/validAt ผิดรูปแบบหรือไม่ครบ → 400 INVALID_QUERY; publication mode = metadata_only → 403 NWP_PUBLICATION_DISABLED; D1 ไม่พร้อม → 503 HUB_DATABASE_NOT_CONFIGURED',
+      'สิทธิ์การเผยแพร่ของทรัพยากร TMD HPC NWP ยังอยู่สถานะ pending จึงยังไม่ถือเป็น approved_public; meta.access รายงานตามสถานะจริงของ run',
+      'ตัวแปร ws10m ถูกระงับไว้ เพราะไฟล์ต้นทางมีลักษณะสลับคอลัมน์กับ wd10m — ค่าลมจะกลับมาได้เมื่อต้นทางยืนยัน',
+    ],
+  },
+  {
+    id: 'nwp-provinces',
+    group: 'nwp',
+    method: 'GET',
+    path: '/api/v1/nwp/provinces',
+    title: 'ค่าพยากรณ์รายจังหวัด',
+    description:
+      'คืนค่าพยากรณ์ของแต่ละจังหวัดจากค่าสูงสุดในรัศมี 25 กม. รอบจุดอ้างอิงจังหวัด พร้อมระดับความเสี่ยงจากเกณฑ์ภายใน',
+    access: 'pending',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<NwpProvincesResponse>',
+    query: [
+      {
+        name: 'runId',
+        type: 'string',
+        description: 'รหัสรอบพยากรณ์จาก /api/v1/nwp/runs ต้องตรงรูปแบบ ^[a-z0-9_]{8,80}$',
+        example: 'tmd_hpc_d02_2026102600',
+      },
+      {
+        name: 'variable',
+        type: 'enum',
+        description: 'ตัวแปรพยากรณ์ที่รองรับ 5 ตัว; ค่าที่ไม่รู้จักตอบ 400 INVALID_QUERY',
+        example: 'p24h',
+        values: ['p1h', 'p24h', 't2m', 'rhum', 'ws10m'],
+      },
+      {
+        name: 'validAt',
+        type: 'string',
+        description: 'เวลาพยากรณ์รูปแบบ ISO 8601 UTC เช่น 2026-10-27T00:00:00Z',
+        example: '2026-10-27T00:00:00Z',
+      },
+    ],
+    notes: [
+      'value คือค่าสูงสุดของเซลล์ในรัศมี 25 กม. รอบจุดอ้างอิงจังหวัด ไม่ใช่ค่าเฉลี่ยทั้งจังหวัด และไม่ใช่ค่าจุดเดียวของจังหวัด',
+      'ต้องอ่าน method, radiusKm, distanceKm และ cellCount คู่กับ value เสมอ; ถ้าไม่มีเซลล์ในรัศมีจะใช้ nearest_cell และรายงานระยะจริง',
+      '77 รหัสจังหวัดเป็นทะเบียนนำทาง ไม่ได้แปลว่าทุกจังหวัดมีค่าในรอบนั้น; จังหวัดที่ไม่มีข้อมูลจะไม่ถูกสร้างค่าแทน',
+      'riskLevel คำนวณจากเกณฑ์ภายใน TADIH (config/nwp_thresholds.json) ไม่ใช่ประกาศเตือนภัยของ TMD; ค่าทุกค่าเป็นพยากรณ์จากแบบจำลอง',
+      'runId/variable/validAt ผิดรูปแบบหรือไม่ครบ → 400 INVALID_QUERY; run/snapshot ไม่พบ → 404 NWP_NOT_FOUND; publication mode = metadata_only → 403 NWP_PUBLICATION_DISABLED; D1 ไม่พร้อม → 503 HUB_DATABASE_NOT_CONFIGURED',
+    ],
+  },
+  {
+    id: 'nwp-runs',
+    group: 'nwp',
+    method: 'GET',
+    path: '/api/v1/nwp/runs',
+    title: 'รอบพยากรณ์ NWP',
+    description:
+      'คืนรายการรอบพยากรณ์ที่พร้อมใช้งานของ TMD HPC NWP domain ประเทศไทย 3 กม. เรียงจากรอบใหม่สุด ไม่เกิน 5 รายการ',
+    access: 'pending',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<{ runs: NwpRun[] }>',
+    notes: [
+      'คืนเฉพาะ run ที่ status = ready หรือ partial เรียง init_at DESC ไม่เกิน 5 รายการ; run ที่ failed ไม่ถูกคืน',
+      'leadHoursByVariable สะท้อนแกนเวลาจริงของแต่ละตัวแปร (p24h มีรายวันละ 3 ค่า ส่วน p1h มีรายชั่วโมง 72 ค่า) — ห้ามใช้รายการ lead กลาง',
+      'เป็น metadata ของรอบพยากรณ์เท่านั้น ไม่มีตัวเลขกริดหรือค่าจังหวัดใน payload นี้',
+      'ตัวเลขจริงอ่านจาก /api/v1/nwp/grid และ /api/v1/nwp/provinces; ทุกค่าเป็นพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด และหน่วย/นิยามรอการยืนยันจากต้นทาง',
+      'ไม่พบรอบที่พร้อมใช้งาน → data.runs = [] พร้อม availability empty ไม่ใช่ตัวเลขศูนย์หรือข้อมูลสมมติ',
     ],
   },
 

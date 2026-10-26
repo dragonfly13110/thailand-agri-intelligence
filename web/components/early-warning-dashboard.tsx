@@ -130,7 +130,26 @@ export function EarlyWarningDashboard({
 
   return (
     <div className={styles.container}>
-      {/* 1. Governance & Demo Notice Banner */}
+      {/* 1. Dashboard Header */}
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <div className={styles.titleGroup}>
+            <h1>
+              ศูนย์เตือนภัยน้ำท่วมและภัยแล้งฉับพลันเพื่อการเกษตร
+            </h1>
+            <p className={styles.subtitle}>
+              แบบจำลองระดับความเสี่ยงรายลุ่มน้ำและจังหวัด พร้อมคำแนะนำเชิงเกษตรล่วงหน้า 14 วัน
+              เพื่อทดสอบหน้าจอเท่านั้น — ไม่ใช่ประกาศเตือนภัยจากหน่วยงานต้นทาง
+            </p>
+          </div>
+          <div className={styles.liveBadge}>
+            <span className={styles.pulseRed} aria-hidden="true" />
+            <span>ระดับแบบจำลอง: เฝ้าระวัง (Simulation)</span>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. Governance & Demo Notice Banner */}
       <aside className={styles.governanceBanner} role="status" aria-label="Demo notice">
         <svg
           className={styles.bannerIcon}
@@ -163,25 +182,6 @@ export function EarlyWarningDashboard({
           </p>
         </div>
       </aside>
-
-      {/* 2. Dashboard Header */}
-      <header className={styles.header}>
-        <div className={styles.titleRow}>
-          <div className={styles.titleGroup}>
-            <h1>
-              ศูนย์เตือนภัยน้ำท่วมและภัยแล้งฉับพลันเพื่อการเกษตร
-            </h1>
-            <p className={styles.subtitle}>
-              แบบจำลองระดับความเสี่ยงรายลุ่มน้ำและจังหวัด พร้อมคำแนะนำเชิงเกษตรล่วงหน้า 14 วัน
-              เพื่อทดสอบหน้าจอเท่านั้น — ไม่ใช่ประกาศเตือนภัยจากหน่วยงานต้นทาง
-            </p>
-          </div>
-          <div className={styles.liveBadge}>
-            <span className={styles.pulseRed} aria-hidden="true" />
-            <span>ระดับแบบจำลอง: เฝ้าระวัง (Simulation)</span>
-          </div>
-        </div>
-      </header>
 
       {/* 3. KPI Summary Cards Grid */}
       <section className={styles.kpiGrid} aria-label="Key Performance Indicators">

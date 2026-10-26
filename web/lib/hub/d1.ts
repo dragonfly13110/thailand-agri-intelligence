@@ -180,6 +180,16 @@ export async function queryD1<T = Record<string, unknown>>(sql: string, params: 
 }
 
 /**
+ * Counts the rows matching a parameterized query.
+ * Values are always bound; never interpolated into the SQL string.
+ */
+export async function countD1(sql: string, params: unknown[] = []): Promise<number> {
+  const rows = await queryD1<{ total: number | string }>(sql, params);
+  const total = Number(rows[0]?.total ?? 0);
+  return Number.isFinite(total) ? total : 0;
+}
+
+/**
  * Checks whether D1 is connected and contains synchronized catalog records.
  * Returns true only if D1 is reachable and has datasets or sources ready to serve.
  */

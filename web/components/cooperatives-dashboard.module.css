@@ -11,10 +11,10 @@
   gap: 22px;
   width: 100%;
   min-width: 0;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   /* น้ำเสียงสีเชิงความหมายเฉพาะโมดูล กระจายจากสีเขียวหลักของเว็บ */
-  --coopSubtleBg: #f2f5ee;
-  --coopLineSoft: #e7ece2;
+  --coopSubtleBg: var(--surface-muted);
+  --coopLineSoft: var(--line);
   --coopAccentInk: #35592c;
   --coopGridLine: #cfdac6;
   --coopSelectedBg: #eaf2dd;
@@ -36,7 +36,7 @@
   min-width: 0;
   padding: 18px 16px;
   background: var(--white, #fff);
-  border: 1px solid var(--line, #dce3d9);
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
 }
 
@@ -62,7 +62,7 @@
   margin-top: 2px;
   font-size: 18px;
   line-height: 1.6;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   overflow-wrap: break-word;
 }
 
@@ -70,7 +70,7 @@
   max-width: 46ch;
   font-size: 12px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 /* --------------------------------------------------------------------------
@@ -89,8 +89,8 @@
   gap: 6px;
   min-width: 0;
   padding: 14px;
-  background: var(--coopSubtleBg, #f2f5ee);
-  border: 1px solid var(--coopLineSoft, #e7ece2);
+  background: var(--coopSubtleBg, var(--surface-muted));
+  border: 1px solid var(--coopLineSoft, var(--line));
   border-radius: var(--radius, 8px);
 }
 
@@ -101,7 +101,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .kpiLabel svg {
@@ -113,7 +113,7 @@
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.3px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -122,13 +122,13 @@
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .kpiNote {
   font-size: 11.5px;
   line-height: 1.75;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: break-word;
 }
 
@@ -139,7 +139,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 1.8;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .kpiFootnote svg {
@@ -158,7 +158,7 @@
   min-width: 0;
   padding: 16px;
   background: var(--white, #fff);
-  border: 1px solid var(--line, #dce3d9);
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
 }
 
@@ -185,7 +185,7 @@
   font-weight: 600;
   line-height: 1.7;
   letter-spacing: 0.2px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .fieldHint {
@@ -201,9 +201,9 @@
   height: 44px;
   padding: 0 12px;
   font-size: 14px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   background: var(--white, #fff);
-  border: 1px solid #bdc9b7;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
 }
 
@@ -212,7 +212,7 @@
 }
 
 .control:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -224,13 +224,13 @@
   min-width: 0;
   padding: 0 12px;
   background: var(--white, #fff);
-  border: 1px solid #bdc9b7;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
 }
 
 .searchField:focus-within {
   border-color: #6e8a5a;
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -248,7 +248,7 @@
   border: 0;
   background: transparent;
   font-size: 14px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   outline: none;
 }
 
@@ -263,7 +263,7 @@
 .chipLabel {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .chip {
@@ -271,8 +271,8 @@
   line-height: 1.6;
   padding: 3px 9px;
   border-radius: 999px;
-  background: var(--coopSubtleBg, #f2f5ee);
-  border: 1px solid var(--coopLineSoft, #e7ece2);
+  background: var(--coopSubtleBg, var(--surface-muted));
+  border: 1px solid var(--coopLineSoft, var(--line));
   color: #45594b;
   overflow-wrap: anywhere;
 }
@@ -284,17 +284,17 @@
   gap: 12px;
   flex-wrap: wrap;
   padding-top: 4px;
-  border-top: 1px solid var(--coopLineSoft, #e7ece2);
+  border-top: 1px solid var(--coopLineSoft, var(--line));
 }
 
 .filterSummary {
   font-size: 12.5px;
   line-height: 1.8;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .filterSummary strong {
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
@@ -302,10 +302,10 @@
 .moreButton {
   min-height: 40px;
   padding: 8px 16px;
-  border: 1px solid #bdc9b7;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: var(--white, #fff);
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-size: 13px;
   font-weight: 500;
   transition: background 0.15s ease;
@@ -324,7 +324,7 @@
 
 .resetButton:focus-visible,
 .moreButton:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -351,8 +351,8 @@
   gap: 12px;
   min-width: 0;
   padding: 12px;
-  background: var(--coopSubtleBg, #f2f5ee);
-  border: 1px solid var(--coopLineSoft, #e7ece2);
+  background: var(--coopSubtleBg, var(--surface-muted));
+  border: 1px solid var(--coopLineSoft, var(--line));
   border-radius: var(--radius, 8px);
 }
 
@@ -408,7 +408,7 @@
 
 .vertexLabel {
   font-size: 13px;
-  fill: var(--forest, #213d32);
+  fill: var(--forest, var(--forest));
 }
 
 .vertexScore {
@@ -457,7 +457,7 @@
 .legendText {
   font-size: 12px;
   line-height: 1.75;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: break-word;
 }
 
@@ -466,7 +466,7 @@
   margin: 0;
   font-size: 11.5px;
   line-height: 1.8;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: break-word;
 }
 
@@ -495,14 +495,14 @@
 .sideTitle {
   font-size: 15.5px;
   line-height: 1.6;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   overflow-wrap: break-word;
 }
 
 .sideSub {
   font-size: 11.5px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: anywhere;
 }
 
@@ -512,7 +512,7 @@
   gap: 6px;
   margin: 0;
   padding-top: 8px;
-  border-top: 1px solid var(--coopLineSoft, #e7ece2);
+  border-top: 1px solid var(--coopLineSoft, var(--line));
 }
 
 .factRow {
@@ -526,7 +526,7 @@
 .factLabel {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .factValue {
@@ -534,7 +534,7 @@
   font-size: 13px;
   font-weight: 600;
   line-height: 1.7;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   text-align: right;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -557,7 +557,7 @@
   max-height: 560px;
   min-width: 0;
   background: var(--white, #fff);
-  border: 1px solid var(--coopLineSoft, #e7ece2);
+  border: 1px solid var(--coopLineSoft, var(--line));
   border-radius: var(--radius, 8px);
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
@@ -578,8 +578,8 @@
   font-size: 11.5px;
   line-height: 1.7;
   text-align: left;
-  color: var(--muted, #53645a);
-  background: var(--coopSubtleBg, #f2f5ee);
+  color: var(--muted, var(--muted));
+  background: var(--coopSubtleBg, var(--surface-muted));
 }
 
 .tableHead thead th {
@@ -588,8 +588,8 @@
   z-index: 2;
   padding: 10px 12px;
   background: #eff2e9;
-  border-bottom: 1px solid var(--line, #dce3d9);
-  color: var(--muted, #53645a);
+  border-bottom: 1px solid var(--line, var(--line));
+  color: var(--muted, var(--muted));
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.7;
@@ -612,11 +612,11 @@
 .table tbody td,
 .table tbody th.rowHead {
   padding: 11px 12px;
-  border-bottom: 1px solid var(--coopLineSoft, #e7ece2);
+  border-bottom: 1px solid var(--coopLineSoft, var(--line));
   vertical-align: top;
   text-align: left;
   line-height: 1.7;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 .table tbody th.rowHead {
@@ -626,7 +626,7 @@
   min-width: 190px;
   max-width: 260px;
   background: var(--white, #fff);
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-size: 13px;
   font-weight: 600;
 }
@@ -637,7 +637,7 @@
   font-size: 11px;
   font-weight: 400;
   line-height: 1.65;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: anywhere;
 }
 
@@ -655,7 +655,7 @@
 
 .row:hover td,
 .row:hover th.rowHead {
-  background: #f7faf2;
+  background: var(--surface-muted);
 }
 
 .rowSelected td,
@@ -665,7 +665,7 @@
 
 .totalRow td,
 .totalRow th.rowHead {
-  background: var(--coopSubtleBg, #f2f5ee);
+  background: var(--coopSubtleBg, var(--surface-muted));
   font-weight: 700;
 }
 
@@ -677,7 +677,7 @@
   font: inherit;
   font-weight: 600;
   text-align: left;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   overflow-wrap: break-word;
 }
 
@@ -688,7 +688,7 @@
 }
 
 .selectButton:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
   border-radius: 3px;
 }
@@ -711,11 +711,11 @@
 
 .sortButton:hover {
   background: #e2e9dc;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .sortButton:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -729,7 +729,7 @@
   margin: 0;
   font-size: 11.5px;
   line-height: 1.8;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: break-word;
 }
 
@@ -742,7 +742,7 @@
 .moreNote {
   margin: 0;
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 /* --------------------------------------------------------------------------
@@ -818,14 +818,14 @@
   font-size: 13.5px;
   font-weight: 600;
   line-height: 1.7;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   overflow-wrap: break-word;
 }
 
 .barMeta {
   font-size: 11.5px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -835,8 +835,8 @@
   width: 100%;
   height: 10px;
   border-radius: 999px;
-  background: var(--coopSubtleBg, #f2f5ee);
-  border: 1px solid var(--coopLineSoft, #e7ece2);
+  background: var(--coopSubtleBg, var(--surface-muted));
+  border: 1px solid var(--coopLineSoft, var(--line));
   overflow: hidden;
 }
 
@@ -871,7 +871,7 @@
   min-width: 0;
   padding: 28px 18px;
   text-align: center;
-  background: #f7faf2;
+  background: var(--surface-muted);
   border: 1px dashed #c3d1bd;
   border-radius: var(--radius, 8px);
 }
@@ -884,7 +884,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .emptyText {
@@ -892,7 +892,7 @@
   max-width: 60ch;
   font-size: 13px;
   line-height: 1.85;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: break-word;
 }
 
@@ -910,7 +910,7 @@
   max-width: 75ch;
   font-size: 12.5px;
   line-height: 1.85;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .datasetMeta {

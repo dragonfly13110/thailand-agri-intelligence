@@ -49,7 +49,7 @@
   overscroll-behavior: contain;
 }
 .scroll:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 4px;
 }
 
@@ -165,7 +165,7 @@
   min-width: 0;
 }
 .sharedCell {
-  background: #fbfcf8;
+  background: var(--surface-muted);
 }
 .valueCell:last-child {
   border-right: 0;
@@ -645,7 +645,7 @@
   justify-content: center;
   min-height: 32px;
   padding: 4px 11px;
-  border: 1px solid #bdc9b7;
+  border: 1px solid var(--line-strong);
   border-radius: 5px;
   background: var(--white);
   color: var(--forest);
@@ -657,7 +657,7 @@
   background: #edf2e7;
 }
 .retryButton:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 

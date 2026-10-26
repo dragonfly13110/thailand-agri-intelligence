@@ -64,8 +64,8 @@
 
 /* Filters */
 .filterCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 20px 22px;
   display: flex;
@@ -91,23 +91,23 @@
 .formLabel {
   font-size: 12px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .selectInput {
   height: 42px;
   padding: 0 12px;
-  background: var(--paper, #f6f7f2);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--paper, var(--paper));
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   font-size: 13.5px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   cursor: pointer;
 }
 
 .selectInput:focus {
-  background: #ffffff;
-  border-color: var(--forest, #213d32);
+  background: var(--white);
+  border-color: var(--forest, var(--forest));
 }
 
 .segmented {
@@ -115,8 +115,8 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 4px;
-  background: var(--paper, #f6f7f2);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--paper, var(--paper));
+  border: 1px solid var(--line, var(--line));
   border-radius: 7px;
 }
 
@@ -130,26 +130,26 @@
   border: 1px solid transparent;
   border-radius: 5px;
   font-size: 13px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
 }
 
 .segment:hover {
   background: #eef3eb;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .segmentActive {
-  background: var(--forest, #213d32);
-  border-color: var(--forest, #213d32);
-  color: #ffffff;
+  background: var(--forest, var(--forest));
+  border-color: var(--forest, var(--forest));
+  color: var(--white);
   font-weight: 600;
 }
 
 .segmentActive:hover {
-  background: var(--forest, #213d32);
-  color: #ffffff;
+  background: var(--forest, var(--forest));
+  color: var(--white);
 }
 
 .cropDot {
@@ -164,12 +164,12 @@
 .resetButton {
   height: 42px;
   padding: 0 18px;
-  background: #ffffff;
+  background: var(--white);
   border: 1px solid #c9d5c8;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   cursor: pointer;
 }
 
@@ -195,11 +195,11 @@
   gap: 7px;
   min-height: 34px;
   padding: 0 13px;
-  background: #ffffff;
+  background: var(--white);
   border: 1px solid #cfdacc;
   border-radius: 999px;
   font-size: 12.5px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   cursor: pointer;
 }
 
@@ -209,9 +209,9 @@
 
 .chipActive {
   background: #e8f1e4;
-  border-color: var(--forest, #213d32);
+  border-color: var(--forest, var(--forest));
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .statusDot {
@@ -225,15 +225,15 @@
 .scopeLine {
   margin: 0;
   padding: 10px 14px;
-  background: var(--paper, #f6f7f2);
+  background: var(--paper, var(--paper));
   border: 1px solid #e3e9df;
   border-radius: 7px;
   font-size: 12.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .scopeLine strong {
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 /* Status fills */
@@ -255,8 +255,8 @@
   flex-direction: column;
   gap: 14px;
   padding: 20px 22px;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   box-shadow: 0 1px 3px rgba(33, 61, 50, 0.04);
 }
@@ -271,7 +271,7 @@
 .panelHead h2 {
   margin: 0;
   font-size: 19px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .section {
@@ -296,7 +296,7 @@
   margin: 0;
   font-size: 22px;
   line-height: 1.35;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .sectionHeader p {
@@ -304,7 +304,7 @@
   max-width: 80ch;
   font-size: 13.5px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .eyebrow {
@@ -332,7 +332,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 /* Stacked status bar */
@@ -351,7 +351,7 @@
 }
 
 .stackSegment + .stackSegment {
-  border-left: 2px solid #ffffff;
+  border-left: 2px solid var(--white);
 }
 
 .legendRow {
@@ -366,11 +366,11 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--paper, #f6f7f2);
+  background: var(--paper, var(--paper));
   border: 1px solid #e1e8dc;
   border-radius: 7px;
   font-size: 12.5px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   text-align: left;
   cursor: pointer;
 }
@@ -380,8 +380,8 @@
 }
 
 .legendChipActive {
-  background: #ffffff;
-  border-color: var(--forest, #213d32);
+  background: var(--white);
+  border-color: var(--forest, var(--forest));
   box-shadow: 0 0 0 2px rgba(33, 61, 50, 0.12);
 }
 
@@ -398,13 +398,13 @@
 
 .legendChip strong {
   font-size: 15px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
 .legendPct {
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -421,8 +421,8 @@
   gap: 14px;
   min-width: 0;
   padding: 18px;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-top: 4px solid transparent;
   border-radius: var(--radius, 8px);
   box-shadow: 0 1px 3px rgba(33, 61, 50, 0.04);
@@ -442,19 +442,19 @@
   height: 30px;
   flex-shrink: 0;
   border-radius: 50%;
-  color: #ffffff;
+  color: var(--white);
 }
 
 .cropHead h3 {
   margin: 0;
   font-size: 16px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .cropHead > div > span {
   display: block;
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .areaBars {
@@ -472,7 +472,7 @@
 
 .areaLabel {
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .areaTrack {
@@ -504,7 +504,7 @@
 .areaValue {
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -514,7 +514,7 @@
   margin-left: 3px;
   font-size: 10.5px;
   font-weight: 500;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .missing {
@@ -537,7 +537,7 @@
 
 .cropStats dt {
   font-size: 11px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .cropStats dd {
@@ -548,7 +548,7 @@
   margin: 2px 0 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .cropStatusList {
@@ -559,7 +559,7 @@
   padding: 0;
   list-style: none;
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .cropStatusList li {
@@ -649,19 +649,19 @@
   gap: 6px;
   margin: -6px 0 0;
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .tableWrap {
   overflow-x: auto;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   box-shadow: 0 1px 3px rgba(33, 61, 50, 0.04);
 }
 
 .tableWrap:focus-visible {
-  outline: 2px solid var(--forest, #213d32);
+  outline: 2px solid var(--forest, var(--forest));
   outline-offset: 2px;
 }
 
@@ -677,7 +677,7 @@
   text-align: left;
   font-size: 11.5px;
   line-height: 1.6;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   border-bottom: 1px solid #edf0ea;
 }
 
@@ -699,7 +699,7 @@
   font-weight: 400;
   text-align: left;
   vertical-align: top;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 .table tbody tr:hover {
@@ -716,7 +716,7 @@
   display: block;
   margin-top: 2px;
   font-size: 11px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .sortButton {
@@ -733,7 +733,7 @@
 }
 
 .sortButton:hover {
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -751,7 +751,7 @@
   border: none;
   font: inherit;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   text-align: left;
   cursor: pointer;
 }
@@ -775,7 +775,7 @@
   display: block;
   margin: 2px 0 0 20px;
   font-size: 11px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .cropTag {
@@ -795,7 +795,7 @@
 .confidenceScore {
   font-size: 14px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
@@ -856,7 +856,7 @@
 .detailGrid h3 {
   margin: 0 0 6px;
   font-size: 13px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .detailGrid ul {
@@ -864,12 +864,12 @@
   padding-left: 18px;
   font-size: 12.5px;
   line-height: 1.65;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 .detailGrid p {
   font-size: 12.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .detailFacts {
@@ -881,7 +881,7 @@
 
 .detailFacts dt {
   font-size: 11px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .detailFacts dd {
@@ -896,17 +896,17 @@
   align-items: center;
   gap: 10px;
   padding: 40px 22px;
-  background: var(--white, #ffffff);
+  background: var(--white, var(--white));
   border: 1px dashed #cbd7c7;
   border-radius: var(--radius, 8px);
   text-align: center;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .emptyState h3 {
   margin: 0;
   font-size: 16px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .emptyState p {
@@ -933,7 +933,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 500;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .recoList {
@@ -951,20 +951,20 @@
   gap: 5px;
   min-width: 0;
   padding: 12px 14px;
-  background: var(--paper, #f6f7f2);
+  background: var(--paper, var(--paper));
   border: 1px solid #e3e9df;
   border-radius: 7px;
 }
 
 .recoItem strong {
   font-size: 13.5px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .recoItem p {
   font-size: 12.5px;
   line-height: 1.65;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 .recoDistricts {
@@ -972,7 +972,7 @@
   align-items: flex-start;
   gap: 6px;
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .recoDistricts svg {
@@ -992,21 +992,21 @@
   gap: 12px;
   min-width: 0;
   padding: 20px;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
 }
 
 .footnoteCard h2 {
   margin: 0;
   font-size: 17px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .subHeading {
   margin: 4px 0 0;
   font-size: 13.5px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .methodList {
@@ -1020,7 +1020,7 @@
 .methodList li {
   font-size: 12px;
   line-height: 1.65;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .thresholdList {
@@ -1032,21 +1032,21 @@
 
 .thresholdList div {
   padding: 9px 11px;
-  background: var(--paper, #f6f7f2);
+  background: var(--paper, var(--paper));
   border: 1px solid #e3e9df;
   border-radius: 6px;
 }
 
 .thresholdList dt {
   font-size: 11px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .thresholdList dd {
   margin: 2px 0 0;
   font-size: 15px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .warningListPlain {
@@ -1071,7 +1071,7 @@
   flex-direction: column;
   gap: 3px;
   padding: 12px 13px;
-  background: var(--paper, #f6f7f2);
+  background: var(--paper, var(--paper));
   border: 1px solid #e5eae0;
   border-radius: 7px;
 }
@@ -1085,7 +1085,7 @@
 
 .sourceHead strong {
   font-size: 12.5px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .sourceAgency {
@@ -1096,7 +1096,7 @@
 .sourceItem p {
   font-size: 11.5px;
   line-height: 1.55;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .sourceItem a {
@@ -1123,13 +1123,13 @@
 .lineageMeta {
   font-size: 11.5px;
   line-height: 1.6;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: anywhere;
 }
 
 .lineageMeta code {
   font-size: 11.5px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .gateList {
@@ -1147,7 +1147,7 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 12px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 .gatePending,
@@ -1173,7 +1173,7 @@
   margin: 2px 0 0;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 /* Responsive */

@@ -94,6 +94,19 @@ def get_dwr_base_url() -> str:
     return os.environ.get("DWR_API_BASE_URL", "https://api.dwr.go.th").strip().rstrip("/")
 
 
+def get_tmd_nwp_access_token() -> Optional[str]:
+    """Retrieve TMD Numerical Weather Prediction bearer token from environment."""
+    token = os.environ.get("TMD_NWP_ACCESS_TOKEN")
+    if token and token.strip():
+        return token.strip()
+    return None
+
+
+def get_tmd_nwp_base_url() -> str:
+    """Retrieve TMD NWP API base URL from environment."""
+    return os.environ.get("TMD_NWP_API_BASE_URL", "https://data.tmd.go.th/nwpapi/v1").strip().rstrip("/")
+
+
 def mask_key(key: Optional[str]) -> str:
     """Mask API key for safe logging and display."""
     if not key or not key.strip():
@@ -132,6 +145,20 @@ def get_agency_keys_overview() -> Dict[str, Dict[str, Any]]:
             "masked_key": mask_key(get_dwr_api_key()),
             "base_url": get_dwr_base_url(),
         },
+        "TMD_NWP": {
+            "agency": "กรมอุตุนิยมวิทยา (TMD)",
+            "service": "Numerical Weather Prediction API (WRF daily forecast by place/point)",
+            "configured": bool(get_tmd_nwp_access_token()),
+            "masked_key": mask_key(get_tmd_nwp_access_token()),
+            "base_url": get_tmd_nwp_base_url(),
+        },
+        "TMD_HPC": {
+            "agency": "กรมอุตุนิยมวิทยา (TMD)",
+            "service": "HPC NWP Data Download Center (static CSV grid, no API key)",
+            "configured": True,
+            "masked_key": "(public static files)",
+            "base_url": get_tmd_hpc_base_url(),
+        },
         "DOAE_CKAN": {
             "agency": "กรมส่งเสริมการเกษตร (DOAE)",
             "service": "CKAN Internal / Restricted Database",
@@ -151,3 +178,23 @@ def get_tadih_data_dir() -> Path:
     raw_dir = os.environ.get("TADIH_DATA_DIR", "data/local").strip()
     p = Path(raw_dir)
     return p if p.is_absolute() else (ROOT / p)
+
+
+def get_tmd_hpc_base_url() -> str:
+    """Retrieve TMD HPC NWP download centre base URL (HTTPS only)."""
+    value = (os.environ.get("TMD_HPC_BASE_URL") or "").strip().rstrip("/")
+    return value or "https://hpc.tmd.go.th"
+
+
+TMD_HPC_PUBLICATION_MODES = frozenset({"numeric_preview", "metadata_only"})
+
+
+def get_tmd_hpc_publication_mode() -> str:
+    """Retrieve TMD HPC grid publication mode; unknown values fail closed."""
+    mode = (os.environ.get("TMD_HPC_PUBLICATION_MODE") or "numeric_preview").strip()
+    if mode not in TMD_HPC_PUBLICATION_MODES:
+        raise ValueError(
+            "TMD_HPC_PUBLICATION_MODE must be one of "
+            f"{sorted(TMD_HPC_PUBLICATION_MODES)}, got {mode!r}")
+    return mode
+

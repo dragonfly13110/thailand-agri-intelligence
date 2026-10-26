@@ -1,13 +1,19 @@
-"""Stage approved CHIRPS observations in D1, then switch the active run."""
+"""Stage approved CHIRPS observations in D1, then switch the active run.
+
+Publication rules (license gate, canonical contract, run lifecycle, active-run
+switch, idempotency) live in :mod:`tadih.observations`, which every numeric
+adapter shares. This module keeps only the CHIRPS-specific pieces: the exact
+registry match, the bounded three-cell raster sample, the CHIRPS catalog rows
+and the grid-cell geometry mapping.
+"""
 
 from datetime import date, datetime, timezone
-import hashlib
 import json
 from pathlib import Path
 import re
-import uuid
 
 from .catalog import load_resource_licenses
+from .observations import ObservationWriteError, publish_observations
 from .quality import validate_observation
 
 SOURCE_ID = "chirps"
@@ -20,6 +26,10 @@ DATASET_ID = "chirps-v3.0-daily-final-rnl"
 DATA_DATE = date(2026, 9, 30)
 ADAPTER_VERSION = "hub-numeric-sync/1"
 SAMPLE_CELL_COUNT = 3
+PRODUCT_NAME = "CHIRPS v3.0 Daily final RNL"
+PIXEL_SPACING_DEGREES = 0.05
+RASTER_ROWS = 2400
+RASTER_COLUMNS = 7200
 ROOT = Path(__file__).resolve().parents[2]
 _CELL_ID = re.compile(r"^chirps-v3:grid:row:(\d+):col:(\d+)$")
 
@@ -88,7 +98,7 @@ def validate_numeric_batch(batch, *, registry_path=None):
                 or row["data_kind"] != "estimated"):
             raise NumericSyncError("OBSERVATION_RESOURCE_MISMATCH")
         match = _CELL_ID.fullmatch(row["location_id"])
-        if not match or int(match.group(1)) >= 2400 or int(match.group(2)) >= 7200:
+        if not match or int(match.group(1)) >= RASTER_ROWS or int(match.group(2)) >= RASTER_COLUMNS:
             raise NumericSyncError("GRID_CELL_ID_INVALID")
         if (row["observation_id"] in seen or row["location_id"] in seen_cells
                 or row["quality_flag"] not in {"good", "missing"}
@@ -111,78 +121,50 @@ def sync_numeric_resource_d1(client, *, registry_path=None):
     resource, revision_id, retrieved_at, rows = validate_numeric_batch(
         batch, registry_path=registry_path,
     )
-    run_id = str(uuid.uuid4())
-    started_at = _now()
-    payload_hash = hashlib.sha256(json.dumps(
-        [row for row, _, _ in rows], sort_keys=True, ensure_ascii=False,
-        separators=(",", ":"), allow_nan=False,
-    ).encode("utf-8")).hexdigest()
-
     try:
         _upsert_catalog_rows(client, resource)
-        approval = client.execute(
-            "SELECT resource_id FROM resources WHERE resource_id=? "
-            "AND access_status='approved_public' AND project_publication_approved=1",
-            [RESOURCE_ID],
+        result = publish_observations(
+            client,
+            resource=resource,
+            rows=[row for row, _, _ in rows],
+            adapter_version=ADAPTER_VERSION,
+            coverage=batch["coverage"],
+            completeness=batch["completeness"],
+            unit=None,
+            retrieved_at=batch["retrieved_at"],
+            product=PRODUCT_NAME,
+            dimensions_for=grid_cell_dimensions,
         )
-        if not _returned(approval, "resource_id", RESOURCE_ID):
-            raise NumericSyncError("RESOURCE_PUBLICATION_NOT_APPROVED")
-        client.execute(
-            "INSERT INTO sync_runs (run_id, source_id, resource_id, kind, status, started_at, adapter_version) "
-            "VALUES (?, ?, ?, 'numeric', 'running', ?, ?)" ,
-            [run_id, SOURCE_ID, RESOURCE_ID, _iso(started_at), ADAPTER_VERSION],
-        )
-        for row, grid_row, grid_col in rows:
-            _upsert_location(client, row["location_id"])
-            client.execute(*_observation_statement(run_id, row, grid_row, grid_col))
+    except ObservationWriteError as exc:
+        raise NumericSyncError(exc.code) from exc
     except Exception as exc:
-        _mark_failed(client, run_id, "NUMERIC_WRITE_FAILED")
-        if isinstance(exc, NumericSyncError):
-            raise
         raise NumericSyncError("NUMERIC_WRITE_FAILED") from exc
 
-    completed_at = _now()
-    try:
-        result = client.execute(
-            "UPDATE sync_runs SET status='partial', completed_at=?, source_retrieved_at=?, "
-            "records_read=?, records_written=?, records_quarantined=0, payload_sha256=?, error_code=NULL "
-            "WHERE run_id=? AND resource_id=? AND status='running' RETURNING run_id",
-            [_iso(completed_at), _iso(retrieved_at), len(rows), len(rows), payload_hash, run_id, RESOURCE_ID],
-        )
-        if not _returned(result, "run_id", run_id):
-            raise NumericSyncError("RUN_COMPLETION_FAILED")
-    except Exception as exc:
-        _mark_failed(client, run_id, "RUN_COMPLETION_FAILED")
-        if isinstance(exc, NumericSyncError):
-            raise
-        raise NumericSyncError("RUN_COMPLETION_FAILED") from exc
-
     # The current reader verifies three cells only, so an activated run stays partial.
-    try:
-        result = client.execute(
-            "UPDATE resources SET active_run_id=? WHERE resource_id=? "
-            "AND access_status='approved_public' AND project_publication_approved=1 "
-            "AND EXISTS (SELECT 1 FROM sync_runs WHERE run_id=? AND resource_id=? AND status='partial') "
-            "RETURNING active_run_id",
-            [run_id, RESOURCE_ID, run_id, RESOURCE_ID],
-        )
-        if not _returned(result, "active_run_id", run_id):
-            raise NumericSyncError("ACTIVE_RUN_SWITCH_FAILED")
-    except Exception as exc:
-        if isinstance(exc, NumericSyncError):
-            raise
-        raise NumericSyncError("ACTIVE_RUN_SWITCH_FAILED") from exc
-
     return {
         "resource_id": RESOURCE_ID,
-        "run_id": run_id,
-        "status": "partial",
+        "run_id": result["run_id"],
+        "status": result["status"],
         "completeness": "partial",
         "coverage": {"mode": "sample_only", "sample_count": len(rows), "full_raster_ingested": False},
         "records_read": len(rows),
         "records_written": len(rows),
         "revision_id": revision_id,
-        "payload_sha256": payload_hash,
+        "payload_sha256": result["payload_sha256"],
+    }
+
+
+def grid_cell_dimensions(row):
+    """Map a validated CHIRPS grid-cell id onto its WGS84 cell centre."""
+    match = _CELL_ID.fullmatch(row["location_id"])
+    if not match:
+        raise NumericSyncError("GRID_CELL_ID_INVALID")
+    grid_row, grid_col = int(match.group(1)), int(match.group(2))
+    return {
+        "gridRow": grid_row,
+        "gridCol": grid_col,
+        "longitude": round(-180 + (grid_col + 0.5) * PIXEL_SPACING_DEGREES, 6),
+        "latitude": round(60 - (grid_row + 0.5) * PIXEL_SPACING_DEGREES, 6),
     }
 
 
@@ -191,7 +173,7 @@ def _upsert_catalog_rows(client, resource):
     evidence = resource.get("access_evidence") or {}
     metadata = {
         "resourceKey": RESOURCE_KEY,
-        "product": "CHIRPS v3.0 Daily final RNL",
+        "product": PRODUCT_NAME,
         "completeness": "partial",
         "coverage": {"mode": "sample_only", "sampleCount": SAMPLE_CELL_COUNT, "fullRasterIngested": False},
         "timeStandard": "UTC date label",
@@ -236,61 +218,6 @@ def _upsert_catalog_rows(client, resource):
     )
 
 
-def _upsert_location(client, location_id):
-    client.execute(
-        "INSERT INTO locations (location_id, source_id, kind, native_code, name) "
-        "VALUES (?, ?, 'grid', ?, ?) ON CONFLICT(source_id, kind, native_code) DO UPDATE SET name=excluded.name",
-        [location_id, SOURCE_ID, location_id, location_id],
-    )
-
-
-def _observation_statement(run_id, row, grid_row, grid_col):
-    longitude = round(-180 + (grid_col + 0.5) * 0.05, 6)
-    latitude = round(60 - (grid_row + 0.5) * 0.05, 6)
-    day = row["observed_at"][:10]
-    return (
-        "INSERT INTO observations (resource_id, run_id, row_key, series_key, period_start, period_end, "
-        "period_label, location_id, location_code, location_kind, location_name, metric_id, metric_name, "
-        "product, unit, value, dimensions, source_row_ref, quality_status, quality) "
-        "VALUES (?, ?, ?, 'rainfall:daily:grid_cell:mm', ?, ?, ?, ?, ?, 'grid', ?, 'rainfall', 'Rainfall', "
-        "'CHIRPS v3.0 Daily final RNL', ?, ?, ?, ?, ?, ?) "
-        "ON CONFLICT(resource_id, run_id, row_key) DO UPDATE SET period_start=excluded.period_start, "
-        "period_end=excluded.period_end, period_label=excluded.period_label, location_id=excluded.location_id, "
-        "location_code=excluded.location_code, location_kind=excluded.location_kind, "
-        "location_name=excluded.location_name, metric_id=excluded.metric_id, metric_name=excluded.metric_name, "
-        "product=excluded.product, unit=excluded.unit, value=excluded.value, dimensions=excluded.dimensions, "
-        "source_row_ref=excluded.source_row_ref, quality_status=excluded.quality_status, quality=excluded.quality",
-        [RESOURCE_ID, run_id, row["observation_id"], day, day, day, row["location_id"], row["location_id"],
-         row["location_id"], row["unit"], row["value"],
-         _json({"gridRow": grid_row, "gridCol": grid_col, "longitude": longitude, "latitude": latitude}),
-         row["observation_id"], row["quality_flag"], _json({
-             "revisionId": row["revision_id"], "sourceUrl": row["source_url"],
-             "licenseStatus": row["license_status"], "qualityFlag": row["quality_flag"],
-         })],
-    )
-
-
-def _mark_failed(client, run_id, error_code):
-    if not run_id:
-        return
-    try:
-        client.execute(
-            "UPDATE sync_runs SET status='failed', completed_at=?, error_code=? "
-            "WHERE run_id=? AND status='running'",
-            [_iso(_now()), error_code, run_id],
-        )
-    except Exception:
-        # The original write failure matters most; the old active run is untouched.
-        pass
-
-
-def _returned(result, field, value):
-    if not isinstance(result, dict):
-        return False
-    rows = result.get("results")
-    return isinstance(rows, list) and any(isinstance(row, dict) and row.get(field) == value for row in rows)
-
-
 def _source_updated_at(value):
     if not isinstance(value, str):
         return None
@@ -309,10 +236,6 @@ def _utc(value):
     if result.tzinfo is None:
         raise NumericSyncError("INVALID_TIMESTAMP")
     return result.astimezone(timezone.utc)
-
-
-def _now():
-    return datetime.now(timezone.utc)
 
 
 def _iso(value):

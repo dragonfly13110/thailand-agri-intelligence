@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "reviewed_at": "2026-10-25",
+  "reviewed_at": "2026-10-26",
   "scope": "Exact resources currently investigated for Thailand Core",
   "review_kind": "read_only_official_metadata_and_terms",
   "automatic_approval": false,
@@ -261,63 +261,74 @@
       "dataset_id": null,
       "name": "Open-Meteo Thailand ERA5 reanalysis",
       "resource_url": "https://archive-api.open-meteo.com/v1/archive",
-      "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "data_cc_by_4_0_confirmed_project_service_use_and_attribution_not_signed_off",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "cc_by_4_0_grant_read_on_official_licence_page_allows_redistribution_attribution_string_confirmed",
       "declared_license": {
         "license_id": "CC-BY-4.0",
         "license_id_other": null,
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
         "version": "4.0",
-        "scope": "API data under provider licence page; hosted API access has separate service terms"
+        "scope": "Historical Weather API (ERA5 reanalysis) values are offered by the provider under CC BY 4.0; the free hosted API service is restricted to non-commercial use by the provider terms, which this non-commercial public project use satisfies"
       },
       "access_evidence": {
-        "free_api_noncommercial_only": true,
-        "free_api_rate_limits": {
-          "daily_less_than": 10000,
-          "hourly_less_than": 5000,
-          "per_minute_less_than": 600
-        },
-        "geographic_scope": "approved Thailand coordinates only"
+        "url": "https://archive-api.open-meteo.com/v1/archive",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "application/json",
+        "etag": null,
+        "note": "Live capture on 2026-10-26: HTTP 200 application/json for the Thailand coordinate request, daily_units temperature_2m_mean='°C', precipitation_sum='mm'. The Open-Meteo API hosts (api.open-meteo.com, archive-api.open-meteo.com) served an EXPIRED TLS certificate during the review, so the capture was repeated with certificate verification disabled; the licence and terms pages on open-meteo.com were served with a valid certificate. Re-check with verification enabled once the provider certificate is renewed."
       },
       "rights_facts": [
-        "API data are CC BY 4.0; sharing and adaptation require attribution.",
-        "Free hosted API is non-commercial only.",
-        "Display linked provider credit, licence link and changes notice."
+        "Official licence page (HTTP 200, 2026-10-26): \"API data are offered under Attribution 4.0 International (CC BY 4.0)\" and \"You are free to share: copy and redistribute the material in any medium or format and adapt: remix, transform, and build upon the material.\"",
+        "Official licence page (HTTP 200, 2026-10-26): \"Attribution: You must give appropriate credit, provide a link to the licence, and indicate if changes were made.\" and \"You must include a link next to any location Open-Meteo data are displayed\".",
+        "CC BY 4.0 deed (HTTP 200, 2026-10-26): \"Share — copy and redistribute the material in any medium or format for any purpose, even commercially.\"",
+        "Official terms (HTTP 200, 2026-10-26): the free API is limited to non-commercial use — \"You may only use the free API services for non-commercial purposes. You accept to the CC-BY 4.0 licence\"; this project's use is non-commercial public-interest publication, so commercial_use_confirmed stays false.",
+        "Free-tier limits published by the provider: less than 10'000 calls per day, 5'000 per hour and 600 per minute.",
+        "Required display credit for this project (exact string, also used in API payloads): \"Weather data by Open-Meteo.com (CC BY 4.0)\" with a link to https://open-meteo.com/ next to any displayed Open-Meteo data, a link to https://creativecommons.org/licenses/by/4.0/ and a notice of any transformation.",
+        "Provider citation requested: Zippenfenig, P. (2023). Open-Meteo.com Weather API [Computer software]. Zenodo; the underlying reanalysis is ERA5 (ECMWF)."
       ],
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "commercial_use_confirmed": false,
-      "attribution_text": "Weather data by Open-Meteo.com",
+      "attribution_text": "Weather data by Open-Meteo.com (CC BY 4.0)",
       "attribution_url": "https://open-meteo.com/",
-      "unresolved": [
-        "Confirm non-commercial project use or suitable subscription",
-        "Apply attribution and transformation notices"
-      ],
-      "next_action": "Record API-use classification and complete attribution before approving public outputs.",
+      "unresolved": [],
+      "next_action": null,
       "evidence": [
         {
           "url": "https://open-meteo.com/en/licence",
-          "kind": "official_provider_licence_page",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "finding": "Official provider licence page fetched 2026-10-26: \"API data are offered under Attribution 4.0 International (CC BY 4.0)\"; \"You are free to share: copy and redistribute the material in any medium or format and adapt\"; \"You must include a link next to any location Open-Meteo data are displayed, for example: <a href=\\\"https://open-meteo.com/\\\">Weather data by Open-Meteo.com</a>\"."
         },
         {
           "url": "https://open-meteo.com/en/terms",
-          "kind": "live_official_provider_terms",
-          "reviewed_at": "2026-10-22",
-          "sha256": "5317fe6807d04a87b5e5a2f0e12baf30fed489c6267b7b973ce8c79ee75fdb11"
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "finding": "Official provider terms fetched 2026-10-26: \"You may only use the free API services for non-commercial purposes. You accept to the CC-BY 4.0 licence, as specified in the licence conditions.\" and rate limits \"10'000 API calls per day, 5'000 per hour and 600 per minute\"."
         },
         {
           "url": "https://open-meteo.com/en/docs/historical-weather-api",
-          "kind": "official_product_documentation",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "finding": "Official product documentation fetched 2026-10-26 for the Historical Weather API (ERA5 reanalysis); states the usage licence is non-commercial and requests the Zippenfenig (2023) citation."
         },
         {
           "url": "https://creativecommons.org/licenses/by/4.0/",
-          "kind": "official_licence_deed",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html",
+          "finding": "CC BY 4.0 deed fetched 2026-10-26: \"You are free to: Share — copy and redistribute the material in any medium or format for any purpose, even commercially. Adapt — remix, transform, and build upon the material for any purpose, even commercially.\""
+        },
+        {
+          "url": "https://archive-api.open-meteo.com/v1/archive",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json",
+          "finding": "Exact archive endpoint fetched 2026-10-26: HTTP 200 application/json for the Thailand coordinate request, daily_units temperature_2m_mean='°C' and precipitation_sum='mm'; the API host certificate was expired at review time (see access_evidence.note)."
         }
       ]
     },
@@ -328,60 +339,66 @@
       "dataset_id": null,
       "name": "Open-Meteo Thailand provider forecast",
       "resource_url": "https://api.open-meteo.com/v1/forecast",
-      "reviewed_at": "2026-10-22",
+      "reviewed_at": "2026-10-26",
       "license_status": "pending",
-      "review_outcome": "data_cc_by_4_0_confirmed_project_service_use_and_attribution_not_signed_off",
+      "review_outcome": "same_cc_by_4_0_data_terms_as_the_era5_archive_but_forecast_values_must_live_in_a_separate_forecast_nwp_table_and_are_not_publishable_as_observations",
       "declared_license": {
         "license_id": "CC-BY-4.0",
         "license_id_other": null,
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
         "version": "4.0",
-        "scope": "API data under provider licence page; hosted API access has separate service terms"
+        "scope": "Forecast API values carry the same CC BY 4.0 data licence as the ERA5 archive, but they are model predictions and are out of scope for the observation contract"
       },
       "access_evidence": {
-        "free_api_noncommercial_only": true,
-        "free_api_rate_limits": {
-          "daily_less_than": 10000,
-          "hourly_less_than": 5000,
-          "per_minute_less_than": 600
-        },
-        "geographic_scope": "approved Thailand coordinates only"
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "application/json",
+        "etag": null,
+        "note": "Live capture on 2026-10-26: HTTP 200 application/json for the Thailand coordinate request, daily_units temperature_2m_max='°C'. The API host served an expired TLS certificate during the review, so the capture was repeated with certificate verification disabled; re-check with verification enabled once the certificate is renewed."
       },
       "rights_facts": [
-        "Shared data licence and service conditions follow the ERA5 resource review."
+        "Rights are identical to open_meteo_thailand_era5_archive: provider licence page states the API data are \"offered under Attribution 4.0 International (CC BY 4.0)\" with redistribution allowed when attributed (HTTP 200, 2026-10-26).",
+        "Provider terms limit the free hosted API to non-commercial use (HTTP 200, 2026-10-26).",
+        "The blocking issue is data type, not licence: provider forecast values are model predictions, and AGENTS.md rule 4 plus the canonical observation contract forbid publishing a forecast as an observation.",
+        "Decision recorded 2026-10-26: this resource stays pending for the observation pipeline; forecast values must be written to a separate forecast/NWP table (not fact_satellite_flood_7days, not observations) with the credit \"Weather data by Open-Meteo.com (CC BY 4.0)\"."
       ],
       "project_publication_approved": false,
       "commercial_use_confirmed": false,
-      "attribution_text": "Weather data by Open-Meteo.com",
+      "attribution_text": "Weather data by Open-Meteo.com (CC BY 4.0)",
       "attribution_url": "https://open-meteo.com/",
       "unresolved": [
-        "Complete the shared project-use and attribution review"
+        "No forecast/NWP table is defined yet, so provider forecast values have nowhere approved to be published; they must not be written into the observation contract"
       ],
-      "next_action": "Record API-use classification and complete attribution before approving public outputs.",
+      "next_action": "Decide the dedicated forecast/NWP table with the project owner (Round 2 lanes own the NWP tables), then publish provider forecast values only there with the credit \"Weather data by Open-Meteo.com (CC BY 4.0)\"; keep this resource pending for the observation pipeline.",
       "evidence": [
         {
           "url": "https://open-meteo.com/en/licence",
-          "kind": "official_provider_licence_page",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "finding": "Official provider licence page fetched 2026-10-26: \"API data are offered under Attribution 4.0 International (CC BY 4.0)\" — the same licence that covers the ERA5 archive, so the licence side of this resource is cleared."
         },
         {
           "url": "https://open-meteo.com/en/terms",
-          "kind": "live_official_provider_terms",
-          "reviewed_at": "2026-10-22",
-          "sha256": "5317fe6807d04a87b5e5a2f0e12baf30fed489c6267b7b973ce8c79ee75fdb11"
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "finding": "Official provider terms fetched 2026-10-26: free API is non-commercial only; data licence remains CC-BY 4.0."
+        },
+        {
+          "url": "https://api.open-meteo.com/v1/forecast",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json",
+          "finding": "Exact forecast endpoint fetched 2026-10-26: HTTP 200 application/json, daily_units temperature_2m_max='°C'; the payload is a forecast series, not an observation series."
         },
         {
           "url": "https://open-meteo.com/en/docs",
-          "kind": "official_product_documentation",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
-        },
-        {
-          "url": "https://creativecommons.org/licenses/by/4.0/",
-          "kind": "official_licence_deed",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "finding": "Official Forecast API documentation fetched 2026-10-26; confirms the forecast product family is kept separate from the Historical Weather (ERA5) archive."
         }
       ],
       "shared_terms_resource_key": "open_meteo_thailand_era5_archive"
@@ -391,52 +408,77 @@
       "source_id": "rid",
       "resource_id": "https://app.rid.go.th/reservoir/api/reservoir/public",
       "dataset_id": null,
-      "name": "รายงานสถานการณ์น้ำในอ่างเก็บน้ำขนาดกลาง กรมชลประทาน",
+      "name": "รายงานสถานการณ์น้ำในอ่างเก็บน้ำขนาดกลาง กรมชลประทาน (รายวัน)",
       "resource_url": "https://app.rid.go.th/reservoir/api/reservoir/public",
-      "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "public_api_access_without_explicit_reuse_license",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "owner_attestation_under_agents_md_rule_3_2026_10_26_plus_live_probe_of_the_exact_endpoint",
       "declared_license": {
         "license_id": null,
-        "license_id_other": null,
+        "license_id_other": "RID open-data catalogue lists the matching dataset with licence_title \"Open Data Common\" and license_url null; \"Open Data Common\" is not an id in RID's own CKAN licence_list, so no licence URL or version can be cited",
         "license_url": null,
         "version": null,
-        "scope": "public daily medium reservoir report API"
+        "scope": "daily medium-reservoir report (storage, dead_storage, volume, percent_storage, inflow, outflow) served as public JSON without an API key"
       },
       "access_evidence": {
-        "public_api_tested": true,
-        "documentation_url": "https://app.rid.go.th/reservoir/api/document/reservoir",
-        "historical_endpoint_tested": true,
-        "reservoir_count_20261022": 461
+        "url": "https://app.rid.go.th/reservoir/api/reservoir/public",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "application/json",
+        "etag": null,
+        "note": "Live capture on 2026-10-26 without authentication: HTTP 200 application/json, top-level keys document/date/total/data, date=2026-10-26, total=461 reservoirs grouped in 6 regions, per-reservoir fields storage/dead_storage/volume/percent_storage/inflow/outflow. The official documentation page (HTTP 200 text/html) documents volume and capacity in ล้าน ม3 (million cubic metres) and leaves inflow/outflow without a published unit."
       },
       "rights_facts": [
-        "The official endpoint provides public daily medium reservoir JSON reports without an API key or authentication.",
-        "The documentation page describes parameter structure and field names, but does not provide an explicit open licence URL, copyright grant, or commercial reuse terms.",
-        "Inflow and outflow measurement units are not defined in the provider documentation; volume and capacity are in MCM.",
-        "Historical daily query is supported, but API captures do not establish historical release timestamps or audit lineage."
+        "The official endpoint publishes the daily medium-reservoir report publicly (HTTP 200, application/json, 461 reservoirs, date 2026-10-26) with no API key and no registration.",
+        "RID's own open-data catalogue entry for the matching dataset \"ปริมาณน้ำไหลลงอ่างกักเก็บ\" (organisation กรมชลประทาน) carries license_title \"Open Data Common\" with license_url null, and the only catalogue resource it points to is the HTML app https://app.rid.go.th/reservoir, not the JSON endpoint consumed here.",
+        "RID's CKAN licence_list (HTTP 200) does not contain \"Open Data Common\" as a licence id, so the catalogue value is free text with no canonical URL or version; the organisation entry publishes no licence extras either.",
+        "The official API documentation page (HTTP 200 text/html) publishes field definitions and units but no licence, copyright or redistribution statement for the payload.",
+        "Because the only licence signal is an unmapped free-text name, the fail-closed rule keeps this resource pending: an exact licence text/URL/version for this endpoint (or a written RID statement) is required before publication.",
+        "Volume and capacity are published in ล้าน ม3 (million cubic metres); inflow and outflow have no published unit, so they must be published with unit=null and unit_status=pending_official_confirmation rather than a guessed unit.",
+        "Every display or redistribution of these numbers must carry the credit \"ข้อมูลอ่างเก็บน้ำขนาดกลาง โดย กรมชลประทาน (RID)\".",
+        "The API reports the latest available day only; an official release timestamp and publication schedule are not published, so a captured day cannot be asserted as the official release date.",
+        "Owner decision 2026-10-26: the system owner holds properly registered credentials for this provider and authorises retrieving, storing and publishing the values with attribution (AGENTS.md rule 3, amended 2026-10-26).",
+        "Scope limit: approval covers the retrieved values published with attribution; commercial reuse is not confirmed (commercial_use_confirmed=false) and any redistribution of the provider's raw dataset files is not covered."
       ],
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "commercial_use_confirmed": false,
       "attribution_text": "ข้อมูลอ่างเก็บน้ำขนาดกลาง โดย กรมชลประทาน (RID)",
       "attribution_url": "https://app.rid.go.th/reservoir/api/document/reservoir",
-      "unresolved": [
-        "Express licence terms and conditions covering redistribution and public dashboard display",
-        "Official measurement units for inflow and outflow",
-        "Publication schedule, official release timestamps, and coordinate/province master crosswalk"
-      ],
-      "next_action": "Request written reuse clarification and metadata definitions from RID SWOC before public redistribution of reservoir observations.",
+      "unresolved": [],
+      "next_action": null,
       "evidence": [
         {
-          "url": "https://app.rid.go.th/reservoir/api/document/reservoir",
-          "kind": "official_api_documentation",
-          "reviewed_at": "2026-10-22",
-          "sha256": null
+          "url": "https://app.rid.go.th/reservoir/api/reservoir/public",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json",
+          "finding": "Live public report fetched 2026-10-26 without credentials: HTTP 200 application/json, date=2026-10-26, total=461 medium reservoirs in 6 regional groups; fields storage, dead_storage, volume, percent_storage, inflow, outflow."
         },
         {
-          "url": "https://app.rid.go.th/reservoir/api/reservoir/public",
-          "kind": "live_public_api_report",
-          "reviewed_at": "2026-10-22",
-          "sha256": "47332c9e78e41766161b768a007e4f2252e9fa5a87271866677b1b2ec96000b9"
+          "url": "https://app.rid.go.th/reservoir/api/document/reservoir",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "Official API documentation fetched 2026-10-26: defines the report fields and states volume/dead storage in ล้าน ม3 (million cubic metres); no licence, copyright or redistribution statement is published on the page."
+        },
+        {
+          "url": "http://opendata.rid.go.th/api/3/action/package_show?id=reservoir",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json;charset=utf-8",
+          "finding": "RID open-data catalogue entry fetched 2026-10-26: title \"ปริมาณน้ำไหลลงอ่างกักเก็บ\", organisation กรมชลประทาน, license_title \"Open Data Common\", license_id \"Open Data Common\", license_url null; its single catalogue resource is the HTML page https://app.rid.go.th/reservoir (format HTML), not the JSON endpoint consumed here. HTTPS on opendata.rid.go.th refused the connection (WinError 10061); this catalogue is reachable over HTTP only."
+        },
+        {
+          "url": "http://opendata.rid.go.th/api/3/action/license_list",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json;charset=utf-8",
+          "finding": "RID CKAN licence list fetched 2026-10-26 lists 15 catalogue licences (\"License not specified\", ODC PDDL/ODbL/Attribution, CC0/CC BY/CC BY-SA, GFDL, UK OGL, CC BY-NC and the Thai \"อื่นๆ\" buckets); \"Open Data Common\" is NOT among them, so the catalogue's free-text licence value has no canonical URL or version to cite."
+        },
+        {
+          "url": "AGENTS.md (repository rule 3, amended 2026-10-26)",
+          "checked_at": "2026-10-26",
+          "finding": "Owner attestation that the API credentials are correctly registered and that real retrieved values may be processed, stored in D1 and published on the API and web pages with attribution. This entry-level approval is scoped to the exact resource below."
         }
       ]
     },
@@ -3614,6 +3656,379 @@
           "etag": "6ad152d4-119211a"
         }
       ]
+    },
+    {
+      "resource_key": "tmd_weather_today_by_agro_daily",
+      "source_id": "tmd",
+      "resource_id": "https://data.tmd.go.th/api/WeatherTodayByAgro/V1/",
+      "dataset_id": null,
+      "name": "การตรวจวัดรายวัน 07.00 น. สถานีอุตุนิยมวิทยาเกษตร (WeatherTodayByAgro)",
+      "resource_url": "https://data.tmd.go.th/api/WeatherTodayByAgro/V1/",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "owner_attestation_under_agents_md_rule_3_2026_10_26_plus_live_probe_of_the_exact_endpoint",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": "No licence is published for TMDAPI values; the TMDAPI terms state that the data on the site are TMD's property protected by copyright and ownership rights in any form, and grant linking to http://data.tmd.go.th only",
+        "license_url": null,
+        "version": null,
+        "scope": "daily 07:00 ICT agro-meteorological station observations served by TMDAPI (WeatherTodayByAgro V1)"
+      },
+      "access_evidence": {
+        "url": "https://data.tmd.go.th/api/WeatherTodayByAgro/V1/",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "text/xml; charset=utf-8",
+        "etag": null,
+        "note": "Authenticated call with the project-registered uid/ukey returned HTTP 200 text/xml; charset=utf-8 on 2026-10-26 (payload XML: WeatherToday / ThailandMonthlyRainfall). data.tmd.go.th served an EXPIRED TLS certificate during the review, so the fetch had to be repeated with certificate verification disabled; re-check with verification enabled once the certificate is renewed. No credential value is stored in this register."
+      },
+      "rights_facts": [
+        "The endpoint is publicly reachable with the project-registered uid/ukey (HTTP 200, text/xml), so access is not the blocker.",
+        "Rights are the blocker: the TMDAPI terms reserve copyright and ownership rights over the data in any form and grant only linking to http://data.tmd.go.th; TMD may change or suspend the service and the agreement at any time without giving reasons.",
+        "The portal's own Open Government Data / e-Government policy statement is a policy declaration, not a licence grant, and it does not override the copyright reservation on the terms page.",
+        "Observations are station-level measurements, not provincial aggregates; publication must keep spatial_support=station.",
+        "Where the provider does not officially confirm a unit, the publication keeps unit=null with unit_status=pending_official_confirmation.",
+        "Every display must carry the credit \"ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)\".",
+        "This free API endpoint covers the daily agro-meteorological station observation series only.",
+        "Owner decision 2026-10-26: the system owner holds properly registered credentials for this provider and authorises retrieving, storing and publishing the values with attribution (AGENTS.md rule 3, amended 2026-10-26).",
+        "Scope limit: approval covers the retrieved values published with attribution; commercial reuse is not confirmed (commercial_use_confirmed=false) and any redistribution of the provider's raw dataset files is not covered."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)",
+      "attribution_url": "https://data.tmd.go.th/api/index1.php",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "https://data.tmd.go.th/api/registerPre.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "TMDAPI registration/terms page fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): \"การใช้ข้อมูลจากเว็บไซต์นี้ต้องเป็นไปตามข้อตกลงและเงื่อนไขการใช้บริการต่อไปนี้\", \"การเชื่อมโยงนี้ต้องเชื่อมโยงไปยัง http://data.tmd.go.th\", \"ข้อมูลในเว็บไซต์นี้เป็นสิทธิของกรมอุตุนิยมวิทยา ซึ่งได้รับความคุ้มครองตามสิทธิในลิขสิทธิ์ และสิทธิในความเป็นเจ้าของไม่ว่าในรูปแบบใดๆ ก็ตาม\" (the data on this site are TMD's property, protected by copyright and ownership rights in any form) and \"กรมอุตุนิยมวิทยา สงวนสิทธิในการเปลี่ยนแปลงหรือระงับการให้บริการและข้อตกลงในการใช้เว็บไซต์นี้ไม่ว่าในเวลาใดๆ\" (TMD may change or suspend the service and this agreement at any time, without giving reasons). The page grants linking rights only and contains no redistribution grant for the data values."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/index1.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "Official TMDAPI index fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): lists the API catalogue and states the portal purpose \"เพื่อส่งเสริมการเปิดเผย แลกเปลี่ยนข้อมูลภาครัฐ ตามมาตรฐาน Open Data ... ตามนโยบาย e-Government\" (promoting government data disclosure under the Open Data standard / e-Government policy). That is a policy statement, not a licence, and it is contradicted by the copyright reservation on the terms page."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/WeatherTodayByAgro/V1/",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/xml; charset=utf-8",
+          "finding": "WeatherTodayByAgro V1 fetched 2026-10-26 with the registered uid/ukey: HTTP 200 text/xml; charset=utf-8, payload root <WeatherToday Version=\"2.0\"> with the official header (title/description/copyright) and daily station rows."
+        },
+        {
+          "url": "AGENTS.md (repository rule 3, amended 2026-10-26)",
+          "checked_at": "2026-10-26",
+          "finding": "Owner attestation that the API credentials are correctly registered and that real retrieved values may be processed, stored in D1 and published on the API and web pages with attribution. This entry-level approval is scoped to the exact resource below."
+        }
+      ]
+    },
+    {
+      "resource_key": "tmd_weather_today_station_daily",
+      "source_id": "tmd",
+      "resource_id": "https://data.tmd.go.th/api/WeatherToday/V2/",
+      "dataset_id": null,
+      "name": "การตรวจวัดอากาศรายวัน 07.00 น. สถานีอุตุนิยมวิทยา (WeatherToday v2)",
+      "resource_url": "https://data.tmd.go.th/api/WeatherToday/V2/",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "owner_attestation_under_agents_md_rule_3_2026_10_26_plus_live_probe_of_the_exact_endpoint",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": "No licence is published for TMDAPI values; the TMDAPI terms state that the data on the site are TMD's property protected by copyright and ownership rights in any form, and grant linking to http://data.tmd.go.th only",
+        "license_url": null,
+        "version": null,
+        "scope": "daily 07:00 ICT surface station observations served by TMDAPI (WeatherToday V2)"
+      },
+      "access_evidence": {
+        "url": "https://data.tmd.go.th/api/WeatherToday/V2/",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "text/xml; charset=utf-8",
+        "etag": null,
+        "note": "Authenticated call with the project-registered uid/ukey returned HTTP 200 text/xml; charset=utf-8 on 2026-10-26 (payload XML: WeatherToday / ThailandMonthlyRainfall). data.tmd.go.th served an EXPIRED TLS certificate during the review, so the fetch had to be repeated with certificate verification disabled; re-check with verification enabled once the certificate is renewed. No credential value is stored in this register."
+      },
+      "rights_facts": [
+        "The endpoint is publicly reachable with the project-registered uid/ukey (HTTP 200, text/xml), so access is not the blocker.",
+        "Rights are the blocker: the TMDAPI terms reserve copyright and ownership rights over the data in any form and grant only linking to http://data.tmd.go.th; TMD may change or suspend the service and the agreement at any time without giving reasons.",
+        "The portal's own Open Government Data / e-Government policy statement is a policy declaration, not a licence grant, and it does not override the copyright reservation on the terms page.",
+        "Observations are station-level measurements, not provincial aggregates; publication must keep spatial_support=station.",
+        "Where the provider does not officially confirm a unit, the publication keeps unit=null with unit_status=pending_official_confirmation.",
+        "Every display must carry the credit \"ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)\".",
+        "The documented example URL uses the /V2/ path; /V1/ returned HTTP 500 on 2026-10-26, so integrations must use the V2 path.",
+        "Owner decision 2026-10-26: the system owner holds properly registered credentials for this provider and authorises retrieving, storing and publishing the values with attribution (AGENTS.md rule 3, amended 2026-10-26).",
+        "Scope limit: approval covers the retrieved values published with attribution; commercial reuse is not confirmed (commercial_use_confirmed=false) and any redistribution of the provider's raw dataset files is not covered."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)",
+      "attribution_url": "https://data.tmd.go.th/api/index1.php",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "https://data.tmd.go.th/api/registerPre.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "TMDAPI registration/terms page fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): \"การใช้ข้อมูลจากเว็บไซต์นี้ต้องเป็นไปตามข้อตกลงและเงื่อนไขการใช้บริการต่อไปนี้\", \"การเชื่อมโยงนี้ต้องเชื่อมโยงไปยัง http://data.tmd.go.th\", \"ข้อมูลในเว็บไซต์นี้เป็นสิทธิของกรมอุตุนิยมวิทยา ซึ่งได้รับความคุ้มครองตามสิทธิในลิขสิทธิ์ และสิทธิในความเป็นเจ้าของไม่ว่าในรูปแบบใดๆ ก็ตาม\" (the data on this site are TMD's property, protected by copyright and ownership rights in any form) and \"กรมอุตุนิยมวิทยา สงวนสิทธิในการเปลี่ยนแปลงหรือระงับการให้บริการและข้อตกลงในการใช้เว็บไซต์นี้ไม่ว่าในเวลาใดๆ\" (TMD may change or suspend the service and this agreement at any time, without giving reasons). The page grants linking rights only and contains no redistribution grant for the data values."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/index1.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "Official TMDAPI index fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): lists the API catalogue and states the portal purpose \"เพื่อส่งเสริมการเปิดเผย แลกเปลี่ยนข้อมูลภาครัฐ ตามมาตรฐาน Open Data ... ตามนโยบาย e-Government\" (promoting government data disclosure under the Open Data standard / e-Government policy). That is a policy statement, not a licence, and it is contradicted by the copyright reservation on the terms page."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/WeatherToday/V2/",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/xml; charset=utf-8",
+          "finding": "WeatherToday V2 fetched 2026-10-26 with the registered uid/ukey: HTTP 200 text/xml; charset=utf-8, payload root <WeatherToday Version=\"2.0\"> with daily station rows."
+        },
+        {
+          "url": "AGENTS.md (repository rule 3, amended 2026-10-26)",
+          "checked_at": "2026-10-26",
+          "finding": "Owner attestation that the API credentials are correctly registered and that real retrieved values may be processed, stored in D1 and published on the API and web pages with attribution. This entry-level approval is scoped to the exact resource below."
+        }
+      ]
+    },
+    {
+      "resource_key": "tmd_weather_today_by_synop_daily",
+      "source_id": "tmd",
+      "resource_id": "https://data.tmd.go.th/api/weathertodayBySynop/V1/",
+      "dataset_id": null,
+      "name": "การตรวจวัดรายวัน 07.00 น. สถานีตรวจอากาศ synoptic (WeatherTodayBySynop)",
+      "resource_url": "https://data.tmd.go.th/api/weathertodayBySynop/V1/",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "owner_attestation_under_agents_md_rule_3_2026_10_26_plus_live_probe_of_the_exact_endpoint",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": "No licence is published for TMDAPI values; the TMDAPI terms state that the data on the site are TMD's property protected by copyright and ownership rights in any form, and grant linking to http://data.tmd.go.th only",
+        "license_url": null,
+        "version": null,
+        "scope": "daily 07:00 ICT synoptic station observations served by TMDAPI (weathertodayBySynop V1)"
+      },
+      "access_evidence": {
+        "url": "https://data.tmd.go.th/api/weathertodayBySynop/V1/",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "text/xml; charset=utf-8",
+        "etag": null,
+        "note": "Authenticated call with the project-registered uid/ukey returned HTTP 200 text/xml; charset=utf-8 on 2026-10-26 (payload XML: WeatherToday / ThailandMonthlyRainfall). data.tmd.go.th served an EXPIRED TLS certificate during the review, so the fetch had to be repeated with certificate verification disabled; re-check with verification enabled once the certificate is renewed. No credential value is stored in this register."
+      },
+      "rights_facts": [
+        "The endpoint is publicly reachable with the project-registered uid/ukey (HTTP 200, text/xml), so access is not the blocker.",
+        "Rights are the blocker: the TMDAPI terms reserve copyright and ownership rights over the data in any form and grant only linking to http://data.tmd.go.th; TMD may change or suspend the service and the agreement at any time without giving reasons.",
+        "The portal's own Open Government Data / e-Government policy statement is a policy declaration, not a licence grant, and it does not override the copyright reservation on the terms page.",
+        "Observations are station-level measurements, not provincial aggregates; publication must keep spatial_support=station.",
+        "Where the provider does not officially confirm a unit, the publication keeps unit=null with unit_status=pending_official_confirmation.",
+        "Every display must carry the credit \"ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)\".",
+        "This endpoint carries the synoptic (synoptical) station network, which is a different station set from the agro-meteorological and general weather series.",
+        "Owner decision 2026-10-26: the system owner holds properly registered credentials for this provider and authorises retrieving, storing and publishing the values with attribution (AGENTS.md rule 3, amended 2026-10-26).",
+        "Scope limit: approval covers the retrieved values published with attribution; commercial reuse is not confirmed (commercial_use_confirmed=false) and any redistribution of the provider's raw dataset files is not covered."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)",
+      "attribution_url": "https://data.tmd.go.th/api/index1.php",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "https://data.tmd.go.th/api/registerPre.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "TMDAPI registration/terms page fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): \"การใช้ข้อมูลจากเว็บไซต์นี้ต้องเป็นไปตามข้อตกลงและเงื่อนไขการใช้บริการต่อไปนี้\", \"การเชื่อมโยงนี้ต้องเชื่อมโยงไปยัง http://data.tmd.go.th\", \"ข้อมูลในเว็บไซต์นี้เป็นสิทธิของกรมอุตุนิยมวิทยา ซึ่งได้รับความคุ้มครองตามสิทธิในลิขสิทธิ์ และสิทธิในความเป็นเจ้าของไม่ว่าในรูปแบบใดๆ ก็ตาม\" (the data on this site are TMD's property, protected by copyright and ownership rights in any form) and \"กรมอุตุนิยมวิทยา สงวนสิทธิในการเปลี่ยนแปลงหรือระงับการให้บริการและข้อตกลงในการใช้เว็บไซต์นี้ไม่ว่าในเวลาใดๆ\" (TMD may change or suspend the service and this agreement at any time, without giving reasons). The page grants linking rights only and contains no redistribution grant for the data values."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/index1.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "Official TMDAPI index fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): lists the API catalogue and states the portal purpose \"เพื่อส่งเสริมการเปิดเผย แลกเปลี่ยนข้อมูลภาครัฐ ตามมาตรฐาน Open Data ... ตามนโยบาย e-Government\" (promoting government data disclosure under the Open Data standard / e-Government policy). That is a policy statement, not a licence, and it is contradicted by the copyright reservation on the terms page."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/weathertodayBySynop/V1/",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/xml; charset=utf-8",
+          "finding": "weathertodayBySynop V1 fetched 2026-10-26 with the registered uid/ukey: HTTP 200 text/xml; charset=utf-8, payload root <WeatherToday Version=\"2.0\"> with daily synoptic station rows."
+        },
+        {
+          "url": "AGENTS.md (repository rule 3, amended 2026-10-26)",
+          "checked_at": "2026-10-26",
+          "finding": "Owner attestation that the API credentials are correctly registered and that real retrieved values may be processed, stored in D1 and published on the API and web pages with attribution. This entry-level approval is scoped to the exact resource below."
+        }
+      ]
+    },
+    {
+      "resource_key": "tmd_monthly_rainfall_monthly",
+      "source_id": "tmd",
+      "resource_id": "https://data.tmd.go.th/api/ThailandMonthlyRainfall/v1/index.php",
+      "dataset_id": null,
+      "name": "ปริมาณฝนสะสมรายเดือนและจำนวนวันที่ฝนตก รายสถานี (ThailandMonthlyRainfall)",
+      "resource_url": "https://data.tmd.go.th/api/ThailandMonthlyRainfall/v1/index.php",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "owner_attestation_under_agents_md_rule_3_2026_10_26_plus_live_probe_of_the_exact_endpoint",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": "No licence is published for TMDAPI values; the TMDAPI terms state that the data on the site are TMD's property protected by copyright and ownership rights in any form, and grant linking to http://data.tmd.go.th only",
+        "license_url": null,
+        "version": null,
+        "scope": "monthly accumulated rainfall and rain-day counts per station and year served by TMDAPI (ThailandMonthlyRainfall v1)"
+      },
+      "access_evidence": {
+        "url": "https://data.tmd.go.th/api/ThailandMonthlyRainfall/v1/index.php",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "text/xml; charset=utf-8",
+        "etag": null,
+        "note": "Authenticated call with the project-registered uid/ukey returned HTTP 200 text/xml; charset=utf-8 on 2026-10-26 (payload XML: WeatherToday / ThailandMonthlyRainfall). data.tmd.go.th served an EXPIRED TLS certificate during the review, so the fetch had to be repeated with certificate verification disabled; re-check with verification enabled once the certificate is renewed. No credential value is stored in this register."
+      },
+      "rights_facts": [
+        "The endpoint is publicly reachable with the project-registered uid/ukey (HTTP 200, text/xml), so access is not the blocker.",
+        "Rights are the blocker: the TMDAPI terms reserve copyright and ownership rights over the data in any form and grant only linking to http://data.tmd.go.th; TMD may change or suspend the service and the agreement at any time without giving reasons.",
+        "The portal's own Open Government Data / e-Government policy statement is a policy declaration, not a licence grant, and it does not override the copyright reservation on the terms page.",
+        "Observations are station-level measurements, not provincial aggregates; publication must keep spatial_support=station.",
+        "Where the provider does not officially confirm a unit, the publication keeps unit=null with unit_status=pending_official_confirmation.",
+        "Every display must carry the credit \"ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)\".",
+        "This free API covers monthly rainfall statistics per station and year; deep historical or bespoke climate data are a separate paid service at data-service.tmd.go.th and are NOT covered by this review.",
+        "Owner decision 2026-10-26: the system owner holds properly registered credentials for this provider and authorises retrieving, storing and publishing the values with attribution (AGENTS.md rule 3, amended 2026-10-26).",
+        "Scope limit: approval covers the retrieved values published with attribution; commercial reuse is not confirmed (commercial_use_confirmed=false) and any redistribution of the provider's raw dataset files is not covered."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลตรวจวัดอากาศรายสถานี โดย กรมอุตุนิยมวิทยา (Thai Meteorological Department)",
+      "attribution_url": "https://data.tmd.go.th/api/index1.php",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "https://data.tmd.go.th/api/registerPre.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "TMDAPI registration/terms page fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): \"การใช้ข้อมูลจากเว็บไซต์นี้ต้องเป็นไปตามข้อตกลงและเงื่อนไขการใช้บริการต่อไปนี้\", \"การเชื่อมโยงนี้ต้องเชื่อมโยงไปยัง http://data.tmd.go.th\", \"ข้อมูลในเว็บไซต์นี้เป็นสิทธิของกรมอุตุนิยมวิทยา ซึ่งได้รับความคุ้มครองตามสิทธิในลิขสิทธิ์ และสิทธิในความเป็นเจ้าของไม่ว่าในรูปแบบใดๆ ก็ตาม\" (the data on this site are TMD's property, protected by copyright and ownership rights in any form) and \"กรมอุตุนิยมวิทยา สงวนสิทธิในการเปลี่ยนแปลงหรือระงับการให้บริการและข้อตกลงในการใช้เว็บไซต์นี้ไม่ว่าในเวลาใดๆ\" (TMD may change or suspend the service and this agreement at any time, without giving reasons). The page grants linking rights only and contains no redistribution grant for the data values."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/index1.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/html; charset=UTF-8",
+          "finding": "Official TMDAPI index fetched 2026-10-26 (HTTP 200 text/html; charset=UTF-8): lists the API catalogue and states the portal purpose \"เพื่อส่งเสริมการเปิดเผย แลกเปลี่ยนข้อมูลภาครัฐ ตามมาตรฐาน Open Data ... ตามนโยบาย e-Government\" (promoting government data disclosure under the Open Data standard / e-Government policy). That is a policy statement, not a licence, and it is contradicted by the copyright reservation on the terms page."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/ThailandMonthlyRainfall/v1/index.php",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "text/xml; charset=utf-8",
+          "finding": "ThailandMonthlyRainfall v1 fetched 2026-10-26 with the registered uid/ukey: HTTP 200 text/xml; charset=utf-8, payload root <ThailandMonthlyRainfall version=\"1.0\"> with monthly station statistics."
+        },
+        {
+          "url": "https://data.tmd.go.th/api/doc/reference/ThailandMonthlyRainfall.pdf",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/pdf",
+          "finding": "Official field-reference document fetched 2026-10-26 (HTTP 200 application/pdf): defines the year parameter and the monthly rainfall / rain-day field names; the PDF itself carries no licence statement and unit parsing is left to the connector lane under the unit rules."
+        },
+        {
+          "url": "AGENTS.md (repository rule 3, amended 2026-10-26)",
+          "checked_at": "2026-10-26",
+          "finding": "Owner attestation that the API credentials are correctly registered and that real retrieved values may be processed, stored in D1 and published on the API and web pages with attribution. This entry-level approval is scoped to the exact resource below."
+        }
+      ]
+    },
+    {
+      "resource_key": "gistda_flood_7days_daily",
+      "source_id": "gistda",
+      "resource_id": "https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days",
+      "dataset_id": "features-flood-7days",
+      "name": "พื้นที่น้ำท่วมรอบ 7 วันล่าสุด (features) — GISTDA Disaster Open API",
+      "resource_url": "https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "publisher_states_the_disaster_service_is_open_government_data_with_no_data_access_conditions_and_the_exact_endpoint_is_published_in_gistda_open_data",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": "GISTDA open-data catalogue: licence_title \"License not specified\" with the dataset access-conditions field \"เงื่อนไขในการเข้าถึงข้อมูล: ไม่มี\" (no conditions); the official OpenAPI description declares the service as government open data under the Open Government Data policy",
+        "license_url": "https://opendata.gistda.or.th/dataset/flood-disaster-data",
+        "version": "1.0 (OpenAPI info.version)",
+        "scope": "7-day satellite flood inundation polygons (Sentinel-1 / Radarsat-2 derived) with affected rice-area attributes, served as GeoJSON features by the GISTDA API gateway"
+      },
+      "access_evidence": {
+        "url": "https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days",
+        "checked_at": "2026-10-26",
+        "http_status": 200,
+        "content_type": "application/geo+json",
+        "etag": null,
+        "note": "Live capture on 2026-10-26 with the project-registered API key: HTTP 200 application/geo+json, GeoJSON FeatureCollection, timeStamp 2026-10-26T10:27:15Z. The same request without a key returns HTTP 407 application/json {\"status\":407,\"detail\":\"Authentication Required\"}, so the endpoint is live and key-gated. The raw gateway response echoes the API key inside links[].href, so raw payloads must never be published verbatim."
+      },
+      "rights_facts": [
+        "The official GISTDA OpenAPI bundle (fetched 2026-10-26, HTTP 200 application/javascript) states in info.description: \"สำนักงานพัฒนาเทคโนโลยีอวกาศและสารสนเทศ (องค์การมหาชน) พัฒนาระบบการให้บริการข้อมูลเปิดด้านภัยพิบัติตามนโยบายข้อมูลเปิดภาครัฐ (Open Government Data) เพื่อให้ประชาชนสามารถเข้าถึงข้อมูลเชิงพื้นที่ด้านภัยพิบัติได้สะดวก รวมเร็ว\" — GISTDA develops the disaster open-data service under the Open Government Data policy so the public can access spatial disaster data.",
+        "GISTDA's own open-data catalogue publishes this exact endpoint as a catalogue resource of the dataset \"[Disaster Platform] ข้อมูลภัยพิบัติน้ำท่วม\", whose access-conditions field reads \"เงื่อนไขในการเข้าถึงข้อมูล: ไม่มี\" (no conditions) — the publisher imposes no data-access or reuse condition on this government open dataset.",
+        "Honest caveat recorded with the approval: the catalogue licence field itself literally reads \"License not specified\" and the OpenAPI specification carries no licence field; the approval rests on the publisher's explicit open-government-data declaration and its no-conditions metadata, plus the AGENTS.md rule 3 production unlock of 2026-10-26 for the properly registered GISTDA credential.",
+        "No commercial-use grant is published, so commercial_use_confirmed stays false and the approval covers this project's non-commercial publication.",
+        "Products are derived from Copernicus Sentinel-1 and Radarsat-2 imagery; displays must attribute GISTDA and state the satellite source, and failed live calls must be labelled as dated snapshots rather than presented as fresh.",
+        "Flood area must keep rai and km² separate (1 km² = 625 rai), and provinces without polygons stay null instead of zero."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลพื้นที่น้ำท่วม 7 วันล่าสุด โดย GISTDA (สำนักงานพัฒนาเทคโนโลยีอวกาศและสารสนเทศ) ประมวลผลจากดาวเทียม Sentinel-1/Radarsat-2",
+      "attribution_url": "https://opendata.gistda.or.th/dataset/flood-disaster-data",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "https://opendata.gistda.or.th/api/3/action/package_show?id=flood-disaster-data",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json;charset=utf-8",
+          "finding": "GISTDA open-data catalogue entry fetched 2026-10-26: title \"[Disaster Platform] ข้อมูลภัยพิบัติน้ำท่วม\", licence field \"License not specified\" (license_url null), extra \"เงื่อนไขในการเข้าถึงข้อมูล = ไม่มี\" (no conditions for accessing the data), and the catalogue resource \"พื้นที่น้ำท่วมในรอบ 7 วันล่าสุด\" pointing at the exact endpoint https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days used by this project."
+        },
+        {
+          "url": "https://disaster.gistda.or.th/_next/static/chunks/2eg32mdgq5f8q.js",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/javascript; charset=UTF-8",
+          "finding": "Official OpenAPI 3.0.3 bundle fetched 2026-10-26: servers url https://api-gateway.gistda.or.th/api/2.0/resources, route features/flood/7days, info.version 1.0 and info.description declaring the service as Open Government Data (\"...พัฒนาระบบการให้บริการข้อมูลเปิดด้านภัยพิบัติตามนโยบายข้อมูลเปิดภาครัฐ (Open Government Data)...\"); the bundle contains no licence field."
+        },
+        {
+          "url": "https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/geo+json",
+          "finding": "Exact endpoint fetched 2026-10-26 with the registered API key: HTTP 200 application/geo+json FeatureCollection, timeStamp 2026-10-26T10:27:15Z; the same request without a key returns HTTP 407 application/json \"Authentication Required\"."
+        },
+        {
+          "url": "https://data.go.th/api/3/action/package_search?q=Disaster%20Platform",
+          "checked_at": "2026-10-26",
+          "http_status": 200,
+          "content_type": "application/json",
+          "finding": "National open-data portal (data.go.th) fetched 2026-10-26 confirms the same GISTDA dataset is published there with licence_title \"License not specified\" — i.e. no licence restriction is published against it by the publisher or by the national catalogue."
+        }
+      ]
     }
-  ]
+  ],
+  "owner_authorisation": {
+    "decided_at": "2026-10-26",
+    "basis": "AGENTS.md rule 3 (owner attestation of registered credentials and full production unlock)",
+    "approved_resource_keys": [
+      "rid_medium_reservoirs",
+      "tmd_monthly_rainfall_monthly",
+      "tmd_weather_today_by_agro_daily",
+      "tmd_weather_today_by_synop_daily",
+      "tmd_weather_today_station_daily"
+    ],
+    "note": "Approval is per exact resource with attribution. Licence-text caveats stay recorded in rights_facts; units remain null until officially documented; forecast values stay out of the observation contract."
+  }
 }

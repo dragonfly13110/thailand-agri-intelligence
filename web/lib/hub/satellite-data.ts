@@ -1,12 +1,35 @@
 /**
- * Satellite / Earth-observation dashboard simulation data.
+ * Satellite / Earth-observation dashboard data.
  *
- * ทุกค่าในโมดูลนี้เป็น synthetic simulation แบบ deterministic (seeded FNV-1a)
- * เพื่อสาธิตหน้าจอข้อมูลดาวเทียมเท่านั้น **ไม่มีการดึงหรือประมวลผลภาพจริง**
- * จาก GISTDA, Sentinel (Copernicus) หรือ MODIS (NASA LP DAAC / Planetary Computer)
- * และทั้งสามแหล่งยังมี `license_status: pending` ใน config/sources.json —
- * ห้ามตีความตัวเลขใดเป็นค่าสังเกตการณ์จริงหรือประกาศของหน่วยงานต้นทาง
+ * ชั้นข้อมูลแบ่งเป็นสองส่วนอย่างชัดเจน ห้ามตีความปนกัน:
+ *
+ * 1) `flood` — polygon น้ำท่วมจริงของ GISTDA (Sentinel-1 C-SAR, Radarsat-2,
+ *    ChinaSat-4) จาก `https://api-gateway.gistda.or.th/api/2.0/resources/
+ *    features/flood/7days` โมดูลนี้ bundle snapshot จริงที่
+ *    `web/data/gistda_flood_7days.json` ไว้สำหรับหน้า server render (โหมด
+ *    `snapshot` — ระบุวัน retrieval ของไฟล์เสมอ) ส่วน `GET /api/v1/satellite`
+ *    พยายามเรียก GISTDA แบบ live ทุกครั้ง (โหมด `live`) และ fallback กลับ
+ *    snapshot นี้อย่างชัดแจ้งเมื่อ live ล้มเหลว ตัวเลขไร่/ตร.กม./นาข้าว
+ *    ที่จังหวัดใดมี polygon มาจาก polygon นั้นจริง ๆ จังหวัดที่ไม่มี polygon
+ *    จะ "ไม่ถูกตรวจพบในชั้นนี้" (ค่า 0 ใน provinces หมายถึง not mapped
+ *    ไม่ใช่ "ยืนยันว่าน้ำไม่ท่วม") และค่าสดจริงของคำขอหนึ่ง ๆ อยู่ใน
+ *    `floodObservation` ของ payload API
+ *
+ * 2) `drought` และ `ndvi` — เป็น deterministic simulation (seeded FNV-1a)
+ *    เพื่อสาธิตหน้าจอ **ไม่มีการดึงภาพจริง** จาก MODIS/NASA หรือดัชนีสภาพเกษตร
+ *    ใด ๆ ทั้งสิ้น ทุกค่าในสองชั้นนี้ติด `dataKind: 'modelled'` และ
+ *    `layerTruth` ของ API ประกาศ `sample: true` พร้อม banner รายชั้น
+ *    ห้ามเสนอเป็นค่าตรวจวัดโดยเด็ดขาด
+ *
+ * สิทธิ์เผยแพร่: `config/resource_licenses.json` ลงทะเบียน
+ * `gistda_flood_7days_daily` เป็น `approved_public` +
+ * `project_publication_approved: true` (อนุมัติโดยเจ้าของระบบตาม AGENTS.md ข้อ 3)
  */
+
+import floodFeedFile from '../../data/gistda_flood_7days.json';
+
+// (interface GistdaFloodFileRaw ด้านล่างเป็นแบบของไฟล์นี้ — ประกาศไว้ก่อนใช้)
+const floodFeed = floodFeedFile as unknown as GistdaFloodFileRaw;
 
 export type SatelliteLayer = 'flood' | 'drought' | 'ndvi';
 export type SatellitePlatform = 'gistda' | 'sentinel' | 'modis';
@@ -17,20 +40,563 @@ export type PixelReliability = 'good' | 'marginal' | 'cloud' | 'no_data';
 export type RepeatFloodClass = 'repeat_5plus' | 'repeat_3_4' | 'repeat_1_2' | 'none';
 
 export const SATELLITE_GOVERNANCE = {
+  // `sample` อ้างถึงชั้นหลักของหน้านี้ (flood) เท่านั้น — ชั้นจำลองระบุไว้ใน
+  // `modelledLayers` และ banner รายชั้นอยู่ใน `layerBanners` ห้ามอ่านค่านี้ว่า
+  // "ทั้ง payload เป็นข้อมูลจริง"
   sample: false,
+  sampleScope: 'flood_layer_only' as const,
   access: 'approved_public' as const,
-  version: '2026.10-sat-live-v1',
-  bannerText: 'ข้อมูลดาวเทียมตรวจวัดจริง (Live Earth Observation) — เชื่อมต่อ GISTDA Sphere API และ Sentinel-1 SAR',
+  version: '2026.10-sat-gistda-flood-v3',
+  floodSource: 'gistda_flood_7days' as const,
+  // ค่าที่ module นี้ส่งออก (provinces/feed/summary) มาจาก snapshot จริงที่
+  // bundle ไว้ในเว็บ — วัน retrieval คือ `updatedAt` ส่วนค่าสดของคำขอแต่ละครั้ง
+  // อยู่ใน `data.floodObservation.sourceMode` ของ /api/v1/satellite (live|snapshot)
+  floodFeedMode: 'bundled_snapshot' as const,
+  modelledLayers: ['drought', 'ndvi'] as SatelliteLayer[],
+  layerBanners: {
+    flood:
+      'ชั้นน้ำท่วม: polygon ตรวจวัดจริงจาก GISTDA (Sentinel-1 C-SAR / Radarsat-2 SAR) — '
+      + 'โหมดการได้มาของคำขอปัจจุบันระบุใน floodObservation.sourceMode (live = ยิง API สด, snapshot = ไฟล์快照พร้อมวันที่)',
+    drought:
+      'ชั้นภัยแล้ง (VCI/TCI/SPI): แบบจำลอง (modelled, sample:true) — การจำลองแบบ deterministic '
+      + 'ยังไม่มีการดึงภาพดาวเทียมจริง ห้ามนำไปใช้อ้างอิง',
+    ndvi:
+      'ชั้น NDVI/EVI/NDMI: แบบจำลอง (modelled, sample:true) — ไม่ใช่ค่าตรวจวัดจาก MODIS/Sentinel-2 '
+      + 'ห้ามนำไปใช้อ้างอิง',
+  } as Record<SatelliteLayer, string>,
+  bannerText:
+    'ชั้นน้ำท่วม: polygon ตรวจวัดจริงจาก GISTDA — ชั้นภัยแล้งและ NDVI: แบบจำลอง (modelled) ไม่ใช่ค่าตรวจวัด',
   disclaimer:
-    'ข้อมูลพื้นที่น้ำท่วมและพื้นที่ปลูกข้าวที่ได้รับผลกระทบ ประมวลผลจากภาพถ่ายดาวเทียม Sentinel-1 (C-SAR) และ Radarsat-2 ผ่านระบบ GISTDA Satellite API Gateway (api-gateway.gistda.or.th) โดยได้รับสิทธิ์การเชื่อมต่ออย่างถูกต้อง',
-  updatedAt: '2026-10-26T00:00:00+07:00',
+    'พื้นที่น้ำท่วมและนาข้าวที่ได้รับผลกระทบมาจาก polygon น้ำท่วมรอบ 7 วันล่าสุดของ GISTDA '
+    + '(api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days) ซึ่งประมวลผลจากภาพถ่ายดาวเทียมเรดาร์ '
+    + 'จังหวัดที่ไม่มี polygon ในหน้าต่างนี้แสดงค่า 0 พร้อมสถานะ "ไม่ถูกตรวจพบในชั้นนี้" '
+    + '(ไม่ใช่การยืนยันว่าไม่เกิดน้ำท่วม) ส่วนค่า VCI/TCI/SPI และ NDVI/EVI/NDMI เป็นค่าจำลองแบบ deterministic '
+    + '(seeded simulation) ที่ยังไม่มีแหล่งจริงเชื่อมต่อ — ติดธง dataKind="modelled" และ sample:true รายชั้น',
+  updatedAt: floodFeed.metadata.retrieved_at,
 };
 
 export const SATELLITE_WARNINGS: string[] = [
-  'ข้อมูลพื้นที่น้ำท่วม 7 วันล่าสุดและผลกระทบพื้นที่นาข้าว ประมวลผลจากดาวเทียมเรดาร์ (SAR) โดย GISTDA และ Sentinel-1',
-  'การเข้าถึง API ได้รับสิทธิ์อย่างเป็นทางการจากสำนักงานพัฒนาเทคโนโลยีอวกาศและภูมิสารสนเทศ (GISTDA)',
-  'พื้นที่น้ำท่วมถูกรายงานเป็นสองฟิลด์แยกกัน (ไร่ และ ตร.กม.) ผ่านตัวแปลง 1 ตร.กม. = 625 ไร่ ห้ามนำผลรวมต่างหน่วยไปบวกรวมกันซ้ำ',
+  'ชั้นน้ำท่วมเป็น polygon ตรวจวัดจริงจาก GISTDA ในหน้าต่าง 7 วันล่าสุด จำนวนจังหวัดที่แสดงจึงเป็น "ผลการตรวจพบ" ไม่ใช่ coverage ทั้งประเทศ',
+  'ชั้นภัยแล้ง (VCI/TCI/SPI) และชั้น NDVI/EVI/NDMI ยังเป็นค่าจำลองแบบ deterministic ทุกค่าติดธง dataKind="modelled" ห้ามนำไปตีความเป็นการตรวจวัด',
+  'พื้นที่น้ำท่วมถูกรายงานเป็นสองฟิลด์แยกกัน (ไร่ และ ตร.กม.) ผ่านตัวแปลง 1 ตร.กม. = 625 ไร่ (= 1 ไร่ = 1,600 ตร.ม.) ห้ามนำผลรวมต่างหน่วยไปบวกรวมกันซ้ำ',
+  'ดัชนีความถี่และประวัติปีน้ำท่วมซ้ำ (floodFrequencyIndex, repeatFloodEventYears) ยังเป็นข้อมูลจำลองเชิงประวัติ ไม่ใช่สถิติทางการของ GISTDA หรือหน่วยงานอื่น',
 ];
+
+/* ------------------------------------------------------------------ */
+/* GISTDA 7-day flood feed — ข้อมูลจริงจาก web/data/gistda_flood_7days.json */
+/* ------------------------------------------------------------------ */
+
+interface GistdaFloodRecordRaw {
+  readonly feature_id: string;
+  readonly satellite_sources: string;
+  readonly dopa_province_code: string;
+  readonly province_name_en: string;
+  readonly dopa_amphoe_code: string;
+  readonly amphoe_name_en: string;
+  readonly dopa_tambon_code: string;
+  readonly tambon_name_en: string;
+  readonly inundated_area_sqm: number;
+  readonly inundated_rice_area_rai: number;
+  readonly observation_period: string;
+  readonly source_agency: string;
+  readonly retrieved_at: string;
+  readonly license_status: string;
+}
+
+interface GistdaFloodFileRaw {
+  readonly metadata: {
+    readonly source: string;
+    readonly service: string;
+    readonly total_flood_polygons: number;
+    readonly retrieved_at: string;
+    readonly license_status: string;
+    readonly total_flood_area_rai: number;
+    readonly total_flood_area_sqkm: number;
+    readonly total_rice_area_rai: number;
+  };
+  readonly records: readonly GistdaFloodRecordRaw[];
+}
+
+/** 1 ไร่ = 1,600 ตร.ม. — ตัวแปลงที่ยืนยันจาก metadata ของไฟล์เอง (374.81 ไร่ = 599,700 ตร.ม.) */
+const SQM_PER_RAI = 1600;
+
+export interface GistdaFloodDetection {
+  readonly provinceCode: string;
+  readonly provinceNameEn: string;
+  readonly featureCount: number;
+  readonly inundatedAreaRai: number;
+  readonly inundatedAreaSqKm: number;
+  readonly inundatedRiceAreaRai: number;
+  readonly locations: readonly {
+    amphoeCode: string;
+    amphoeName: string;
+    tambonCode: string;
+    tambonName: string;
+  }[];
+  readonly satelliteSourceCodes: readonly string[];
+  /** ทุก imaging stamp ที่ระบุใน polygon ของจังหวัดนี้ (unique) — ใช้สร้าง scene จริง */
+  readonly stamps: readonly ParsedSatelliteSource[];
+  readonly latestAcquiredAt: string;
+  readonly retrievedAt: string;
+  readonly licenseStatus: string;
+}
+
+/**
+ * รหัสดาวเทียมในฟิลด์ `satellite_sources` → ชื่อเซนเซอร์
+ * (ความละเอียดและ orbit direction ไม่ได้อยู่ใน feed จึงไม่ใส่ไว้ ป้องกันการเดา)
+ */
+const SATELLITE_SOURCE_LABELS: Record<string, string> = {
+  s1a: 'Sentinel-1A C-SAR (ผ่าน GISTDA Gateway)',
+  s1b: 'Sentinel-1B C-SAR (ผ่าน GISTDA Gateway)',
+  s1d: 'Sentinel-1D C-SAR (ผ่าน GISTDA Gateway)',
+  rd2: 'Radarsat-2 SAR (ผ่าน GISTDA Gateway)',
+  cm4: 'ChinaSat-4 (ผ่าน GISTDA Gateway)',
+};
+
+export interface ParsedSatelliteSource {
+  readonly code: string;
+  readonly satellite: string;
+  readonly acquiredAt: string;
+  readonly sensor: string;
+}
+
+/**
+ * `satellite_sources` มาเป็น "S1D_20261021_0600, rd2_20261020_0613" — เวลาท้ายstamp
+ * ตาม convention ของ GISTDA เป็น UTC จึงออกผลเป็น ISO 8601 +00:00 ไม่ตั้งเวลาท้องถิ่นเอง
+ */
+function parseSatelliteSource(token: string): ParsedSatelliteSource | null {
+  const match = /^([A-Za-z0-9]+)_(\d{8})_(\d{2})(\d{2})$/.exec(token.trim());
+  if (!match) return null;
+  const [, rawCode, stamp, hour, minute] = match;
+  const month = Number(stamp.slice(4, 6));
+  const day = Number(stamp.slice(6, 8));
+  if (month < 1 || month > 12 || day < 1 || day > 31 || Number(hour) > 23 || Number(minute) > 59) return null;
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return {
+    code: rawCode.toLowerCase(),
+    satellite: rawCode,
+    acquiredAt: `${stamp.slice(0, 4)}-${pad(month)}-${pad(day)}T${hour}:${minute}:00+00:00`,
+    sensor: SATELLITE_SOURCE_LABELS[rawCode.toLowerCase()]
+      ?? `${rawCode} (เซนเซอร์นอกรายทะเบียน — ต้องยืนยันกับ GISTDA)`,
+  };
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function parseSatelliteStamps(sourcesField: string): ParsedSatelliteSource[] {
+  const parsed: ParsedSatelliteSource[] = [];
+  for (const token of sourcesField.split(',')) {
+    const trimmed = token.trim();
+    if (!trimmed) continue;
+    const hit = parseSatelliteSource(trimmed);
+    if (hit) parsed.push(hit);
+  }
+  return parsed;
+}
+
+function buildFloodDetections(): Map<string, GistdaFloodDetection> {
+  type Bucket = {
+    records: GistdaFloodRecordRaw[];
+    sqm: number;
+    riceRai: number;
+    parsed: ParsedSatelliteSource[];
+  };
+  const scratch = new Map<string, Bucket>();
+
+  for (const record of floodFeed.records) {
+    const code = record.dopa_province_code;
+    if (!code) continue;
+    const bucket = scratch.get(code) ?? { records: [], sqm: 0, riceRai: 0, parsed: [] };
+    bucket.records.push(record);
+    bucket.sqm += record.inundated_area_sqm;
+    bucket.riceRai += record.inundated_rice_area_rai;
+    for (const hit of parseSatelliteStamps(record.satellite_sources)) bucket.parsed.push(hit);
+    scratch.set(code, bucket);
+  }
+
+  const grouped = new Map<string, GistdaFloodDetection>();
+  for (const [code, bucket] of scratch) {
+    const locationKeys = new Set<string>();
+    const locations: {
+      amphoeCode: string;
+      amphoeName: string;
+      tambonCode: string;
+      tambonName: string;
+    }[] = [];
+    for (const record of bucket.records) {
+      const key = `${record.dopa_amphoe_code}:${record.dopa_tambon_code}`;
+      if (locationKeys.has(key)) continue;
+      locationKeys.add(key);
+      locations.push({
+        amphoeCode: record.dopa_amphoe_code,
+        amphoeName: record.amphoe_name_en,
+        tambonCode: record.dopa_tambon_code,
+        tambonName: record.tambon_name_en,
+      });
+    }
+    locations.sort((a, b) => (a.tambonCode < b.tambonCode ? -1 : 1));
+    // จังหวัดเดียวมี stamp เดียวกันซ้ำทุก polygon → unique ก่อนหาเวลาที่ใหม่สุด
+    const uniqueStamps = new Map<string, ParsedSatelliteSource>();
+    for (const hit of bucket.parsed) uniqueStamps.set(`${hit.satellite}@${hit.acquiredAt}`, hit);
+    const stamps = [...uniqueStamps.values()].sort((a, b) => (a.acquiredAt < b.acquiredAt ? 1 : -1));
+    const satellites = new Set(stamps.map((hit) => hit.satellite));
+
+    grouped.set(code, {
+      provinceCode: code,
+      provinceNameEn: bucket.records[0]?.province_name_en ?? '',
+      featureCount: bucket.records.length,
+      inundatedAreaRai: round2(bucket.sqm / SQM_PER_RAI),
+      inundatedAreaSqKm: round2(bucket.sqm / SQM_PER_RAI / 625),
+      inundatedRiceAreaRai: round2(bucket.riceRai),
+      locations,
+      satelliteSourceCodes: [...satellites].sort(),
+      stamps,
+      latestAcquiredAt: stamps[0]?.acquiredAt ?? floodFeed.metadata.retrieved_at,
+      retrievedAt: floodFeed.metadata.retrieved_at,
+      licenseStatus: floodFeed.metadata.license_status,
+    });
+  }
+
+  return grouped;
+}
+
+const FLOOD_DETECTIONS = buildFloodDetections();
+
+export const GISTDA_FLOOD_FEED = {
+  source: `https://${floodFeed.metadata.source}/api/2.0/resources/${floodFeed.metadata.service}`,
+  service: floodFeed.metadata.service,
+  retrievedAt: floodFeed.metadata.retrieved_at,
+  recordCount: floodFeed.records.length,
+  totalPolygonCount: floodFeed.metadata.total_flood_polygons,
+  licenseStatus: floodFeed.metadata.license_status,
+  attributionText: 'สำนักงานพัฒนาเทคโนโลยีอวกาศและภูมิสารสนเทศ (องค์การมหาชน) — GISTDA',
+  observedProvinceCount: FLOOD_DETECTIONS.size,
+  totalInundatedAreaRai: round2(
+    [...FLOOD_DETECTIONS.values()].reduce((sum, detection) => sum + detection.inundatedAreaRai, 0),
+  ),
+  totalInundatedRiceAreaRai: round2(
+    [...FLOOD_DETECTIONS.values()].reduce((sum, detection) => sum + detection.inundatedRiceAreaRai, 0),
+  ),
+};
+
+export function getGistdaFloodFeed() {
+  return {
+    ...GISTDA_FLOOD_FEED,
+    detections: [...FLOOD_DETECTIONS.values()].sort(
+      (a, b) => b.inundatedAreaRai - a.inundatedAreaRai || (a.provinceCode < b.provinceCode ? -1 : 1),
+    ),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* GISTDA flood observation builder — โหมด live/snapshot ของ /api/v1/satellite */
+/* ------------------------------------------------------------------ */
+
+/** Endpoint สาธารณะ ( credential อยู่ฝั่ง query ตอนเรียกจริง — ห้ามเผยแพร่ URL ที่มี key) */
+export const GISTDA_LIVE_ENDPOINT =
+  'https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days';
+
+export const FLOOD_UNIT_POLICY =
+  'หน่วยแยกกันโดยเด็ดขาด: ไร่ (flooded_area_rai) และ ตร.กม. (flooded_area_sq_km) '
+  + 'แปลงจาก ตร.ม. เดียวกันด้วย 1 ไร่ = 1,600 ตร.ม. และ 1 ตร.กม. = 625 ไร่ — ห้านิมนำสองหน่วยมาบวกรวมกัน';
+
+const FAMILY_BY_SCENE_PREFIX: Record<string, string> = {
+  s1a: 'Sentinel-1',
+  s1b: 'Sentinel-1',
+  s1c: 'Sentinel-1',
+  s1d: 'Sentinel-1',
+  rd2: 'Radarsat-2',
+  cm4: 'ChinaSat-4',
+};
+
+/** polygon ที่ normalize แล้ว — โครงเดียวกับ adapter ฝั่ง Python (`ingest_gistda_d1.py`) */
+export interface GistdaFloodPolygonLite {
+  readonly provinceCode: string;
+  readonly provinceNameTh: string;
+  readonly provinceNameEn: string;
+  readonly tambonCode: string;
+  readonly floodAreaSqm: number;
+  /** `null` = แหล่งไม่ได้ให้นาข้าวของ polygon นี้ (missing ไม่ใช่ 0) */
+  readonly riceAreaSqm: number | null;
+  readonly sceneIds: readonly string[];
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || typeof value === 'boolean') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function twoDigitProvinceCode(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  if (!/^\d{1,2}$/.test(raw)) return '';
+  return raw.padStart(2, '0');
+}
+
+function stripProvincePrefix(value: unknown): string {
+  const name = String(value ?? '').trim();
+  return name.startsWith('จ.') ? name.slice(2).trim() : name;
+}
+
+function sceneIdTokens(value: unknown): string[] {
+  const raw = Array.isArray(value) ? value : String(value ?? '').split(',');
+  const seen: string[] = [];
+  for (const item of raw) {
+    const token = String(item ?? '').trim();
+    if (token && !seen.includes(token)) seen.push(token);
+  }
+  return seen;
+}
+
+/**
+ * แปลง GeoJSON FeatureCollection ของ GISTDA เป็น polygon records (ไม่เก็บ raw
+ * payload เพราะ gateway echo API key กลับมาใน `links[].href`) — คืน `null`
+ * เมื่อโครงสร้างไม่ใช่ FeatureCollection ที่มี `features` เป็น array
+ */
+export function normalizeGistdaFloodFeatureCollection(payload: unknown): {
+  timeStamp: string | null;
+  polygons: GistdaFloodPolygonLite[];
+} | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as Record<string, unknown>;
+  if (!Array.isArray(record.features)) return null;
+  const polygons: GistdaFloodPolygonLite[] = [];
+  for (const item of record.features) {
+    if (!item || typeof item !== 'object') continue;
+    const properties = (item as Record<string, unknown>).properties;
+    if (!properties || typeof properties !== 'object') continue;
+    const props = properties as Record<string, unknown>;
+    const floodAreaSqm = finiteNumber(props.f_area) ?? finiteNumber(props._area);
+    const provinceCode = twoDigitProvinceCode(props.pv_idn);
+    if (floodAreaSqm === null || floodAreaSqm < 0 || !provinceCode) continue;
+    polygons.push({
+      provinceCode,
+      provinceNameTh: stripProvincePrefix(props.pv_tn),
+      provinceNameEn: String(props.pv_en ?? '').trim(),
+      tambonCode: String(props.tb_idn ?? '').trim(),
+      floodAreaSqm,
+      riceAreaSqm: finiteNumber(props.rice_area),
+      sceneIds: sceneIdTokens(props.file_name),
+    });
+  }
+  const timeStampRaw = typeof record.timeStamp === 'string' ? record.timeStamp.trim() : '';
+  return { timeStamp: timeStampRaw || null, polygons };
+}
+
+/**
+ * polygon จาก snapshot ที่ bundle ไว้ (`web/data/gistda_flood_7days.json`) —
+ * ใช้เป็น fallback เมื่อ live call ล้มเหลว ฟิลด์นาข้าวของ snapshot เป็นไร่
+ * จึงแปลงกลับเป็น ตร.ม. ด้วยตัวแปลงเดียวกับฝั่ง adapter (1 ไร่ = 1,600 ตร.ม.)
+ */
+export function snapshotFloodPolygons(): {
+  snapshotRetrievedAt: string;
+  polygons: GistdaFloodPolygonLite[];
+} {
+  const polygons: GistdaFloodPolygonLite[] = [];
+  for (const record of floodFeed.records) {
+    const provinceCode = twoDigitProvinceCode(record.dopa_province_code);
+    const floodAreaSqm = finiteNumber(record.inundated_area_sqm);
+    if (!provinceCode || floodAreaSqm === null || floodAreaSqm < 0) continue;
+    const riceAreaRai = finiteNumber(record.inundated_rice_area_rai);
+    polygons.push({
+      provinceCode,
+      provinceNameTh: '',
+      provinceNameEn: record.province_name_en,
+      tambonCode: record.dopa_tambon_code,
+      floodAreaSqm,
+      riceAreaSqm: riceAreaRai === null ? null : riceAreaRai * SQM_PER_RAI,
+      sceneIds: sceneIdTokens(record.satellite_sources),
+    });
+  }
+  return { snapshotRetrievedAt: floodFeed.metadata.retrieved_at, polygons };
+}
+
+export interface FloodObservationProvince {
+  provinceCode: string;
+  provinceNameTh: string | null;
+  provinceNameEn: string | null;
+  polygonCount: number;
+  tambonCount: number;
+  /** หน่วย: ไร่ */
+  floodedAreaRai: number;
+  floodedAreaRaiUnit: 'rai';
+  /** หน่วย: ตร.กม. (ห้ามรวมกับไร่) */
+  floodedAreaSqKm: number;
+  floodedAreaSqKmUnit: 'km2';
+  /** หน่วย: ไร่ — `null` เมื่อ polygon ของจังหวัดนี้มีนาข้าวไม่ครบทุกผืน (missing ≠ 0) */
+  riceAreaRai: number | null;
+  satelliteSources: string[];
+  satelliteSceneIds: string[];
+}
+
+export interface FloodObservationPayload {
+  /** 'live' = ยิง GISTDA API สำเร็จในคำขอนี้ · 'snapshot' = ไฟล์ snapshot ที่ bundle ไว้ */
+  sourceMode: 'live' | 'snapshot';
+  /** ชั้นนี้มาจาก polygon ตรวจวัดจริงเสมอ (ทั้งสองโหมด) — ไม่ใช่ค่าจำลอง */
+  sample: false;
+  dataKind: 'estimated';
+  access: 'approved_public';
+  attribution: string;
+  endpoint: string;
+  /** เวลาที่ระบบนี้ดึงข้อมูล (live = เวลาเรียก API, snapshot = เวลา retrieval ของไฟล์) */
+  retrievedAt: string;
+  /** เวลา retrieval ของไฟล์ snapshot (ตั้งเสมอเพื่อให้เทียบได้ว่าเก่าแค่ไหน) */
+  snapshotRetrievedAt: string;
+  /** เมื่อโหมดเป็น snapshot: รหัสความล้มเหลวของ live call (ไม่มี credential ใด ๆ) */
+  liveFailureCode: string | null;
+  observationPeriodDays: 7;
+  method: 'sum_polygon_area_by_dopa_province';
+  unitPolicy: string;
+  polygonCount: number;
+  provinceCount: number;
+  provinces: FloodObservationProvince[];
+  totals: {
+    floodedAreaRai: number;
+    floodedAreaRaiUnit: 'rai';
+    floodedAreaSqKm: number;
+    floodedAreaSqKmUnit: 'km2';
+    riceAreaRai: number | null;
+    riceAreaRaiUnit: 'rai';
+  };
+  missingProvinceNote: string;
+}
+
+interface ProvinceBucket {
+  provinceCode: string;
+  provinceNameTh: string;
+  provinceNameEn: string;
+  floodAreaSqm: number;
+  riceAreaSqm: number | null;
+  polygonCount: number;
+  ricePolygonsWithValue: number;
+  tambonCodes: string[];
+  sceneIds: string[];
+}
+
+function roundTo(value: number, digits: number): number {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+/**
+ * รวม polygon เป็นพื้นที่น้ำท่วมต่อจังหวัด DOPA — โครงเดียวกับ adapter `ingest_gistda_d1.py`:
+ * ไร่และ ตร.กม. เป็นสองฟิลด์แยกกัน (ห้ามบวกข้ามหน่วย) จังหวัดที่ไม่มี polygon
+ * จะ "ไม่อยู่ในผลลัพธ์" (absent ไม่ใช่ 0) และนาข้าวเป็น `null` เมื่อข้อมูลไม่ครบ
+ */
+export function buildFloodObservation(
+  polygons: readonly GistdaFloodPolygonLite[],
+  options: {
+    sourceMode: 'live' | 'snapshot';
+    retrievedAt: string;
+    snapshotRetrievedAt: string;
+    liveFailureCode?: string | null;
+  },
+): FloodObservationPayload {
+  const buckets = new Map<string, ProvinceBucket>();
+  for (const polygon of polygons) {
+    const bucket = buckets.get(polygon.provinceCode) ?? {
+      provinceCode: polygon.provinceCode,
+      provinceNameTh: '',
+      provinceNameEn: '',
+      floodAreaSqm: 0,
+      riceAreaSqm: 0,
+      polygonCount: 0,
+      ricePolygonsWithValue: 0,
+      tambonCodes: [],
+      sceneIds: [],
+    };
+    bucket.polygonCount += 1;
+    bucket.floodAreaSqm += polygon.floodAreaSqm;
+    if (polygon.riceAreaSqm === null) {
+      bucket.riceAreaSqm = null;
+    } else if (bucket.riceAreaSqm !== null) {
+      bucket.riceAreaSqm += polygon.riceAreaSqm;
+      bucket.ricePolygonsWithValue += 1;
+    }
+    if (polygon.tambonCode && !bucket.tambonCodes.includes(polygon.tambonCode)) {
+      bucket.tambonCodes.push(polygon.tambonCode);
+    }
+    for (const token of polygon.sceneIds) {
+      if (token && !bucket.sceneIds.includes(token)) bucket.sceneIds.push(token);
+    }
+    if (!bucket.provinceNameTh) bucket.provinceNameTh = polygon.provinceNameTh;
+    if (!bucket.provinceNameEn) bucket.provinceNameEn = polygon.provinceNameEn;
+    buckets.set(polygon.provinceCode, bucket);
+  }
+
+  const provinces: FloodObservationProvince[] = [];
+  let totalSqm = 0;
+  let totalRiceSqm: number | null = 0;
+  for (const code of [...buckets.keys()].sort()) {
+    const bucket = buckets.get(code)!;
+    totalSqm += bucket.floodAreaSqm;
+    const riceComplete = bucket.riceAreaSqm !== null && bucket.ricePolygonsWithValue === bucket.polygonCount;
+    if (!riceComplete) totalRiceSqm = null;
+    else if (totalRiceSqm !== null) totalRiceSqm += bucket.riceAreaSqm as number;
+    const families: string[] = [];
+    for (const token of bucket.sceneIds) {
+      const family = FAMILY_BY_SCENE_PREFIX[token.split('_', 1)[0].toLowerCase()];
+      if (family && !families.includes(family)) families.push(family);
+    }
+    provinces.push({
+      provinceCode: code,
+      provinceNameTh: bucket.provinceNameTh || null,
+      provinceNameEn: bucket.provinceNameEn || null,
+      polygonCount: bucket.polygonCount,
+      tambonCount: bucket.tambonCodes.length,
+      floodedAreaRai: roundTo(bucket.floodAreaSqm / SQM_PER_RAI, 2),
+      floodedAreaRaiUnit: 'rai',
+      floodedAreaSqKm: roundTo(bucket.floodAreaSqm / (SQM_PER_RAI * 625), 6),
+      floodedAreaSqKmUnit: 'km2',
+      riceAreaRai: riceComplete ? roundTo((bucket.riceAreaSqm as number) / SQM_PER_RAI, 2) : null,
+      satelliteSources: families,
+      satelliteSceneIds: [...bucket.sceneIds],
+    });
+  }
+
+  return {
+    sourceMode: options.sourceMode,
+    sample: false,
+    dataKind: 'estimated',
+    access: 'approved_public',
+    attribution: 'สำนักงานพัฒนาเทคโนโลยีอวกาศและภูมิสารสนเทศ (องค์การมหาชน) — GISTDA',
+    endpoint: GISTDA_LIVE_ENDPOINT,
+    retrievedAt: options.retrievedAt,
+    snapshotRetrievedAt: options.snapshotRetrievedAt,
+    liveFailureCode: options.liveFailureCode ?? null,
+    observationPeriodDays: 7,
+    method: 'sum_polygon_area_by_dopa_province',
+    unitPolicy: FLOOD_UNIT_POLICY,
+    polygonCount: polygons.length,
+    provinceCount: provinces.length,
+    provinces,
+    totals: {
+      floodedAreaRai: roundTo(totalSqm / SQM_PER_RAI, 2),
+      floodedAreaRaiUnit: 'rai',
+      floodedAreaSqKm: roundTo(totalSqm / (SQM_PER_RAI * 625), 6),
+      floodedAreaSqKmUnit: 'km2',
+      riceAreaRai: totalRiceSqm === null ? null : roundTo(totalRiceSqm / SQM_PER_RAI, 2),
+      riceAreaRaiUnit: 'rai',
+    },
+    missingProvinceNote:
+      'เฉพาะจังหวัดที่ GISTDA ตรวจพบ polygon น้ำท่วมในหน้าต่าง 7 วันนี้ '
+      + 'จังหวัดที่ไม่มี polygon ไม่อยู่ในรายการนี้ (absent/null ไม่ใช่ 0) และไม่อาจตีความเป็น "ไม่ท่วม"',
+  };
+}
+
+/** polygon ทั้งหมดของ snapshot เรียงตาม province — สำหรับ default/governance checks */
+export function getSnapshotFloodObservation(retrievedAt?: string): FloodObservationPayload {
+  const snapshot = snapshotFloodPolygons();
+  return buildFloodObservation(snapshot.polygons, {
+    sourceMode: 'snapshot',
+    retrievedAt: retrievedAt ?? snapshot.snapshotRetrievedAt,
+    snapshotRetrievedAt: snapshot.snapshotRetrievedAt,
+    liveFailureCode: null,
+  });
+}
 
 /* ------------------------------------------------------------------ */
 /* Source catalog — ข้อเท็จจริงจาก config/sources.json + resource_licenses.json */
@@ -225,12 +791,16 @@ export function classifyNdvi(value: number): VigourClass {
 export interface SatelliteScene {
   sceneId: string;
   platform: SatellitePlatform;
+  /** 'observed' = imaging stamp จริงจาก feed GISTDA, 'modelled' = scene จำลอง */
+  dataKind: 'observed' | 'modelled';
   sensor: string;
   acquiredAt: string;
-  orbitPass: 'ascending' | 'descending';
-  cloudCoverPercent: number;
+  orbitPass: 'ascending' | 'descending' | null;
+  /** SAR ไม่วัด % cloud ในผลิตภัณฑ์นี้ จึงคง null แทนการเดา (0 ใช้กับ scene จำลองเท่านั้น) */
+  cloudCoverPercent: number | null;
   crs: string;
-  resolutionM: number;
+  /** ความละเอียดพิกเซลต้องอ้างอิงเอกสารผลิตภัณฑ์ของแหล่ง — feed ไม่ได้ให้จึงเป็น null */
+  resolutionM: number | null;
   tileId: string | null;
   qualityFlag: string;
 }
@@ -243,17 +813,28 @@ export interface ProvinceSatelliteRisk {
   latestScene: SatelliteScene;
   overallRisk: SatelliteRiskLevel;
   flood: {
+    /** 'observed' = polygon จาก GISTDA 7 วันล่าสุด, 'modelled' = ยังไม่มีแหล่งจริง */
+    dataKind: 'observed' | 'modelled';
+    /** 'inundation_mapped' มี polygon ในหน้าต่างนี้, 'not_mapped_in_window' = ไม่ถูกตรวจพบ (ไม่ใช่ "ยืนยันว่าไม่ท่วม") */
+    detection: 'inundation_mapped' | 'not_mapped_in_window';
+    featureCount: number;
+    inundatedRiceAreaRai: number | null;
+    locations: readonly string[];
+    sourceUrl: string | null;
+    observedAt: string | null;
     inundatedAreaRai: number;
     inundatedAreaSqKm: number;
     recurrenceClass: RepeatFloodClass;
     repeatFloodEventYears: number[];
     floodFrequencyIndex: number;
+    historyIsModelled: boolean;
     maxInundationDepthCm: number | null;
     riskLevel: SatelliteRiskLevel;
     affectedCrops: string[];
     advisory: string;
   };
   drought: {
+    dataKind: 'observed' | 'modelled';
     vci: number;
     tci: number;
     spi3m: number;
@@ -262,6 +843,7 @@ export interface ProvinceSatelliteRisk {
     advisory: string;
   };
   ndvi: {
+    dataKind: 'observed' | 'modelled';
     ndvi: number;
     evi: number;
     ndmi: number;
@@ -289,6 +871,12 @@ export interface SatelliteSummary {
   totalScenes: number;
   platformsCovered: number;
   provincesCovered: number;
+  /** เฉพาะ polygon ตรวจวัดจริงจาก GISTDA — ห้ามปนกับค่าจำลอง */
+  observedProvinceCount: number;
+  observedInundatedAreaRai: number;
+  observedInundatedAreaSqKm: number;
+  observedInundatedRiceAreaRai: number;
+  feedRetrievedAt: string;
   totalInundatedAreaRai: number;
   totalInundatedAreaSqKm: number;
   repeatFloodProvinceCount: number;
@@ -300,6 +888,11 @@ export interface SatelliteSummary {
   headline: string;
   subheadline: string;
   sample: boolean;
+  /**
+   * ชั้นน้ำท่วมของ summary นี้มาจาก snapshot ที่ bundle ในเว็บเสมอ
+   * (ค่าสดของคำขอหนึ่ง ๆ ดูที่ `floodObservation` ของ /api/v1/satellite)
+   */
+  floodSourceMode: 'live' | 'snapshot';
   reportDate: string;
 }
 
@@ -323,11 +916,6 @@ function seededUnit(seed: string): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
-}
-
-/** 1 ตร.กม. = 625 ไร่ — ตัวแปลงเดียวที่ใช้ทั้งโมดูล ห้ามแปลงอื่นปน */
-function raiToSqKm(rai: number): number {
-  return Math.round((rai / 625) * 100) / 100;
 }
 
 type ProvinceProfile = {
@@ -437,35 +1025,36 @@ function formatAcquiredAt(daysAgo: number, hour: number, minute: number): string
   return `${y}-${m}-${day}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+07:00`;
 }
 
+/**
+ * Scene จาก imaging stamp จริงของ GISTDA — ใส่เฉพาะฟิลด์ที่ feed ให้
+ * orbit/cloud/resolution คง null เพราะไม่ได้อยู่ในผลิตภัณฑ์ 7 วันนี้
+ */
+function buildObservedScenes(detection: GistdaFloodDetection): SatelliteScene[] {
+  const amphoeCodes = [
+    ...new Set(detection.locations.map((loc) => loc.amphoeCode).filter(Boolean)),
+  ].sort();
+  return detection.stamps.map((stamp) => ({
+    sceneId:
+      `GISTDA-${stamp.satellite}-${stamp.acquiredAt.slice(0, 10).replace(/-/g, '')}`
+      + `-${stamp.acquiredAt.slice(11, 16).replace(':', '')}`,
+    platform: 'gistda' as const,
+    dataKind: 'observed' as const,
+    sensor: stamp.sensor,
+    acquiredAt: stamp.acquiredAt,
+    orbitPass: null,
+    cloudCoverPercent: null,
+    crs: 'EPSG:4326',
+    resolutionM: null,
+    tileId: amphoeCodes.length > 0 ? `DOPA-AMPHOE-${amphoeCodes.join('+')}` : null,
+    qualityFlag:
+      `GISTDA flood delineation — ${detection.featureCount} polygon `
+      + `(retrieved ${detection.retrievedAt})`,
+  }));
+}
+
 function buildScenes(profile: ProvinceProfile, floodIdx: number): SatelliteScene[] {
-  if (profile.code === '64') {
-    return [
-      {
-        sceneId: 'GISTDA-S1D-20261021-0600',
-        platform: 'gistda',
-        sensor: 'Sentinel-1D C-SAR (ผ่าน GISTDA Gateway)',
-        acquiredAt: '2026-10-21T06:00:00+07:00',
-        orbitPass: 'descending',
-        cloudCoverPercent: 0,
-        crs: 'EPSG:4326',
-        resolutionM: 10,
-        tileId: 'Sukhothai-KhiriMat-6403',
-        qualityFlag: 'SAR Flood Inundation Verified',
-      },
-      {
-        sceneId: 'GISTDA-RD2-20261020-0613',
-        platform: 'gistda',
-        sensor: 'Radarsat-2 SAR (ผ่าน GISTDA Gateway)',
-        acquiredAt: '2026-10-20T06:13:00+07:00',
-        orbitPass: 'ascending',
-        cloudCoverPercent: 0,
-        crs: 'EPSG:4326',
-        resolutionM: 12.5,
-        tileId: 'Sukhothai-BanPom-640303',
-        qualityFlag: 'SAR Flood Inundation Verified',
-      },
-    ];
-  }
+  const detection = FLOOD_DETECTIONS.get(profile.code);
+  if (detection) return buildObservedScenes(detection);
 
   const seed = `sat-sim:scene:${profile.code}`;
   const sceneCount = 2 + Math.floor(seededUnit(seed + ':count') * 3); // 2-4 scenes
@@ -492,8 +1081,9 @@ function buildScenes(profile: ProvinceProfile, floodIdx: number): SatelliteScene
     const qualityFlag = QUALITY_FLAGS[Math.floor(seededUnit(ns + ':q') * QUALITY_FLAGS.length)];
 
     scenes.push({
-      sceneId: `sim-scene-${profile.code}-${n}`,
+      sceneId: `model-scene-${profile.code}-${n}`,
       platform,
+      dataKind: 'modelled',
       sensor,
       acquiredAt: formatAcquiredAt(daysAgo, hour, minute),
       orbitPass: seededUnit(ns + ':orbit') < 0.5 ? 'ascending' : 'descending',
@@ -505,12 +1095,6 @@ function buildScenes(profile: ProvinceProfile, floodIdx: number): SatelliteScene
     });
   }
   return scenes;
-}
-
-function floodRiskLevelOf(floodIdx: number): SatelliteRiskLevel {
-  if (floodIdx >= 75) return 'critical';
-  if (floodIdx >= 50) return 'warning';
-  return 'normal';
 }
 
 function droughtClassOf(vci: number): DroughtClass {
@@ -527,6 +1111,33 @@ function droughtRiskLevelOf(cls: DroughtClass): SatelliteRiskLevel {
   return 'normal';
 }
 
+/**
+ * เกณฑ์จัดชั้นความเสี่ยงน้ำท่วมจาก polygon จริง — ยังไม่ใช่เกณฑ์ทางการ
+ * (100 ไร่ = threshold ชั่วคราวที่ระบุไว้ใน code เพื่อให้ UI แยก warning/critical ได้)
+ */
+const FLOOD_CRITICAL_RAI = 100;
+
+function observedFloodLevel(detection: GistdaFloodDetection | null): SatelliteRiskLevel {
+  if (!detection) return 'normal';
+  return detection.inundatedAreaRai >= FLOOD_CRITICAL_RAI ? 'critical' : 'warning';
+}
+
+function observedFloodAdvisory(detection: GistdaFloodDetection): string {
+  const places = detection.locations
+    .slice(0, 3)
+    .map((loc) => `${loc.tambonName} (${loc.tambonCode})`)
+    .join(', ');
+  const rice =
+    detection.inundatedRiceAreaRai > 0
+      ? ` · นาข้าวได้รับผลกระทบ ${detection.inundatedRiceAreaRai.toLocaleString('th-TH')} ไร่`
+      : '';
+  return (
+    `GISTDA ตรวจพบพื้นที่น้ำท่วม ${detection.inundatedAreaRai.toLocaleString('th-TH')} ไร่ `
+    + `จาก ${detection.featureCount} polygon ใน ${places}${rice} `
+    + `(ดาวเทียม: ${detection.satelliteSourceCodes.join(', ')})`
+  );
+}
+
 const RISK_RANK: Record<SatelliteRiskLevel, number> = { critical: 2, warning: 1, normal: 0 };
 
 function worstRisk(a: SatelliteRiskLevel, b: SatelliteRiskLevel): SatelliteRiskLevel {
@@ -538,16 +1149,6 @@ function recurrenceClassOf(years: number[]): RepeatFloodClass {
   if (years.length >= 3) return 'repeat_3_4';
   if (years.length >= 1) return 'repeat_1_2';
   return 'none';
-}
-
-function floodAdvisory(level: SatelliteRiskLevel, rai: number, crops: string[]): string {
-  if (level === 'critical') {
-    return `ภาพดาวเทียม (จำลอง) พบน้ำท่วมขังประมาณ ${rai.toLocaleString('th-TH')} ไร่ ให้เร่งเกี่ยวข้าว/พืชที่สุกแก่หนีน้ำ เปิดทางระบายน้ำออกจากแปลง ${crops[0]} และยกเครื่องสูบน้ำกับปัจจัยการผลิตขึ้นที่สูง`;
-  }
-  if (level === 'warning') {
-    return `เฝ้าระวังน้ำเอ่อเข้าแปลง ${crops.join(' และ ')} ตามรอยน้ำที่ปรากฏในภาพจำลอง เตรียมเครื่องสูบน้ำประจำจุดต่ำและเสริมคันดินรอบแปลงก่อนฝนระลอกถัดไป`;
-  }
-  return `ไม่พบสัญญาณน้ำท่วมขังมีนัยสำคัญในภาพจำลอง บำรุงรักษาแปลงตามปกติและติดตามภาพรอบถัดไป`;
 }
 
 function droughtAdvisory(cls: DroughtClass, spi: number, crops: string[]): string {
@@ -581,11 +1182,13 @@ function buildProvinceUniverse(): BuiltProvince[] {
     const u = (key: string) => seededUnit(`${s}:${key}`);
 
     const floodIdx = clamp(Math.round(profile.floodFreq + (u('ffi') * 8 - 4)), 0, 100);
-    // พื้นที่น้ำท่วมเพิ่มแบบไม่เชิงเส้นกับความถี่ (สอดคล้องกับ floodFrequencyIndex)
-    const inundatedAreaRai = Math.round(floodIdx * floodIdx * 3.2 * (0.8 + 0.4 * u('rai')));
-    const inundatedAreaSqKm = raiToSqKm(inundatedAreaRai);
-    const maxInundationDepthCm =
-      u('depth') < 0.25 ? null : Math.round(15 + floodIdx * 1.4 + u('depth2') * 30); // null = ไม่มีค่าประมาณ คงเป็น null
+    // ชั้นน้ำท่วมใช้ polygon จริงจาก GISTDA เท่านั้น จังหวัดที่ไม่ถูกตรวจพบใน
+    // หน้าต่าง 7 วันนี้ได้ค่า 0 พร้อมธง 'not_mapped_in_window'
+    const detection = FLOOD_DETECTIONS.get(profile.code) ?? null;
+    const inundatedAreaRai = detection?.inundatedAreaRai ?? 0;
+    const inundatedAreaSqKm = detection?.inundatedAreaSqKm ?? 0;
+    // feed ไม่ได้ให้ความลึกน้ำ และจังหวัดที่ไม่ถูกตรวจพบก็ไม่มีน้ำท่วมให้ประมาณ
+    const maxInundationDepthCm: number | null = null;
 
     // ความรุนแรงแล้ง = ลักษณะแล้งหักลบด้วยสภาพเปียกปัจจุบัน
     const droughtSeverity = clamp(profile.droughtProne - floodIdx * 0.3, 0, 100);
@@ -600,7 +1203,7 @@ function buildProvinceUniverse(): BuiltProvince[] {
       0.9
     );
     // coherence caps: น้ำท่วมวิกฤติ/แล้งรุนแรง ต้องไม่แสดงความเขียวระดับ dense
-    const floodLevelForNdvi = floodRiskLevelOf(floodIdx);
+    const floodLevelForNdvi = observedFloodLevel(detection);
     if (floodLevelForNdvi === 'critical') ndvi = Math.min(ndvi, 0.42);
     else if (floodLevelForNdvi === 'warning') ndvi = Math.min(ndvi, 0.55);
     if (droughtClass === 'severe' || droughtClass === 'extreme') ndvi = Math.min(ndvi, 0.24);
@@ -611,11 +1214,11 @@ function buildProvinceUniverse(): BuiltProvince[] {
 
     const scenes = buildScenes(profile, floodIdx);
     const avgCloud =
-      scenes.reduce((sum, sc) => sum + sc.cloudCoverPercent, 0) / Math.max(1, scenes.length);
+      scenes.reduce((sum, sc) => sum + (sc.cloudCoverPercent ?? 0), 0) / Math.max(1, scenes.length);
     const pixelReliability: PixelReliability =
       u('nodata') < 0.08 ? 'no_data' : avgCloud >= 70 ? 'cloud' : avgCloud >= 45 ? 'marginal' : 'good';
 
-    const floodLevel = floodRiskLevelOf(floodIdx);
+    const floodLevel = floodLevelForNdvi;
     const droughtLevel = droughtRiskLevelOf(droughtClass);
     const latestScene = [...scenes].sort((a, b) => (a.acquiredAt < b.acquiredAt ? 1 : -1))[0];
 
@@ -629,17 +1232,30 @@ function buildProvinceUniverse(): BuiltProvince[] {
       scenes,
       overallRisk: worstRisk(floodLevel, droughtLevel),
       flood: {
-        inundatedAreaRai: profile.code === '64' ? 374.81 : inundatedAreaRai,
-        inundatedAreaSqKm: profile.code === '64' ? 0.6 : inundatedAreaSqKm,
+        dataKind: 'observed',
+        detection: detection ? 'inundation_mapped' : 'not_mapped_in_window',
+        featureCount: detection?.featureCount ?? 0,
+        inundatedRiceAreaRai: detection?.inundatedRiceAreaRai ?? null,
+        locations: detection
+          ? detection.locations.map((loc) => `${loc.amphoeCode}/${loc.tambonCode}`)
+          : [],
+        sourceUrl: detection ? GISTDA_FLOOD_FEED.source : null,
+        observedAt: detection?.latestAcquiredAt ?? null,
+        inundatedAreaRai,
+        inundatedAreaSqKm,
         recurrenceClass: recurrenceClassOf(profile.repeatFloodEventYears),
         repeatFloodEventYears: [...profile.repeatFloodEventYears],
         floodFrequencyIndex: floodIdx,
+        historyIsModelled: true,
         maxInundationDepthCm,
         riskLevel: floodLevel,
-        affectedCrops: profile.code === '64' ? ['ข้าวนาปี (พื้นที่น้ำท่วม 200.31 ไร่)', 'อ้อยโรงงาน', 'กล้วยตาก'] : [...profile.crops],
-        advisory: profile.code === '64' ? 'GISTDA ตรวจพบน้ำท่วมขังแปลงข้าว 200.31 ไร่ (พื้นที่น้ำท่วมรวม 374.81 ไร่) ใน อ.คีรีมาศ ต.บ้านป้อม จากภาพถ่ายดาวเทียม Sentinel-1D/Radarsat-2 (SAR)' : floodAdvisory(floodLevel, inundatedAreaRai, profile.crops),
+        affectedCrops: [...profile.crops],
+        advisory: detection
+          ? observedFloodAdvisory(detection)
+          : 'ไม่พบ polygon น้ำท่วมในชั้น GISTDA 7 วันล่าสุด (ไม่ใช่การยืนยันว่าไม่เกิดน้ำท่วม)',
       },
       drought: {
+        dataKind: 'modelled',
         vci,
         tci,
         spi3m,
@@ -648,6 +1264,7 @@ function buildProvinceUniverse(): BuiltProvince[] {
         advisory: droughtAdvisory(droughtClass, spi3m, profile.crops),
       },
       ndvi: {
+        dataKind: 'modelled',
         ndvi,
         evi,
         ndmi,
@@ -783,9 +1400,11 @@ export function getBasinFloodStats(options?: { region?: string }): BasinFloodSta
 }
 
 export function getSatelliteSummary(): SatelliteSummary {
-  const totalRai = PROVINCE_UNIVERSE.reduce((sum, p) => sum + p.flood.inundatedAreaRai, 0);
-  const totalSqKm =
-    Math.round(PROVINCE_UNIVERSE.reduce((sum, p) => sum + p.flood.inundatedAreaSqKm, 0) * 100) / 100;
+  const detections = [...FLOOD_DETECTIONS.values()];
+  // ยอดรวมของชั้นน้ำท่วม = polygon จริงเท่านั้น (ค่าจำลองถูกตัดออก เพื่อไม่ปนของจริง)
+  const totalRai = round2(detections.reduce((sum, d) => sum + d.inundatedAreaRai, 0));
+  const totalSqKm = round2(detections.reduce((sum, d) => sum + d.inundatedAreaSqKm, 0));
+  const totalRiceRai = round2(detections.reduce((sum, d) => sum + d.inundatedRiceAreaRai, 0));
   const repeatFloodProvinceCount = PROVINCE_UNIVERSE.filter(
     (p) => p.flood.recurrenceClass !== 'none'
   ).length;
@@ -795,13 +1414,19 @@ export function getSatelliteSummary(): SatelliteSummary {
   const ndviValues = PROVINCE_UNIVERSE.map((p) => p.ndvi.ndvi);
   const avgNdvi =
     Math.round((ndviValues.reduce((sum, v) => sum + v, 0) / ndviValues.length) * 1000) / 1000;
-  const latestAcquiredAt = ALL_SCENES.map((sc) => sc.acquiredAt).sort().reverse()[0];
-  const criticalFloodCount = PROVINCE_UNIVERSE.filter((p) => p.flood.riskLevel === 'critical').length;
+  const observedAcquired = detections.map((d) => d.latestAcquiredAt).sort().reverse();
+  const modelledAcquired = ALL_SCENES.map((sc) => sc.acquiredAt).sort().reverse();
+  const latestAcquiredAt = observedAcquired[0] ?? modelledAcquired[0] ?? GISTDA_FLOOD_FEED.retrievedAt;
 
   return {
     totalScenes: ALL_SCENES.length,
     platformsCovered: new Set(ALL_SCENES.map((sc) => sc.platform)).size,
     provincesCovered: PROVINCE_UNIVERSE.length,
+    observedProvinceCount: detections.length,
+    observedInundatedAreaRai: totalRai,
+    observedInundatedAreaSqKm: totalSqKm,
+    observedInundatedRiceAreaRai: totalRiceRai,
+    feedRetrievedAt: GISTDA_FLOOD_FEED.retrievedAt,
     totalInundatedAreaRai: totalRai,
     totalInundatedAreaSqKm: totalSqKm,
     repeatFloodProvinceCount,
@@ -810,10 +1435,14 @@ export function getSatelliteSummary(): SatelliteSummary {
     minNdvi: Math.min(...ndviValues),
     maxNdvi: Math.max(...ndviValues),
     latestAcquiredAt,
-    headline: `ดาวเทียม GISTDA & Sentinel-1: สัญญาณน้ำท่วมพื้นที่เกษตรและนาข้าว ${criticalFloodCount} จังหวัด พื้นที่น้ำขังรวมประมาณ ${totalRai.toLocaleString('th-TH')} ไร่ (≈ ${totalSqKm.toLocaleString('th-TH')} ตร.กม.)`,
+    headline:
+      `GISTDA ตรวจพบน้ำท่วม ${detections.length} จังหวัด รวม ${totalRai.toLocaleString('th-TH')} ไร่ `
+      + `(นาข้าว ${totalRiceRai.toLocaleString('th-TH')} ไร่) ในหน้าต่าง 7 วันล่าสุด`,
     subheadline:
-      'เชื่อมต่อข้อมูลภาพถ่ายดาวเทียมตรวจวัดจริง (SAR/Optical) ผ่าน GISTDA Satellite API Gateway (api-gateway.gistda.or.th) เพื่อตรวจจับและเตือนภัยพื้นที่การเกษตร',
+      `polygon น้ำท่วมจริงจาก api-gateway.gistda.or.th ( retrieval ${GISTDA_FLOOD_FEED.retrievedAt}) `
+      + '· ชั้นภัยแล้งและ NDVI บนหน้านี้ยังเป็นแบบจำลอง (dataKind="modelled")',
     sample: false,
-    reportDate: '2026-10-26',
+    floodSourceMode: 'snapshot',
+    reportDate: GISTDA_FLOOD_FEED.retrievedAt.slice(0, 10),
   };
 }

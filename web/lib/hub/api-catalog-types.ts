@@ -11,6 +11,7 @@ export type ApiGroupId =
   | 'datasets'
   | 'weather'
   | 'water'
+  | 'nwp'
   | 'crops'
   | 'soil'
   | 'areas'

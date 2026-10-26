@@ -22,7 +22,7 @@
 .titleRow h1 {
   font-size: 26px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   margin: 0;
   letter-spacing: -0.5px;
 }
@@ -56,7 +56,7 @@
 }
 
 .subtitle {
-  color: #556b60;
+  color: var(--muted);
   font-size: 14px;
   margin: 0;
   line-height: 1.6;
@@ -74,7 +74,7 @@
   padding: 8px 18px;
   border-radius: 9999px;
   border: 1px solid #c5d3c2;
-  background: #ffffff;
+  background: var(--white);
   color: #385043;
   font-size: 13px;
   font-weight: 600;
@@ -89,13 +89,13 @@
 }
 
 .tabBtnActive {
-  background: #213d32;
-  color: #ffffff;
-  border-color: #213d32;
+  background: var(--forest);
+  color: var(--white);
+  border-color: var(--forest);
 }
 
 .tabBtnActive:hover {
-  background: #1a3328;
+  background: var(--ink);
 }
 
 /* Ticker Grid */
@@ -106,8 +106,8 @@
 }
 
 .tickerCard {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 18px 20px;
   display: flex;
@@ -136,7 +136,7 @@
 .commodityName {
   font-size: 15px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   line-height: 1.4;
 }
 
@@ -159,14 +159,14 @@
 .priceValue {
   font-size: 28px;
   font-weight: 800;
-  color: #1a3328;
+  color: var(--ink);
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
 }
 
 .priceUnit {
   font-size: 13px;
-  color: #7b8e84;
+  color: var(--muted);
   font-weight: 500;
   margin-left: 4px;
 }
@@ -198,7 +198,7 @@
 
 .tickerMeta {
   font-size: 11px;
-  color: #7b8e84;
+  color: var(--muted);
   border-top: 1px solid #f0f4ef;
   padding-top: 10px;
   display: flex;
@@ -207,8 +207,8 @@
 
 /* Detail & Chart Panel */
 .detailCard {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -228,13 +228,13 @@
 .detailTitle {
   font-size: 18px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .marketTag {
   font-size: 12px;
-  color: #556b60;
-  background: #f4f7f2;
+  color: var(--muted);
+  background: var(--surface-muted);
   padding: 4px 10px;
   border-radius: 6px;
 }
@@ -244,7 +244,7 @@
   width: 100%;
   height: 220px;
   background: #fafbfa;
-  border: 1px solid #eef2ed;
+  border: 1px solid var(--surface-muted);
   border-radius: 8px;
   padding: 16px 20px;
   position: relative;
@@ -276,7 +276,7 @@
 }
 
 .chartDot {
-  fill: #ffffff;
+  fill: var(--white);
   stroke: #2e7d32;
   stroke-width: 2.5;
   cursor: pointer;
@@ -290,7 +290,7 @@
 
 .chartLabel {
   font-size: 11px;
-  fill: #7b8e84;
+  fill: var(--muted);
   text-anchor: middle;
 }
 
@@ -310,14 +310,14 @@
   color: #2e4439;
   font-weight: 600;
   padding: 10px 14px;
-  border-bottom: 2px solid #dce5da;
+  border-bottom: 2px solid var(--line);
   text-align: left;
 }
 
 .compareTable td {
   padding: 12px 14px;
-  border-bottom: 1px solid #eef2ed;
-  color: #1f3329;
+  border-bottom: 1px solid var(--surface-muted);
+  color: var(--ink);
 }
 
 .compareTable tr:hover td {

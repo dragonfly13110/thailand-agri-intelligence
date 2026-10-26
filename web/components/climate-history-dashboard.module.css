@@ -150,7 +150,7 @@
 .rainBarAbove { fill: #3d6f92; }
 .rainBarBelow { fill: #c8a44e; }
 .missingBar { fill: #b9c4b4; }
-.extremeBar { stroke: #213d32; stroke-width: 2; }
+.extremeBar { stroke: var(--forest); stroke-width: 2; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }

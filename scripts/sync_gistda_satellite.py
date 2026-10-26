@@ -50,6 +50,11 @@ def main():
     payload["metadata"]["total_flood_area_rai"] = total_flood_rai
     payload["metadata"]["total_flood_area_sqkm"] = total_flood_sqkm
     payload["metadata"]["total_rice_area_rai"] = total_rice_rai
+    # The per-record stamp comes from tadih.gistda's pre-unlock default; the
+    # registry row gistda_flood_7days_daily is approved_public, so a record that
+    # still says "pending" would contradict the bundle's own metadata.
+    for record in records:
+        record["license_status"] = "approved_public"
 
     # Write to web data directory for bundling
     web_target = ROOT / "web/data/gistda_flood_7days.json"

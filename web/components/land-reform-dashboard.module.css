@@ -9,7 +9,7 @@
   gap: 24px;
   width: 100%;
   min-width: 0;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 /* --- 1. Governance banner --- */
@@ -103,7 +103,7 @@
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: -0.6px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   overflow-wrap: anywhere;
 }
 
@@ -111,7 +111,7 @@
   margin-top: 8px;
   font-size: 14px;
   line-height: 1.8;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   max-width: 82ch;
 }
 
@@ -144,8 +144,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 16px 18px;
 }
@@ -161,12 +161,12 @@
 .filtersTitle {
   font-size: 16px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .resultsMeta {
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -186,7 +186,7 @@
 .filterField label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .select {
@@ -195,8 +195,8 @@
   height: 42px;
   border: 1px solid #c3cfbc;
   border-radius: 6px;
-  background: var(--white, #ffffff);
-  color: var(--ink, #21352b);
+  background: var(--white, var(--white));
+  color: var(--ink, var(--ink));
   padding: 0 10px;
   font-size: 14px;
 }
@@ -208,7 +208,7 @@
 .helperText {
   font-size: 12px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .filterActions {
@@ -221,13 +221,13 @@
 
 .resetButton {
   background: transparent;
-  border: 1px solid #bdc9b7;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   padding: 8px 14px;
   min-height: 38px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   transition: background 0.18s ease, border-color 0.18s ease;
 }
 
@@ -270,8 +270,8 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-top: 3px solid #5b7d4a;
   border-radius: var(--radius, 8px);
   padding: 16px 18px;
@@ -310,7 +310,7 @@
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.6;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .kpiIcon {
@@ -329,7 +329,7 @@
   font-size: 30px;
   font-weight: 700;
   line-height: 1.15;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -337,10 +337,10 @@
 .kpiHint {
   margin-top: 2px;
   padding-top: 8px;
-  border-top: 1px dashed var(--line, #dce3d9);
+  border-top: 1px dashed var(--line, var(--line));
   font-size: 12px;
   line-height: 1.65;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 /* --- 5. Charts --- */
@@ -355,8 +355,8 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 18px;
 }
@@ -372,12 +372,12 @@
 .cardTitle {
   font-size: 16px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .cardNote {
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -397,13 +397,13 @@
 .donutValue {
   font-size: 19px;
   font-weight: 700;
-  fill: var(--forest, #213d32);
+  fill: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
 .donutUnit {
   font-size: 11px;
-  fill: var(--muted, #53645a);
+  fill: var(--muted, var(--muted));
 }
 
 .legend {
@@ -437,21 +437,21 @@
 .legendLabel {
   min-width: 0;
   font-weight: 600;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   overflow-wrap: anywhere;
 }
 
 .legendValue {
   text-align: right;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
 .legendArea {
   grid-column: 2 / 4;
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -498,7 +498,7 @@
   align-items: start;
   min-width: 0;
   padding: 10px 12px;
-  background: var(--paper, #f6f7f2);
+  background: var(--paper, var(--paper));
   border-radius: 6px;
 }
 
@@ -526,27 +526,27 @@
 
 .tenureLegendLabel {
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .tenureLegendValue {
   font-size: 18px;
   font-weight: 700;
   line-height: 1.4;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
 .tenureRai {
   font-size: 11.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
 }
 
 .cardFootnote {
   font-size: 11.5px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .chartEmpty {
@@ -558,8 +558,8 @@
   padding: 20px;
   font-size: 13px;
   line-height: 1.75;
-  color: var(--muted, #53645a);
-  background: var(--paper, #f6f7f2);
+  color: var(--muted, var(--muted));
+  background: var(--paper, var(--paper));
   border-radius: 6px;
 }
 
@@ -582,14 +582,14 @@
 .sectionTitle {
   font-size: 17px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .sectionNote {
   margin-top: 4px;
   font-size: 12px;
   line-height: 1.7;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .scrollHint {
@@ -599,8 +599,8 @@
 }
 
 .tableCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   overflow: hidden;
 }
@@ -613,7 +613,7 @@
 }
 
 .tableWrap:focus-visible {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: -3px;
 }
 
@@ -634,13 +634,13 @@
 
 .table thead th {
   background: #eff2e9;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-size: 11.5px;
   font-weight: 700;
   line-height: 1.6;
   text-align: left;
   white-space: nowrap;
-  border-bottom: 1px solid var(--line, #dce3d9);
+  border-bottom: 1px solid var(--line, var(--line));
 }
 
 .table tbody tr:last-child th,
@@ -649,7 +649,7 @@
 }
 
 .table tbody tr:hover {
-  background: #fbfcf8;
+  background: var(--surface-muted);
 }
 
 .provinceCell {
@@ -662,7 +662,7 @@
   font-size: 14px;
   font-weight: 700;
   line-height: 1.6;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .provinceCode {
@@ -670,7 +670,7 @@
   font-size: 11px;
   font-weight: 500;
   line-height: 1.6;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -722,8 +722,8 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-left: 4px solid #a9873f;
   border-radius: var(--radius, 8px);
   padding: 16px 18px;
@@ -751,14 +751,14 @@
   font-size: 13px;
   font-weight: 600;
   line-height: 1.6;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   overflow-wrap: anywhere;
 }
 
 .zeroAreaReason {
   font-size: 12px;
   line-height: 1.65;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: anywhere;
 }
 
@@ -768,10 +768,10 @@
   flex-direction: column;
   gap: 8px;
   padding-top: 16px;
-  border-top: 1px solid var(--line, #dce3d9);
+  border-top: 1px solid var(--line, var(--line));
   font-size: 12px;
   line-height: 1.75;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .footerMeta {

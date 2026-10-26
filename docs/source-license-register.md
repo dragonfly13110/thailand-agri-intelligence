@@ -1,6 +1,10 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
-หลังรอบ P2/acquisition audit และตรวจ CHIRPS เพิ่มวันที่ 25 ต.ค. 2569 ทะเบียนมี **82 รายการ**: CHIRPS v3 exact file หนึ่งรายการเป็น `approved_public`; อีก 81 รายการยัง `pending`. ตรวจนับซ้ำเมื่อ 25 ต.ค. 2569 ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` แล้วได้ `82 Counter({'pending': 81, 'approved_public': 1})`. ตรวจ live catalog ครบ pagination และ raw hashes แล้ว ดู [ขอบเขต/หลักฐาน](doae-acquisition-audit.md) ข้อมูลชื่อ/รหัส/ติดต่อ/free text ไม่ออก public artifacts การรับข้อมูลครบไม่ได้อนุมัติใช้ซ้ำหรือรับรองโมเดล
+หลังรอบ Real Data R1-A (26 ต.ค. 2569) ทะเบียนมี **87 รายการ**: `approved_public` **8 รายการ** และ `pending` **79 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — ทุกรายการที่เปิดมี `evidence` (URL + วันที่ + สิ่งที่พบ), `attribution_text` และ `project_publication_approved: true` ครบ ส่วนยอดที่เหลือยัง fail-closed ตามหลักฐานราย resource
+
+รายการที่ `approved_public` ณ 26 ต.ค. 2569: `chirps_v3_daily_rnl_2026_09_30`, `open_meteo_thailand_era5_archive` (attribution `Weather data by Open-Meteo.com (CC BY 4.0)`), `gistda_flood_7days_daily`, `rid_medium_reservoirs`, `tmd_weather_today_by_agro_daily`, `tmd_weather_today_station_daily`, `tmd_weather_today_by_synop_daily`, `tmd_monthly_rainfall_monthly` — RID/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ (AGENTS.md ข้อ 3; บล็อก `owner_authorisation` ในไฟล์ทะเบียน) พร้อมบันทึกข้อจำกัดของข้อความสัญญาอนุญาตต้นทางไว้ใน `rights_facts` ทุกครั้ง ส่วน `open_meteo_thailand_forecast` คง `pending` เพราะ forecast ห้ามเก็บรวมเป็น observation
+
+ประวัติรอบก่อนหน้า: 25 ต.ค. 2569 ทะเบียนมี 82 รายการ โดยเปิดเฉพาะ CHIRPS รายการเดียว
 
 ตรวจวันที่ 22–25 ตุลาคม 2569 จาก metadata และเงื่อนไขของผู้ให้บริการโดยตรง ผลแบบอ่านด้วยโปรแกรมอยู่ใน [resource_licenses.json](../config/resource_licenses.json) พร้อม URL หลักฐาน วันที่ตรวจ และ SHA-256 ของคำตอบที่ตรวจผ่านคำขอจริงเมื่อมี
 

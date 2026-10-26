@@ -1,0 +1,1783 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="csrf-token" content="WXOfKHzPIgAIix8PBzgPaxZmXRhEAu7Kt3VilxZD" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+
+    <link rel="icon" type="image/x-icon" href="https://tradereport.moc.go.th/images/logo.png">
+    <title>Thailand's Trade Statistic</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/frontend/css/bootstrap.css">
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/frontend/css/style.css">
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/js/sweetalert2/dist/sweetalert2.css">
+    <script src="https://tradereport.moc.go.th/js/sweetalert2/dist/sweetalert2.js"></script>
+    <script src="https://tradereport.moc.go.th/frontend/js/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/js/jquery.filer-1.3.0/css/jqueryfront.filer.css">
+    <link rel="stylesheet"
+        href="https://tradereport.moc.go.th/js/jquery.filer-1.3.0/css/themes/jquery.filer-dragdropbox-theme.css">
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/AdminTemplate/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/frontend/css/fontawesome-free/css/all.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css"
+        integrity="sha512-SzlrxWUlpfuzQ+pcUCosxcglQRNAq/DZjVsC0lE40xsADsfeQoEypE+enwcOiGjk/bSuGGKHEyjSoQ1zVisanQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-bs4/css/dataTables.bootstrap4.css">
+    <link rel="stylesheet"
+        href="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet"
+        href="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://tradereport.moc.go.th/plugins/bootstrap4-dialog/css/bootstrap-dialog.min.css">
+
+    <style>
+        /* top menu */
+        .top-menu {
+            width: 100%;
+            height: 50px;
+            background: #132E50;
+            text-align: right;
+            padding: 0px 15px;
+        }
+
+        /* navbar */
+        .navbar {
+            padding: 0;
+            padding-left: 120px;
+            background: #eee;
+        }
+
+        /* navbar brand */
+        .navbar>.navbar-brand {
+            padding: 0;
+            margin: 0;
+            position: absolute;
+            top: -50px;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .navbar>.navbar-brand img {
+            width: 140px;
+            height: 150px;
+            box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+            /*padding-top: 7px;*/
+            object-fit: cover;
+        }
+
+        /* navbar toggler */
+        .navbar>.navbar-toggler {
+            position: absolute;
+            right: 15px;
+            top: -42px;
+            padding: 0;
+        }
+
+        .navbar>.navbar-toggler em {
+            font-size: 16px;
+            color: #fff;
+            border: solid 1px #fff;
+            padding: 7px 10px;
+            border-radius: 3px;
+        }
+
+        /* main menu */
+        /* .main-menu { width: 100%; min-height: 50px; background: #eeeeee; display: block; text-align: center; padding-right: 120px; } */
+        .main-menu {
+            width: 100%;
+            /* min-height: 50px; */
+            background: #eeeeee;
+            display: flex;
+            text-align: left;
+            justify-content: space-evenly;
+            padding-left: 50px;
+            flex-wrap: wrap;
+        }
+
+        .main-menu .nav-item {
+            display: inline-block;
+        }
+
+        .main-menu .nav-item .nav-link {
+            min-width: max-content;
+            padding: 10px 15px;
+            font-family: 'Kanit';
+            font-size: 16px;
+            font-weight: bold;
+            color: #415AA7 !important;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-menu.show {
+            border: 0;
+            padding: 0;
+            min-width: 220px;
+            box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-menu .dropdown-header {
+            font-family: 'Kanit';
+            font-size: 15px;
+            padding: 10px 15px;
+            font-weight: bold;
+            background: rgb(122, 51, 131);
+            background: linear-gradient(90deg, rgba(122, 51, 131, 1) 0%, rgba(122, 51, 131, 1) 44%, rgba(20, 64, 148, 1) 100%);
+            color: #fff;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-menu .dropdown-item {
+            font-family: 'Kanit';
+            font-size: 15px;
+            padding: 10px 15px;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-toggle::after {
+            position: relative;
+            top: 3px;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-hs {
+            display: flex;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-hs>div {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .main-menu .nav-item.dropdown .dropdown-hs>div:nth-child(1) {
+            border-right: solid 1px #ddd;
+        }
+
+        .main-menu .nav-item.brand-icon a {
+            padding: 10px 15px;
+            display: inline-block;
+            color: #415AA7 !important;
+        }
+
+        /* responsive */
+        @media (max-width: 992px) {
+            .navbar {
+                padding-left: 0px;
+            }
+
+            .navbar>.navbar-brand img {
+                width: 70px;
+                height: 80px;
+            }
+
+            .navbar>.navbar-collapse.show {
+                padding-top: 20px;
+            }
+
+            .main-menu {
+                display: flex;
+                padding-left: 0px;
+            }
+
+            .main-menu .nav-item .nav-link {
+                font-weight: bold;
+                border-bottom: solid 1px #ddd;
+            }
+
+            .main-menu .nav-item.dropdown .dropdown-menu.show {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .main-menu .nav-item.dropdown .dropdown-menu .dropdown-item {
+                font-size: 14px;
+                padding: 8px 15px;
+                white-space: normal;
+            }
+
+            .main-menu .nav-item .nav-link {
+                font-size: 15px;
+                padding: 8px 15px;
+            }
+
+            .main-menu .nav-item.dropdown .dropdown-menu .dropdown-header {
+                padding: 10px 15px;
+                font-size: 13px;
+            }
+
+            .main-menu .nav-item.dropdown .dropdown-hs>div {
+                min-width: 50%;
+            }
+        }
+
+        .top-menu .top-menu-items {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+        }
+
+        .top-menu .top-menu-items .top-menu-item {
+            padding: 0px 5px;
+            line-height: 32px;
+            padding-left: 10px;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.brand-icon a {
+            width: 24px;
+            height: 24px;
+            color: #fff;
+            line-height: 50px;
+            padding-right: 3px;
+            padding-left: 3px;
+            font-size: 19px;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.font-size {
+            font-size: 16px;
+            color: #fff;
+            padding-top: 10px;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.font-size a {
+            color: #fff;
+            cursor: pointer;
+        }
+
+        top-menu .top-menu-items .top-menu-item.font-size a:hover {
+            text-decoration: none;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.font-size .font-small {
+            font-size: 14px !impotant;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.font-size .font-normal {
+            font-size: 16px !impotant;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.font-size .font-large {
+            font-size: 18px !impotant;
+        }
+
+
+        .top-menu .top-menu-items .top-menu-item.moc-site a {
+            line-height: 50px;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.moc-site img {
+            height: 24px;
+            background-color: #fff;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.switch-lang {
+            color: #fff;
+            line-height: 50px;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.profile-menu-item {}
+
+        .top-menu .top-menu-items .top-menu-item.profile-menu-item .profile-image-lnk {
+            padding-top: 7px;
+            padding-bottom: 7px;
+            display: block;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.profile-menu-item .profile-image-circle {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .top-menu .top-menu-items .top-menu-item.profile-menu-item .dropdown-menu {
+            margin-top: 0px;
+            /* ยกเมนูให้อยู่เหนือโลโก้มุมซ้ายบน (โลโก้ z-index:1000) ไม่ให้ถูกโลโก้ทับ */
+            z-index: 1100;
+        }
+    </style>
+
+    <style>
+        .tabmocmenu {
+            position: absolute;
+            top: 0;
+            left: 0%;
+            z-index: 1001;
+            background: rgb(122, 51, 131);
+            background: linear-gradient(90deg, rgba(122, 51, 131, 1) 0%, rgba(122, 51, 131, 1) 44%, rgba(20, 64, 148, 1) 100%);
+            width: 100%;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Kanit';
+        }
+
+        .tabmocmenu .menu-level-2 {
+            padding-left: 10px;
+        }
+
+        .tabmocmenu .menu-level-3 {
+            padding-left: 20px;
+        }
+
+        .tabmocmenu .menu-level-4 {
+            padding-left: 30px;
+        }
+
+        .tabmocmenu .menu-level-5 {
+            padding-left: 40px;
+        }
+
+        .tabmocmenu .menu-level-6 {
+            padding-left: 50px;
+        }
+
+        .tabmocmenu .menu-level-7 {
+            padding-left: 60px;
+        }
+
+        .tabmocmenu .menu-level-8 {
+            padding-left: 70px;
+        }
+
+        .tabmocmenu .menu-level-9 {
+            padding-left: 80px;
+        }
+
+        .tabmocmenu .menu-level-10 {
+            padding-left: 90px;
+        }
+
+        .tabmocmenu .menu-level img {
+            width: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        .tabmocmenu .tabcontent a {
+            color: #fff;
+            font-size: 22px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        .tabmocmenu .tabcontent li:hover {
+            background: #CC3399;
+            color: #000;
+        }
+
+        /* Style the tab */
+        .tabmocmenu .tab {
+            float: left;
+            border: none;
+            background-color: #ffffff;
+            width: 30%;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .tabmocmenu .tab::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .tabmocmenu .tab::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .tabmocmenu .tab::-webkit-scrollbar-thumb {
+            background: #888;
+        }
+
+        .tabmocmenu .tab::-webkit-scrollbar-thumb:hover {
+            background: #555;
+            cursor: pointer;
+        }
+
+        .tabmocmenu .tab h2 {
+            padding-left: 5%;
+            color: #0A214A;
+            font-size: 30px;
+            font-family: 'Kanit';
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        /* Style the buttons inside the tab */
+        .tabmocmenu .tab button {
+            display: block;
+            background-color: inherit;
+            color: black;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            outline: none;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Kanit';
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .tabmocmenu .tab button em {
+            margin-right: 10px;
+        }
+
+        .tabmocmenu li em.bullet {
+            font-size: 9px;
+            padding-right: 10px;
+        }
+
+        /* Change background color of buttons on hover */
+        .tabmocmenu .tab button:hover {
+            background-color: #132E50;
+            color: #fff;
+        }
+
+        /* Create an active/current "tab button" class */
+        .tabmocmenu .tab button.active {
+            background-color: #132E50;
+            color: #fff;
+        }
+
+        /* Style the tab content */
+        .tabmocmenu .tabcontent h3 {
+            font-family: 'Kanit';
+            border-bottom: 2px solid #ffffff;
+            padding-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .tabmocmenu .tabcontent h3 em {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .tabmocmenu .tablinks img,
+        .tabmocmenu .menu-title img {
+            width: 50px;
+            margin-right: 10px;
+        }
+
+        .tabmocmenu .tabcontent {
+            float: left;
+            padding: 0px 12px;
+            border: none;
+            width: 70%;
+            border-left: none;
+            height: auto;
+            color: #fff;
+            font-family: 'Kanit';
+            font-size: 16px;
+        }
+
+        .tabmocmenu .tabcontent ul {
+            padding-right: 10px;
+            padding-bottom: 10px;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tabmocmenu .tabcontent li {
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        .tabmocmenu li.menu-title {
+            color: #000;
+        }
+
+        .tabmocmenu::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .tabmocmenu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .tabmocmenu::-webkit-scrollbar-thumb {
+            background: #888;
+        }
+
+        .tabmocmenu::-webkit-scrollbar-thumb:hover {
+            background: #555;
+            cursor: pointer;
+        }
+
+        .tabmocmenu #closemenu {
+            background: #017DC5;
+            padding: 11px 20px 0px 20px;
+            opacity: 1;
+            text-align: center;
+            font-family: 'Kanit';
+            text-shadow: none !important;
+            font-weight: normal;
+            color: #fff;
+            line-height: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #menumocmain .fa {
+            background: #017DC5;
+            padding: 17px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        #menumocmain .fa:hover {
+            background: #fff;
+            color: #017DC5;
+            transform-style: preserve-3d;
+            transition: background 350ms ease-in-out, color 350ms ease-in-out;
+        }
+
+        @media (max-width: 991px) {
+            .tabmocmenu {
+                display: none !important;
+            }
+
+            .top-menu .top-menu-items {
+                margin-right: 45px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .main-menu .nav-item.dropdown .dropdown-menu {
+                display: none !important;
+            }
+        }
+
+        @media screen and (max-width: 767px) {
+            body {
+                overflow-x: hidden !important;
+            }
+
+            /* footer action buttons - side by side on mobile */
+            .footer .footer-action-suggest,
+            .footer .footer-action-newsletter {
+                position: relative !important;
+                right: auto !important;
+                top: auto !important;
+                display: inline-block !important;
+                width: 50% !important;
+                text-align: center !important;
+                float: left !important;
+            }
+            .footer .footer-action-suggest a,
+            .footer .footer-action-newsletter a {
+                font-size: 14px !important;
+                padding: 12px 10px !important;
+                display: block !important;
+            }
+
+            .div-lnk-suggest {
+                right: 70px !important;
+            }
+            .div-lnk-suggest a {
+                font-size: 14px !important;
+                padding: 10px 15px !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            #lhc_container_v2 {
+                display: none;
+            }
+        }
+
+        script[data-app]~div:not(.tabmocmenu, .div-lnk-suggest, .v-overlay-container) {
+            display: none;
+        }
+
+        .div-lnk-suggest {
+            position: fixed;
+            bottom: 0;
+            right: 125px;
+        }
+
+        .div-lnk-suggest a {
+            background-image: linear-gradient(to right, #A42D7E, #124094);
+            padding: 15px 25px;
+            color: #fff;
+            display: block;
+            font-family: Kanit;
+            font-size: 18px;
+        }
+
+        .div-lnk-suggest a:hover {
+            text-decoration: none;
+        }
+    </style>
+
+            <style>
+            .cookie-policy-box {
+                width: 100%;
+                position: fixed;
+                bottom: 30px;
+                text-align: center;
+                z-index: 99;
+            }
+
+            .cookie-policy-inner {
+                display: inline-block;
+                padding: 20px 60px;
+                margin: 0 auto;
+                background: #fff;
+                border: solid 1px #00104C;
+                box-shadow: 2px 2px 2px #00104C;
+                font-size: 16px;
+                border-radius: 5px;
+                line-height: 2.5;
+            }
+
+            .cookie-policy {
+                color: #2196f3;
+            }
+
+            .cookie-accept {
+                background: #00104C;
+                padding: 7px 15px;
+                color: #fff;
+                border-radius: 5px;
+            }
+        </style>
+    
+    
+</head>
+
+<body class="body-fontsize-normal">
+        <header>
+        <div class="top-menu">
+            <div class="">
+                <div class="top-menu-items">
+                    <div class="top-menu-item font-size" id="fontsizezone">
+                        <a class="font-small" data-fontsize="small">A-</a>
+                        <a class="font-normal" data-fontsize="normal">A</a>
+                        <a class="font-large" data-fontsize="large">A+</a>
+                    </div>
+                    <div class="top-menu-item moc-site">
+                        <a href="https://www.moc.go.th/" target="_blank">
+                            <img src="https://tradereport.moc.go.th/images/logo/moc_104.png" alt="MOC" /></a>
+                    </div>
+                    <div class="top-menu-item brand-icon d-none d-lg-block">
+                        <a href="https://twitter.com/i/flow/login?redirect_after_login=%2FThailandMOC" target="_blank">
+                            <em class="fa-brands fa-twitter"></em>
+                        </a>
+                    </div>
+                    <div class="top-menu-item brand-icon d-none d-lg-block">
+                        <a href="https://www.instagram.com/thailandmoc/" target="_blank">
+                            <em class="fa-brands fa-instagram"></em>
+                        </a>
+                    </div>
+                    <div class="top-menu-item brand-icon d-none d-lg-block">
+                        <a href="https://www.youtube.com/channel/UCMJTbd89VSMouR9P3mko8Cw" target="_blank">
+                            <em class="fa-brands fa-youtube"></em>
+                        </a>
+                    </div>
+                    <div class="top-menu-item brand-icon d-none d-lg-block">
+                        <a href="https://www.facebook.com/MOCThailand/" target="_blank">
+                            <em class="fa-brands fa-facebook"></em>
+                        </a>
+                    </div>
+                                            <div class="top-menu-item switch-lang">
+                            <span>TH</span> | <a href='/en/stat/dashboardproduct' >EN</a>
+                        </div>
+                                                        </div>
+            </div>
+        </div>
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <a class="navbar-brand" href="/th" style="">
+                <img src="https://tradereport.moc.go.th/images/logo.png" style="" alt="Thailand's Trade Statistic">
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                
+                <em class="fa fa-bars"></em>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav main-menu">
+                    <li class="nav-item">
+                        <a class="nav-link"
+                            href="/th">หน้าหลัก</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle menu-tab" data-menu="_2" href="javascript:void(0)"
+                            id="navbarDropdown1" role="button" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            สถิติการค้าระหว่างประเทศของไทย
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown1">
+                            <div class="dropdown-header">สถิติการค้า
+                            </div>
+                            <a class="dropdown-item" href="/th/stat/report01">•
+                                สถิติการค้าระหว่างประเทศของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/report02">•
+                                สถิติการค้าระหว่างประเทศของไทย Matrix</a>
+
+                            <!-- <div class="dropdown-header">สถิติการค้าระหว่างประเทศ (รายเดือน)
+                            </div>
+                            <a class="dropdown-item" href="/th/stat/reportmonth01">•
+                                สถิติการค้า (Download)</a>
+                            <a class="dropdown-item" href="/th/stat/reportmonth02">•
+                                มูลค่าการส่งออก นำเข้า และดุลการค้าของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportmonth03">•
+                                มูลค่าการส่งออกของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportmonth04">•
+                                มูลค่าการนำเข้าของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportmonth05">•
+                                ตลาดส่งออกสำคัญของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportmonth06">•
+                                แหล่งนำเข้าสำคัญของไทย</a>
+                            <div class="dropdown-header">สถิติการค้าระหว่างประเทศ (รายปี)
+                            </div>
+                            <a class="dropdown-item" href="/th/stat/reportyear01">•
+                                สถิติการค้าระหว่างประเทศของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportyear02">•
+                                การค้าระหว่างประเทศของไทยกับประเทศต่างๆ</a>
+                            <a class="dropdown-item" href="/th/stat/reportyear03">•
+                                ประเทศคู่ค้าสำคัญของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportyear04">•
+                                ตลาดส่งออกสำคัญของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportyear05">•
+                                แหล่งนำเข้าสำคัญของไทย</a> -->
+
+                            <div class="dropdown-header">
+                                Dashboard
+                            </div>
+                            <a class="dropdown-item" href="/th/stat/dashboardcountry">•
+                                ประเทศคู่ค้าสำคัญ</a>
+                            <a class="dropdown-item" href="/th/stat/dashboardproduct">•
+                                สินค้าสำคัญ</a>
+                        </div>
+                    </li>
+                    <!-- <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle menu-tab" data-menu="_3" href="javascript:void(0)"
+                            id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            สินค้ากระทรวงพาณิชย์
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
+                            <div class="dropdown-header">
+                                การส่งออก (รวม Re-Export)</div>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeexport01">•
+                                สินค้าส่งออกสำคัญของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeexport02">•
+                                โครงสร้างสินค้าส่งออกของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeexport03">•
+                                สินค้าส่งออกสำคัญของไทยรายประเทศ</a>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeexport04">•
+                                ตลาดส่งออกสำคัญของไทยรายสินค้า</a>
+                            <div class="dropdown-header">
+                                การนำเข้า</div>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeimport01">•
+                                สินค้านำเข้าสำคัญของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeimport02">•
+                                โครงสร้างสินค้านำเข้าของไทย</a>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeimport03">•
+                                สินค้านำเข้าสำคัญของไทยรายประเทศ</a>
+                            <a class="dropdown-item" href="/th/stat/reportcomcodeimport04">•
+                                แหล่งนำเข้าสำคัญของไทยรายสินค้า</a>
+                        </div </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle menu-tab" data-menu="_4" href="javascript:void(0)"
+                            id="navbarDropdown3" role="button" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            พิกัดศุลกากร
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown3">
+                            <div class="dropdown-hs">
+                                <div>
+                                    <div class="dropdown-header">
+                                        การส่งออก</div>
+                                    <a class="dropdown-item" href="/th/stat/reporthscodeexport01">•
+                                        รายพิกัดศุลกากร</a>
+                                    <a class="dropdown-item" href="/th/stat/reporthscodeexport02">•
+                                        รายประเทศ</a>
+                                    <a class="dropdown-item" href="/th/stat/reporthscodeexport03">•
+                                        รายเดือน</a>
+                                    <a class="dropdown-item" href="/th/stat/reporthscodeexport04">•
+                                        รายปี</a>
+                                </div>
+                                <div>
+                                    <div class="dropdown-header">
+                                        Re-Export</div>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodereexport01">•
+                                        รายพิกัดศุลกากร</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodereexport02">•
+                                        รายประเทศ</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodereexport03">•
+                                        รายเดือน</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodereexport04">•
+                                        รายปี</a>
+                                </div>
+                            </div>
+                            <div class="dropdown-hs">
+                                <div>
+                                    <div class="dropdown-header">
+                                        การนำเข้า</div>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodeimport01">•
+                                        รายพิกัดศุลกากร</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodeimport02">•
+                                        รายประเทศ</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodeimport03">•
+                                        รายเดือน</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodeimport04">•
+                                        รายปี</a>
+                                </div>
+                                <div>
+                                    <div class="dropdown-header">
+                                        ดุลการค้า</div>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodebalance01">•
+                                        รายพิกัดศุลกากร</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodebalance02">•
+                                        รายประเทศ</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodebalance03">•
+                                        รายเดือน</a>
+                                    <a class="dropdown-item"
+                                        href="/th/stat/reporthscodebalance04">•
+                                        รายปี</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li> -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle menu-tab" data-menu="_5" href="javascript:void(0)"
+                            id="navbarDropdown4" role="button" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            ข้อมูลทั่วไป
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown4">
+                            <div class="dropdown-header">
+                                ข้อมูลทั่วไป
+                            </div>
+                            <a class="dropdown-item" href="/th/documentsummary">•
+                                สรุปภาพรวม</a>
+                            <a class="dropdown-item" href="/th/documentpublish">•
+                                ตารางเผยแพร่สถิติการค้า</a>
+                            <a class="dropdown-item" href="/th/documentyear">•
+                                หนังสือประจำปี</a>
+                            <a class="dropdown-item" href="/th/documentcomparehscode">•
+                                ตารางเปรียบเทียบ HScode</a>
+                            <!-- เพิ่ม -->
+                            <div class="dropdown-header"> API Data Exchange </div>
+                            <a class="dropdown-item" href="/opendata/summarycountries">•
+                                API ภาพรวมการค้าระหว่างประเทศของไทย</a>
+                            <a class="dropdown-item" href="/opendata/exportcommoditycountries">•
+                                API ตลาดส่งออกตามโครงสร้างสินค้ากระทรวงพาณิชย์</a>
+                            <a class="dropdown-item" href="/opendata/importcommoditycountries">•
+                                API แหล่งนำเข้าตามโครงสร้างสินค้ากระทรวงพาณิชย์</a>
+                            <a class="dropdown-item" href="/opendata/exportharmonizecountries">•
+                                API ตลาดส่งออกตามพิกัดศุลกากร</a>
+                            <a class="dropdown-item" href="/opendata/importharmonizecountries">•
+                                API แหล่งนำเข้าตามพิกัดศุลกากร</a>
+                            <a class="dropdown-item" href="/opendata/importersexporters">•
+                                API รายชื่อผู้ส่งออก-นำเข้าสินค้า</a>
+                            <a class="dropdown-item" href="/opendata/products">•
+                                API ข้อมูลสินค้า</a>
+                            <a class="dropdown-item" href="/opendata/exportcommoditystructure">•
+                                API โครงสร้างสินค้าส่งออกกระทรวงพาณิชย์ (Com Code)</a>
+                            <a class="dropdown-item" href="/opendata/importcommoditystructure">•
+                                API โครงสร้างสินค้านำเข้ากระทรวงพาณิชย์ (Com Code)</a>
+                            <a class="dropdown-item" href="/opendata/harmonizestructure">•
+                                API โครงสร้างสินค้าตามพิกัดศุลกากร (HS Code)</a>
+                            <a class="dropdown-item" href="/opendata/exportcountrycommodities">•
+                                API สินค้าส่งออกสำคัญของไทยรายประเทศ</a>
+                            <a class="dropdown-item" href="/opendata/importcountrycommodities">•
+                                API สินค้านำเข้าสำคัญของไทยรายประเทศ</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle menu-tab" data-menu="_6" href="javascript:void(0)"
+                            id="navbarDropdown5" role="button" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            ค้นหา
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown5">
+                            <a class="dropdown-item" href="/th/searchhscode">•
+                                พิกัดศุลกากร (Harmonize System : HS)</a>
+                            <a class="dropdown-item" href="/th/searchproduct">•
+                                รายละเอียดโครงสร้างสินค้า</a>
+                            <a class="dropdown-item" href="/th/searchproductexport">•
+                                โครงสร้างสินค้าส่งออก</a>
+                            <a class="dropdown-item" href="/th/searchproductimport">•
+                                โครงสร้างสินค้านำเข้า</a>
+                            <a class="dropdown-item" href="/th/searchcountry">•
+                                กลุ่มประเทศ</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link"
+                            href="/th/aboutus">ติดต่อเรา</a>
+                    </li>
+                                                                <li class="nav-item active">
+                            <a class="nav-link"
+                                href="/th/auth/login">สำหรับสมาชิก</a>
+                        </li>
+                                        <li class="nav-item">
+                        <a class="nav-link" href="https://tradereport.moc.go.th/manual/UserManual.pdf"
+                            target="_blank">คู่มือการใช้งานระบบ</a>
+                    </li>
+                    <li class="nav-item brand-icon d-lg-none d-md-block">
+                        <a href="https://twitter.com/i/flow/login?redirect_after_login=%2FThailandMOC"
+                            target="_blank">
+                            <em class="fa-brands fa-twitter"></em>
+                        </a>
+                        <a href="https://www.instagram.com/thailandmoc/" target="_blank">
+                            <em class="fa-brands fa-instagram"></em>
+                        </a>
+                        <a href="https://www.youtube.com/channel/UCMJTbd89VSMouR9P3mko8Cw" target="_blank">
+                            <em class="fa-brands fa-youtube"></em>
+                        </a>
+                        <a href="https://www.facebook.com/MOCThailand/" target="_blank">
+                            <em class="fa-brands fa-facebook"></em>
+                        </a>
+
+
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main">
+        <div id="vue-app">
+                <div>
+        <report-dashboardproduct title="สินค้าสำคัญ" :islogin="false" lang="th"></report-dashboardproduct>
+    </div>
+        </div>
+    </main>
+
+    <input type="hidden" name="" id="base_url" value="https://tradereport.moc.go.th">
+
+    <footer class="footer bg-dark pt45 pb15" style="background-color: #08447E !important; position: relative; ">
+        
+        <div class="footer-action-suggest" style="position: absolute; right: 260px; top: -54px; background-color: #ff00ae; padding: 15px 25px;">
+            <a href="/th/formsatisfaction" target="_blank"
+                style="color: #fff; font-family: Kanit; font-size: 16px; text-decoration: none;">
+                <em class="fab fa-wpforms mr5" style="position: relative; top: 4px;"></em>
+                แบบประเมินความพึงพอใจ
+            </a>
+        </div>
+        <div class="footer-action-newsletter"
+            style="position: absolute; right: 0; top: -54px; background-image: linear-gradient(to right, #A42D7E , #124094); padding: 15px 25px;">
+            <a href="/th/newsletter/index"
+                style="color: #fff; font-family: Kanit; font-size: 16px; text-decoration: none;">
+                <em class="fa-solid fa-envelope mr5" style="position: relative; top: 4px;"></em>
+                สมัครรับข้อมูลสถิติการค้าฯ
+            </a>
+        </div>
+        <div class="container">
+            <div class="row text-white">
+                <div class="col-md-6 footer-address" style="position: relative;">
+                    <img src="https://tradereport.moc.go.th/images/moc-logo.png"
+                        style="position: absolute; width:80px; height:80px;" alt="MOC Account">
+                    <p class="mb0 kanit-14" style="padding-left: 100px;">
+                        กระทรวงพาณิชย์<br>
+                        563 ถนนนนทบุรี ตำบลบางกระสอ อำเภอเมือง จังหวัดนนทบุรี 11000<br>
+                        โทร. 02 507 7704-7<br>
+                        E-mail: tradeservices@moc.go.th 
+                    </p>
+                </div>
+                <div class="col-md-6 text-right">
+                    <p class="mb0 kanit-14 footer-link-compatible">
+                        
+                        <a class="kanit-14 text-white" href="/websitepolicy" target="_blank">Website
+                            Policy</a>&nbsp;|&nbsp;
+                        <a class="kanit-14 text-white" href="/privacypolicy" target="_blank">Privacy
+                            Policy</a>&nbsp;|&nbsp;
+                        <a class="kanit-14 text-white" href="/securitypolicy" target="_blank">Security
+                            Policy</a>&nbsp;|&nbsp;
+                        <a class="kanit-14 text-white" href="/disclaimerpolicy" target="_blank">Disclaimer</a><br>
+                        
+                        รองรับการทำงานบน : Microsoft Edge,
+                        Firefox v.20+, Safari v.5+, Chrome v.25+, Opera v.10+
+                    </p>
+                </div>
+                <div class="col-md-12">
+                    <hr style="border-color: #fff;">
+                </div>
+            </div>
+            <div class="row text-white">
+                <div class="col-md-6">
+                    <p class="mb0 kanit-15 footer-copyright">
+                        สงวนลิขสิทธิ์ พ.ศ. 
+                        2569, กระทรวงพาณิชย์ Ministry of Commerce
+                    </p>
+                </div>
+                <div class="col-md-6 text-right">
+                    <p class="mb0 kanit-15 text-warning  footer-visitor">
+                        จำนวนผู้เข้าชม
+                        62,119,545</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        var base_url = $('#base_url').val();
+    </script>
+    <script src="https://tradereport.moc.go.th/js/jquery-validation/dist/jquery.validate.min.js" type="text/javascript"></script>
+    <script src="https://tradereport.moc.go.th/js/jquery-validation/dist/localization/messages_th.min.js" type="text/javascript">
+    </script>
+    <script src="https://tradereport.moc.go.th/js/jquery.filer-1.3.0/js/jqueryfront.filer.js" type="text/javascript"></script>
+    <script src="https://tradereport.moc.go.th/js/jquery.cookie/jquery.cookie.js" type="text/javascript"></script>
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://tradereport.moc.go.th/plugins/bootstrap4-dialog/js/bootstrap-dialog.min.js"></script>
+
+
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+    <script src="https://tradereport.moc.go.th/AdminTemplate/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/plug-ins/2.0.1/pagination/input.js"></script>
+    <script src="https://tradereport.moc.go.th/js/xlsx/xlsx.full.min.js"></script>
+
+    
+    <script data-app="app" src="/js/app.js?id=4c12b849af836521597688d6398bd9e7"></script>
+
+    <div class="tabmocmenu" style="display: none;">
+        <div class="close" id="closemenu">
+            <p style=" font-size: 30px; ">X</p>
+        </div>
+        <div class="tab">
+            <h2 id="tabmocmenu-title">Trade Report</h2>
+            <button class="tablinks " onclick="openChild(this, 'menu_2')" data-menuid="_2"><em
+                    class="fa fa-database icon"></em>
+                สถิติการค้าระหว่างประเทศของไทย</button>
+            <!-- <button class="tablinks " onclick="openChild(this, 'menu_3')" data-menuid="_3"><em
+                    class="fa fa-shopping-bag icon"></em>
+                สินค้ากระทรวงพาณิชย์</button>
+            <button class="tablinks " onclick="openChild(this, 'menu_4')" data-menuid="_4"><em
+                    class="fa fa-tachometer icon"></em>
+                พิกัดศุลกากร</button> -->
+            <button class="tablinks " onclick="openChild(this, 'menu_5')" data-menuid="_5"><em
+                    class="fa fa-pie-chart icon"></em>
+                ข้อมูลทั่วไป</button>
+            <button class="tablinks " onclick="openChild(this, 'menu_6')" data-menuid="_6"><em
+                    class="fa fa-search icon"></em>
+                ค้นหา</button>
+        </div>
+        <div class="tabcontent" id="menu_2">
+            <div class="row">
+                <div class="col-6">
+                    <h3 class="menu-title"><em class="fa fa-database icon"></em>
+                        สถิติการค้า
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/report01"
+                                title="สถิติการค้าระหว่างประเทศของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                สถิติการค้าระหว่างประเทศของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/report02"
+                                title="สถิติการค้าระหว่างประเทศของไทย Matrix">
+                                <em class="fa fa-circle bullet"></em>
+                                สถิติการค้าระหว่างประเทศของไทย Matrix
+                            </a>
+                        </li>
+                    </ul>
+
+                    <h3 class="menu-title mt25"><em class="fa fa-database icon"></em>
+                        Dashboard
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/dashboardcountry"
+                                title="ประเทศคู่ค้าสำคัญ">
+                                <em class="fa fa-circle bullet"></em>
+                                ประเทศคู่ค้าสำคัญ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/dashboardproduct"
+                                title="สินค้าสำคัญ">
+                                <em class="fa fa-circle bullet"></em>
+                                สินค้าสำคัญ
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <!-- <div class="col-4">
+                    <h3 class="menu-title"><em class="fa fa-database icon"></em>
+                        สถิติการค้าระหว่างประเทศ (รายเดือน)</h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportmonth01"
+                                title="สถิติการค้า (Download)">
+                                <em class="fa fa-circle bullet"></em>
+                                สถิติการค้า (Download)
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportmonth02"
+                                title="มูลค่าการส่งออก นำเข้า และดุลการค้าของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                มูลค่าการส่งออก นำเข้า และดุลการค้าของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportmonth03"
+                                title="มูลค่าการส่งออกของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                มูลค่าการส่งออกของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportmonth04"
+                                title="มูลค่าการนำเข้าของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                มูลค่าการนำเข้าของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportmonth05"
+                                title="ตลาดส่งออกสำคัญของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                ตลาดส่งออกสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportmonth06"
+                                title="v">
+                                <em class="fa fa-circle bullet"></em>
+                                แหล่งนำเข้าสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-4">
+                    <h3 class="menu-title"><em class="fa fa-database icon"></em>
+                        สถิติการค้าระหว่างประเทศ (รายปี)</h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportyear01"
+                                title="สถิติการค้าระหว่างประเทศของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                สถิติการค้าระหว่างประเทศของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportyear02"
+                                title="การค้าระหว่างประเทศของไทยกับประเทศต่างๆ">
+                                <em class="fa fa-circle bullet"></em>
+                                การค้าระหว่างประเทศของไทยกับประเทศต่างๆ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportyear03"
+                                title="ประเทศคู่ค้าสำคัญของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                ประเทศคู่ค้าสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportyear04"
+                                title="ตลาดส่งออกสำคัญของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                ตลาดส่งออกสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportyear05"
+                                title="แหล่งนำเข้าสำคัญของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                แหล่งนำเข้าสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                </div> -->
+            </div>
+        </div>
+        <div class="tabcontent" id="menu_3">
+            <div class="row">
+                <div class="col-6">
+                    <h3 class="menu-title"><em class="fa fa-shopping-bag icon"></em>
+                        การส่งออก (รวม Re-Export)
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeexport01"
+                                title="สินค้าส่งออกสำคัญของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                สินค้าส่งออกสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeexport02"
+                                title="โครงสร้างสินค้าส่งออกของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                โครงสร้างสินค้าส่งออกของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeexport03"
+                                title="สินค้าส่งออกสำคัญของไทยรายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                สินค้าส่งออกสำคัญของไทยรายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeexport04"
+                                title="ตลาดส่งออกสำคัญของไทยรายสินค้า">
+                                <em class="fa fa-circle bullet"></em>
+                                ตลาดส่งออกสำคัญของไทยรายสินค้า
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-6">
+                    <h3 class="menu-title"><em class="fa fa-shopping-bag icon"></em>
+                        การนำเข้า
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeimport01"
+                                title="สินค้านำเข้าสำคัญของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                สินค้านำเข้าสำคัญของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeimport02"
+                                title="โครงสร้างสินค้านำเข้าของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                โครงสร้างสินค้านำเข้าของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeimport03"
+                                title="สินค้านำเข้าสำคัญของไทยรายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                สินค้านำเข้าสำคัญของไทยรายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reportcomcodeimport04"
+                                title="แหล่งนำเข้าสำคัญของไทยรายสินค้า">
+                                <em class="fa fa-circle bullet"></em>
+                                แหล่งนำเข้าสำคัญของไทยรายสินค้า
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="tabcontent" id="menu_4">
+            <div class="row">
+                <div class="col-3">
+                    <h3 class="menu-title"><em class="fa fa-tachometer icon"></em>
+                        การส่งออก
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeexport01"
+                                title="รายพิกัดศุลกากร">
+                                <em class="fa fa-circle bullet"></em>
+                                รายพิกัดศุลกากร
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeexport02"
+                                title="รายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                รายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeexport03"
+                                title="รายเดือน">
+                                <em class="fa fa-circle bullet"></em>
+                                รายเดือน
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeexport04"
+                                title="รายปี">
+                                <em class="fa fa-circle bullet"></em>
+                                รายปี
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-3">
+                    <h3 class="menu-title"><em class="fa fa-tachometer icon"></em>
+                        Re-Export
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodereexport01"
+                                title="รายพิกัดศุลกากร">
+                                <em class="fa fa-circle bullet"></em>
+                                รายพิกัดศุลกากร
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodereexport02"
+                                title="รายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                รายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodereexport03"
+                                title="รายเดือน">
+                                <em class="fa fa-circle bullet"></em>
+                                รายเดือน
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodereexport04"
+                                title="รายปี">
+                                <em class="fa fa-circle bullet"></em>
+                                รายปี
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-3">
+                    <h3 class="menu-title"><em class="fa fa-tachometer icon"></em>
+                        การนำเข้า
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeimport01"
+                                title="รายพิกัดศุลกากร">
+                                <em class="fa fa-circle bullet"></em>
+                                รายพิกัดศุลกากร
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeimport02"
+                                title="รายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                รายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeimport03"
+                                title="รายเดือน">
+                                <em class="fa fa-circle bullet"></em>
+                                รายเดือน
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodeimport04"
+                                title="รายปี">
+                                <em class="fa fa-circle bullet"></em>
+                                รายปี
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-3">
+                    <h3 class="menu-title"><em class="fa fa-tachometer icon"></em>
+                        ดุลการค้า
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodebalance01"
+                                title="รายพิกัดศุลกากร">
+                                <em class="fa fa-circle bullet"></em>
+                                รายพิกัดศุลกากร
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodebalance02"
+                                title="รายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                รายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodebalance03"
+                                title="รายเดือน">
+                                <em class="fa fa-circle bullet"></em>
+                                รายเดือน
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/stat/reporthscodebalance04"
+                                title="รายปี">
+                                <em class="fa fa-circle bullet"></em>
+                                รายปี
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="tabcontent" id="menu_5">
+            <div class="row">
+                <div class="col-6">
+                    <h3 class="menu-title"><em class="fa fa-pie-chart icon"></em>
+                        ข้อมูลทั่วไป
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/documentsummary"
+                                title="สรุปภาพรวม">
+                                <em class="fa fa-circle bullet"></em>
+                                สรุปภาพรวม
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/documentpublish"
+                                title="ตารางเผยแพร่สถิติการค้า">
+                                <em class="fa fa-circle bullet"></em>
+                                ตารางเผยแพร่สถิติการค้า
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/documentyear"
+                                title="หนังสือประจำปี">
+                                <em class="fa fa-circle bullet"></em>
+                                หนังสือประจำปี
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/documentcomparehscode"
+                                title="ตารางเปรียบเทียบ HScode">
+                                <em class="fa fa-circle bullet"></em>
+                                ตารางเปรียบเทียบ HScode
+                            </a>
+                        </li>
+                    </ul>
+
+
+                </div>
+                <div class="col-6">
+                    <h3 class="menu-title"><em class="fa fa-pie-chart icon"></em> API Data Exchange</h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/summarycountries"
+                                title="API ภาพรวมการค้าระหว่างประเทศของไทย">
+                                <em class="fa fa-circle bullet"></em>
+                                API ภาพรวมการค้าระหว่างประเทศของไทย
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/exportcommoditycountries"
+                                title="API ตลาดส่งออกตามโครงสร้างสินค้ากระทรวงพาณิชย์">
+                                <em class="fa fa-circle bullet"></em>
+                                API ตลาดส่งออกตามโครงสร้างสินค้ากระทรวงพาณิชย์
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/importcommoditycountries"
+                                title="API แหล่งนำเข้าตามโครงสร้างสินค้ากระทรวงพาณิชย์">
+                                <em class="fa fa-circle bullet"></em>
+                                API แหล่งนำเข้าตามโครงสร้างสินค้ากระทรวงพาณิชย์
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/exportharmonizecountries"
+                                title="API ตลาดส่งออกตามพิกัดศุลกากร">
+                                <em class="fa fa-circle bullet"></em>
+                                API ตลาดส่งออกตามพิกัดศุลกากร
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/importharmonizecountries"
+                                title="API แหล่งนำเข้าตามพิกัดศุลกากร">
+                                <em class="fa fa-circle bullet"></em>
+                                API แหล่งนำเข้าตามพิกัดศุลกากร
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/importersexporters"
+                                title="API รายชื่อผู้ส่งออก-นำเข้าสินค้า">
+                                <em class="fa fa-circle bullet"></em>
+                                API รายชื่อผู้ส่งออก-นำเข้าสินค้า
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/products"
+                                title="API ข้อมูลสินค้า">
+                                <em class="fa fa-circle bullet"></em>
+                                API ข้อมูลสินค้า
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/exportcommoditystructure"
+                                title="API โครงสร้างสินค้าส่งออกกระทรวงพาณิชย์ (Com Code)">
+                                <em class="fa fa-circle bullet"></em>
+                                API โครงสร้างสินค้าส่งออกกระทรวงพาณิชย์ (Com Code)
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/importcommoditystructure"
+                                title="API โครงสร้างสินค้านำเข้ากระทรวงพาณิชย์ (Com Code)">
+                                <em class="fa fa-circle bullet"></em>
+                                API โครงสร้างสินค้านำเข้ากระทรวงพาณิชย์ (Com Code)
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/harmonizestructure"
+                                title="API โครงสร้างสินค้าตามพิกัดศุลกากร (HS Code)">
+                                <em class="fa fa-circle bullet"></em>
+                                API โครงสร้างสินค้าตามพิกัดศุลกากร (HS Code)
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/exportcountrycommodities"
+                                title="API สินค้าส่งออกสำคัญของไทยรายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                API สินค้าส่งออกสำคัญของไทยรายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/opendata/importcountrycommodities"
+                                title="API สินค้านำเข้าสำคัญของไทยรายประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                API สินค้านำเข้าสำคัญของไทยรายประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="tabcontent" id="menu_6">
+            <div class="row">
+                <div class="col-6">
+                    <h3 class="menu-title"><em class="fa fa-search icon"></em>
+                        ค้นหา
+                    </h3>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/searchhscode"
+                                title="พิกัดศุลกากร (Harmonize System : HS)">
+                                <em class="fa fa-circle bullet"></em>
+                                พิกัดศุลกากร (Harmonize System : HS)
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/searchproduct"
+                                title="รายละเอียดโครงสร้างสินค้า">
+                                <em class="fa fa-circle bullet"></em>
+                                รายละเอียดโครงสร้างสินค้า
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/searchproductexport"
+                                title="โครงสร้างสินค้าส่งออก">
+                                <em class="fa fa-circle bullet"></em>
+                                โครงสร้างสินค้าส่งออก
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/searchproductimport"
+                                title="โครงสร้างสินค้านำเข้า">
+                                <em class="fa fa-circle bullet"></em>
+                                โครงสร้างสินค้านำเข้า
+                            </a>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li class="menu-title menu-level menu-level-2">
+                            <a href="/th/searchcountry"
+                                title="กลุ่มประเทศ">
+                                <em class="fa fa-circle bullet"></em>
+                                กลุ่มประเทศ
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function openChild(evt, divID) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            var input = document.getElementById(divID);
+            if (input) {
+                input.style.display = "block";
+            }
+            evt.className += " active";
+            $("#tabmocmenu-title").text($(evt).text());
+        };
+        var closeButtons = $('#closemenu');
+        var openButtons = $('#menumocmain');
+        openButtons.on('click', function() {
+
+            var navbarCollapseOffset = $("#navbarCollapse").offset();
+            var navbarCollapseHeight = $("#navbarCollapse").outerHeight();
+            $('.tabmocmenu').css("top", navbarCollapseOffset.top + navbarCollapseHeight);
+
+            $('.tabmocmenu').show(500);
+            if ($(".tabmocmenu .tablinks.active").length == 0) {
+                openChild($(".tabmocmenu .tablinks").first().get(0), "menu" + $(".tabmocmenu .tablinks").first()
+                    .data("menuid"));
+            }
+        });
+        closeButtons.on('click', function() {
+            $(this).parent().hide(500);
+        });
+
+        $(function() {
+            $("#navbarCollapse .menu-tab").click(function() {
+                var menu = $(this).data("menu");
+
+                var navbarCollapseOffset = $("#navbarCollapse").offset();
+                var navbarCollapseHeight = $("#navbarCollapse").outerHeight();
+                $('.tabmocmenu').css("top", navbarCollapseOffset.top + navbarCollapseHeight);
+
+                $('.tabmocmenu').show(500);
+
+                openChild($(".tabmocmenu .tablinks[data-menuid='" + menu + "']").first().get(0), "menu" +
+                    menu);
+            });
+
+            $("#fontsizezone").on('click', 'a', function() {
+                var fontsize = $(this).data("fontsize");
+                $.cookie("MocStatReportCookieFront", fontsize, {
+                    path: '/'
+                });
+
+                $('body').removeClass("body-fontsize-large");
+                $('body').removeClass("body-fontsize-normal");
+                $('body').removeClass("body-fontsize-small");
+                $('body').addClass("body-fontsize-" + fontsize);
+            });
+        });
+    </script>
+
+
+            <div class="cookie-policy-box">
+            <div class="cookie-policy-inner">
+                Thailand's Trade Statistic ใช้คุกกี้เพื่อพัฒนาประสบการณ์การใช้งานของคุณ &nbsp;
+                <a class="cookie-policy" href="/cookiespolicy">อ่านเพิ่มเติมได้ที่นี่</a> &nbsp;
+                <a class="cookie-accept" href="javascript:void(0)">ยอมรับ</a>
+            </div>
+        </div>
+
+        <script>
+            $(function() {
+                $('.cookie-accept').click(function() {
+                    $.post("/cookieaccept", {}, function(data) {
+                        $('.cookie-policy-box').hide()
+                    }, 'json');
+                });
+            });
+        </script>
+    
+    
+    <script>
+
+</script>
+
+</body>
+
+</html>

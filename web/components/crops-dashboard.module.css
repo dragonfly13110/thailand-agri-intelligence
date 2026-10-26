@@ -10,7 +10,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  border-bottom: 2px solid #dce5da;
+  border-bottom: 2px solid var(--line);
   padding-bottom: 0;
 }
 
@@ -29,13 +29,13 @@
 
 .tab:hover {
   background: #e5ecdf;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .tabActive {
-  background: #ffffff;
-  border-color: #dce5da;
-  color: #1a3328;
+  background: var(--white);
+  border-color: var(--line);
+  color: var(--ink);
   font-weight: 700;
   box-shadow: 0 2px 6px rgba(33, 61, 50, 0.06);
 }
@@ -49,7 +49,7 @@
 
 .seasonBtn {
   border: 1px solid #c5d3c2;
-  background: #ffffff;
+  background: var(--white);
   color: #385043;
   font-size: 13px;
   font-weight: 500;
@@ -66,7 +66,7 @@
 .seasonBtnActive {
   background: #2e7d32;
   border-color: #2e7d32;
-  color: #ffffff;
+  color: var(--white);
   font-weight: 600;
 }
 
@@ -82,18 +82,18 @@
 .profileHead h2 {
   font-size: 24px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   letter-spacing: -0.4px;
 }
 
 .profileDesc {
-  color: #556b60;
+  color: var(--muted);
   font-size: 14px;
   margin-top: 4px;
 }
 
 .yearNote {
-  color: #7b8e84;
+  color: var(--muted);
   font-size: 12px;
   margin-top: 6px;
 }
@@ -169,8 +169,8 @@
 }
 
 .statCard {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 18px 20px;
   display: flex;
@@ -194,26 +194,26 @@
 .statValue {
   font-size: 26px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   letter-spacing: -0.5px;
 }
 
 .statUnit {
   font-size: 13px;
   font-weight: 400;
-  color: #7b8e84;
+  color: var(--muted);
   margin-left: 5px;
 }
 
 .statFoot {
   font-size: 12px;
-  color: #7b8e84;
+  color: var(--muted);
 }
 
 .statNote {
   font-size: 12px;
   color: #5d7367;
-  background: #f4f7f2;
+  background: var(--surface-muted);
   border: 1px solid #e4ebe1;
   border-radius: 6px;
   padding: 6px 8px;
@@ -235,7 +235,7 @@
 /* Notes box */
 .noteBox {
   background: #f8faf5;
-  border: 1px solid #dce5da;
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px 18px;
   display: flex;
@@ -265,8 +265,8 @@
 
 /* Generic card */
 .card {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 22px 24px;
   box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
@@ -281,7 +281,7 @@
   gap: 9px;
   font-size: 17px;
   font-weight: 600;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .cardHead h3 svg {
@@ -289,7 +289,7 @@
 }
 
 .cardHead p {
-  color: #7b8e84;
+  color: var(--muted);
   font-size: 12px;
   margin-top: 6px;
   line-height: 1.7;
@@ -313,14 +313,14 @@
   color: #2e4439;
   font-weight: 600;
   padding: 11px 14px;
-  border-bottom: 2px solid #dce5da;
+  border-bottom: 2px solid var(--line);
   white-space: nowrap;
 }
 
 .calendarTable td {
   padding: 12px 14px;
-  border-bottom: 1px solid #eef2ed;
-  color: #1f3329;
+  border-bottom: 1px solid var(--surface-muted);
+  color: var(--ink);
   vertical-align: top;
 }
 
@@ -332,7 +332,7 @@
   white-space: nowrap;
   font-weight: 600;
   color: #2e7d32 !important;
-  background: #fbfcf9 !important;
+  background: var(--surface-muted) !important;
 }
 
 .rangeText {
@@ -392,7 +392,7 @@
 
 .rangeLabel {
   font-size: 11px;
-  color: #556b60;
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -415,7 +415,7 @@
 }
 
 .varietyCard {
-  background: #fbfcf9;
+  background: var(--surface-muted);
   border: 1px solid #e4ebe1;
   border-radius: 10px;
   padding: 15px 16px;
@@ -440,7 +440,7 @@
 .varietyHead h4 {
   font-size: 15px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   margin: 0;
 }
 
@@ -466,7 +466,7 @@
 
 .varietySource {
   font-size: 11px;
-  color: #7b8e84;
+  color: var(--muted);
   border-top: 1px dashed #e0e8dd;
   padding-top: 8px;
   margin-top: auto;
@@ -478,10 +478,10 @@
   align-items: flex-start;
   gap: 8px;
   font-size: 12px;
-  color: #7b8e84;
+  color: var(--muted);
   line-height: 1.8;
-  background: #f4f7f2;
-  border: 1px solid #dce5da;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px 16px;
 }

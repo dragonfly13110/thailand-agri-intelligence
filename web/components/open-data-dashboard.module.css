@@ -1,9 +1,9 @@
 .dashboard {
   --od-surface: var(--white, #fff);
   --od-soft: #edf2e8;
-  --od-ink: var(--ink, #21352b);
-  --od-muted: var(--muted, #53645a);
-  --od-line: var(--line, #dce3d9);
+  --od-ink: var(--ink, var(--ink));
+  --od-muted: var(--muted, var(--muted));
+  --od-line: var(--line, var(--line));
   --od-accent: #497b59;
   --od-warning-bg: #fbf2dc;
   --od-warning-ink: #765c20;
@@ -21,7 +21,7 @@
 .dashboard h4 { font-size: 14px; margin: 0 0 10px; font-weight: 600; }
 .dashboard p { line-height: 1.85; }
 .dashboard a:hover { text-decoration: underline; }
-.dashboard :is(button, a, select, [tabindex]):focus-visible { outline: 3px solid #728d3c; outline-offset: 4px; }
+.dashboard :is(button, a, select, [tabindex]):focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
 .heading, .sectionHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
 .heading p { margin-top: 10px; max-width: 76ch; color: var(--od-muted); }
 .heading > a { flex-shrink: 0; margin-top: 25px; }
@@ -190,7 +190,7 @@
   }
   .governance { border-color: #897043; }
   .primaryButton { background: #497b59; border-color: #497b59; }
-  .dashboard :is(button, a, select, [tabindex]):focus-visible { outline-color: #d9e8a0; }
+  .dashboard :is(button, a, select, [tabindex]):focus-visible { outline-color: var(--accent); }
 }
 
 @media (prefers-color-scheme: dark) and (max-width: 480px) {

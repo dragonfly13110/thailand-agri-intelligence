@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type {
   BasinFloodStat,
   DroughtClass,
+  FloodObservationPayload,
   NdviScaleBand,
   PixelReliability,
   ProvinceSatelliteRisk,
@@ -17,7 +18,7 @@ import type {
 } from '@/lib/hub/satellite-data';
 import styles from './satellite-dashboard.module.css';
 
-/** รูปร่างของ SATELLITE_GOVERNANCE ตามสัญญาของ lane 2A (ส่งผ่าน props จาก server page เพื่อไม่ดึงโมดูลข้อมูลเข้า client bundle) */
+/** รูปร่างของ SATELLITE_GOVERNANCE ตามสัญญาของ lane R1-F (ส่งผ่าน props จาก server page เพื่อไม่ดึงโมดูลข้อมูลเข้า client bundle) */
 interface SatelliteGovernanceInfo {
   sample: boolean;
   access: 'metadata_only' | 'approved_public';
@@ -25,6 +26,9 @@ interface SatelliteGovernanceInfo {
   bannerText: string;
   disclaimer: string;
   updatedAt: string;
+  sampleScope?: string;
+  floodFeedMode?: string;
+  layerBanners?: Partial<Record<SatelliteLayer, string>>;
 }
 
 interface SatelliteDashboardProps {
@@ -132,6 +136,35 @@ export function SatelliteDashboard({
   const [scenePlatform, setScenePlatform] = useState<SatellitePlatform | 'all'>('all');
   const [scenePage, setScenePage] = useState<number>(1);
   const scenePageSize = 10;
+
+  /**
+   * โหมดการได้มาจริงของชั้นน้ำท่วมในคำขอปัจจุบัน — ดึงจาก /api/v1/satellite
+   * ฝั่ง client (route เรียก GISTDA สดแล้ว fallback snapshot พร้อมระบุชัด)
+   * ไม่มีการสุ่มค่าใด ๆ ในเส้นทางนี้: ทุกตัวเลขมาจาก payload ของ API
+   */
+  const [floodObservation, setFloodObservation] = useState<FloodObservationPayload | null>(null);
+  const [acquisitionChecked, setAcquisitionChecked] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/satellite', { headers: { Accept: 'application/json' } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (cancelled) return;
+        const observation = (body as { data?: { floodObservation?: FloodObservationPayload } } | null)?.data
+          ?.floodObservation;
+        if (observation && (observation.sourceMode === 'live' || observation.sourceMode === 'snapshot')) {
+          setFloodObservation(observation);
+        }
+        setAcquisitionChecked(true);
+      })
+      .catch(() => {
+        if (!cancelled) setAcquisitionChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const regionOptions = useMemo(() => {
     const present = Array.from(new Set(initialProvinces.map((p) => p.region)));
@@ -306,7 +339,27 @@ export function SatelliteDashboard({
 
   return (
     <div className={styles.container}>
-      {/* 1. Governance & Licence Banner */}
+      {/* 1. Dashboard Header */}
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <div className={styles.titleGroup}>
+            <h1>ศูนย์ข้อมูลดาวเทียมเกษตร: น้ำท่วม ภัยแล้ง และความเขียวขจีของพืชพรรณ</h1>
+            <p className={styles.subtitle}>
+              {initialSummary.headline} — {initialSummary.subheadline} (ข้อมูล ณ{' '}
+              {formatDateTime(initialSummary.latestAcquiredAt)} · วันที่รายงาน {initialSummary.reportDate})
+            </p>
+          </div>
+          <div className={styles.liveBadge}>
+            <span>
+              {initialGovernance.sample
+                ? 'ชุดข้อมูลสาธิตจากดาวเทียม (EO Sample · metadata_only)'
+                : 'ชั้นน้ำท่วม: GISTDA ตรวจวัดจริง · ชั้นภัยแล้ง/NDVI: แบบจำลอง'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. Governance & Licence Banner */}
       <aside className={styles.governanceBanner} role="status" aria-label="ประกาศสถานะข้อมูลดาวเทียม">
         <svg
           className={styles.bannerIcon}
@@ -327,18 +380,79 @@ export function SatelliteDashboard({
         <div className={styles.bannerContent}>
           <div className={styles.bannerHeader}>
             <span className={styles.bannerBadge}>
-              {initialGovernance.sample ? 'Simulation / Sample Dataset' : 'Live / Production EO Feed'}
+              {initialGovernance.sample ? 'Simulation / Sample Dataset' : 'Observed flood layer (GISTDA) · drought/NDVI modelled'}
             </span>
             <span className={styles.bannerTitle}>{initialGovernance.bannerText}</span>
           </div>
           <p className={styles.bannerDisclaimer}>{initialGovernance.disclaimer}</p>
+          {initialGovernance.layerBanners && (
+            <ul className={styles.limitationsList} aria-label="banner รายชั้นข้อมูลดาวเทียม">
+              {(['flood', 'drought', 'ndvi'] as SatelliteLayer[])
+                .filter((layer) => initialGovernance.layerBanners?.[layer])
+                .map((layer) => (
+                  <li key={layer}>{initialGovernance.layerBanners?.[layer]}</li>
+                ))}
+            </ul>
+          )}
           <div className={styles.bannerMeta}>
             สถานะข้อมูลตามมาตรฐาน Hub API: <code>meta.access: &quot;{initialGovernance.access}&quot;</code> |{' '}
-            <code>sample: {String(initialGovernance.sample)}</code> | เวอร์ชันชุดข้อมูล{' '}
-            <code>{initialGovernance.version}</code> | ปรับปรุงล่าสุด {formatDateTime(initialGovernance.updatedAt)}
+            <code>sample: {String(initialGovernance.sample)}</code>
+            {initialGovernance.sampleScope ? (
+              <>
+                {' '}
+                (<code>{initialGovernance.sampleScope}</code>)
+              </>
+            ) : null}
+            {' '}| เวอร์ชันชุดข้อมูล <code>{initialGovernance.version}</code> | ปรับปรุงล่าสุด{' '}
+            {formatDateTime(initialGovernance.updatedAt)}
           </div>
         </div>
       </aside>
+
+      {/* แถบโหมดการได้มาของชั้นน้ำท่วม (live/snapshot) — ตรวจจริงจาก /api/v1/satellite */}
+      <section className={styles.limitationsPanel} aria-label="โหมดการได้มาของชั้นน้ำท่วม GISTDA">
+        <div className={styles.limitationsTitle}>โหมดชั้นน้ำท่วม (GISTDA live/snapshot)</div>
+        {floodObservation ? (
+          <>
+            <ul className={styles.limitationsList}>
+              <li>
+                <strong>
+                  {floodObservation.sourceMode === 'live'
+                    ? 'LIVE — เรียก GISTDA API Gateway สำเร็จในคำขอนี้'
+                    : `SNAPSHOT — live call ล้มเหลว (code=${floodObservation.liveFailureCode ?? 'ไม่ทราบรหัส'}) จึงใช้ไฟล์ snapshot จริงที่ระบุวัน`}
+                </strong>{' '}
+                · ดึงเมื่อ {formatDateTime(floodObservation.retrievedAt)} · polygon{' '}
+                {nf0.format(floodObservation.polygonCount)} ชิ้น · จังหวัดที่ตรวจพบ{' '}
+                {nf0.format(floodObservation.provinceCount)} แห่ง
+              </li>
+              <li>
+                รวมพื้นที่น้ำท่วม (แยกหน่วย ห้ามบวกข้ามหน่วย):{' '}
+                <strong>{nf0.format(floodObservation.totals.floodedAreaRai)} ไร่</strong> ·{' '}
+                <strong>{nf.format(floodObservation.totals.floodedAreaSqKm)} ตร.กม.</strong> · นาข้าว{' '}
+                {floodObservation.totals.riceAreaRai === null
+                  ? 'ไม่ทราบค่า (ข้อมูลไม่ครบทุก polygon)'
+                  : `${nf0.format(floodObservation.totals.riceAreaRai)} ไร่`}
+                {' '}({floodObservation.snapshotRetrievedAt !== floodObservation.retrievedAt
+                  ? `snapshot ล่าสุด ${formatDateTime(floodObservation.snapshotRetrievedAt)}`
+                  : `snapshot ณ ${formatDateTime(floodObservation.snapshotRetrievedAt)}`})
+              </li>
+              <li>
+                แหล่งข้อมูล/สิทธิ์: <strong>{floodObservation.attribution}</strong> ·{' '}
+                <code>access: {floodObservation.access}</code> · dataKind:{' '}
+                <code>{floodObservation.dataKind}</code> (ค่าประมาณจาก SAR ไม่ใช่สถิติทางการ)
+              </li>
+            </ul>
+          </>
+        ) : (
+          <ul className={styles.limitationsList}>
+            <li>
+              {acquisitionChecked
+                ? 'ตรวจสอบโหมด live ไม่สำเร็จ — หน้าจอแสดงค่าจาก snapshot ในโมดูล (floodSourceMode=snapshot) ตามวัน retrieval ที่ระบุด้านบน'
+                : 'กำลังตรวจสอบโหมดการได้มาของข้อมูลจาก /api/v1/satellite … ค่าเริ่มต้นคือ snapshot ในโมดูล (ไม่ใช่ค่าสด)'}
+            </li>
+          </ul>
+        )}
+      </section>
 
       {/* ข้อจำกัดของชุดข้อมูล (SATELLITE_WARNINGS) */}
       {initialWarnings.length > 0 && (
@@ -351,26 +465,6 @@ export function SatelliteDashboard({
           </ul>
         </section>
       )}
-
-      {/* 2. Dashboard Header */}
-      <header className={styles.header}>
-        <div className={styles.titleRow}>
-          <div className={styles.titleGroup}>
-            <h1>ศูนย์ข้อมูลดาวเทียมเกษตร: น้ำท่วม ภัยแล้ง และความเขียวขจีของพืชพรรณ</h1>
-            <p className={styles.subtitle}>
-              {initialSummary.headline} — {initialSummary.subheadline} (ข้อมูล ณ{' '}
-              {formatDateTime(initialSummary.latestAcquiredAt)} · วันที่รายงาน {initialSummary.reportDate})
-            </p>
-          </div>
-          <div className={styles.liveBadge}>
-            <span>
-              {initialGovernance.sample
-                ? 'ชุดข้อมูลสาธิตจากดาวเทียม (EO Sample · metadata_only)'
-                : 'ข้อมูลดาวเทียมตรวจวัดจริง (GISTDA Live API & Sentinel-1)'}
-            </span>
-          </div>
-        </div>
-      </header>
 
       {/* 3. KPI Summary Cards — ไร่และ ตร.กม. แสดงแยกหน่วยกัน ห้ามนำไปบวกรวม */}
       <section className={styles.kpiGrid} aria-label="สรุปสถานการณ์ภาพรวม">
@@ -484,7 +578,10 @@ export function SatelliteDashboard({
           <div>
             <h2 className={styles.sectionTitle}>สถานะสิทธิ์และการตรวจทานแหล่งข้อมูลดาวเทียม</h2>
             <span className={styles.sectionNote}>
-              ทุกแหล่งอยู่ระหว่างรอตรวจสิทธิ์ (licenseStatus: pending) และยังไม่ผ่านการยืนยันที่ runtime — ห้ามอ้างอิงเผยแพร่
+              สถานะสิทธิ์ตามจริงรายแหล่ง — GISTDA flood: <code>approved_public</code>{' '}
+              (registry <code>gistda_flood_7days_daily</code> อนุมัติให้เผยแพร่ตามสิทธิ์ API ที่ได้รับแล้ว) ส่วน{' '}
+              Sentinel/MODIS บนหน้านี้ยัง <code>pending</code> และยังไม่ยืนยัน runtime — ตัวเลขจากชั้นที่ยัง{' '}
+              <code>pending</code> ห้ามอ้างอิงเผยแพร่
             </span>
           </div>
         </div>
@@ -914,6 +1011,10 @@ export function SatelliteDashboard({
                         <span className={`${styles.badgeStatus} ${styles[selectedProvince.flood.riskLevel]}`}>
                           {RISK_LABEL[selectedProvince.flood.riskLevel]}
                         </span>
+                        <span className={`${styles.kpiSubtag} ${styles.tagInfo}`}>
+                          GISTDA ตรวจวัดจริง · โหลดแหล่ง:{' '}
+                          {floodObservation?.sourceMode ?? initialSummary.floodSourceMode ?? 'snapshot'}
+                        </span>
                       </div>
                       <dl className={styles.metricGrid}>
                         <div>
@@ -971,6 +1072,9 @@ export function SatelliteDashboard({
                         <span className={`${styles.badgeStatus} ${styles[selectedProvince.drought.riskLevel]}`}>
                           {RISK_LABEL[selectedProvince.drought.riskLevel]}
                         </span>
+                        <span className={`${styles.kpiSubtag} ${styles.tagWarning}`}>
+                          แบบจำลอง (modelled · sample:true) — ไม่ใช่ค่าตรวจวัด
+                        </span>
                       </div>
                       <dl className={styles.metricGrid}>
                         <div>
@@ -1002,6 +1106,9 @@ export function SatelliteDashboard({
                         <span className={reliabilityTagClass(selectedProvince.ndvi.pixelReliability)}>
                           {isUnreliable(selectedProvince.ndvi.pixelReliability) && '⚠ '}
                           {RELIABILITY_LABEL[selectedProvince.ndvi.pixelReliability]}
+                        </span>
+                        <span className={`${styles.kpiSubtag} ${styles.tagWarning}`}>
+                          แบบจำลอง (modelled · sample:true) — ไม่ใช่ค่าตรวจวัด
                         </span>
                       </div>
                       <dl className={styles.metricGrid}>
@@ -1068,12 +1175,20 @@ export function SatelliteDashboard({
                       <div>
                         <dt>ทิศวงโคจร</dt>
                         <dd>
-                          {selectedProvince.latestScene.orbitPass === 'ascending' ? 'ขาขึ้น (Ascending)' : 'ขาลง (Descending)'}
+                          {selectedProvince.latestScene.orbitPass === null
+                            ? 'ไม่ระบุ (feed ไม่ได้ให้)'
+                            : selectedProvince.latestScene.orbitPass === 'ascending'
+                              ? 'ขาขึ้น (Ascending)'
+                              : 'ขาลง (Descending)'}
                         </dd>
                       </div>
                       <div>
                         <dt>เมฆปกคลุม</dt>
-                        <dd>{nf.format(selectedProvince.latestScene.cloudCoverPercent)}%</dd>
+                        <dd>
+                          {selectedProvince.latestScene.cloudCoverPercent === null
+                            ? 'ไม่ระบุ (SAR ไม่วัดเมฆในผลิตภัณฑ์นี้)'
+                            : `${nf.format(selectedProvince.latestScene.cloudCoverPercent)}%`}
+                        </dd>
                       </div>
                       <div>
                         <dt>ระบบพิกัด (CRS)</dt>
@@ -1081,7 +1196,11 @@ export function SatelliteDashboard({
                       </div>
                       <div>
                         <dt>ความละเอียดภาพ</dt>
-                        <dd>{nf0.format(selectedProvince.latestScene.resolutionM)} เมตร</dd>
+                        <dd>
+                          {selectedProvince.latestScene.resolutionM === null
+                            ? 'ไม่ระบุ (ต้องอ้างอิงเอกสารผลิตภัณฑ์)'
+                            : `${nf0.format(selectedProvince.latestScene.resolutionM)} เมตร`}
+                        </dd>
                       </div>
                       <div>
                         <dt>รหัสแผ่นภาพ (Tile)</dt>
@@ -1260,10 +1379,10 @@ export function SatelliteDashboard({
                           <span className={styles.unitHint}>{scene.sensor}</span>
                         </td>
                         <td>{formatDateTime(scene.acquiredAt)}</td>
-                        <td>{scene.orbitPass === 'ascending' ? 'ขาขึ้น' : 'ขาลง'}</td>
-                        <td className={styles.numericCell}>{nf.format(scene.cloudCoverPercent)}%</td>
+                        <td>{scene.orbitPass === null ? 'ไม่ระบุ' : scene.orbitPass === 'ascending' ? 'ขาขึ้น' : 'ขาลง'}</td>
+                        <td className={styles.numericCell}>{scene.cloudCoverPercent === null ? 'ไม่ระบุ' : `${nf.format(scene.cloudCoverPercent)}%`}</td>
                         <td>{scene.crs}</td>
-                        <td className={styles.numericCell}>{nf0.format(scene.resolutionM)}</td>
+                        <td className={styles.numericCell}>{scene.resolutionM === null ? 'ไม่ระบุ' : nf0.format(scene.resolutionM)}</td>
                         <td>{scene.tileId ?? 'ไม่ทราบค่า'}</td>
                         <td>{scene.qualityFlag}</td>
                       </tr>

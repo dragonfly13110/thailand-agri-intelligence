@@ -1,5 +1,5 @@
 import 'server-only';
-import { queryD1 } from './d1';
+import { countD1, queryD1 } from './d1';
 import { mapD1Observation } from './d1-observation-mapping';
 import { completeness, freshness, HubRequestError, jsonData, parseDate, parsePage, parseText } from './http';
 import { isSupportedProvinceCode } from './province';
@@ -217,3 +217,193 @@ export async function listD1SeriesObservations(id: string, url: URL) {
   );
   return jsonData(rows.map(mapD1Observation), { meta: numericMeta(info, stats, total > 0), pagination: { ...page, total } });
 }
+
+/**
+ * Generic observations read shared by every numeric connector lane.
+ *
+ * Only published rows are visible: the resource must be approved for
+ * publication and the row must belong to the resource's active numeric run
+ * (`sync_runs.kind='numeric'` with status succeeded/partial). Every filter
+ * value is bound as a parameter; nothing is interpolated into the SQL string.
+ * `period_start`/`period_end` carry the observation instant, so the returned
+ * `observedAt` mirrors the canonical contract's `observed_at` field.
+ */
+export const D1_OBSERVATION_ROW_LIMIT = 500;
+
+export interface D1ObservationFilters {
+  sourceId?: string;
+  resourceId?: string;
+  seriesKey?: string;
+  metricId?: string;
+  provinceCode?: string;
+  areaCode?: string;
+  locationKind?: string;
+  cropCode?: string;
+  /** Inclusive lower bound on the observation period (YYYY-MM-DD). */
+  from?: string;
+  /** Inclusive upper bound on the observation period (YYYY-MM-DD). */
+  to?: string;
+}
+
+export interface D1ObservationRow {
+  resourceId: string;
+  runId: string;
+  runStatus: string | null;
+  rowKey: string;
+  seriesKey: string;
+  sourceId: string;
+  datasetId: string | null;
+  adapterVersion: string | null;
+  payloadSha256: string | null;
+  sourceRetrievedAt: string | null;
+  runCompletedAt: string | null;
+  observedAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  periodLabel: string | null;
+  locationId: string | null;
+  locationCode: string | null;
+  locationKind: string | null;
+  locationName: string | null;
+  provinceCode: string | null;
+  cropCode: string | null;
+  cropName: string | null;
+  metricId: string | null;
+  metricName: string | null;
+  product: string | null;
+  grade: string | null;
+  market: string | null;
+  unit: string | null;
+  value: number | null;
+  dimensions: Record<string, string | number | boolean | null>;
+  qualityStatus: string | null;
+  quality: Record<string, unknown>;
+  sourceRowRef: string | null;
+}
+
+const LOCATION_KINDS = ['country', 'province', 'district', 'subdistrict', 'station', 'reservoir', 'grid'];
+
+function filterId(value: string | undefined, name: string, maxLength: number): string {
+  if (value === undefined || value === '') return '';
+  if (typeof value !== 'string' || value.length > maxLength || value.includes('%')) {
+    throw new HubRequestError(400, 'INVALID_QUERY', 'ค่า ' + name + ' ไม่ถูกต้อง');
+  }
+  return value;
+}
+
+function filterDate(value: string | undefined, name: string): string {
+  if (value === undefined || value === '') return '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new HubRequestError(400, 'INVALID_QUERY', 'วันที่ ' + name + ' ไม่ถูกต้อง');
+  return value;
+}
+
+function observationConditions(filters: D1ObservationFilters): { where: string; values: unknown[] } {
+  const values: unknown[] = [];
+  const conditions: string[] = [publicConditions];
+  const sourceId = filterId(filters.sourceId, 'sourceId', 80);
+  const resourceId = filterId(filters.resourceId, 'resourceId', 260);
+  const seriesKey = filterId(filters.seriesKey, 'seriesKey', 260);
+  const metricId = filterId(filters.metricId, 'metricId', 120);
+  const cropCode = filterId(filters.cropCode, 'cropCode', 80);
+  const locationKind = filterId(filters.locationKind, 'locationKind', 20);
+  const provinceCode = filterId(filters.provinceCode || filters.areaCode, 'provinceCode', 2);
+  const from = filterDate(filters.from, 'from');
+  const to = filterDate(filters.to, 'to');
+  if (from && to && from > to) throw new HubRequestError(400, 'INVALID_QUERY', 'ช่วงวันที่ไม่ถูกต้อง');
+  if (locationKind && !LOCATION_KINDS.includes(locationKind)) {
+    throw new HubRequestError(400, 'INVALID_QUERY', 'ระดับตำแหน่งที่ไม่รองรับ');
+  }
+  if (provinceCode && !/^\d{2}$/.test(provinceCode)) throw new HubRequestError(400, 'INVALID_QUERY', 'รหัสจังหวัดไม่ถูกต้อง');
+  if (sourceId) { conditions.push('d.source_id=?'); values.push(sourceId); }
+  if (resourceId) { conditions.push('r.resource_id=?'); values.push(resourceId); }
+  if (seriesKey) { conditions.push('o.series_key=?'); values.push(seriesKey); }
+  if (metricId) { conditions.push('o.metric_id=?'); values.push(metricId); }
+  if (provinceCode) { conditions.push('o.province_code=?'); values.push(provinceCode); }
+  if (locationKind) { conditions.push('o.location_kind=?'); values.push(locationKind); }
+  if (cropCode) { conditions.push('o.crop_code=?'); values.push(cropCode); }
+  if (from) { conditions.push('o.period_end>=?'); values.push(from); }
+  if (to) { conditions.push('o.period_start<=?'); values.push(to); }
+  return { where: conditions.join(' AND '), values };
+}
+
+function jsonRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+    } catch {
+      return {};
+    }
+  }
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function mapGenericObservation(row: Row): D1ObservationRow {
+  const dimensions = jsonRecord(row.dimensions) as Record<string, string | number | boolean | null>;
+  return {
+    resourceId: String(row.resourceId),
+    runId: String(row.runId),
+    runStatus: text(row.runStatus),
+    rowKey: String(row.rowKey),
+    seriesKey: String(row.seriesKey),
+    sourceId: String(row.sourceId),
+    datasetId: text(row.datasetId),
+    adapterVersion: text(row.adapterVersion),
+    payloadSha256: text(row.payloadSha256),
+    sourceRetrievedAt: text(row.sourceRetrievedAt),
+    runCompletedAt: text(row.runCompletedAt),
+    observedAt: text(row.periodStart),
+    periodStart: text(row.periodStart),
+    periodEnd: text(row.periodEnd),
+    periodLabel: text(row.periodLabel),
+    locationId: text(row.locationId),
+    locationCode: text(row.locationCode),
+    locationKind: text(row.locationKind),
+    locationName: text(row.locationName),
+    provinceCode: text(row.provinceCode),
+    cropCode: text(row.cropCode),
+    cropName: text(row.cropName),
+    metricId: text(row.metricId),
+    metricName: text(row.metricName),
+    product: text(row.product),
+    grade: text(row.grade),
+    market: text(row.market),
+    unit: text(row.unit),
+    value: number(row.value),
+    dimensions,
+    qualityStatus: text(row.qualityStatus),
+    quality: jsonRecord(row.quality),
+    sourceRowRef: text(row.sourceRowRef),
+  };
+}
+
+/**
+ * Read published observations for any approved source/metric/province grain.
+ * The result is capped at `D1_OBSERVATION_ROW_LIMIT` rows per call.
+ */
+export async function listD1Observations(
+  filters: D1ObservationFilters = {},
+  options: { limit?: number; offset?: number } = {}
+): Promise<{ rows: D1ObservationRow[]; total: number }> {
+  const { where, values } = observationConditions(filters);
+  const requested = Math.trunc(Number(options.limit ?? 100));
+  const limit = Math.min(Math.max(Number.isFinite(requested) && requested > 0 ? requested : 100, 1), D1_OBSERVATION_ROW_LIMIT);
+  const offset = Math.max(Math.trunc(Number(options.offset ?? 0)) || 0, 0);
+  const rows = await queryD1<Row>(
+    'SELECT o.resource_id AS resourceId,o.run_id AS runId,run.status AS runStatus,' +
+      'o.row_key AS rowKey,o.series_key AS seriesKey,d.source_id AS sourceId,d.dataset_id AS datasetId,' +
+      'run.adapter_version AS adapterVersion,run.payload_sha256 AS payloadSha256,' +
+      'run.source_retrieved_at AS sourceRetrievedAt,run.completed_at AS runCompletedAt,' +
+      'o.period_start AS periodStart,o.period_end AS periodEnd,o.period_label AS periodLabel,' +
+      'o.location_id AS locationId,o.location_code AS locationCode,o.location_kind AS locationKind,' +
+      'o.location_name AS locationName,o.province_code AS provinceCode,o.crop_code AS cropCode,o.crop_name AS cropName,' +
+      'o.metric_id AS metricId,o.metric_name AS metricName,o.product,o.grade,o.market,o.unit,o.value,' +
+      'o.dimensions,o.quality_status AS qualityStatus,o.quality,o.source_row_ref AS sourceRowRef' + observationFrom +
+      'WHERE ' + where + ' ORDER BY o.period_end DESC NULLS LAST,o.row_key LIMIT ? OFFSET ?',
+    [...values, limit, offset]
+  );
+  const total = await countD1('SELECT count(*) AS total' + observationFrom + 'WHERE ' + where, values);
+  return { rows: rows.map(mapGenericObservation), total };
+}
+
+

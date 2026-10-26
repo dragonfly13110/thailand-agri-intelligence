@@ -178,7 +178,13 @@ function assertAbsent(haystack: string, sentinels: string[], label: string) {
   }
 }
 
-test('water reservoirs route is metadata-only and carries no RID values', async () => {
+/**
+ * RID is `approved_public` in the register, so the source flags must tell the
+ * truth. Numbers still may not appear unless the repository read an active
+ * approved numeric batch; with D1 unreachable this route must degrade to the
+ * metadata-only envelope rather than a 5xx or an empty-but-"ready" answer.
+ */
+test('water reservoirs route reports the approved register but hides numbers without a readable batch', async () => {
   const { response, body } = await call(
     waterRoute.GET,
     '/api/v1/water/reservoirs?page=1&pageSize=25',
@@ -189,13 +195,14 @@ test('water reservoirs route is metadata-only and carries no RID values', async 
   assertNoStore(response, 'water');
 
   assert.equal(payload.data.source.sourceId, 'rid');
-  assert.equal(payload.data.source.licenseStatus, 'pending');
-  assert.equal(payload.data.source.access, 'metadata_only');
-  assert.equal(payload.data.source.publicationApproved, false);
-  assert.deepEqual(payload.data.reservoirs, [], 'water: reservoirs must be empty');
+  assert.equal(payload.data.source.licenseStatus, 'approved_public');
+  assert.equal(payload.data.source.access, 'approved_public');
+  assert.equal(payload.data.source.publicationApproved, true);
+  assert.deepEqual(payload.data.reservoirs, [], 'water: no reservoir rows without an approved batch');
   assert.equal(payload.data.summary, null, 'water: summary must be null, never zero');
   assert.equal(payload.pagination.total, 0, 'water: pagination total must be zero rows');
   assertMetadataOnly(payload.meta, 'water');
+  assert.equal(payload.meta.runtimeMode, 'source_api_fallback', 'water: fallback must not claim database mode');
 
   assertNoKeys(
     payload.data,
@@ -366,13 +373,25 @@ test('licence register counts match the checked registry', () => {
     counts[resource.license_status] = (counts[resource.license_status] ?? 0) + 1;
   }
 
-  assert.equal(registry.resources.length, 82, 'registry: total');
-  assert.equal(counts.pending, 81, 'registry: pending');
-  assert.equal(counts.approved_public, 1, 'registry: approved_public');
-  assert.equal(registry.reviewed_at, '2026-10-25', 'registry: reviewed_at');
+  assert.equal(registry.resources.length, 87, 'registry: total');
+  assert.equal(counts.pending, 79, 'registry: pending');
+  assert.equal(counts.approved_public, 8, 'registry: approved_public');
+  assert.equal(registry.reviewed_at, '2026-10-26', 'registry: reviewed_at');
 
+  // The register doc must restate the registry counts, so the pins are derived
+  // from the registry itself: a new round that flips a resource to
+  // approved_public fails here until the doc is refreshed in the same change.
   const doc = readText('../../docs/source-license-register.md');
-  assert.match(doc, /\*\*82 รายการ\*\*/, 'register doc: total 82');
-  assert.match(doc, /อีก 81 รายการยัง `pending`/, 'register doc: pending 81');
-  assert.match(doc, /approved_public 1/, 'register doc: approved count');
+  for (const expected of [
+    `**${registry.resources.length} รายการ**`,
+    `\`approved_public\` **${counts.approved_public ?? 0} รายการ**`,
+    `\`pending\` **${counts.pending ?? 0} รายการ**`,
+  ]) {
+    assert.ok(doc.includes(expected), `register doc must state "${expected}"`);
+  }
+  assert.match(
+    doc,
+    /RID\/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ/,
+    'register doc: owner authorisation basis must be stated',
+  );
 });

@@ -11,12 +11,12 @@
  * calls this client.
  *
  * Attribution (CC BY 4.0):
- * - "Weather data by Open-Meteo.com" (https://open-meteo.com/)
+ * - "Weather data by Open-Meteo.com (CC BY 4.0)" (https://open-meteo.com/)
  * - Spatial Support: Grid Point estimation (~0.25° ERA5 reanalysis / ~0.1° ECMWF forecast).
  * - Not a ground meteorological observation station (TMD).
  */
 
-export const OPEN_METEO_ATTRIBUTION = 'Weather data by Open-Meteo.com';
+export const OPEN_METEO_ATTRIBUTION = 'Weather data by Open-Meteo.com (CC BY 4.0)';
 export const OPEN_METEO_URL = 'https://open-meteo.com/';
 export const OPEN_METEO_LICENSE = 'CC BY 4.0';
 export const OPEN_METEO_SPATIAL_SUPPORT = 'grid_point';

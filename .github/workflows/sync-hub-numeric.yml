@@ -1,0 +1,995 @@
+name: Sync Hub numeric observations
+
+# Lane R1-G — publishes real observations into the central Cloudflare D1 warehouse.
+#
+# The repository had no workflow that ever synced numbers (only metadata through
+# sync-hub-catalog.yml), so the warehouse went stale. This workflow runs the
+# numeric sync scripts once per day, one source per job: the four lane writers
+# (R1-C..R1-F) plus the already-landed CHIRPS writer.
+#
+# Schedule (UTC). The slots are 6 minutes apart so the upstream APIs and the
+# D1 writes never land in the same minute:
+#   03:03  rid         -> scripts/sync_rid_to_d1.py
+#   03:09  tmd         -> scripts/sync_tmd_to_d1.py
+#   03:15  open_meteo  -> scripts/sync_open_meteo_to_d1.py
+#   03:21  gistda      -> scripts/sync_gistda_to_d1.py
+#   03:27  chirps      -> scripts/sync_hub_numeric.py (pre-existing writer,
+#                        --write is its documented write flag)
+#
+# workflow_dispatch inputs:
+#   syncs -> "all" (default) or a comma-separated list of
+#            rid,tmd,open_meteo,gistda,chirps, so one sync can be retried alone.
+#   date  -> optional YYYY-MM-DD batch date for backfills (ignored by chirps,
+#            whose writer has no --date flag).
+#
+# Offsets against the workflows that already exist (read from their cron fields):
+#   sync-hub-catalog.yml  '17 19 * * *'  daily    -> 15h56m after the last numeric slot
+#   discover-sources.yml  '23 2 * * 1'   Mondays  -> 40m before the first numeric slot
+# 03:00-03:30 UTC is 10:00-10:30 ICT, i.e. after the previous day's TMD / RID /
+# GISTDA daily publications are normally released, and after the 19:17 UTC catalog
+# run of the previous day (metadata first, then the numbers that belong to it).
+#
+# Repository secrets this workflow consumes (values are never printed, never
+# written to a file and never echoed; GitHub masks secret values in job logs):
+#   CF_ACCOUNT_ID       Cloudflare account id            (D1)
+#   CF_D1_DATABASE_ID   Cloudflare D1 database id         (D1)
+#   CF_D1_TOKEN         Cloudflare D1 API token            (D1)
+#   TMD_API_UID         TMD API user id                   (TMD observations only)
+#   TMD_API_UKEY        TMD API user key                  (TMD observations only)
+#   GISTDA_API_KEY      GISTDA geo-services key           (GISTDA observations only)
+# RID and Open-Meteo need no upstream key.
+#
+# TODO(R1-G): as of 2026-10-26 `gh secret list` for
+# dragonfly13110/thailand-agri-intelligence returns an empty list, i.e. NONE of
+# the six secrets above exist on the repository side yet (they exist only in the
+# local, git-ignored .env). The owner must add them before the first run:
+#   gh secret set CF_ACCOUNT_ID --repo dragonfly13110/thailand-agri-intelligence
+#   gh secret set CF_D1_DATABASE_ID --repo dragonfly13110/thailand-agri-intelligence
+#   gh secret set CF_D1_TOKEN --repo dragonfly13110/thailand-agri-intelligence
+#   gh secret set TMD_API_UID --repo dragonfly13110/thailand-agri-intelligence
+#   gh secret set TMD_API_UKEY --repo dragonfly13110/thailand-agri-intelligence
+#   gh secret set GISTDA_API_KEY --repo dragonfly13110/thailand-agri-intelligence
+# Until then every job fails closed on the missing D1 credential instead of
+# publishing anything half-configured.
+
+on:
+  schedule:
+    # One cron entry per source; the job guard below picks the owner of the slot.
+    - cron: '3 3 * * *' # rid
+    - cron: '9 3 * * *' # tmd
+    - cron: '15 3 * * *' # open_meteo
+    - cron: '21 3 * * *' # gistda
+    - cron: '27 3 * * *' # chirps
+  workflow_dispatch:
+    inputs:
+      syncs:
+        description: 'Syncs to run: "all" (default) or comma-separated rid,tmd,open_meteo,gistda,chirps'
+        required: false
+        default: 'all'
+        type: string
+      date:
+        description: 'Batch date to publish, YYYY-MM-DD. Empty = script default (latest published day).'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # One group per cron slot so the slot sources never queue behind each other;
+  # manual dispatch runs share a group and are serialised instead of overlapping.
+  group: hub-numeric-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-slot:
+    name: Resolve the numeric sync slot
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      rid: ${{ steps.resolve.outputs.rid }}
+      tmd: ${{ steps.resolve.outputs.tmd }}
+      open_meteo: ${{ steps.resolve.outputs.open_meteo }}
+      gistda: ${{ steps.resolve.outputs.gistda }}
+      chirps: ${{ steps.resolve.outputs.chirps }}
+    steps:
+      - name: Decide which source owns this run
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          SELECTION: ${{ inputs.syncs }}
+        run: |
+          set -uo pipefail
+          rid=false
+          tmd=false
+          open_meteo=false
+          gistda=false
+          chirps=false
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            # Manual runs honour the 'syncs' input so a single sync can be
+            # retried on its own; the default (all) reruns every source.
+            selection=",${SELECTION:-all},"
+            case "${selection}" in *",all,"*|*",rid,"*) rid=true ;; esac
+            case "${selection}" in *",all,"*|*",tmd,"*) tmd=true ;; esac
+            case "${selection}" in *",all,"*|*",open_meteo,"*) open_meteo=true ;; esac
+            case "${selection}" in *",all,"*|*",gistda,"*) gistda=true ;; esac
+            case "${selection}" in *",all,"*|*",chirps,"*) chirps=true ;; esac
+          else
+            case "${SCHEDULE:-}" in
+              '3 3 * * *') rid=true ;;
+              '9 3 * * *') tmd=true ;;
+              '15 3 * * *') open_meteo=true ;;
+              '21 3 * * *') gistda=true ;;
+              '27 3 * * *') chirps=true ;;
+              *)
+                # Fallback: the schedule payload did not identify the slot.
+                # Match the narrow UTC window of each slot instead; if even that
+                # misses (a heavily delayed cron), publish every source so the
+                # warehouse cannot go stale.
+                now=$(( 10#$(date -u +%H) * 60 + 10#$(date -u +%M) ))
+                case "${now}" in
+                  180|181|182|183|184|185|186) rid=true ;;
+                  187|188|189|190|191|192) tmd=true ;;
+                  193|194|195|196|197|198) open_meteo=true ;;
+                  199|200|201|202|203|204) gistda=true ;;
+                  205|206|207|208|209) chirps=true ;;
+                  *)
+                    rid=true
+                    tmd=true
+                    open_meteo=true
+                    gistda=true
+                    chirps=true
+                    echo "::warning::Could not resolve the numeric sync slot from the schedule payload; running every source."
+                    ;;
+                esac
+                ;;
+            esac
+          fi
+          {
+            echo "rid=${rid}"
+            echo "tmd=${tmd}"
+            echo "open_meteo=${open_meteo}"
+            echo "gistda=${gistda}"
+            echo "chirps=${chirps}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Record the resolved slot in the run summary
+        if: always()
+        env:
+          RID: ${{ steps.resolve.outputs.rid }}
+          TMD: ${{ steps.resolve.outputs.tmd }}
+          OPEN_METEO: ${{ steps.resolve.outputs.open_meteo }}
+          GISTDA: ${{ steps.resolve.outputs.gistda }}
+          CHIRPS: ${{ steps.resolve.outputs.chirps }}
+        run: |
+          {
+            echo "### Numeric sync slot"
+            echo ""
+            echo "- event: \`${{ github.event_name }}\`"
+            echo "- cron: \`${{ github.event.schedule || 'n/a' }}\`"
+            echo "- requested batch date: \`${{ inputs.date || 'script default' }}\`"
+            echo "- sources in this run: \`rid=${RID} tmd=${TMD} open_meteo=${OPEN_METEO} gistda=${GISTDA} chirps=${CHIRPS}\`"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rid:
+    name: Sync RID reservoirs (numeric)
+    needs: resolve-slot
+    if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.rid == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+    steps:
+      - name: Check the Cloudflare D1 credentials
+        shell: bash
+        run: |
+          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+            echo "::error::Repository secret CF_D1_TOKEN is not configured; the RID numeric sync cannot publish to D1."
+            exit 1
+          fi
+          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+            echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+      - name: Validate the manual batch date
+        if: github.event_name == 'workflow_dispatch' && inputs.date != ''
+        shell: bash
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+        run: |
+          if [[ ! "${SYNC_DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "::error::The 'date' input must use the YYYY-MM-DD format."
+            exit 2
+          fi
+      - name: Sync the RID reservoir observations
+        id: sync
+        # TODO(R1-C): scripts/sync_rid_to_d1.py is not in the repository yet, so
+        # this step cannot fail the run while the lane is pending. The "Enforce"
+        # step below still fails the job as soon as the script exists and exits
+        # with a non-zero code. Delete this comment and the continue-on-error
+        # flag once the R1-C lane has landed.
+        continue-on-error: true
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+          SYNC_SCRIPT: scripts/sync_rid_to_d1.py
+        run: |
+          set -uo pipefail
+          if [[ ! -f "${SYNC_SCRIPT}" ]]; then
+            echo "::warning::TODO(R1-C): ${SYNC_SCRIPT} is not in the repository yet; the RID numeric sync is skipped until the lane lands."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          args=(--write)
+          if [[ -n "${SYNC_DATE:-}" ]]; then
+            args+=(--date "${SYNC_DATE}")
+          fi
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+          PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
+          code=$?
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          if [[ "${code}" -eq 0 ]]; then
+            echo "status=succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          exit "${code}"
+      - name: Enforce the RID sync exit status
+        if: always() && steps.sync.outcome == 'failure' && steps.sync.outputs.ran == 'true'
+        run: |
+          echo "::error::The RID numeric sync failed with exit code ${{ steps.sync.outputs.exit_code }}."
+          exit 1
+      - name: Record the RID result in the run summary
+        if: always()
+        env:
+          SOURCE: rid
+          SCRIPT: scripts/sync_rid_to_d1.py
+          STATUS: ${{ steps.sync.outputs.status }}
+          EXIT_CODE: ${{ steps.sync.outputs.exit_code }}
+          BATCH_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          def load(path):
+              try:
+                  with open(path, encoding="utf-8", errors="replace") as handle:
+                      return handle.read()
+              except OSError:
+                  return ""
+
+          def cell(value):
+              if value is None or value == "":
+                  return "-"
+              return str(value).replace("|", "/").replace("\n", " ")
+
+          def find_envelope(text):
+              # Tolerant: the writers print one JSON envelope on stdout, either
+              # as a compact single line or pretty-printed over several lines.
+              try:
+                  parsed = json.loads(text)
+                  if isinstance(parsed, dict):
+                      return parsed
+              except ValueError:
+                  pass
+              end = text.rfind("}")
+              while end != -1:
+                  depth = 0
+                  for start in range(end, -1, -1):
+                      if text[start] == "}":
+                          depth += 1
+                      elif text[start] == "{":
+                          depth -= 1
+                          if depth == 0:
+                              try:
+                                  candidate = json.loads(text[start:end + 1])
+                              except ValueError:
+                                  candidate = None
+                              return candidate if isinstance(candidate, dict) else None
+                  end = text.rfind("}", 0, end)
+              return None
+
+          def pick(envelope, *names):
+              for name in names:
+                  value = envelope.get(name)
+                  if value is not None and not isinstance(value, bool):
+                      return value
+              return None
+
+          text = load("sync-output.json").strip()
+          envelope = find_envelope(text) if text else None
+          if envelope is not None:
+              env_status = cell(pick(envelope, "status", "errorCode"))
+              records_read = cell(pick(envelope, "records_read", "recordsRead", "rows"))
+              records_written = cell(pick(envelope, "records_written", "recordsWritten"))
+              run_ref = cell(pick(envelope, "run_id", "runId", "errorCode"))
+          else:
+              env_status = "no stdout JSON envelope (see log)"
+              records_read = records_written = run_ref = "-"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("### Numeric sync · %s\n\n" % os.environ.get("SOURCE", "unknown"))
+              handle.write("- script: `%s`\n" % os.environ.get("SCRIPT", "?"))
+              handle.write("- job step: `%s`, exit code `%s`, batch date `%s`\n" % (
+                  os.environ.get("STATUS") or "not_started",
+                  os.environ.get("EXIT_CODE") or "n/a",
+                  os.environ.get("BATCH_DATE") or "script default"))
+              handle.write("- stdout envelope: status `%s` | records_read %s | records_written %s | run_id/error `%s`\n\n" % (
+                  env_status, records_read, records_written, run_ref))
+          PY
+
+  tmd:
+    name: Sync TMD observations (numeric)
+    needs: resolve-slot
+    if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.tmd == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+      TMD_API_UID: ${{ secrets.TMD_API_UID }}
+      TMD_API_UKEY: ${{ secrets.TMD_API_UKEY }}
+    steps:
+      - name: Check the Cloudflare D1 credentials
+        shell: bash
+        run: |
+          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+            echo "::error::Repository secret CF_D1_TOKEN is not configured; the TMD numeric sync cannot publish to D1."
+            exit 1
+          fi
+          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+            echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
+          fi
+          if [[ -z "${TMD_API_UID:-}" || -z "${TMD_API_UKEY:-}" ]]; then
+            echo "::warning::TMD_API_UID / TMD_API_UKEY are not configured as repository secrets; the TMD API call may be rejected upstream."
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+      - name: Validate the manual batch date
+        if: github.event_name == 'workflow_dispatch' && inputs.date != ''
+        shell: bash
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+        run: |
+          if [[ ! "${SYNC_DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "::error::The 'date' input must use the YYYY-MM-DD format."
+            exit 2
+          fi
+      - name: Sync the TMD station observations
+        id: sync
+        # TODO(R1-D): scripts/sync_tmd_to_d1.py is not in the repository yet, so
+        # this step cannot fail the run while the lane is pending. The "Enforce"
+        # step below still fails the job as soon as the script exists and exits
+        # with a non-zero code. Delete this comment and the continue-on-error
+        # flag once the R1-D lane has landed.
+        continue-on-error: true
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+          SYNC_SCRIPT: scripts/sync_tmd_to_d1.py
+        run: |
+          set -uo pipefail
+          if [[ ! -f "${SYNC_SCRIPT}" ]]; then
+            echo "::warning::TODO(R1-D): ${SYNC_SCRIPT} is not in the repository yet; the TMD numeric sync is skipped until the lane lands."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          args=(--write)
+          if [[ -n "${SYNC_DATE:-}" ]]; then
+            args+=(--date "${SYNC_DATE}")
+          fi
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+          PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
+          code=$?
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          if [[ "${code}" -eq 0 ]]; then
+            echo "status=succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          exit "${code}"
+      - name: Enforce the TMD sync exit status
+        if: always() && steps.sync.outcome == 'failure' && steps.sync.outputs.ran == 'true'
+        run: |
+          echo "::error::The TMD numeric sync failed with exit code ${{ steps.sync.outputs.exit_code }}."
+          exit 1
+      - name: Record the TMD result in the run summary
+        if: always()
+        env:
+          SOURCE: tmd
+          SCRIPT: scripts/sync_tmd_to_d1.py
+          STATUS: ${{ steps.sync.outputs.status }}
+          EXIT_CODE: ${{ steps.sync.outputs.exit_code }}
+          BATCH_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          def load(path):
+              try:
+                  with open(path, encoding="utf-8", errors="replace") as handle:
+                      return handle.read()
+              except OSError:
+                  return ""
+
+          def cell(value):
+              if value is None or value == "":
+                  return "-"
+              return str(value).replace("|", "/").replace("\n", " ")
+
+          def find_envelope(text):
+              # Tolerant: the writers print one JSON envelope on stdout, either
+              # as a compact single line or pretty-printed over several lines.
+              try:
+                  parsed = json.loads(text)
+                  if isinstance(parsed, dict):
+                      return parsed
+              except ValueError:
+                  pass
+              end = text.rfind("}")
+              while end != -1:
+                  depth = 0
+                  for start in range(end, -1, -1):
+                      if text[start] == "}":
+                          depth += 1
+                      elif text[start] == "{":
+                          depth -= 1
+                          if depth == 0:
+                              try:
+                                  candidate = json.loads(text[start:end + 1])
+                              except ValueError:
+                                  candidate = None
+                              return candidate if isinstance(candidate, dict) else None
+                  end = text.rfind("}", 0, end)
+              return None
+
+          def pick(envelope, *names):
+              for name in names:
+                  value = envelope.get(name)
+                  if value is not None and not isinstance(value, bool):
+                      return value
+              return None
+
+          text = load("sync-output.json").strip()
+          envelope = find_envelope(text) if text else None
+          if envelope is not None:
+              env_status = cell(pick(envelope, "status", "errorCode"))
+              records_read = cell(pick(envelope, "records_read", "recordsRead", "rows"))
+              records_written = cell(pick(envelope, "records_written", "recordsWritten"))
+              run_ref = cell(pick(envelope, "run_id", "runId", "errorCode"))
+          else:
+              env_status = "no stdout JSON envelope (see log)"
+              records_read = records_written = run_ref = "-"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("### Numeric sync · %s\n\n" % os.environ.get("SOURCE", "unknown"))
+              handle.write("- script: `%s`\n" % os.environ.get("SCRIPT", "?"))
+              handle.write("- job step: `%s`, exit code `%s`, batch date `%s`\n" % (
+                  os.environ.get("STATUS") or "not_started",
+                  os.environ.get("EXIT_CODE") or "n/a",
+                  os.environ.get("BATCH_DATE") or "script default"))
+              handle.write("- stdout envelope: status `%s` | records_read %s | records_written %s | run_id/error `%s`\n\n" % (
+                  env_status, records_read, records_written, run_ref))
+          PY
+
+  open-meteo:
+    name: Sync Open-Meteo observations (numeric)
+    needs: resolve-slot
+    if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.open_meteo == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+    steps:
+      - name: Check the Cloudflare D1 credentials
+        shell: bash
+        run: |
+          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+            echo "::error::Repository secret CF_D1_TOKEN is not configured; the Open-Meteo numeric sync cannot publish to D1."
+            exit 1
+          fi
+          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+            echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+      - name: Validate the manual batch date
+        if: github.event_name == 'workflow_dispatch' && inputs.date != ''
+        shell: bash
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+        run: |
+          if [[ ! "${SYNC_DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "::error::The 'date' input must use the YYYY-MM-DD format."
+            exit 2
+          fi
+      - name: Sync the Open-Meteo observations
+        id: sync
+        # TODO(R1-E): scripts/sync_open_meteo_to_d1.py is not in the repository yet,
+        # so this step cannot fail the run while the lane is pending. The
+        # "Enforce" step below still fails the job as soon as the script exists and
+        # exits with a non-zero code. Delete this comment and the
+        # continue-on-error flag once the R1-E lane has landed.
+        continue-on-error: true
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+          SYNC_SCRIPT: scripts/sync_open_meteo_to_d1.py
+        run: |
+          set -uo pipefail
+          if [[ ! -f "${SYNC_SCRIPT}" ]]; then
+            echo "::warning::TODO(R1-E): ${SYNC_SCRIPT} is not in the repository yet; the Open-Meteo numeric sync is skipped until the lane lands."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          args=(--write)
+          if [[ -n "${SYNC_DATE:-}" ]]; then
+            args+=(--date "${SYNC_DATE}")
+          fi
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+          PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
+          code=$?
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          if [[ "${code}" -eq 0 ]]; then
+            echo "status=succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          exit "${code}"
+      - name: Enforce the Open-Meteo sync exit status
+        if: always() && steps.sync.outcome == 'failure' && steps.sync.outputs.ran == 'true'
+        run: |
+          echo "::error::The Open-Meteo numeric sync failed with exit code ${{ steps.sync.outputs.exit_code }}."
+          exit 1
+      - name: Record the Open-Meteo result in the run summary
+        if: always()
+        env:
+          SOURCE: open_meteo
+          SCRIPT: scripts/sync_open_meteo_to_d1.py
+          STATUS: ${{ steps.sync.outputs.status }}
+          EXIT_CODE: ${{ steps.sync.outputs.exit_code }}
+          BATCH_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          def load(path):
+              try:
+                  with open(path, encoding="utf-8", errors="replace") as handle:
+                      return handle.read()
+              except OSError:
+                  return ""
+
+          def cell(value):
+              if value is None or value == "":
+                  return "-"
+              return str(value).replace("|", "/").replace("\n", " ")
+
+          def find_envelope(text):
+              # Tolerant: the writers print one JSON envelope on stdout, either
+              # as a compact single line or pretty-printed over several lines.
+              try:
+                  parsed = json.loads(text)
+                  if isinstance(parsed, dict):
+                      return parsed
+              except ValueError:
+                  pass
+              end = text.rfind("}")
+              while end != -1:
+                  depth = 0
+                  for start in range(end, -1, -1):
+                      if text[start] == "}":
+                          depth += 1
+                      elif text[start] == "{":
+                          depth -= 1
+                          if depth == 0:
+                              try:
+                                  candidate = json.loads(text[start:end + 1])
+                              except ValueError:
+                                  candidate = None
+                              return candidate if isinstance(candidate, dict) else None
+                  end = text.rfind("}", 0, end)
+              return None
+
+          def pick(envelope, *names):
+              for name in names:
+                  value = envelope.get(name)
+                  if value is not None and not isinstance(value, bool):
+                      return value
+              return None
+
+          text = load("sync-output.json").strip()
+          envelope = find_envelope(text) if text else None
+          if envelope is not None:
+              env_status = cell(pick(envelope, "status", "errorCode"))
+              records_read = cell(pick(envelope, "records_read", "recordsRead", "rows"))
+              records_written = cell(pick(envelope, "records_written", "recordsWritten"))
+              run_ref = cell(pick(envelope, "run_id", "runId", "errorCode"))
+          else:
+              env_status = "no stdout JSON envelope (see log)"
+              records_read = records_written = run_ref = "-"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("### Numeric sync · %s\n\n" % os.environ.get("SOURCE", "unknown"))
+              handle.write("- script: `%s`\n" % os.environ.get("SCRIPT", "?"))
+              handle.write("- job step: `%s`, exit code `%s`, batch date `%s`\n" % (
+                  os.environ.get("STATUS") or "not_started",
+                  os.environ.get("EXIT_CODE") or "n/a",
+                  os.environ.get("BATCH_DATE") or "script default"))
+              handle.write("- stdout envelope: status `%s` | records_read %s | records_written %s | run_id/error `%s`\n\n" % (
+                  env_status, records_read, records_written, run_ref))
+          PY
+
+  chirps:
+    name: Sync CHIRPS numeric observations (existing writer)
+    needs: resolve-slot
+    if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.chirps == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+    steps:
+      - name: Check the Cloudflare D1 credentials
+        shell: bash
+        run: |
+          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+            echo "::error::Repository secret CF_D1_TOKEN is not configured; the CHIRPS numeric sync cannot publish to D1."
+            exit 1
+          fi
+          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+            echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install dependencies
+        # read_chirps_observations() imports rasterio fail-closed (documented
+        # [geo] extra in pyproject.toml); rasterio is not in requirements.lock.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+          python -m pip install "rasterio>=1.4,<2"
+      - name: Sync the CHIRPS numeric observations
+        id: sync
+        # Same temporary round-1 guard shape as the lane jobs; this writer has
+        # already landed, so a missing script here would be an accident, not a
+        # pending lane. Lane H / round-2 QA may drop the guards once all lanes
+        # are green.
+        continue-on-error: true
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+          SYNC_SCRIPT: scripts/sync_hub_numeric.py
+        run: |
+          set -uo pipefail
+          if [[ ! -f "${SYNC_SCRIPT}" ]]; then
+            echo "::warning::${SYNC_SCRIPT} is missing unexpectedly; the CHIRPS numeric sync is skipped."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ -n "${SYNC_DATE:-}" ]]; then
+            echo "::warning::scripts/sync_hub_numeric.py has no --date flag (it publishes the latest reviewed sample); the batch-date input is ignored for chirps."
+          fi
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+          # --write is this writer's documented write flag; --input and --write
+          # are mutually exclusive, so the live bounded sample path is used.
+          PYTHONPATH=src python "${SYNC_SCRIPT}" --write | tee sync-output.json
+          code=$?
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          if [[ "${code}" -eq 0 ]]; then
+            echo "status=succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          exit "${code}"
+      - name: Enforce the CHIRPS sync exit status
+        if: always() && steps.sync.outcome == 'failure' && steps.sync.outputs.ran == 'true'
+        run: |
+          echo "::error::The CHIRPS numeric sync failed with exit code ${{ steps.sync.outputs.exit_code }}."
+          exit 1
+      - name: Record the CHIRPS result in the run summary
+        if: always()
+        env:
+          SOURCE: chirps
+          SCRIPT: scripts/sync_hub_numeric.py
+          STATUS: ${{ steps.sync.outputs.status }}
+          EXIT_CODE: ${{ steps.sync.outputs.exit_code }}
+          BATCH_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          def load(path):
+              try:
+                  with open(path, encoding="utf-8", errors="replace") as handle:
+                      return handle.read()
+              except OSError:
+                  return ""
+
+          def cell(value):
+              if value is None or value == "":
+                  return "-"
+              return str(value).replace("|", "/").replace("\n", " ")
+
+          def find_envelope(text):
+              # Tolerant: the writers print one JSON envelope on stdout, either
+              # as a compact single line or pretty-printed over several lines.
+              try:
+                  parsed = json.loads(text)
+                  if isinstance(parsed, dict):
+                      return parsed
+              except ValueError:
+                  pass
+              end = text.rfind("}")
+              while end != -1:
+                  depth = 0
+                  for start in range(end, -1, -1):
+                      if text[start] == "}":
+                          depth += 1
+                      elif text[start] == "{":
+                          depth -= 1
+                          if depth == 0:
+                              try:
+                                  candidate = json.loads(text[start:end + 1])
+                              except ValueError:
+                                  candidate = None
+                              return candidate if isinstance(candidate, dict) else None
+                  end = text.rfind("}", 0, end)
+              return None
+
+          def pick(envelope, *names):
+              for name in names:
+                  value = envelope.get(name)
+                  if value is not None and not isinstance(value, bool):
+                      return value
+              return None
+
+          text = load("sync-output.json").strip()
+          envelope = find_envelope(text) if text else None
+          if envelope is not None:
+              env_status = cell(pick(envelope, "status", "errorCode"))
+              records_read = cell(pick(envelope, "records_read", "recordsRead", "rows"))
+              records_written = cell(pick(envelope, "records_written", "recordsWritten"))
+              run_ref = cell(pick(envelope, "run_id", "runId", "errorCode"))
+          else:
+              env_status = "no stdout JSON envelope (see log)"
+              records_read = records_written = run_ref = "-"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("### Numeric sync · %s\n\n" % os.environ.get("SOURCE", "unknown"))
+              handle.write("- script: `%s`\n" % os.environ.get("SCRIPT", "?"))
+              handle.write("- job step: `%s`, exit code `%s`, batch date `%s`\n" % (
+                  os.environ.get("STATUS") or "not_started",
+                  os.environ.get("EXIT_CODE") or "n/a",
+                  os.environ.get("BATCH_DATE") or "script default"))
+              handle.write("- stdout envelope: status `%s` | records_read %s | records_written %s | run_id/error `%s`\n\n" % (
+                  env_status, records_read, records_written, run_ref))
+          PY
+
+  gistda:
+    name: Sync GISTDA observations (numeric)
+    needs: resolve-slot
+    if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.gistda == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+      GISTDA_API_KEY: ${{ secrets.GISTDA_API_KEY }}
+    steps:
+      - name: Check the Cloudflare D1 credentials
+        shell: bash
+        run: |
+          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+            echo "::error::Repository secret CF_D1_TOKEN is not configured; the GISTDA numeric sync cannot publish to D1."
+            exit 1
+          fi
+          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+            echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
+          fi
+          if [[ -z "${GISTDA_API_KEY:-}" ]]; then
+            echo "::warning::GISTDA_API_KEY is not configured as a repository secret; the GISTDA API call may be rejected upstream."
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+      - name: Validate the manual batch date
+        if: github.event_name == 'workflow_dispatch' && inputs.date != ''
+        shell: bash
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+        run: |
+          if [[ ! "${SYNC_DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "::error::The 'date' input must use the YYYY-MM-DD format."
+            exit 2
+          fi
+      - name: Sync the GISTDA flood observations
+        id: sync
+        # TODO(R1-F): scripts/sync_gistda_to_d1.py is not in the repository yet, so
+        # this step cannot fail the run while the lane is pending. The "Enforce"
+        # step below still fails the job as soon as the script exists and exits
+        # with a non-zero code. Delete this comment and the continue-on-error
+        # flag once the R1-F lane has landed.
+        continue-on-error: true
+        env:
+          SYNC_DATE: ${{ inputs.date }}
+          SYNC_SCRIPT: scripts/sync_gistda_to_d1.py
+        run: |
+          set -uo pipefail
+          if [[ ! -f "${SYNC_SCRIPT}" ]]; then
+            echo "::warning::TODO(R1-F): ${SYNC_SCRIPT} is not in the repository yet; the GISTDA numeric sync is skipped until the lane lands."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          args=(--write)
+          if [[ -n "${SYNC_DATE:-}" ]]; then
+            args+=(--date "${SYNC_DATE}")
+          fi
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+          PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
+          code=$?
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          if [[ "${code}" -eq 0 ]]; then
+            echo "status=succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          exit "${code}"
+      - name: Enforce the GISTDA sync exit status
+        if: always() && steps.sync.outcome == 'failure' && steps.sync.outputs.ran == 'true'
+        run: |
+          echo "::error::The GISTDA numeric sync failed with exit code ${{ steps.sync.outputs.exit_code }}."
+          exit 1
+      - name: Record the GISTDA result in the run summary
+        if: always()
+        env:
+          SOURCE: gistda
+          SCRIPT: scripts/sync_gistda_to_d1.py
+          STATUS: ${{ steps.sync.outputs.status }}
+          EXIT_CODE: ${{ steps.sync.outputs.exit_code }}
+          BATCH_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          def load(path):
+              try:
+                  with open(path, encoding="utf-8", errors="replace") as handle:
+                      return handle.read()
+              except OSError:
+                  return ""
+
+          def cell(value):
+              if value is None or value == "":
+                  return "-"
+              return str(value).replace("|", "/").replace("\n", " ")
+
+          def find_envelope(text):
+              # Tolerant: the writers print one JSON envelope on stdout, either
+              # as a compact single line or pretty-printed over several lines.
+              try:
+                  parsed = json.loads(text)
+                  if isinstance(parsed, dict):
+                      return parsed
+              except ValueError:
+                  pass
+              end = text.rfind("}")
+              while end != -1:
+                  depth = 0
+                  for start in range(end, -1, -1):
+                      if text[start] == "}":
+                          depth += 1
+                      elif text[start] == "{":
+                          depth -= 1
+                          if depth == 0:
+                              try:
+                                  candidate = json.loads(text[start:end + 1])
+                              except ValueError:
+                                  candidate = None
+                              return candidate if isinstance(candidate, dict) else None
+                  end = text.rfind("}", 0, end)
+              return None
+
+          def pick(envelope, *names):
+              for name in names:
+                  value = envelope.get(name)
+                  if value is not None and not isinstance(value, bool):
+                      return value
+              return None
+
+          text = load("sync-output.json").strip()
+          envelope = find_envelope(text) if text else None
+          if envelope is not None:
+              env_status = cell(pick(envelope, "status", "errorCode"))
+              records_read = cell(pick(envelope, "records_read", "recordsRead", "rows"))
+              records_written = cell(pick(envelope, "records_written", "recordsWritten"))
+              run_ref = cell(pick(envelope, "run_id", "runId", "errorCode"))
+          else:
+              env_status = "no stdout JSON envelope (see log)"
+              records_read = records_written = run_ref = "-"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("### Numeric sync · %s\n\n" % os.environ.get("SOURCE", "unknown"))
+              handle.write("- script: `%s`\n" % os.environ.get("SCRIPT", "?"))
+              handle.write("- job step: `%s`, exit code `%s`, batch date `%s`\n" % (
+                  os.environ.get("STATUS") or "not_started",
+                  os.environ.get("EXIT_CODE") or "n/a",
+                  os.environ.get("BATCH_DATE") or "script default"))
+              handle.write("- stdout envelope: status `%s` | records_read %s | records_written %s | run_id/error `%s`\n\n" % (
+                  env_status, records_read, records_written, run_ref))
+          PY

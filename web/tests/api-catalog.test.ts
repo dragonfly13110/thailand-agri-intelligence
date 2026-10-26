@@ -21,6 +21,7 @@ const EXPECTED_GROUP_IDS = [
   'datasets',
   'weather',
   'water',
+  'nwp',
   'crops',
   'soil',
   'areas',
@@ -36,7 +37,11 @@ const EXPECTED_ENDPOINT_IDS = [
   'datasets-series',
   'series-observations',
   'weather-overview',
+  'weather-observations',
   'water-reservoirs',
+  'nwp-grid',
+  'nwp-provinces',
+  'nwp-runs',
   'crops-reference',
   'soil-reference',
   'areas-evidence',
@@ -56,19 +61,19 @@ test('api catalog: version and contract constants match the v1 schema', () => {
   );
 });
 
-test('api catalog: exactly 8 groups and 13 endpoints in the documented order', () => {
-  assert.equal(API_GROUPS.length, 8);
+test('api catalog: exactly 9 groups and 17 endpoints in the documented order', () => {
+  assert.equal(API_GROUPS.length, 9);
   assert.deepEqual(
     API_GROUPS.map((group) => group.id),
     [...EXPECTED_GROUP_IDS],
   );
 
-  assert.equal(API_ENDPOINTS.length, 13);
+  assert.equal(API_ENDPOINTS.length, 17);
   assert.deepEqual(
     API_ENDPOINTS.map((endpoint) => endpoint.id),
     [...EXPECTED_ENDPOINT_IDS],
   );
-  assert.equal(new Set(API_ENDPOINTS.map((endpoint) => endpoint.id)).size, 13);
+  assert.equal(new Set(API_ENDPOINTS.map((endpoint) => endpoint.id)).size, 17);
 });
 
 test('api catalog: every endpoint is a unique GET under /api/v1', () => {

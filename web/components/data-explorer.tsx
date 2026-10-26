@@ -193,7 +193,7 @@ export function DataExplorer({ dataset = '', q = '', page = '1' }: {
       {list.value.meta.freshness === 'stale' && <p className="area-note" role="status">บัญชีข้อมูลอาจเก่า แสดงข้อมูลจากรอบที่ดึงสำเร็จล่าสุด</p>}
       {list.value.data.length === 0
         ? <div className="empty-state" role="status"><h3>ยังไม่พบชุดข้อมูล</h3><p>ลองเปลี่ยนคำค้น หรือเปิดบัญชีข้อมูลทั้งหมด</p></div>
-        : <ul className="province-list" aria-label="ผลการค้นหาชุดข้อมูล">{list.value.data.map((item) => (
+        : <ul className="dataset-list" aria-label="ผลการค้นหาชุดข้อมูล">{list.value.data.map((item) => (
           <li key={item.id}><Link href={pageUrl(item.id, 1, query)}><strong>{item.title || 'ไม่มีชื่อชุดข้อมูล'}</strong><span>{item.owner || item.sourceId} · {item.access === 'approved_public' ? 'อาจมีทรัพยากรที่อนุมัติ' : 'แสดงคำอธิบาย'}</span></Link></li>
         ))}</ul>}
     </>}

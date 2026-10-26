@@ -19,6 +19,8 @@ node_modules/
 *.tsbuildinfo
 web/test-results/
 web/playwright-report/
+.tmp_qa/
+chrome-profile/
 
 .wrangler/
 .impeccable/

@@ -15,7 +15,7 @@
   gap: 26px;
   width: 100%;
   min-width: 0;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
 }
 
 .container > * {
@@ -206,7 +206,7 @@
 
 .heroTitle span {
   display: block;
-  color: #d9e8a0;
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -323,7 +323,7 @@
   font-size: 24px;
   font-weight: 650;
   line-height: 1.2;
-  color: #d9e8a0;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -381,7 +381,7 @@
   border: 1px solid #b9c8b1;
   border-radius: 7px;
   background: var(--white, #fff);
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   font-size: 13.5px;
   cursor: pointer;
 }
@@ -449,8 +449,8 @@
 }
 
 .cohortButtonActive {
-  background: var(--forest, #213d32);
-  border-color: var(--forest, #213d32);
+  background: var(--forest, var(--forest));
+  border-color: var(--forest, var(--forest));
   color: #f3f8ea;
 }
 
@@ -580,7 +580,7 @@
   font-weight: 600;
   line-height: 1.38;
   letter-spacing: -0.01em;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   text-wrap: balance;
 }
 
@@ -589,7 +589,7 @@
   margin: 7px 0 0;
   font-size: 12.5px;
   line-height: 1.8;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .sectionMeta {
@@ -642,7 +642,7 @@
   font-size: 11.5px;
   font-weight: 500;
   line-height: 1.55;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: anywhere;
 }
 
@@ -651,7 +651,7 @@
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.015em;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -660,7 +660,7 @@
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .kpiSub {
@@ -754,7 +754,7 @@
   font-size: 16px;
   font-weight: 600;
   line-height: 1.45;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .panelMeta {
@@ -768,7 +768,7 @@
   margin: 0;
   font-size: 11px;
   line-height: 1.75;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   overflow-wrap: anywhere;
 }
 
@@ -818,7 +818,7 @@
   gap: 5px;
   padding: 6px 4px;
   border-radius: 10px;
-  background: #fbfcf9;
+  background: var(--surface-muted);
   border: 1px solid #eff3ea;
 }
 
@@ -1001,7 +1001,7 @@
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
@@ -1173,7 +1173,7 @@
   font-size: 20px;
   font-weight: 650;
   line-height: 1.2;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   font-variant-numeric: tabular-nums;
 }
 
@@ -1203,7 +1203,7 @@
   padding: 10px 12px;
   border: 1px solid #e4ebe0;
   border-radius: 9px;
-  background: #fbfcf9;
+  background: var(--surface-muted);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -1331,13 +1331,13 @@
 
 .axisLabel {
   font-size: 10.5px;
-  fill: #53645a;
+  fill: var(--muted);
 }
 
 .axisUnit {
   font-size: 9.5px;
   font-weight: 700;
-  fill: #53645a;
+  fill: var(--muted);
 }
 
 .trendLineSenior {
@@ -1358,19 +1358,19 @@
 
 .trendDotSenior {
   fill: #b45309;
-  stroke: #ffffff;
+  stroke: var(--white);
   stroke-width: 1;
 }
 
 .trendDotYoung {
   fill: #4a7a3a;
-  stroke: #ffffff;
+  stroke: var(--white);
   stroke-width: 1;
 }
 
 .trendYear {
   font-size: 11px;
-  fill: #53645a;
+  fill: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1513,7 +1513,7 @@
 
 .tableRow:hover > th,
 .tableRow:hover > td {
-  background: #f7faf2;
+  background: var(--surface-muted);
 }
 
 .nameCell {
@@ -1526,7 +1526,7 @@
 }
 
 .tableRow:hover .nameCell {
-  background: #f7faf2;
+  background: var(--surface-muted);
 }
 
 .rowSelected > td,
@@ -1641,7 +1641,7 @@
   margin: 0;
   padding: 10px 13px;
   border: 1px solid #dfe8d7;
-  border-left: 3px solid var(--accent, #d9e8a0);
+  border-left: 3px solid var(--accent, var(--accent));
   border-radius: 0 7px 7px 0;
   background: #f5f8f0;
   font-size: 11.5px;
@@ -1667,7 +1667,7 @@
   padding: 14px 15px;
   border: 1px solid #e4ebe0;
   border-radius: 10px;
-  background: #fbfcf9;
+  background: var(--surface-muted);
 }
 
 .techHead {
@@ -2034,7 +2034,7 @@
   padding: 30px 18px;
   border: 1px dashed #c9d7c1;
   border-radius: 10px;
-  background: #fbfcf9;
+  background: var(--surface-muted);
   text-align: center;
 }
 

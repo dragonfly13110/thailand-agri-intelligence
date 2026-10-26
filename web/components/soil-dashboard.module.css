@@ -7,8 +7,8 @@
 
 /* Search */
 .searchBox {
-  background: #f4f7f2;
-  border: 1px solid #dce5da;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 18px 20px;
   display: flex;
@@ -22,7 +22,7 @@
   gap: 8px;
   font-size: 15px;
   font-weight: 600;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .searchLabel svg {
@@ -33,14 +33,14 @@
   width: 100%;
   border: 1px solid #c9d6c6;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--white);
   padding: 11px 14px;
   font-size: 15px;
-  color: #1f3329;
+  color: var(--ink);
 }
 
 .searchInput:focus {
-  outline: 3px solid #728d3c;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
   border-color: #8fae83;
 }
@@ -69,8 +69,8 @@
   flex-direction: column;
   gap: 6px;
   text-align: left;
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 15px 16px;
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
@@ -99,7 +99,7 @@
 .seriesHead strong {
   font-size: 15px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .seriesCode {
@@ -135,12 +135,12 @@
 .seriesPh em {
   font-style: normal;
   font-weight: 400;
-  color: #7b8e84;
+  color: var(--muted);
 }
 
 /* Empty state */
 .emptyBox {
-  background: #ffffff;
+  background: var(--white);
   border: 1px dashed #cdd9ca;
   border-radius: 12px;
   padding: 22px 24px;
@@ -154,7 +154,7 @@
 
 .emptyBox code {
   background: #f0f3ec;
-  border: 1px solid #dce5da;
+  border: 1px solid var(--line);
   border-radius: 5px;
   padding: 2px 8px;
   margin-right: 6px;
@@ -181,8 +181,8 @@
 
 /* Generic card */
 .card {
-  background: #ffffff;
-  border: 1px solid #e1e8df;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 22px 24px;
   box-shadow: 0 2px 8px rgba(33, 61, 50, 0.04);
@@ -205,7 +205,7 @@
   gap: 9px;
   font-size: 20px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
   letter-spacing: -0.3px;
 }
 
@@ -214,7 +214,7 @@
 }
 
 .cardHead p {
-  color: #7b8e84;
+  color: var(--muted);
   font-size: 12.5px;
   margin-top: 5px;
   line-height: 1.7;
@@ -258,7 +258,7 @@
 }
 
 .detailItem {
-  background: #fbfcf9;
+  background: var(--surface-muted);
   border: 1px solid #e4ebe1;
   border-radius: 10px;
   padding: 13px 15px;
@@ -270,13 +270,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #7b8e84;
+  color: var(--muted);
   margin-bottom: 6px;
 }
 
 .detailItem p {
   font-size: 13.5px;
-  color: #1f3329;
+  color: var(--ink);
   line-height: 1.7;
 }
 
@@ -308,10 +308,10 @@
 
 .searchTermNote {
   font-size: 12px;
-  color: #7b8e84;
+  color: var(--muted);
   line-height: 1.7;
-  background: #f4f7f2;
-  border: 1px solid #dce5da;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 14px;
 }
@@ -325,7 +325,7 @@
 
 .cropChip {
   border: 1px solid #c5d3c2;
-  background: #ffffff;
+  background: var(--white);
   color: #385043;
   font-size: 13px;
   font-weight: 500;
@@ -342,7 +342,7 @@
 .cropChipActive {
   background: #2e7d32;
   border-color: #2e7d32;
-  color: #ffffff;
+  color: var(--white);
   font-weight: 600;
 }
 
@@ -364,25 +364,25 @@
   color: #2e4439;
   font-weight: 600;
   padding: 11px 14px;
-  border-bottom: 2px solid #dce5da;
+  border-bottom: 2px solid var(--line);
   white-space: nowrap;
 }
 
 .fertTable td {
   padding: 12px 14px;
-  border-bottom: 1px solid #eef2ed;
-  color: #1f3329;
+  border-bottom: 1px solid var(--surface-muted);
+  color: var(--ink);
   line-height: 1.75;
   vertical-align: top;
 }
 
 .condCell {
-  background: #fbfcf9 !important;
+  background: var(--surface-muted) !important;
   font-weight: 600;
   color: #2e4439 !important;
   white-space: normal !important;
   min-width: 190px;
-  border-bottom: 1px solid #eef2ed !important;
+  border-bottom: 1px solid var(--surface-muted) !important;
 }
 
 .rowMatch .condCell {
@@ -424,7 +424,7 @@
   font-size: 13px;
   color: #44594d;
   background: #f8faf5;
-  border: 1px solid #dce5da;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 11px 15px;
   line-height: 1.75;
@@ -467,7 +467,7 @@
 }
 
 .problemCard {
-  background: #fbfcf9;
+  background: var(--surface-muted);
   border: 1px solid #e4ebe1;
   border-radius: 10px;
   padding: 16px 17px;
@@ -479,12 +479,12 @@
 .problemCard h3 {
   font-size: 15.5px;
   font-weight: 700;
-  color: #1a3328;
+  color: var(--ink);
 }
 
 .problemSummary {
   font-size: 12.5px;
-  color: #556b60;
+  color: var(--muted);
   line-height: 1.7;
   border-left: 3px solid #a5c99b;
   padding-left: 10px;
@@ -538,10 +538,10 @@
   align-items: flex-start;
   gap: 8px;
   font-size: 12px;
-  color: #7b8e84;
+  color: var(--muted);
   line-height: 1.8;
-  background: #f4f7f2;
-  border: 1px solid #dce5da;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px 16px;
 }

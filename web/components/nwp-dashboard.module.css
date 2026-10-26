@@ -1,0 +1,1084 @@
+/* ==========================================================================
+   NWP grid forecast dashboard (/nwp) + shared heatmap styles
+   Owned by Lane E-design. Consumed by:
+     - web/components/nwp-heatmap.tsx (heatmap, axes, legend, tooltip, cells)
+     - web/components/nwp-dashboard.tsx (Lane E-full, page shell classes)
+   Colours/spacing/radius come from web/app/globals.css tokens.
+   The only literal hex values are the 8-step heat scale, declared as custom
+   properties on .heatmap so swatches and cells share one ramp.
+   ========================================================================== */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* --- Governance banner -------------------------------------------------- */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, var(--line));
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warning) 8%, var(--white));
+  min-width: 0;
+}
+
+.bannerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--warning) 16%, var(--white));
+  color: var(--warning);
+}
+
+.bannerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bannerBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--white));
+  background: color-mix(in srgb, var(--warning) 12%, var(--white));
+  color: var(--warning);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.bannerTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.7;
+}
+
+.bannerText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted);
+  max-width: 86ch;
+}
+
+.bannerList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+/* --- Run bar (init time, retrieved at, age, D1 status) ------------------ */
+.runBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.runMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.runMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.runMetaLabel {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.runMetaValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+/* --- Variable tabs ------------------------------------------------------ */
+.tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  scrollbar-width: thin;
+  min-width: 0;
+}
+
+.tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  transition: background 0.16s, border-color 0.16s, color 0.16s;
+}
+
+.tab:hover {
+  background: var(--accent-soft);
+  border-color: var(--line-strong);
+  color: var(--forest);
+}
+
+.tabActive {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.tabActive:hover {
+  background: var(--forest-mid);
+  border-color: var(--forest-mid);
+  color: var(--white);
+}
+
+/* --- Controls (run / lead time) ---------------------------------------- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  max-width: 100%;
+}
+
+.controlLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.select {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- Lead-time segmented control --------------------------------------- */
+.leadButtons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  max-width: 100%;
+}
+
+.leadButton {
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+  transition: background 0.16s, color 0.16s;
+}
+
+.leadButton:hover {
+  background: var(--white);
+  color: var(--forest);
+}
+
+.leadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.leadActive {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.leadActive:hover {
+  background: var(--forest);
+  color: var(--white);
+}
+
+/* --- KPI cards ---------------------------------------------------------- */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+  transition: box-shadow 0.18s;
+}
+
+.kpi:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.kpiValue {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.kpiLabel {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+  order: -1;
+}
+
+.kpiUnit {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.kpiNote {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* --- Panels and layout -------------------------------------------------- */
+.mapLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px 16px;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.panelNote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 74ch;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-width: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* --- Heatmap shell ------------------------------------------------------ */
+.heatmapWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.heatmap {
+  /* 8-step sequential ramp (light → severe). Only place with fixed hex. */
+  --nwp-scale-0: #f3f7ec;
+  --nwp-scale-1: #e2edc9;
+  --nwp-scale-2: #cbdf9b;
+  --nwp-scale-3: #aecd69;
+  --nwp-scale-4: #d6c258;
+  --nwp-scale-5: #d59b46;
+  --nwp-scale-6: #bd6a3f;
+  --nwp-scale-7: #8a3d32;
+  --nwp-axis-gutter: 34px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.heatmapStage {
+  width: 100%;
+  /* plot max width + left/right axis gutters + the two 2px grid gaps */
+  max-width: calc(var(--nwp-plot-max-width, 100%) + var(--nwp-axis-gutter) * 2 + 4px);
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.heatmapGrid {
+  display: grid;
+  grid-template-columns: var(--nwp-axis-gutter) minmax(0, 1fr) var(--nwp-axis-gutter);
+  grid-template-rows: auto auto auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.axisTop,
+.axisBottom,
+.axisLeft,
+.axisRight,
+.axisCorner {
+  position: relative;
+  min-width: 0;
+}
+
+.axisTop,
+.axisBottom {
+  height: 16px;
+}
+
+.axisLabel {
+  position: absolute;
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.plot {
+  position: relative;
+  min-width: 0;
+}
+
+.plotSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--surface-muted);
+  border-radius: 2px;
+  touch-action: pan-y;
+}
+
+.plotSvg:focus {
+  outline: none;
+}
+
+.plotSvg:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- Cells -------------------------------------------------------------- */
+.cell {
+  stroke: none;
+}
+
+.cellEmpty {
+  fill-opacity: 1;
+}
+
+.focusRing {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2px;
+  pointer-events: none;
+}
+
+.scale0 {
+  fill: var(--nwp-scale-0);
+  background-color: var(--nwp-scale-0);
+}
+
+.scale1 {
+  fill: var(--nwp-scale-1);
+  background-color: var(--nwp-scale-1);
+}
+
+.scale2 {
+  fill: var(--nwp-scale-2);
+  background-color: var(--nwp-scale-2);
+}
+
+.scale3 {
+  fill: var(--nwp-scale-3);
+  background-color: var(--nwp-scale-3);
+}
+
+.scale4 {
+  fill: var(--nwp-scale-4);
+  background-color: var(--nwp-scale-4);
+}
+
+.scale5 {
+  fill: var(--nwp-scale-5);
+  background-color: var(--nwp-scale-5);
+}
+
+.scale6 {
+  fill: var(--nwp-scale-6);
+  background-color: var(--nwp-scale-6);
+}
+
+.scale7 {
+  fill: var(--nwp-scale-7);
+  background-color: var(--nwp-scale-7);
+}
+
+.heatmapNote {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.85;
+  color: var(--muted);
+  max-width: 82ch;
+}
+
+/* --- Legend ------------------------------------------------------------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+
+.legendTitle {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.legendRange {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.legendTier {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 38%, var(--white));
+  border-radius: 999px;
+  padding: 0 6px;
+}
+
+.legendUnit {
+  flex: 1 1 100%;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.swatch {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.swatchEmpty {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--line-strong) 0 2px,
+    var(--surface-muted) 2px 6px
+  );
+}
+
+/* --- Tooltip ------------------------------------------------------------ */
+.tooltip {
+  position: absolute;
+  z-index: 3;
+  width: max-content;
+  max-width: min(220px, calc(100% - 8px));
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--forest);
+  color: var(--paper);
+  box-shadow: var(--shadow-md);
+  font-size: 11.5px;
+  line-height: 1.65;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
+.tooltipLeft {
+  transform: translate(-8%, calc(-100% - 10px));
+}
+
+.tooltipRight {
+  transform: translate(-92%, calc(-100% - 10px));
+}
+
+.tooltipBelow {
+  transform: translate(-50%, 10px);
+}
+
+.tooltipBelow.tooltipLeft {
+  transform: translate(-8%, 10px);
+}
+
+.tooltipBelow.tooltipRight {
+  transform: translate(-92%, 10px);
+}
+
+.tooltipTitle {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.tooltipCoord {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.86;
+}
+
+.tooltipValue {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.tooltipNote {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  font-size: 10.5px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+/* --- Province watchlist ------------------------------------------------- */
+.provincePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.tableScroll {
+  overflow: auto;
+  max-height: 440px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  scrollbar-width: thin;
+  min-width: 0;
+}
+
+.table {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.table caption {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.table th,
+.table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover td {
+  background: var(--accent-soft);
+}
+
+/* --- Risk badges -------------------------------------------------------- */
+.riskBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.riskNormal {
+  background: var(--accent-soft);
+  border-color: var(--line-strong);
+  color: var(--forest);
+}
+
+.riskWatch {
+  background: color-mix(in srgb, var(--warning) 13%, var(--white));
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--white));
+  color: var(--warning);
+}
+
+.riskHigh {
+  background: color-mix(in srgb, var(--danger) 10%, var(--white));
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--white));
+  color: color-mix(in srgb, var(--danger) 82%, var(--ink));
+}
+
+.riskSevere {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--white);
+}
+
+/* --- Advisories --------------------------------------------------------- */
+.advisories {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.advisory {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-strong);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.advisory strong {
+  display: block;
+  font-size: 12.5px;
+  margin-bottom: 2px;
+}
+
+.advisory p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* --- Data quality panel ------------------------------------------------- */
+.qualityGrid {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.qualityRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  gap: 4px 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.75;
+}
+
+.qualityRow:last-child {
+  border-bottom: 0;
+}
+
+.qualityLabel {
+  color: var(--muted);
+  min-width: 0;
+}
+
+.qualityValue {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* --- Cross links -------------------------------------------------------- */
+.crossLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crossLinks a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  transition: background 0.16s, border-color 0.16s;
+}
+
+.crossLinks a:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-strong);
+}
+
+/* --- States ------------------------------------------------------------- */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 38px 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: center;
+  min-width: 0;
+}
+
+.emptyState strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.errorState {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--line));
+  border-left: 4px solid var(--danger);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 7%, var(--white));
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 1.8;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.errorState strong {
+  font-size: 14px;
+}
+
+.skeleton {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  animation: nwpPulse 1.3s ease-in-out infinite;
+}
+
+@keyframes nwpPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Focus visibility --------------------------------------------------- */
+.tab:focus-visible,
+.leadButton:focus-visible,
+.crossLinks a:focus-visible,
+.table a:focus-visible,
+.advisory a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- Responsive --------------------------------------------------------- */
+/* Desktop: heatmap + side panel side by side. */
+@media (min-width: 1200px) {
+  .mapLayout {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+
+  .infoGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard {
+    gap: 20px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mapLayout,
+  .infoGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard {
+    gap: 18px;
+  }
+
+  .heatmap {
+    --nwp-axis-gutter: 28px;
+  }
+
+  .banner {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .bannerIcon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .controls {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .controlGroup {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .kpiGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel {
+    padding: 14px 12px;
+  }
+
+  .provincePanel {
+    padding: 12px;
+  }
+
+  .tab,
+  .leadButton,
+  .select,
+  .crossLinks a {
+    min-height: 44px;
+  }
+
+  .tab {
+    padding: 10px 14px;
+  }
+
+  .leadButton {
+    padding: 8px 12px;
+  }
+
+  .table {
+    min-width: 520px;
+    font-size: 12.5px;
+  }
+
+  .tableScroll {
+    max-height: 360px;
+  }
+
+  .qualityRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .qualityValue {
+    text-align: left;
+  }
+
+  .tooltip {
+    max-width: min(200px, calc(100% - 6px));
+    font-size: 11px;
+  }
+
+  .tooltipValue {
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+
+  .tab,
+  .leadButton,
+  .kpi,
+  .crossLinks a {
+    transition: none;
+  }
+}

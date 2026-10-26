@@ -69,8 +69,8 @@
 }
 
 .kpiCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 20px;
   display: flex;
@@ -89,7 +89,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   font-size: 13px;
   font-weight: 500;
 }
@@ -102,19 +102,19 @@
   height: 32px;
   border-radius: 6px;
   background: #eef3eb;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .kpiValue {
   font-size: 26px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   line-height: 1.2;
 }
 
 .kpiSub {
   font-size: 12.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   display: flex;
   align-items: center;
   gap: 6px;
@@ -128,8 +128,8 @@
 
 /* Filter Toolbar */
 .filterCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 20px 24px;
   display: flex;
@@ -162,17 +162,17 @@
   width: 100%;
   height: 44px;
   padding: 0 14px 0 42px;
-  background: var(--paper, #f6f7f2);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--paper, var(--paper));
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   font-size: 14px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .searchInput:focus {
-  background: #ffffff;
-  border-color: var(--forest, #213d32);
+  background: var(--white);
+  border-color: var(--forest, var(--forest));
   outline: none;
 }
 
@@ -192,35 +192,35 @@
 .formLabel {
   font-size: 12px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .selectInput {
   height: 40px;
   padding: 0 12px;
-  background: var(--paper, #f6f7f2);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--paper, var(--paper));
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   font-size: 13.5px;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
 
 .selectInput:focus {
-  background: #ffffff;
-  border-color: var(--forest, #213d32);
+  background: var(--white);
+  border-color: var(--forest, var(--forest));
   outline: none;
 }
 
 .resetButton {
   height: 40px;
   padding: 0 16px;
-  background: #ffffff;
+  background: var(--white);
   border: 1px solid #d0dcd0;
   border-radius: 6px;
   font-size: 13px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -231,7 +231,7 @@
 
 .resetButton:hover {
   background: #eef3eb;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   border-color: #b5c7b4;
 }
 
@@ -241,7 +241,7 @@
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 6px;
-  border-top: 1px dashed var(--line, #dce3d9);
+  border-top: 1px dashed var(--line, var(--line));
 }
 
 .typePill {
@@ -252,22 +252,22 @@
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
-  background: var(--paper, #f6f7f2);
-  border: 1px solid var(--line, #dce3d9);
-  color: var(--muted, #53645a);
+  background: var(--paper, var(--paper));
+  border: 1px solid var(--line, var(--line));
+  color: var(--muted, var(--muted));
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .typePill:hover {
   background: #ebf0e6;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .typePillActive {
-  background: var(--forest, #213d32);
-  border-color: var(--forest, #213d32);
-  color: #ffffff;
+  background: var(--forest, var(--forest));
+  border-color: var(--forest, var(--forest));
+  color: var(--white);
   font-weight: 600;
 }
 
@@ -283,7 +283,7 @@
 
 .typePillActive .typePillCount {
   background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  color: var(--white);
 }
 
 /* Section Header & View Toggles */
@@ -298,7 +298,7 @@
 .sectionTitle {
   font-size: 18px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   display: flex;
   align-items: center;
   gap: 8px;
@@ -307,7 +307,7 @@
 .resultCount {
   font-size: 13px;
   font-weight: normal;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .viewToggleGroup {
@@ -327,14 +327,14 @@
   background: transparent;
   border-radius: 4px;
   font-size: 13px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .viewToggleButtonActive {
-  background: #ffffff;
-  color: var(--forest, #213d32);
+  background: var(--white);
+  color: var(--forest, var(--forest));
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -347,8 +347,8 @@
 }
 
 .facilityCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 20px;
   display: flex;
@@ -431,13 +431,13 @@
 .facilityTitle {
   font-size: 16px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   line-height: 1.4;
 }
 
 .facilityLocation {
   font-size: 13px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   display: flex;
   align-items: center;
   gap: 6px;
@@ -446,7 +446,7 @@
 .operatorText {
   font-size: 12.5px;
   color: #4b5d52;
-  background: #f4f7f2;
+  background: var(--surface-muted);
   padding: 4px 10px;
   border-radius: 4px;
   width: fit-content;
@@ -472,7 +472,7 @@
 
 .capacityTotal {
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .capacityPercent {
@@ -527,12 +527,12 @@
 .connectivityScoreNumber {
   font-size: 19px;
   font-weight: 700;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .connectivityScoreMax {
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .distanceBadge {
@@ -562,7 +562,7 @@
 
 .specsBox {
   font-size: 12px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -572,8 +572,8 @@
 
 /* Table View */
 .tableContainer {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   overflow-x: auto;
   box-shadow: 0 1px 3px rgba(33, 61, 50, 0.04);
@@ -588,17 +588,17 @@
 
 .dataTable th {
   background: #f0f4ee;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
   padding: 12px 16px;
   font-weight: 600;
-  border-bottom: 1px solid var(--line, #dce3d9);
+  border-bottom: 1px solid var(--line, var(--line));
   white-space: nowrap;
 }
 
 .dataTable td {
   padding: 12px 16px;
   border-bottom: 1px solid #edf1eb;
-  color: var(--ink, #21352b);
+  color: var(--ink, var(--ink));
   vertical-align: middle;
 }
 
@@ -608,8 +608,8 @@
 
 /* Farm-to-Storage Connectivity Dedicated Section */
 .connectivityContainer {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 24px;
   display: flex;
@@ -627,12 +627,12 @@
 .connectivityHeader h3 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .connectivityHeader p {
   font-size: 13.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
   line-height: 1.6;
 }
 
@@ -691,12 +691,12 @@
 }
 
 .provinceRankTable th {
-  background: #f4f7f2;
+  background: var(--surface-muted);
   padding: 10px 14px;
   text-align: left;
   font-weight: 600;
-  color: var(--forest, #213d32);
-  border-bottom: 1px solid var(--line, #dce3d9);
+  color: var(--forest, var(--forest));
+  border-bottom: 1px solid var(--line, var(--line));
 }
 
 .provinceRankTable td {
@@ -732,8 +732,8 @@
 
 /* Sources Section */
 .sourcesCard {
-  background: var(--white, #ffffff);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   padding: 22px;
   display: flex;
@@ -744,7 +744,7 @@
 .sourcesTitle {
   font-size: 16px;
   font-weight: 600;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .sourcesGrid {
@@ -755,8 +755,8 @@
 
 .sourceItem {
   padding: 14px;
-  background: var(--paper, #f6f7f2);
-  border: 1px solid var(--line, #dce3d9);
+  background: var(--paper, var(--paper));
+  border: 1px solid var(--line, var(--line));
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -765,12 +765,12 @@
 
 .sourceItem strong {
   font-size: 13.5px;
-  color: var(--forest, #213d32);
+  color: var(--forest, var(--forest));
 }
 
 .sourceItem span {
   font-size: 12.5px;
-  color: var(--muted, #53645a);
+  color: var(--muted, var(--muted));
 }
 
 .sourceItem a {

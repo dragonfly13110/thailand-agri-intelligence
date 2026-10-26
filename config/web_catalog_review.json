@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-24",
+  "reviewed_at": "2026-10-26",
   "review_scope": "project_authored_descriptions_only",
   "records": [
     {
@@ -63,7 +63,7 @@
       "id": "rainfall-reanalysis",
       "resource_key": "open_meteo_thailand_era5_archive",
       "title": "อากาศย้อนหลังจาก ERA5",
-      "description": "ข้อมูลวิเคราะห์ย้อนหลังตามพิกัดกริด ใช้สำรวจสภาพอากาศ ณ จุดที่ตรวจแล้ว ยังไม่ใช่ค่าเฉลี่ยทั้งจังหวัด",
+      "description": "ข้อมูลวิเคราะห์ย้อนหลังตามพิกัดกริด ใช้สำรวจสภาพอากาศ ณ จุดที่ตรวจแล้ว ยังไม่ใช่ค่าเฉลี่ยทั้งจังหวัด เผยแพร่ค่าจริงได้หลังเจ้าของโครงการอนุมัติตามกติกาข้อ 3 (AGENTS.md) เมื่อ 26 ต.ค. 2569",
       "source_label": "Open-Meteo / ERA5",
       "source_url": "https://open-meteo.com",
       "category": "water",
@@ -71,7 +71,7 @@
       "period": "1 ม.ค. 2559 – 31 ธ.ค. 2568",
       "unit": "มม. สำหรับฝน/ET0 และ °C สำหรับอุณหภูมิสูงสุด",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "weather-forecast",
@@ -91,7 +91,7 @@
       "id": "reservoir-situation",
       "resource_key": "rid_medium_reservoirs",
       "title": "สถานการณ์น้ำในอ่างเก็บน้ำ",
-      "description": "รายงานรายอ่างเก็บน้ำ ต้องตรวจรอบเวลา หน่วยปริมาตร และความจุก่อนใช้เปรียบเทียบ",
+      "description": "รายงานรายอ่างเก็บน้ำ ต้องตรวจรอบเวลา หน่วยปริมาตร และความจุก่อนใช้เปรียบเทียบ เผยแพร่ค่าจริงได้หลังเจ้าของโครงการอนุมัติตามกติกาข้อ 3 (AGENTS.md) เมื่อ 26 ต.ค. 2569",
       "source_label": "กรมชลประทาน",
       "source_url": "https://opendata.rid.go.th",
       "category": "water",
@@ -99,7 +99,7 @@
       "period": "9–22 ต.ค. 2569",
       "unit": "ล้าน ลบ.ม. และร้อยละ",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "vegetation-modis",

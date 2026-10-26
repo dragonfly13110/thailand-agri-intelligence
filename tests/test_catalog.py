@@ -80,15 +80,26 @@ class CatalogTests(unittest.TestCase):
             self.assertTrue({r['resource_id'] for r in config['resources']}.issubset(
                 {r.get('resource_id') for r in resources}))
         approved = [r for r in resources if r["license_status"] == "approved_public"]
-        self.assertEqual([r["resource_key"] for r in approved], ["chirps_v3_daily_rnl_2026_09_30"])
-        pending = [r for r in resources if r["resource_key"] != "chirps_v3_daily_rnl_2026_09_30"]
+        self.assertTrue(approved, "registry must keep at least one reviewed approved resource")
+        pending = [r for r in resources if r["license_status"] != "approved_public"]
+        self.assertTrue(pending, "registry must keep un-reviewed resources pending")
         self.assertTrue(all(r["license_status"] == "pending" for r in pending))
         self.assertTrue(all(r["project_publication_approved"] is False for r in pending))
         self.assertTrue(all(r["commercial_use_confirmed"] is False for r in pending))
-        self.assertTrue(approved[0]["commercial_use_confirmed"] is True)
-        self.assertTrue(all(len(r["evidence"]) >= 1 for r in resources))
         self.assertTrue(all(len(r["unresolved"]) >= 1 for r in pending))
-        self.assertEqual(len(approved[0]["unresolved"]), 0)
+        # Governance invariant: an approved_public row is only valid when it is
+        # fully released for publication - approved flag set, no unresolved
+        # items, and attribution plus at least one evidence entry.
+        for row in approved:
+            self.assertTrue(row["project_publication_approved"] is True, row["resource_key"])
+            self.assertEqual(row["unresolved"], [], row["resource_key"])
+            self.assertTrue(row["attribution_text"].strip(), row["resource_key"])
+            self.assertTrue(len(row["evidence"]) >= 1, row["resource_key"])
+            self.assertTrue(row["resource_id"].strip() and row["source_id"].strip(), row["resource_key"])
+        chirps = [r for r in approved if r["resource_key"] == "chirps_v3_daily_rnl_2026_09_30"]
+        self.assertEqual(len(chirps), 1)
+        self.assertTrue(chirps[0]["commercial_use_confirmed"] is True)
+        self.assertTrue(all(len(r["evidence"]) >= 1 for r in resources))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "licenses.json"
             path.write_text(json.dumps({"automatic_approval": True, "resources": resources}), encoding="utf-8")
