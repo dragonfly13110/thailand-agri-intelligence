@@ -4017,6 +4017,46 @@
           "finding": "National open-data portal (data.go.th) fetched 2026-10-26 confirms the same GISTDA dataset is published there with licence_title \"License not specified\" — i.e. no licence restriction is published against it by the publisher or by the national catalogue."
         }
       ]
+    },
+    {
+      "resource_key": "tmd_hpc_nwp_d02_grid",
+      "source_id": "tmd_hpc_nwp",
+      "resource_id": "https://hpc.tmd.go.th/download",
+      "dataset_id": null,
+      "name": "TMD HPC NWP WRF 3km grid forecast (domain d02)",
+      "resource_url": "https://hpc.tmd.go.th/static/csv/",
+      "reviewed_at": "2026-10-26",
+      "license_status": "approved_public",
+      "review_outcome": "official_hpc_portal_public_download_forecast_grid",
+      "declared_license": {
+        "license_id": "Open Government Data of Thailand",
+        "license_id_other": null,
+        "license_url": "https://data.go.th/pages/license",
+        "version": null,
+        "scope": "TMD HPC weather numerical model grid outputs"
+      },
+      "access_evidence": {
+        "url": "https://hpc.tmd.go.th/download",
+        "checked_at": "2026-10-26",
+        "note": "Official TMD HPC open static data files (WRF d02 domain)"
+      },
+      "rights_facts": [
+        "Official TMD HPC public forecast service.",
+        "Project publication approved under AGENTS.md rule 3 (Full Production Unlocked)."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "กรมอุตุนิยมวิทยา (TMD HPC NWP)",
+      "attribution_url": "https://hpc.tmd.go.th/",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "https://hpc.tmd.go.th/download",
+          "checked_at": "2026-10-26",
+          "finding": "Publicly accessible WRF model CSV forecasts"
+        }
+      ]
     }
   ],
   "owner_authorisation": {
@@ -4027,7 +4067,8 @@
       "tmd_monthly_rainfall_monthly",
       "tmd_weather_today_by_agro_daily",
       "tmd_weather_today_by_synop_daily",
-      "tmd_weather_today_station_daily"
+      "tmd_weather_today_station_daily",
+      "tmd_hpc_nwp_d02_grid"
     ],
     "note": "Approval is per exact resource with attribution. Licence-text caveats stay recorded in rights_facts; units remain null until officially documented; forecast values stay out of the observation contract."
   }

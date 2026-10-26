@@ -31,6 +31,28 @@ export type CropVariety = {
   sourceUrl: string;
 };
 
+export type CropAgronomySource = {
+  name: string;
+  url: string;
+};
+
+export type CropAgronomy = {
+  /** ช่วง pH ที่พืชเจริญเติบโตได้ดี ตามเอกสารราชการที่อ้างอิง */
+  phMin: number;
+  phMax: number;
+  phNote: string;
+  /** ปริมาณน้ำ/น้ำฝนที่ต้องการ พร้อมหน่วยชัดเจน */
+  waterRequirement: string;
+  waterNote: string;
+  fertilizer: {
+    cropId: string;
+    summary: string;
+    sourceName: string;
+    sourceUrl: string;
+  };
+  sources: CropAgronomySource[];
+};
+
 export type CropProfile = {
   id: string;
   cropId: string;
@@ -39,6 +61,7 @@ export type CropProfile = {
   description: string;
   calendar: CropStage[];
   calendarNote?: string;
+  agronomy: CropAgronomy;
   varieties: CropVariety[];
 };
 
@@ -62,6 +85,42 @@ export const MONTH_LABELS = [
 
 const OAE_URL = 'https://oae.go.th/uploads/files/2025/05/06/13e8089a3f69ea96.pdf';
 
+/* ---------------------- ลิงก์อ้างอิงพืช (ตรวจ HTTP แล้ว) ---------------------- */
+const RICE_PH_URL = 'https://files.ricethailand.go.th/files/15/documents/page_doc/files-rice-1749007694793.pdf';
+const RICE_WATER_URL = 'https://files.ricethailand.go.th/files/50/documents/page_doc/files-rice-1731318336195.pdf';
+const RICE_FERTILIZER_URL = 'https://rkb.ricethailand.go.th/web/content_page.php?code=A-J41VKH92JY';
+const CORN_SOURCE_URL = 'https://doa.go.th/share/attachment.php?aid=2952';
+const CASSAVA_SOURCE_URL = encodeURI('https://www.doa.go.th/fc/rayong/wp-content/uploads/2021/06/เทคโนโลยีการผลิตมันสำปะหลัง.pdf');
+const CASSAVA_CLEAN_URL = encodeURI('https://www.doa.go.th/fcri/wp-content/uploads/2026/06/คู่มือการผลิตท่อนพันธุ์มันสำปะหลังสะอาด.pdf');
+const SUGARCANE_SOURCE_URL = encodeURI('https://www.doa.go.th/apsrdo/wp-content/uploads/2024/01/0.-การจัดการดิน-น้ำ-ปุ๋ย-เพื่อเพิ่มประสิทธิภาพการผลิตอ้อย-กปผ.pdf');
+const OIL_PALM_SOURCE_URL = encodeURI('https://esc.doae.go.th/wp-content/uploads/2023/06/คู่มือปาล์มน้ำมัน.pdf');
+const RUBBER_PH_URL = encodeURI('https://rubber.oie.go.th/box/ELib_Document/7040/เกษตร 137.pdf');
+const RUBBER_TREE_URL = 'https://rubber.oie.go.th/rrd/file/rubber-tree.pdf';
+const PPSF_FERTILIZER_URL = encodeURI('https://ppsf.doae.go.th/wp-content/uploads/2024/11/คำแนะนำการใช้ปุ๋ยตามค่าวิเคราะห์ดิน.pdf');
+const PALM_FERTILIZER_URL = encodeURI('https://www.doa.go.th/fc/palmsurat/wp-content/uploads/2020/06/คำแนะนำปุ๋ยปาล์มน้ำมัน3.pdf');
+const RUBBER_FERTILIZER_URL = encodeURI('https://rubber.oie.go.th/box/ELib_Document/1133/การใส่ปุ๋ย.pdf');
+const RUBBER_VARIETY_URL = encodeURI('https://www.doa.go.th/rubber/wp-content/uploads/2022/03/องค์ความรู้การพัฒนาพันธุ์ยางและการเก็บ.pdf');
+
+const RICE_AGRO_BASE: Omit<CropAgronomy, 'waterRequirement' | 'waterNote'> = {
+  phMin: 5.5,
+  phMax: 6.5,
+  phNote: 'ดินกรดเล็กน้อยถึงเป็นกลาง เหมาะต่อการปลดปล่อยธาตุอาหารและจุลินทรีย์ในดิน',
+  fertilizer: {
+    cropId: 'rice',
+    summary: 'ปุ๋ยตามชนิดเนื้อดินและค่าวิเคราะห์ดิน แบ่งใส่ 2 ครั้ง',
+    sourceName: 'Rice Knowledge Bank กรมการข้าว + PPSF กรมส่งเสริมการเกษตร',
+    sourceUrl: RICE_FERTILIZER_URL,
+  },
+  sources: [
+    { name: 'กรมการข้าว — การใส่ปุ๋ยตามค่าวิเคราะห์ดิน (pH 5.5–6.5)', url: RICE_PH_URL },
+    { name: 'กรมการข้าว — ปริมาณน้ำที่ใช้ในนาข้าว', url: RICE_WATER_URL },
+    { name: 'Rice Knowledge Bank กรมการข้าว — ปุ๋ยข้าว', url: RICE_FERTILIZER_URL },
+  ],
+};
+
+const RICE_WATER_REQUIREMENT =
+  '1,200–1,670 ลบ.ม./ไร่/ฤดู (ขังน้ำแบบเดิม) หรือ 600–800 ลบ.ม./ไร่/ฤดู (เปียกสลับแห้ง)';
+
 const riceWet: CropProfile = {
   id: 'rice-wet',
   cropId: 'rice',
@@ -72,39 +131,44 @@ const riceWet: CropProfile = {
     { stage: 'prep', ranges: [{ label: 'เม.ย.–มิ.ย.', months: [4, 5, 6] }] },
     { stage: 'plant', ranges: [{ label: 'มิ.ย.–ส.ค.', months: [6, 7, 8] }] },
     { stage: 'care', ranges: [{ label: 'ก.ค.–ต.ค.', months: [7, 8, 9, 10] }] },
-    { stage: 'harvest', ranges: [{ label: 'พ.ย.–ก.พ. (บางพื้นที่ถึง มี.ค.)', months: [11, 12, 1, 2] }] },
+    { stage: 'harvest', ranges: [{ label: 'ต.ค.–ม.ค. (บางพื้นที่ถึง ก.พ.)', months: [10, 11, 12, 1, 2] }] },
   ],
-  calendarNote: 'เริ่มไถหลังฝนเข้า เฉลี่ยอายุข้าว 120–135 วัน เร็วสุดเก็บเกี่ยวได้ ก.ค. ช้าสุด มี.ค. ปีถัดไป',
+  calendarNote: 'นาปีส่วนใหญ่ปลูก มิ.ย.–ส.ค. อายุ 120–135 วัน เก็บเกี่ยว ต.ค.–ม.ค.; ภาคใต้บางพื้นที่เก็บเกี่ยวถึง ก.พ.',
+  agronomy: {
+    ...RICE_AGRO_BASE,
+    waterRequirement: RICE_WATER_REQUIREMENT,
+    waterNote: 'ข้าวนาปีพึ่งน้ำฝนเป็นหลัก ควรมีน้ำขัง 5–10 ซม. ในช่วงจำเป็น; ตัวเลขเป็นช่วงอ้างอิงต่อไร่ต่อฤดู ไม่ใช่ปริมาณน้ำรายจังหวัด',
+  },
   varieties: [
     {
       name: 'กข.43',
-      traits: ['ข้าวเจ้าหอมมะลิ เกรดพรีเมียม GI', 'อายุประมาณ 95 วัน', 'สูง ~103–104 ซม.', 'ไวต่อแสง ตอบสนองปุ๋ยสูง'],
-      sourceName: 'กรมการข้าว',
-      sourceUrl: 'http://webold.ricethailand.go.th/rkb3/title-index.php-file=content.php&id=122.htm',
+      traits: ['ข้าวเจ้าไม่ไวต่อช่วงแสง อายุสั้น ~95 วัน', 'สูง ~103 ซม. ให้ผลผลิต ~561 กก./ไร่', 'ค่อนข้างต้านทานโรคไหม้และเพลี้ยกระโดดสีน้ำตาล', 'ลำต้นเล็ก เสี่ยงล้มเมื่อใส่ปุ๋ยอัตราสูง'],
+      sourceName: 'กรมการข้าว (Rice Knowledge Bank)',
+      sourceUrl: 'https://rkb.ricethailand.go.th/web/content_page.php?code=71XYSZE1QLDZG1CTFNEA3IT415LQU',
     },
     {
       name: 'กข.79',
-      traits: ['หอมมะลิ 105 เกรดพรีเมียม', 'ไวต่อแสง', 'แปลงตัวอย่างเกษตรกรดีเด่น ปี 61 ให้ผลผลิตสูงสุด 809 กก./ไร่'],
-      sourceName: 'กรมการข้าว',
-      sourceUrl: 'http://webold.ricethailand.go.th/rkb3/title-index.php-file=content.php&id=145.htm',
+      traits: ['ข้าวเจ้าไม่ไวต่อช่วงแสง อายุ 112–118 วัน (ปักดำ)', 'สูง ~102 ซม. อมิโลสต่ำ 16.82%', 'สายพันธุ์พ่อ–แม่ต้านทานโรคไหม้และเพลี้ยกระโดดสีน้ำตาล'],
+      sourceName: 'กรมการข้าว (Rice Knowledge Bank)',
+      sourceUrl: 'https://rkb.ricethailand.go.th/web/content_page.php?code=AYILCDDBCFO1ADEV02VRJKVG6HMZL',
     },
     {
       name: 'ขาวดอกมะลิ 105',
-      traits: ['หอมมะลิ GI มาตรฐาน รับรองพันธุ์ปี 2502', 'แปลงนาสุ่ม 6 ปี 63 ให้ผลผลิต 363 กก./ไร่', 'แป้งนุ่ม อมิโลส 25–30%'],
-      sourceName: 'กรมการข้าว',
+      traits: ['ข้าวหอมมะลิไทย GI รับรองพันธุ์ปี 2502', 'ไวต่อช่วงแสง ปลูกได้เฉพาะนาปี', 'แป้งนุ่ม อมิโลส 25–30%'],
+      sourceName: 'กรมการข้าว (Rice Knowledge Bank)',
       sourceUrl: 'https://rkb.ricethailand.go.th/web/content_page.php?code=IG2V6DR5CBCR067OJHESNEJGFLSH1',
     },
     {
-      name: 'ปทุมธานี 1 (กข.46)',
-      traits: ['ลักษณะคล้าย กข.105', 'ทนโรคไหม้และขอบใบแห้ง', 'ไวต่อแสง', 'ให้ผลผลิต 666–706 กก./ไร่'],
-      sourceName: 'กรมการข้าว',
-      sourceUrl: 'http://webold.ricethailand.go.th/rkb3/title-index.php-file=content.php&id=131.htm',
+      name: 'ปทุมธานี 1',
+      traits: ['ข้าวเจ้าไม่ไวต่อช่วงแสง อายุ 104–126 วัน', 'ให้ผลผลิต ~650–774 กก./ไร่', 'ต้านทานเพลี้ยกระโดดสีน้ำตาล/หลังขาว โรคไหม้ และขอบใบแห้ง', 'อ่อนแอต่อเพลี้ยจักจั่นสีเขียว โรคใบหงิก และใบสีส้ม'],
+      sourceName: 'กรมการข้าว (Rice Knowledge Bank)',
+      sourceUrl: 'https://rkb.ricethailand.go.th/web/content_page.php?code=CXQK8Z8SSU1C4OCST4IZQ3XV4G8HA',
     },
     {
-      name: 'กข.112 (หอมสุพรรณบุรี 1)',
-      traits: ['ข้าวเจ้า GI จ.สุพรรณบุรี (ทุ่งลาดหญ้า–ดอนเจดีย์–สองพี่น้อง–อู่ทอง)', 'ทนโรคขอบใบแห้งและไหม้'],
-      sourceName: 'กรมส่งเสริมการเกษตร',
-      sourceUrl: 'https://www.doa.go.th/PakchongWeb/ReadNews1.php?news_id=18',
+      name: 'ข้าวเจ้าหอมสุพรรณบุรี',
+      traits: ['ข้าวเจ้าไม่ไวต่อช่วงแสง อายุ ~120 วัน (ปักดำ)', 'ให้ผลผลิต ~673 กก./ไร่ (นาปรัง) และ ~582 กก./ไร่ (นาปี)', 'ค่อนข้างต้านทานโรคขอบใบแห้งและเพลี้ยกระโดดหลังขาว', 'อ่อนแอต่อโรคไหม้ เพลี้ยกระโดดสีน้ำตาล ใบหงิก และใบสีส้ม'],
+      sourceName: 'กรมวิชาการเกษตร (ฐานข้อมูลพรรณพืช)',
+      sourceUrl: 'https://doaplant.doa.go.th/RecFront/PlantDetailPdf/168',
     },
   ],
 };
@@ -117,11 +181,16 @@ const riceDry: CropProfile = {
   description: 'ข้าวปลูกฤดูแล้ง ใช้น้ำชลประทานจากเขื่อน/ระบบท่อ ไม่พึ่งฝน',
   calendar: [
     { stage: 'prep', ranges: [{ label: 'พ.ย.–ธ.ค.', months: [11, 12] }] },
-    { stage: 'plant', ranges: [{ label: 'ธ.ค.–ก.พ. (ปลูกได้ถึง มี.ค.)', months: [12, 1, 2] }] },
-    { stage: 'care', ranges: [{ label: 'ม.ค.–เม.ย.', months: [1, 2, 3, 4] }] },
-    { stage: 'harvest', ranges: [{ label: 'ก.พ.–พ.ค. (บางพื้นที่ถึง ก.ค.)', months: [2, 3, 4, 5] }] },
+    { stage: 'plant', ranges: [{ label: 'พ.ย.–ม.ค.', months: [11, 12, 1] }] },
+    { stage: 'care', ranges: [{ label: 'ธ.ค.–เม.ย.', months: [12, 1, 2, 3, 4] }] },
+    { stage: 'harvest', ranges: [{ label: 'มี.ค.–มิ.ย.', months: [3, 4, 5, 6] }] },
   ],
-  calendarNote: 'พื้นที่นาปรังเปลี่ยนตามปริมาณน้ำในเขื่อน — ปีไหนน้ำน้อย พื้นที่นาปรังจะเพิ่มขึ้น',
+  calendarNote: 'นาปรังอาศัยน้ำชลประทาน ปลูก พ.ย.–ม.ค. อายุ 120–135 วัน เก็บเกี่ยว มี.ค.–มิ.ย.; พื้นที่ขึ้นกับปริมาณน้ำในเขื่อน',
+  agronomy: {
+    ...RICE_AGRO_BASE,
+    waterRequirement: RICE_WATER_REQUIREMENT,
+    waterNote: 'ข้าวนาปรังใช้น้ำชลประทาน ต้องยืนยันปริมาณน้ำในเขื่อนก่อนวางแผนปลูก; ตัวเลขเป็นช่วงอ้างอิงต่อไร่ต่อฤดู',
+  },
   varieties: riceWet.varieties,
 };
 
@@ -160,7 +229,24 @@ const feedCorn: CropProfile = {
       ],
     },
   ],
-  calendarNote: 'ปลูกเชิงพาณิชย์ได้ มี.ค.–ก.ค. รุ่น 2 (ฤดูแล้ง) ต้องอาศัยน้ำชลประทาน',
+  calendarNote: 'ข้าวโพดเลี้ยงสัตว์ปลูกได้ 2 รุ่น: รุ่น 1 ฤดูฝนปลูก มี.ค.–พ.ค. เก็บเกี่ยว ก.ค.–ก.ย.; รุ่น 2 ฤดูแล้งปลูก พ.ย.–ธ.ค. เก็บเกี่ยว มี.ค.–เม.ย. โดยอาศัยน้ำชลประทาน',
+  agronomy: {
+    phMin: 5.5,
+    phMax: 6.5,
+    phNote: 'ดินร่วนที่ระบายน้ำดี pH 5.5–6.5 มีศักยภาพเหมาะสมต่อการปลูกข้าวโพดเลี้ยงสัตว์',
+    waterRequirement: '450–500 มม./ไร่/รุ่น หรือประมาณ 720–800 ลบ.ม./ไร่/รุ่น',
+    waterNote: 'ปริมาณน้ำในช่วงปลูกหนึ่งรุ่น; รุ่น 2 (ฤดูแล้ง) ต้องมีน้ำชลประทานเสริมและหลีกเลี่ยงช่วงขาดน้ำตอนออกดอก',
+    fertilizer: {
+      cropId: 'corn',
+      summary: 'ปุ๋ยตามค่าวิเคราะห์ดิน แบ่งใส่ 2 ครั้ง: รองพื้นพร้อมปลูก และอายุ 3–4 สัปดาห์',
+      sourceName: 'PPSF กรมส่งเสริมการเกษตร',
+      sourceUrl: PPSF_FERTILIZER_URL,
+    },
+    sources: [
+      { name: 'กรมวิชาการเกษตร — ข้าวโพดเลี้ยงสัตว์ (pH 5.5–6.5, น้ำ 450–500 มม./ไร่)', url: CORN_SOURCE_URL },
+      { name: 'PPSF กรมส่งเสริมการเกษตร — ปุ๋ยตามค่าวิเคราะห์ดิน', url: PPSF_FERTILIZER_URL },
+    ],
+  },
   varieties: [
     {
       name: 'นครสวรรค์ 1',
@@ -204,9 +290,26 @@ const cassava: CropProfile = {
       ],
     },
     { stage: 'care', ranges: [{ label: 'มิ.ย.–ก.ย.', months: [6, 7, 8, 9] }] },
-    { stage: 'harvest', ranges: [{ label: 'ต.ค.–ก.ย. (ช่วงมากจริง ม.ค.–มี.ค.)', months: [10, 11, 12, 1, 2, 3] }] },
+    { stage: 'harvest', ranges: [{ label: 'ต.ค.–มี.ค. (ช่วงเก็บเกี่ยวหลัก)', months: [10, 11, 12, 1, 2, 3] }] },
   ],
-  calendarNote: 'เก็บเกี่ยวได้ตั้งแต่เดือนที่ 9–10 หลังปลูก เก็บได้ทั้งปีเมื่อหัวแก่',
+  calendarNote: 'อายุเก็บเกี่ยว 9–12 เดือนหลังปลูก หัวแก่เต็มที่เมื่ออายุ 10–12 เดือน เก็บเกี่ยวหลัก ต.ค.–มี.ค. และเก็บได้ต่อเนื่องเมื่อหัวแก่',
+  agronomy: {
+    phMin: 5,
+    phMax: 6,
+    phNote: 'ดินร่วนปนทรายที่ระบายน้ำดี pH 5–6 เหมาะต่อการสร้างหัวและสะสมแป้ง',
+    waterRequirement: '1,000–1,500 มม./ปี (น้ำฝนรวมทั้งปี)',
+    waterNote: 'มันสำปะหลังทนแล้งแต่ไม่ทนน้ำท่วมขัง ควรมีฝนกระจายสม่ำเสมอในช่วง 1–4 เดือนแรกหลังปลูก',
+    fertilizer: {
+      cropId: 'cassava',
+      summary: 'ปุ๋ยตามค่าวิเคราะห์ดิน ใส่ครั้งแรกอายุ 1–2 เดือน; ดินทรายแบ่งใส่ 2 ครั้ง',
+      sourceName: 'PPSF กรมส่งเสริมการเกษตร',
+      sourceUrl: PPSF_FERTILIZER_URL,
+    },
+    sources: [
+      { name: 'กรมวิชาการเกษตร — คู่มือการผลิตท่อนพันธุ์มันสำปะหลังสะอาด (pH 5–6, น้ำฝน 1,000–1,500 มม./ปี)', url: CASSAVA_CLEAN_URL },
+      { name: 'PPSF กรมส่งเสริมการเกษตร — ปุ๋ยตามค่าวิเคราะห์ดิน', url: PPSF_FERTILIZER_URL },
+    ],
+  },
   varieties: [
     {
       name: 'เกษตรศาสตร์ 50',
@@ -217,26 +320,14 @@ const cassava: CropProfile = {
     {
       name: 'ห้วยบง 60',
       traits: ['ต้านโรคใบไหม้ แอนแทรคโนส และแคงเกอร์'],
-      sourceName: 'มจธ./กรมวิชาการเกษตร (เทคโนโลยีการผลิตมันสำปะหลัง)',
-      sourceUrl: 'https://web.sut.ac.th/board2563/_downloads/_cassava/cassava-technology-2553.pdf',
+      sourceName: 'กรมวิชาการเกษตร (เทคโนโลยีการผลิตมันสำปะหลัง)',
+      sourceUrl: CASSAVA_SOURCE_URL,
     },
     {
       name: 'ระยอง 72',
       traits: ['ต้านโรคใบไหม้ แอนแทรคโนส และแคงเกอร์'],
-      sourceName: 'มจธ./กรมวิชาการเกษตร (เทคโนโลยีการผลิตมันสำปะหลัง)',
-      sourceUrl: 'https://web.sut.ac.th/board2563/_downloads/_cassava/cassava-technology-2553.pdf',
-    },
-    {
-      name: 'ศรีสะเกษ 6',
-      traits: ['ผลผลิตหัวสดสูง เส้นผ่านศูนย์กลางหัวใหญ่', 'เก็บเกี่ยวหลังปลูก 10–12 เดือน'],
-      sourceName: 'กรมวิชาการเกษตร สำนักวิจัยและพัฒนาการเกษตรที่ 5 ขอนแก่น',
-      sourceUrl: 'https://doae.go.th/khonkaen/wp-content/uploads/2023/02/5.pdf',
-    },
-    {
-      name: 'พิรุณ 1',
-      traits: ['ให้หัวสด 3.76 ตัน/ไร่', 'ปลูกแล้ว 90 วันเริ่มเก็บเกี่ยวได้', 'ต้านไรแดง'],
-      sourceName: 'กรมวิชาการเกษตร จ.ลำปาง',
-      sourceUrl: 'https://www.doa.go.th/lampang/wp-content/uploads/2021/02/มันสำปะหลัง.pdf',
+      sourceName: 'กรมวิชาการเกษตร (ฐานข้อมูลพรรณพืช)',
+      sourceUrl: 'https://doaplant.doa.go.th/RecFront/PlantDetailPdf/195',
     },
   ],
 };
@@ -253,6 +344,23 @@ const sugarcane: CropProfile = {
     { stage: 'harvest', ranges: [{ label: 'ธ.ค.–เม.ย. (มาก มี.ค.)', months: [12, 1, 2, 3, 4] }] },
   ],
   calendarNote: 'อ้อยคั้นสดอายุ ~12 เดือน อ้อยเข้าหีบ 12–13 เดือน ฤดูหีบ 1 ต.ค.–30 ก.ย.',
+  agronomy: {
+    phMin: 5.5,
+    phMax: 7.5,
+    phNote: 'อ้อยเจริญเติบโตได้ดีในดินร่วนถึงดินร่วนเหนียว pH 5.5–7.5 และระบายน้ำดี',
+    waterRequirement: '1,200–1,500 มม./ปี (น้ำฝนรวม)',
+    waterNote: 'ช่วงสร้างลำและสะสมน้ำตาลต้องการน้ำสม่ำเสมอ; หากฝนขาดช่วงควรเสริมน้ำชลประทาน โดยเฉพาะดินทราย',
+    fertilizer: {
+      cropId: 'sugarcane',
+      summary: 'ปุ๋ยตามค่าวิเคราะห์ดินทั้งอ้อยปลูกและอ้อยตอ แบ่งใส่ 2–3 ครั้ง',
+      sourceName: 'PPSF กรมส่งเสริมการเกษตร',
+      sourceUrl: PPSF_FERTILIZER_URL,
+    },
+    sources: [
+      { name: 'กรมวิชาการเกษตร — การจัดการดิน น้ำ ปุ๋ย เพื่อเพิ่มประสิทธิภาพการผลิตอ้อย (pH 5.5–7.5, น้ำฝน 1,200–1,500 มม./ปี)', url: SUGARCANE_SOURCE_URL },
+      { name: 'PPSF กรมส่งเสริมการเกษตร — ปุ๋ยตามค่าวิเคราะห์ดิน', url: PPSF_FERTILIZER_URL },
+    ],
+  },
   varieties: [
     {
       name: 'ขอนแก่น 3',
@@ -299,24 +407,41 @@ const oilPalm: CropProfile = {
     { stage: 'harvest', ranges: [{ label: 'ทั้งปี (ตัดช่อทุก 10–14 วัน) มาก ม.ค.–ก.ค.', months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }] },
   ],
   calendarNote: 'ให้ผลผลิตเต็มที่ที่อายุ 30–36 เดือนหลังปลูก ช่วงผลผลิตมากที่สุด พ.ค.–มิ.ย.',
+  agronomy: {
+    phMin: 4,
+    phMax: 6,
+    phNote: 'ปาล์มน้ำมันทนดินกรดได้ดี (pH 4.0–6.0) แต่ควรมีอินทรียวัตถุและธาตุอาหารเพียงพอ',
+    waterRequirement: '1,800–2,000 มม./ปี และมีช่วงแล้งติดต่อกันไม่เกิน 3 เดือน',
+    waterNote: 'ปริมาณน้ำฝนรายปีเป็นเกณฑ์คัดเลือกพื้นที่; ฝนขาดช่วงเกิน 3 เดือนกระทบการออกดอกและผลผลิต',
+    fertilizer: {
+      cropId: 'oil-palm',
+      summary: 'ปีที่ 1–3 ใช้ตารางแยกตามชนิดดิน; ปีที่ 4 ขึ้นไปให้ปุ๋ยตามผลวิเคราะห์ใบ',
+      sourceName: 'กรมวิชาการเกษตร (ศูนย์วิจัยปาล์มน้ำมันสุราษฎร์ธานี) — คำแนะนำปุ๋ยปาล์มน้ำมัน',
+      sourceUrl: PALM_FERTILIZER_URL,
+    },
+    sources: [
+      { name: 'กรมส่งเสริมการเกษตร — คู่มือปาล์มน้ำมัน (pH 4.0–6.0, น้ำฝน 1,800–2,000 มม./ปี)', url: OIL_PALM_SOURCE_URL },
+      { name: 'กรมวิชาการเกษตร — คำแนะนำปุ๋ยปาล์มน้ำมัน', url: PALM_FERTILIZER_URL },
+    ],
+  },
   varieties: [
     {
       name: 'สุราษฎร์ธานี 2',
       traits: ['ให้ผลผลิต 3,254 กก./ไร่/ปี'],
-      sourceName: 'ศูนย์เรียนรู้การผลิตปาล์มน้ำมัน จ.สุราษฎร์ธานี',
-      sourceUrl: 'https://www.palmoil.kroobannok.com/136132',
+      sourceName: 'กรมวิชาการเกษตร (ฐานข้อมูลพรรณพืช)',
+      sourceUrl: 'https://doaplant.doa.go.th/RecFront/PlantDetailPdf/204',
     },
     {
       name: 'สุราษฎร์ธานี 9',
       traits: ['อายุ 13 ปี ให้ผลผลิต 3.77 ตัน/ไร่/ปี', 'สูงกว่าพันธุ์ธรรมดา ~3 เท่า'],
-      sourceName: 'ศูนย์เรียนรู้การผลิตปาล์มน้ำมัน จ.สุราษฎร์ธานี',
-      sourceUrl: 'https://www.palmoil.kroobannok.com/137610',
+      sourceName: 'กรมวิชาการเกษตร (ฐานข้อมูลพรรณพืช)',
+      sourceUrl: 'https://doaplant.doa.go.th/RecFront/PlantDetailPdf/335',
     },
     {
       name: 'กวก.สุราษฎร์ธานี 11',
-      traits: ['สวนอายุ 10 ปี ให้ผลผลิต 4,139.7 กก./ไร่/ปี', 'น้ำมันปาล์มดิบสูงถึง 5.2 ตัน/ไร่/ปี ที่อายุ 13 ปี'],
-      sourceName: 'อ้างอิงกรมวิชาการเกษตร (รายงานข่าว มติชน)',
-      sourceUrl: 'https://mgronline.com/special/plus/detail/9660000074723',
+      traits: ['สวนอายุ 10 ปี ให้ผลผลิต 4,139.7 กก./ไร่/ปี', 'อัตราสกัดน้ำมัน (OER) 23.0%'],
+      sourceName: 'กรมวิชาการเกษตร (ฐานข้อมูลพรรณพืช)',
+      sourceUrl: 'https://doaplant.doa.go.th/RecFront/PlantDetailPdf/462',
     },
   ],
 };
@@ -339,42 +464,60 @@ const rubber: CropProfile = {
     },
   ],
   calendarNote: 'เก็บเกี่ยวผลผลิตตั้งแต่อายุ ~7 ปี หยุดกรีดช่วง ก.พ.–พ.ค. เพื่อให้ต้นพักฟื้น',
+  agronomy: {
+    phMin: 4.5,
+    phMax: 5.5,
+    phNote: 'ยางพาราชอบดินร่วนปนทรายที่ระบายน้ำดี pH 4.5–5.5 และหน้าดินลึกไม่น้อยกว่า 1 เมตร',
+    waterRequirement: '1,200–1,500 มม./ปี (ภาคตะวันออกตอนกลาง) ถึง 2,500–3,000 มม./ปี (ชายแดนภาคใต้)',
+    waterNote: 'ช่วงเหมาะสมขึ้นกับพันธุ์และภูมิภาค; ฝนตกชุกเกินไปในพื้นที่ชายแดนใต้ต้องเลือกพันธุ์ที่ทนโรคใบร่วง',
+    fertilizer: {
+      cropId: 'rubber',
+      summary: 'สูตร 6 สูตรแยกตามเนื้อดินและอายุยาง; เปิดกรีดแล้วใส่ 1–1.2 กก./ต้น/ปี แบ่ง 2 ครั้ง',
+      sourceName: 'กรมวิชาการเกษตร ศูนย์วิจัยยาง (การใส่ปุ๋ย)',
+      sourceUrl: RUBBER_FERTILIZER_URL,
+    },
+    sources: [
+      { name: 'สถาบันวิจัยยาง (RAOT) — ระเบียบการปลูกยางพารา (pH 4.5–5.5)', url: RUBBER_PH_URL },
+      { name: 'สถาบันวิจัยยาง (RAOT) — พันธุ์ยางและปริมาณน้ำฝนรายภูมิภาค', url: RUBBER_TREE_URL },
+      { name: 'กรมวิชาการเกษตร ศูนย์วิจัยยาง — การใส่ปุ๋ย', url: RUBBER_FERTILIZER_URL },
+    ],
+  },
   varieties: [
     {
       name: 'RRIT 251',
       traits: ['ผลผลิต 462 กก./ไร่/ปี', 'ต้นสูง ผลผลิตสูงกว่าพันธุ์ RRIT ทั่วไป ~2 เท่า'],
       sourceName: 'สถาบันวิจัยยาง/สำนักงานวิจัยและพัฒนาการเกษตรที่ 5',
-      sourceUrl: 'https://rubber.oie.go.th/rrd/file/rubber-tree.pdf',
+      sourceUrl: RUBBER_TREE_URL,
     },
     {
       name: 'RRIT 252',
       traits: ['ผลผลิต 408 กก./ไร่/ปี', 'ไวต่อไนโตรเจน ต้านโรคใบร่วง'],
       sourceName: 'สถาบันวิจัยยาง/สำนักงานวิจัยและพัฒนาการเกษตรที่ 5',
-      sourceUrl: 'https://rubber.oie.go.th/rrd/file/rubber-tree.pdf',
+      sourceUrl: RUBBER_TREE_URL,
     },
     {
       name: 'BPM 24',
       traits: ['ผลผลิต 344 กก./ไร่/ปี', 'น้ำยางขาว ผลผลิตน้ำยางมากเป็นอันดับต้น'],
       sourceName: 'กรมวิชาการเกษตร (องค์ความรู้การพัฒนาพันธุ์ยาง)',
-      sourceUrl: 'https://www.doa.go.th/rubber/wp-content/uploads/2022/03/องค์ความรู้การพัฒนาพันธุ์ยางและการเก็บ.pdf',
+      sourceUrl: RUBBER_VARIETY_URL,
     },
     {
       name: 'PB 260',
       traits: ['ผลผลิต 330 กก./ไร่/ปี', 'ต้นสูง ให้ผลผลิตน้ำยางมาก'],
       sourceName: 'กรมวิชาการเกษตร (องค์ความรู้การพัฒนาพันธุ์ยาง)',
-      sourceUrl: 'https://www.doa.go.th/rubber/wp-content/uploads/2022/03/องค์ความรู้การพัฒนาพันธุ์ยางและการเก็บ.pdf',
+      sourceUrl: RUBBER_VARIETY_URL,
     },
     {
       name: 'RRIM 600',
       traits: ['ผลผลิต 297 กก./ไร่/ปี', 'ลำต้นใหญ่ ชอบน้ำ ให้ผลผลิตสูง'],
       sourceName: 'กรมวิชาการเกษตร (องค์ความรู้การพัฒนาพันธุ์ยาง)',
-      sourceUrl: 'https://www.doa.go.th/rubber/wp-content/uploads/2022/03/องค์ความรู้การพัฒนาพันธุ์ยางและการเก็บ.pdf',
+      sourceUrl: RUBBER_VARIETY_URL,
     },
     {
       name: 'GT 1',
       traits: ['ให้ผลผลิตยางดี ผลิตน้ำยางมาก', 'ต้านโรคใบร่วง', 'คัดเลือกเป็นชั้น 1 โดยสถาบันวิจัยยาง'],
       sourceName: 'กรมวิชาการเกษตร (องค์ความรู้การพัฒนาพันธุ์ยาง)',
-      sourceUrl: 'https://www.doa.go.th/rubber/wp-content/uploads/2022/03/องค์ความรู้การพัฒนาพันธุ์ยางและการเก็บ.pdf',
+      sourceUrl: RUBBER_VARIETY_URL,
     },
   ],
 };
@@ -812,7 +955,7 @@ export const FERTILIZER_GUIDANCE: FertilizerGuidance[] = [
     ],
     timing: 'ครั้งที่ 1 รองพื้นพร้อมปลูก; ครั้งที่ 2 อายุ 3–4 สัปดาห์ โรยข้างแถวแล้วพรวนกลบ',
     sourceName: 'ตารางปุ๋ยตามค่าวิเคราะห์ดิน PPSF กรมส่งเสริมการเกษตร',
-    sourceUrl: 'https://ppsf.doae.go.th/wp-content/uploads/2024/11/คำแนะนำการใช้ปุ๋ยตามค่าวิเคราะห์ดิน.pdf',
+    sourceUrl: PPSF_FERTILIZER_URL,
     unverified: ['"ปุ๋ยสั่งตัดข้าวโพด 46 สูตร" — ไม่พบหลักฐานในเอกสารที่ตรวจ'],
   },
   {
@@ -827,7 +970,7 @@ export const FERTILIZER_GUIDANCE: FertilizerGuidance[] = [
       },
     ],
     sourceName: 'ตารางปุ๋ยตามค่าวิเคราะห์ดิน PPSF กรมส่งเสริมการเกษตร',
-    sourceUrl: 'https://ppsf.doae.go.th/wp-content/uploads/2024/11/คำแนะนำการใช้ปุ๋ยตามค่าวิเคราะห์ดิน.pdf',
+    sourceUrl: PPSF_FERTILIZER_URL,
     unverified: ['"ปุ๋ยมันสำปะหลัง 21 สูตร" — ไม่พบหลักฐานในเอกสารที่ตรวจ'],
   },
   {
@@ -855,7 +998,7 @@ export const FERTILIZER_GUIDANCE: FertilizerGuidance[] = [
     ],
     timing: 'แบ่งใส่ 2–3 ครั้ง (ดินทราย/ร่วนปนทราย: 3 ครั้ง)',
     sourceName: 'ตารางปุ๋ยตามค่าวิเคราะห์ดิน PPSF กรมส่งเสริมการเกษตร',
-    sourceUrl: 'https://ppsf.doae.go.th/wp-content/uploads/2024/11/คำแนะนำการใช้ปุ๋ยตามค่าวิเคราะห์ดิน.pdf',
+    sourceUrl: PPSF_FERTILIZER_URL,
     unverified: ['"ปุ๋ยอ้อย 4 กลุ่มดิน" — เอกสารต้นทางดาวน์โหลดไม่สำเร็จ จึงยังไม่มีหลักฐานเลขสูตร/อัตรา'],
   },
   {
@@ -886,8 +1029,8 @@ export const FERTILIZER_GUIDANCE: FertilizerGuidance[] = [
         note: 'วิธีทั่วไป ปี 1–6 โบแรกซ์ 50 กรัม/ต้น/ปี เพิ่มเป็น 100 กรัม เมื่อให้ผลผลิตสูง',
       },
     ],
-    sourceName: 'คู่มือการใช้ปุ๋ยปาล์มน้ำมัน กรมส่งเสริมการเกษตร',
-    sourceUrl: 'https://www.doa.go.th/fc/palmsurat/wp-content/uploads/2020/06/คำแนะนำการใช้ปุ๋ยปาล์มน้ำมัน3.pdf',
+    sourceName: 'กรมวิชาการเกษตร (ศูนย์วิจัยปาล์มน้ำมันสุราษฎร์ธานี) — คำแนะนำปุ๋ยปาล์มน้ำมัน',
+    sourceUrl: PALM_FERTILIZER_URL,
     unverified: ['"ปุ๋ยปาล์ม 15 สูตร" — ไม่พบหลักฐานในเอกสารที่ตรวจ'],
   },
   {
@@ -914,7 +1057,7 @@ export const FERTILIZER_GUIDANCE: FertilizerGuidance[] = [
       'ต้นยางเปิดกรีดแล้ว: ใส่ 1–1.2 กก./ต้น/ปี แบ่ง 2 ครั้ง — ครั้งแรกหลังยางผลัดใบ ต้นฤดูฝน (~พฤษภาคม), ' +
       'ครั้งที่สองปลายฤดูฝน (กันยายน–ตุลาคม)',
     sourceName: 'กรมวิชาการเกษตร ศูนย์วิจัยยาง (การใส่ปุ๋ย)',
-    sourceUrl: 'https://rubber.oie.go.th/box/ELib_Document/1133/การใส้ปุ้ย.pdf',
+    sourceUrl: RUBBER_FERTILIZER_URL,
   },
 ];
 

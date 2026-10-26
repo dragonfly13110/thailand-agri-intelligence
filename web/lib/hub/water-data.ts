@@ -41,6 +41,7 @@ export const RID_RESERVOIR_RESOURCE_URL = 'https://app.rid.go.th/reservoir/api/r
 /** Metric ids written by `src/tadih/ingest_rid_d1.py` (adapter version 1.x). */
 export const RID_METRIC_VOLUME = 'reservoir_volume';
 export const RID_METRIC_PERCENT = 'reservoir_storage_pct';
+export const RID_METRIC_CAPACITY = 'reservoir_capacity';
 
 export const WATER_SOURCE_METADATA: WaterSourceMetadata = {
   sourceId: 'rid',
@@ -60,13 +61,13 @@ export const WATER_SOURCE_METADATA: WaterSourceMetadata = {
     'ต้นทางไม่ระบุหน่วยของ inflow/outflow จึงไม่นำสองค่านั้นขึ้นระบบ (unit = null ตามกฎห้ามเดาหน่วย)',
     'แถวต้นทางไม่มีรหัสจังหวัดทางการ จึงห้ามแปลงเป็นค่าเฉลี่ยหรือ coverage รายจังหวัด',
     'percent คำนวณจาก 100 × volume / storage และตรงกับ percent_storage ของต้นทางภายใน ±0.05 จุด อาจเกิน 100% เมื่ออ่างมีน้ำมากกว่าความจุออกแบบ',
-    'ความจุมวลรวม (storage capacity) ไม่ได้ถูกเขียนลงชั้น numeric จึงแสดงเป็น null ห้ามตีความ null เป็น 0',
+    'ความจุเผยแพร่จากฟิลด์ storage ของต้นทางเป็น measure reservoir_capacity หน่วย MCM; อ่างที่ต้นทางไม่ให้ความจุคงเป็น null ห้ามเดาหรือแทนด้วย 0',
   ],
 };
 
 export const WATER_WARNINGS = [
   'ตัวเลขแสดงเฉพาะอ่างที่มี active numeric run ในคลังข้อมูลกลางเท่านั้น ถ้าอ่านคลังไม่พบจะกลับสู่สถานะ metadata-only',
-  'หน่วยปริมาตรคือ MCM (ล้าน ลบ.ม.) ตามที่ต้นทางรายงาน; percent คำนวณจากปริมาตรหารด้วยความจุออกแบบ',
+  'หน่วยปริมาตรและความจุคือ MCM (ล้าน ลบ.ม.) ตามที่ต้นทางรายงาน; percent คำนวณจากปริมาตรหารด้วยความจุออกแบบ',
   'ข้อมูลระดับอ่างเก็บน้ำ ไม่ใช่ระดับจังหวัด ห้ามใช้แทนรายงานทางการของกรมชลประทาน',
   'inflow/outflow ยังไม่เผยแพร่ เพราะต้นทางไม่ระบุหน่วย',
 ];
@@ -85,8 +86,8 @@ export type WaterReservoirRecord = {
   reportDate: string | null;
   volumeMcm: number | null;
   storagePercent: number | null;
-  /** Source capacity is not in the numeric layer; never guessed. */
-  capacityMcm: null;
+  /** Design capacity from the source `storage` field; null when the source omits it. */
+  capacityMcm: number | null;
   volumeUnit: string | null;
   percentUnit: string | null;
   qualityStatus: string | null;
@@ -100,11 +101,14 @@ export type WaterSummary = {
   reservoirCount: number;
   /** Sum of published volumes for one report date — not installed capacity. */
   totalVolumeMcm: number | null;
+  /** Sum of the capacities the source actually reported for that date. */
+  totalCapacityMcm: number | null;
   minStoragePercent: number | null;
   maxStoragePercent: number | null;
   aboveDesignCount: number;
   missingVolumeCount: number;
   missingPercentCount: number;
+  missingCapacityCount: number;
   unitStatus: string;
 };
 
@@ -163,11 +167,11 @@ function round2(value: number): number {
 }
 
 /**
- * Pivot the two published RID metrics into one record per reservoir.
+ * Pivot the three published RID metrics into one record per reservoir.
  *
  * Only rows of a single report date are combined: mixing dates inside one
  * "total volume" number would be a cross-period rollup the source never
- * publishes. Nulls stay null and are excluded from the sum, never treated
+ * publishes. Nulls stay null and are excluded from the sums, never treated
  * as zero.
  */
 export function buildWaterPayload(rows: WaterObservationInput[]): WaterPayload | null {
@@ -204,10 +208,12 @@ export function buildWaterPayload(rows: WaterObservationInput[]): WaterPayload |
       record.percentUnit = row.unit;
       record.method = dimensionText(row, 'method');
       record.reportedPercentStorage = dimensionNumber(row, 'reportedPercentStorage');
+    } else if (row.metricId === RID_METRIC_CAPACITY) {
+      record.capacityMcm = row.value;
     } else {
       continue;
     }
-    // The two metrics arrive as separate rows; descriptive fields are taken from
+    // The metrics arrive as separate rows; descriptive fields are taken from
     // whichever row carries them first so a later row cannot blank them out.
     record.name = record.name ?? row.locationName;
     record.region = record.region ?? dimensionText(row, 'region');
@@ -225,16 +231,21 @@ export function buildWaterPayload(rows: WaterObservationInput[]): WaterPayload |
 
   const volumes = reservoirs.map((row) => row.volumeMcm).filter((value): value is number => value !== null);
   const percents = reservoirs.map((row) => row.storagePercent).filter((value): value is number => value !== null);
+  const capacities = reservoirs.map((row) => row.capacityMcm).filter((value): value is number => value !== null);
 
   const summary: WaterSummary = {
     reportDate,
     reservoirCount: reservoirs.length,
     totalVolumeMcm: volumes.length ? round2(volumes.reduce((sum, value) => sum + value, 0)) : null,
+    // Only the reservoirs whose capacity the source actually reported are in
+    // this total, so it is never presented as the installed capacity of the set.
+    totalCapacityMcm: capacities.length ? round2(capacities.reduce((sum, value) => sum + value, 0)) : null,
     minStoragePercent: percents.length ? round2(Math.min(...percents)) : null,
     maxStoragePercent: percents.length ? round2(Math.max(...percents)) : null,
     aboveDesignCount: percents.filter((value) => value > 100).length,
     missingVolumeCount: reservoirs.length - volumes.length,
     missingPercentCount: reservoirs.length - percents.length,
+    missingCapacityCount: reservoirs.length - capacities.length,
     unitStatus: volumes.length && reservoirs.every((row) => row.volumeMcm === null || row.volumeUnit === 'MCM')
       ? 'volume=MCM (ตามที่ต้นทางรายงาน)'
       : 'pending_official_confirmation',

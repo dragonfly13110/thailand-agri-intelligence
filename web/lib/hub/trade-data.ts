@@ -80,6 +80,8 @@ export interface TradeKpiSummary {
   totalImportValueMillionBaht: number;
   tradeBalanceMillionBaht: number;
   yoyExportGrowthPct: number;
+  /** false เมื่อไม่มีข้อมูลปีก่อนหน้าหรืออัตราการเติบโตต้นทาง — ห้ามเติมค่าประมาณ */
+  yoyAvailable: boolean;
   risingStar: {
     id: string;
     name: string;
@@ -107,6 +109,18 @@ export interface TradeBalanceItem {
   exportVolume: number;
 }
 
+/**
+ * ความครอบคลุมของยอดคู่ค้า: topDestinations เก็บเฉพาะ 5 ตลาดแรกของแต่ละสินค้า
+ * สัดส่วนที่แสดงจึงเป็นสัดส่วนของยอดที่ครอบคลุม ไม่ใช่ยอดส่งออกทั้งหมดของทุกตลาด
+ */
+export interface DestinationCoverage {
+  basis: 'top5_per_commodity';
+  coveredExportValueMillionBaht: number;
+  totalExportValueMillionBaht: number;
+  coveragePct: number;
+  note: string;
+}
+
 export interface TradeDashboardPayload {
   sample: boolean;
   selectedYear: number;
@@ -116,6 +130,7 @@ export interface TradeDashboardPayload {
   kpi: TradeKpiSummary;
   tradeBalances: TradeBalanceItem[];
   topDestinationsOverall: TradeDestination[];
+  destinationCoverage: DestinationCoverage;
   commodityDetail?: CommodityTradeProfile;
   allCommodities: CommodityTradeProfile[];
   meta: {
@@ -804,12 +819,15 @@ export function buildTradeDashboard(options?: {
 }): TradeDashboardPayload {
   const selectedYear = options?.year && AVAILABLE_YEARS.includes(options.year) ? options.year : 2024;
   const rawCommodity = (options?.commodityId || 'all').toLowerCase().trim();
-  const selectedCommodity = COMMODITY_TRADE_PROFILES.some(p => p.id === rawCommodity) ? rawCommodity : 'all';
+  const normalizedCommodity = rawCommodity === 'oil-palm' ? 'palm' : rawCommodity;
+  const selectedCommodity = COMMODITY_TRADE_PROFILES.some(p => p.id === normalizedCommodity) ? normalizedCommodity : 'all';
 
   let totalExportValue = 0;
   let totalExportVolume = 0;
   let totalImportValue = 0;
   let totalPrevExportValue = 0;
+  let impliedPrevExportValue = 0;
+  let growthRateCount = 0;
 
   const prevYear = selectedYear - 1;
   const hasPrevYear = AVAILABLE_YEARS.includes(prevYear);
@@ -821,6 +839,9 @@ export function buildTradeDashboard(options?: {
       totalExportValue += data.exportValueMillionBaht;
       totalExportVolume += data.exportVolumeMillionTons;
       totalImportValue += data.importValueMillionBaht;
+      // อัตราเติบโตที่ประกาศคู่แถวปีนั้นใช้ได้แม้ไม่มีแถวปีก่อนหน้าในชุดข้อมูล (เช่นปี 2022)
+      impliedPrevExportValue += data.exportValueMillionBaht / (1 + data.yoyExportValueGrowthPct / 100);
+      growthRateCount += 1;
     }
     if (hasPrevYear) {
       const prevData = profile.years[prevYear];
@@ -830,29 +851,36 @@ export function buildTradeDashboard(options?: {
     }
   }
 
-  const yoyExportGrowthPct = totalPrevExportValue > 0
-    ? Number((((totalExportValue - totalPrevExportValue) / totalPrevExportValue) * 100).toFixed(1))
-    : 8.5;
+  const prevBaseAvailable = hasPrevYear && totalPrevExportValue > 0;
+  const yoyBase = prevBaseAvailable ? totalPrevExportValue : impliedPrevExportValue;
+  const yoyAvailable = growthRateCount > 0 && yoyBase > 0;
+  const yoyExportGrowthPct = yoyAvailable
+    ? Number((((totalExportValue - yoyBase) / yoyBase) * 100).toFixed(1))
+    : 0;
 
   const tradeBalanceMillionBaht = totalExportValue - totalImportValue;
 
   // Find rising star for the year
-  const risingStarProfile = COMMODITY_TRADE_PROFILES.find(p => p.isRisingStar) || COMMODITY_TRADE_PROFILES[4];
+  const risingStarProfile = COMMODITY_TRADE_PROFILES.find(p => p.isRisingStar)!;
   const risingStarYearData = risingStarProfile.years[selectedYear];
 
   // Destination Aggregates across all commodities
   const countryMap = new Map<string, { country: string; countryCode: string; flag: string; volume: number; value: number }>();
+  let coveredDestinationValue = 0;
 
   for (const profile of COMMODITY_TRADE_PROFILES) {
     const data = profile.years[selectedYear];
     if (data) {
+      // ใช้ countryCode เป็นกุญแจ เพื่อไม่ให้ชื่อประเทศที่เขียนต่างกันถูกนับเป็นคนละตลาด
       for (const dest of data.topDestinations) {
-        const existing = countryMap.get(dest.country);
+        coveredDestinationValue += dest.valueMillionBaht;
+        const key = dest.countryCode || dest.country;
+        const existing = countryMap.get(key);
         if (existing) {
           existing.volume += dest.volumeMillionTons;
           existing.value += dest.valueMillionBaht;
         } else {
-          countryMap.set(dest.country, {
+          countryMap.set(key, {
             country: dest.country,
             countryCode: dest.countryCode,
             flag: dest.flag,
@@ -877,6 +905,16 @@ export function buildTradeDashboard(options?: {
     valueMillionBaht: Math.round(c.value),
     sharePct: Number(((c.value / totalExportValue) * 100).toFixed(1)),
   }));
+
+  const destinationCoverage: DestinationCoverage = {
+    basis: 'top5_per_commodity',
+    coveredExportValueMillionBaht: Math.round(coveredDestinationValue),
+    totalExportValueMillionBaht: totalExportValue,
+    coveragePct: totalExportValue > 0
+      ? Number(((coveredDestinationValue / totalExportValue) * 100).toFixed(1))
+      : 0,
+    note: 'ยอดคู่ค้าที่มีรายละเอียดครอบคลุมเฉพาะ 5 อันดับแรกของแต่ละสินค้า; สัดส่วนตลาดคำนวณจากมูลค่าส่งออกรวมทั้งชุด ส่วนที่เหลือกระจายในตลาดอื่นที่ยังไม่มีรายละเอียด',
+  };
 
   const tradeBalances: TradeBalanceItem[] = COMMODITY_TRADE_PROFILES.map(profile => {
     const data = profile.years[selectedYear];
@@ -904,18 +942,14 @@ export function buildTradeDashboard(options?: {
   const effectiveExportValue = activeYearData ? activeYearData.exportValueMillionBaht : totalExportValue;
   const effectiveExportVolume = activeYearData ? activeYearData.exportVolumeMillionTons : Number(totalExportVolume.toFixed(2));
   const effectiveImportValue = activeYearData ? activeYearData.importValueMillionBaht : totalImportValue;
-  const effectiveTradeBalance = activeYearData ? activeYearData.tradeBalanceMillionBaht : tradeBalanceMillionBaht;
+  // คำนวณดุลจากยอดส่งออก-นำเข้าของปี/สินค้าที่เลือกโดยตรง ไม่ใช้ค่าที่เก็บซ้ำ
+  const effectiveTradeBalance = effectiveExportValue - effectiveImportValue;
   const effectiveYoyGrowth = activeYearData ? activeYearData.yoyExportValueGrowthPct : yoyExportGrowthPct;
+  const effectiveYoyAvailable = activeYearData ? true : yoyAvailable;
 
-  const topPartner = (activeYearData ? activeYearData.topDestinations[0] : topDestinationsOverall[0]) || {
-    country: 'จีน',
-    countryCode: 'CN',
-    flag: '🇨🇳',
-    volumeMillionTons: 8.72,
-    valueMillionBaht: 349964,
-    sharePct: 45.0,
-    rank: 1,
-  };
+  const topPartner = activeYearData?.topDestinations[0]
+    ?? topDestinationsOverall[0]
+    ?? COMMODITY_TRADE_PROFILES[0]?.years[selectedYear]?.topDestinations[0];
 
   const kpi: TradeKpiSummary = {
     year: selectedYear,
@@ -925,19 +959,20 @@ export function buildTradeDashboard(options?: {
     totalImportValueMillionBaht: effectiveImportValue,
     tradeBalanceMillionBaht: effectiveTradeBalance,
     yoyExportGrowthPct: effectiveYoyGrowth,
+    yoyAvailable: effectiveYoyAvailable,
     risingStar: {
       id: risingStarProfile.id,
       name: risingStarProfile.name,
       hsCode: risingStarProfile.hsCode,
-      yoyGrowthPct: risingStarYearData?.yoyExportValueGrowthPct || 18.4,
-      exportValueMillionBaht: risingStarYearData?.exportValueMillionBaht || 167200,
+      yoyGrowthPct: risingStarYearData?.yoyExportValueGrowthPct ?? 0,
+      exportValueMillionBaht: risingStarYearData?.exportValueMillionBaht ?? 0,
       highlightNote: 'ทุเรียนสดและแช่แข็ง ขยายตัวสูงในตลาดจีนต่อเนื่อง เติบโตทั้งปริมาณและราคา',
     },
     topPartner: {
-      country: topPartner.country,
-      flag: topPartner.flag,
-      totalValueMillionBaht: topPartner.valueMillionBaht,
-      sharePct: topPartner.sharePct,
+      country: topPartner?.country ?? 'ไม่ระบุ',
+      flag: topPartner?.flag ?? '',
+      totalValueMillionBaht: topPartner?.valueMillionBaht ?? 0,
+      sharePct: topPartner?.sharePct ?? 0,
     },
   };
 
@@ -954,34 +989,46 @@ export function buildTradeDashboard(options?: {
     kpi,
     tradeBalances,
     topDestinationsOverall,
+    destinationCoverage,
     commodityDetail,
     allCommodities: COMMODITY_TRADE_PROFILES,
     meta: {
       access: 'metadata_only',
       availability: 'ready',
-      sourceIds: ['customs', 'moc_tpso', 'oae'],
+      sourceIds: ['customs', 'moc_tpso', 'oae', 'data_go_th'],
       sources: [
         {
           name: 'ระบบสถิติการค้าระหว่างประเทศของไทย (ศุลกากรรายพิกัด HS 4-6 หลัก)',
           org: 'กรมศุลกากร (Thai Customs Department)',
-          url: 'https://www.customs.go.th',
+          url: 'https://www.customs.go.th/statistic_report.php',
         },
         {
           name: 'ข้อมูลสถิติการส่งออก-นำเข้าสินค้าเกษตรและอุตสาหกรรมเกษตร',
           org: 'สำนักงานนโยบายและยุทธศาสตร์การค้า (สนค. TPSO) กระทรวงพาณิชย์',
-          url: 'https://www.tpso.moc.go.th',
+          url: 'https://tpso.go.th',
         },
         {
           name: 'ภาวะเศรษฐกิจการเกษตรและสถิติการค้าสินค้าเกษตรระหว่างประเทศ',
           org: 'สำนักงานเศรษฐกิจการเกษตร (สศก. OAE)',
           url: 'https://www.oae.go.th',
         },
+        {
+          name: 'ศูนย์กลางข้อมูลเปิดภาครัฐ — ชุดข้อมูลสถิติการค้าและเกษตร',
+          org: 'สำนักงานพัฒนารัฐบาลดิจิทัล (สพร. DGA) data.go.th',
+          url: 'https://data.go.th',
+        },
       ],
       dataAsOf: `${selectedYear}-12-31`,
-      datasetVersion: 'agri-trade-reference-v1',
+      datasetVersion: 'agri-trade-reference-v2',
       warnings: [
         'ตัวเลขสถิติในชุดนี้เป็นตัวเลขจำลองเชิงสถิติ (sample: true) อิงพิกัดศุลกากรไทยสำหรับทดสอบและวิเคราะห์ห่วงโซ่มูลค่า',
         'การเผยแพร่ข้อมูลระดับการค้าระหว่างประเทศยังคงสถานะ metadata_only ตามเกณฑ์การบริหารสิทธิ์ของ Hub',
+        'มูลค่าใช้หน่วยล้านบาทและปริมาณใช้หน่วยล้านตันแยกกัน; KPI รวมคำนวณจากแถวรายสินค้าของปีเดียว ไม่บวกยอดรวมย่อยซ้ำ',
+        `ยอดคู่ค้าที่มีรายละเอียดครอบคลุม ${destinationCoverage.coveragePct}% ของมูลค่าส่งออกรวม (top 5 ต่อสินค้า); ตลาดที่เหลือยังไม่มีรายละเอียดในชุดข้อมูล`,
+        ...(yoyAvailable && !prevBaseAvailable
+          ? ['อัตราเติบโต YoY ของปีนี้ใช้ค่าที่ประกาศคู่แถวปีนั้น เนื่องจากไม่มีแถวปีก่อนหน้าในชุดข้อมูล']
+          : []),
+        ...(!yoyAvailable ? ['ไม่มีข้อมูลเพียงพอสำหรับคำนวณ YoY — ระบบไม่เติมค่าประมาณและแสดง yoyAvailable = false'] : []),
       ],
     },
   };

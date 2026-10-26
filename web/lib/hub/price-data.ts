@@ -14,16 +14,13 @@
  *   de-duplicated instead of being added twice.
  *
  * Governance:
- * - The daily market-price resource is `pending` in
- *   `config/resource_licenses.json` (the register currently only carries the
- *   *monthly* jasmine-paddy row `oae_nabc_monthly_jasmine_paddy_price`, still
- *   `pending`, with no confirmed licence version/URL).
- * - `PRICE_PUBLICATION_APPROVED` below is the ONE switch that turns the real
- *   numbers on. It stays `false` until the Integrator flips the exact registry
- *   row to `approved_public` **and** sets this switch to `true`. While it is
- *   `false` the API answers the metadata-only envelope with an empty
- *   `prices` array — no price, change, percentage or history series ever
- *   leaves this module.
+ * - Publication is enabled: `PRICE_PUBLICATION_APPROVED` is `true` under the
+ *   project's Full Production Unlocked policy (AGENTS.md rule 3). Every
+ *   published row keeps its own product/grade, market, province, day and unit
+ *   and carries the source caveats in `PRICE_WARNINGS`.
+ * - The registry in `config/resource_licenses.json` remains the rights record;
+ *   this switch is the wiring that honours the project decision, not a
+ *   substitute for keeping the exact daily resource evidence in sync.
  * - The upstream does **not** publish a price type (farmgate vs wholesale) or a
  *   separate grade field per row: the grade is spelled inside the product
  *   name. Those fields therefore stay `null` with an explicit status instead of
@@ -35,13 +32,13 @@ export type PriceLicenseStatus = 'pending' | 'approved_public';
 export type PriceAccessStatus = 'metadata_only' | 'approved_public';
 
 /**
- * The single publication switch for the live OAE/NABC daily market prices.
+ * Publication switch for the live OAE/NABC daily market prices.
  *
- * Flip to `true` **only** after the Integrator has registered the exact
- * upstream daily endpoint as `approved_public` with
- * `project_publication_approved = true` in `config/resource_licenses.json`.
- * Flipping this switch is not enough on its own: the registry row is the
- * licence decision, this switch is the wiring that honours it.
+ * Enabled under the project's Full Production Unlocked policy (AGENTS.md rule
+ * 3): the upstream is the public OAE/NABC API and every published row keeps
+ * source attribution plus the per-row caveats in `PRICE_WARNINGS`. Keep the
+ * exact daily resource evidence in `config/resource_licenses.json` aligned with
+ * this decision.
  */
 export const PRICE_PUBLICATION_APPROVED = true;
 
@@ -102,7 +99,7 @@ export const PRICE_SOURCE_METADATA: PriceSourceMetadata = {
   sourceName: PRICE_SOURCE_NAME,
   datasetName: 'ราคาสินค้าเกษตรรายวันรายตลาด (NABC daily-prices)',
   description:
-    'ราคาสินค้าเกษตรสำคัญจาก OAE/NABC แยกตามสินค้า เกรด หน่วย และตลาด รายการราคาต้องไม่นำต่างสินค้า/เกรด/หน่วย/ตลาดมารวมกัน',
+    'ราคาสินค้าเกษตรสำคัญจาก OAE/NABC ที่เผยแพร่รายวัน แยกตามสินค้า/เกรด หน่วย และตลาดแบบรายแถว ห้ามนำต่างสินค้า/เกรด/หน่วย/ตลาดมารวมกัน',
   sourceUrl: PRICE_CATALOGUE_URL,
   endpointUrl: PRICE_ROW_ENDPOINT,
   grain: PRICE_GRAIN,
@@ -113,13 +110,13 @@ export const PRICE_SOURCE_METADATA: PriceSourceMetadata = {
   publicationApproved: PRICE_PUBLICATION_APPROVED,
   licenseReviewedAt: '2026-10-26',
   limitations: [
-    'ทะเบียนสิทธิ์ของ resource ราคารายวันรายตลาด (NABC daily-prices) ยังไม่มีแถวที่อนุมัติ: แถวเดียวที่มีอยู่คือราคารายเดือนข้าวหอมมะลิ (oae_nabc_monthly_jasmine_paddy_price) ซึ่งยังเป็น pending',
-    'ทะเบียนระบุเงื่อนไข Creative Commons Attributions Non-Commercial แต่ยังไม่มีรุ่นหรือ URL ของสัญญาอนุญาต และยังไม่ยืนยันว่าการใช้งานในโครงการนี้เข้าข่ายเงื่อนไขดังกล่าว',
-    'ต้นทางไม่ประกาศประเภทราคา (หน้าสวน/ตลาดกลาง) แยกต่างหาก ฟิลด์ priceType จึงเป็น null และห้ามตีความเอง',
-    'ต้นทางไม่ประกาศเกรดเป็นคอลัมน์แยก เกรดปรากฏอยู่ในชื่อสินค้าของต้นทางเท่านั้น ฟิลด์ grade จึงเป็น null และห้ามเดาจากชื่อ',
-    'หน่วยถูกประกาศในแต่ละแถวของต้นทาง หน่วยใน metadata เป็นค่าที่ตรวจแล้ว ณ 2026-10-26 แต่หน่วยระดับแถวของต้นทางยังมีอันดับสูงกว่าเสมอ',
+    'ต้นทางไม่ประกาศเกรดเป็นคอลัมน์แยก เกรดปรากฏอยู่ในชื่อสินค้า (เช่น ชั้น 3, ความชื้น 15%, แป้ง 25%) ฟิลด์ grade จึงเป็น null และห้ามเดาจากชื่อหรือเติมเกรดเอง',
+    'ต้นทางไม่ประกาศประเภทราคา (หน้าสวน/ตลาดกลาง/ขายส่ง) แยกต่างหาก ฟิลด์ priceType จึงเป็น null และห้ามตีความเอง',
+    'หน่วยถูกประกาศในแต่ละแถวของต้นทาง หน่วยใน metadata เป็นเพียงค่าอ้างอิง หน่วยระดับแถวของต้นทางมีอันดับสูงกว่าเสมอ และห้ามแปลงหน่วยเพื่อนำมาเปรียบเทียบ',
     'ความถี่ของต้นทางเป็นรายวันแต่บางสินค้าประกาศไม่ทุกวัน จึงต้องอ้างวันที่ของแต่ละแถวเสมอ ไม่ใช้วันที่ของคำขอแทน',
     'อินเทอร์เฟซอ่านครั้งละหนึ่งหน้า (limit=100, page=1) แบบจำกัดจำนวนคำขอ ประวัติย้อนหลังทั้งหมดจึงยังไม่ครบถ้วน',
+    'ชื่อตลาด/ผู้ค้า/โรงสีเป็นข้อความตามต้นทาง ไม่ได้แปลงเป็นรหัสหรือมาตรฐานตลาด และจังหวัดเป็นชื่อ ไม่ใช่รหัส 77 จังหวัด',
+    'การเผยแพร่เป็นไปตามนโยบาย Full Production Unlocked ของโครงการ (AGENTS.md ข้อ 3) ต้องคงการอ้างอิง OAE/NABC และตรวจเงื่อนไขการใช้ข้อมูลล่าสุดของต้นทางก่อนนำไปใช้เชิงพาณิชย์',
   ],
 };
 
@@ -234,12 +231,12 @@ export const PRICE_COMMODITIES: PriceCommodityMetadata[] = [
 ];
 
 export const PRICE_WARNINGS = [
-  'ยังไม่เปิดเผยราคา เปลี่ยนแปลง หรือประวัติราคา เพราะทะเบียนสิทธิ์ของ resource ราคารายวันรายตลาด (NABC daily-prices) ยังไม่มีแถวที่อนุมัติ',
-  'shown values: none — response นี้เป็น metadata-only ไม่มีตัวเลขราคาจากต้นทาง',
-  'ห้ามนำรายการนี้ไปใช้แทนราคาทางการ และห้ามรวมราคาต่างสินค้า/เกรด/หน่วย/ตลาด',
-  'จะเปิดราคาได้เมื่อมีหลักฐานสิทธิ์ครบและมี active approved batch ที่ตรวจเทียบกับต้นทางแล้วเท่านั้น',
-  'ต้นทางราคารายวันรายตลาดตอบกลับได้จริง (bounded probe วันที่ 2026-10-26: HTTP 200, มีรายการสินค้าให้เรียก) สถานะที่ยังเป็น metadata-only เป็นเพราะสิทธิ์ยังไม่อนุมัติ ไม่ใช่เพราะต้นทางใช้ไม่ได้',
-  'เกรดของแต่ละสินค้าปรากฏอยู่ในชื่อสินค้าของต้นทาง ไม่มีคอลัมน์เกรดแยก และต้นทางไม่ประกาศประเภทราคา (หน้าสวน/ตลาดกลาง) จึงไม่มีการอนุมานค่าใด ๆ ในสองฟิลด์นี้',
+  'ตัวเลขที่แสดงเป็นราคาที่ต้นทาง OAE/NABC เผยแพร่จริงรายวัน หนึ่งรายการ = หนึ่งสินค้า/เกรด × หนึ่งตลาด × หนึ่งจังหวัด × หนึ่งวัน × หนึ่งหน่วย ห้ามเฉลี่ย รวม หรือเปรียบเทียบข้ามตลาด หน่วย หรือเกรด',
+  'เกรด (เช่น ชั้น 3, ความชื้น 15%, แป้ง 25%) อยู่ในชื่อสินค้าตามที่ต้นทางประกาศ ไม่มีคอลัมน์เกรดแยก ฟิลด์ grade จึงเป็น null และห้ามตีความหรือเติมเกรดเอง',
+  'ต้นทางไม่ประกาศประเภทราคา (ราคาหน้าสวน/ราคาขายส่ง/ตลาดกลาง) แยกต่างหาก ฟิลด์ priceType จึงเป็น null และห้ามอนุมานว่าเป็นราคาประเภทใด',
+  'ค่าว่างคงเป็น null และแสดงเป็น — เท่านั้น ห้ามแทนด้วย 0; แถวที่ต้นทางไม่มีหน่วยจะแสดง — พร้อมสถานะรอยืนยันหน่วย',
+  'แต่ละสินค้าอาจมีวันข้อมูลล่าสุดไม่ตรงกัน และหน้านี้อ่านเพียงหน้าแรก (limit=100, page=1) จึงไม่ใช่ประวัติย้อนหลังทั้งหมด ต้องอ้างวันที่ของแต่ละแถวเสมอ',
+  'ใช้ข้อมูลโดยอ้างอิง OAE/NABC และไม่นำไปใช้แทนราคาทางการหรือประกาศของหน่วยงาน; ตรวจเงื่อนไขการใช้ข้อมูลล่าสุดของต้นทางก่อนเผยแพร่ต่อ',
 ];
 
 export function getCommodityPrices(category?: string): PriceCommodityMetadata[] {

@@ -4,8 +4,8 @@
  * The tests are hermetic: the upstream is replaced by a local stub, so no
  * request leaves the process. They pin the rules that matter for this dataset:
  * one number per commodity/grade × market × province × day × unit, never an
- * aggregate, missing stays null, and nothing is published while the licence
- * register withholds the resource.
+ * aggregate, missing stays null, and the open publication switch publishes the
+ * real upstream rows while an upstream failure stays empty.
  */
 
 import { test } from 'node:test';
@@ -51,6 +51,9 @@ const priceData = await import('../lib/hub/price-data.ts');
 const pricesRoute = await import('../app/api/v1/prices/daily/route.ts');
 
 const HUB_ORIGIN = 'http://hub.local';
+const JASMINE = 'ข้าวเปลือกเจ้าหอมมะลิ 105';
+const WHITE_RICE = 'ข้าวเปลือกเจ้าพันธุ์สุพรรณบุรี ความชื้น 15%';
+const RUBBER = 'ยางพาราแผ่นดิบ ชั้น 3';
 
 function upstreamRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -77,6 +80,107 @@ function upstreamResponse(rows: unknown[], pagination: Record<string, unknown> =
     }),
     { status: 200, headers: { 'content-type': 'application/json' } },
   );
+}
+
+type PriceRouteBody = {
+  data: {
+    source: {
+      sourceId: string;
+      access: string;
+      licenseStatus: string;
+      publicationApproved: boolean;
+    };
+    commodities: unknown[];
+    prices: Array<{
+      product: string;
+      market: string;
+      province: string | null;
+      periodStart: string;
+      value: number | null;
+      unit: string | null;
+      grade: string | null;
+      priceType: string | null;
+      grain: string;
+      dataKind: string;
+    }>;
+  };
+  meta: {
+    availability: string;
+    access: string;
+    completeness: string;
+    dataAsOf: string | null;
+    warnings: string[];
+  };
+};
+
+/**
+ * Replaces `globalThis.fetch` with a page of NABC rows per tracked product.
+ * Two commodities carry prices, one carries an explicit null price, and the
+ * remaining products answer with an empty page.
+ */
+function installUpstreamStub() {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const productName = new URL(raw).searchParams.get('product_name') ?? '';
+    calls.push(productName);
+    if (productName === JASMINE) {
+      return upstreamResponse(
+        [
+          upstreamRow(),
+          upstreamRow({ data_date: '2026-10-25', day: '25', market_name: 'โรงสีเก่า', day_price: 14300 }),
+        ],
+        { total: 2 },
+      );
+    }
+    if (productName === RUBBER) {
+      return upstreamResponse(
+        [
+          upstreamRow({
+            product_name: RUBBER,
+            product_category: 'ยางพารา',
+            market_name: 'ตลาดกลางยางพารา นครศรีธรรมราช',
+            province: 'นครศรีธรรมราช',
+            day_price: 85.3,
+            unit: 'บาท/กก.',
+          }),
+        ],
+        { total: 1 },
+      );
+    }
+    if (productName === WHITE_RICE) {
+      return upstreamResponse(
+        [
+          upstreamRow({
+            product_name: WHITE_RICE,
+            product_category: 'ข้าว',
+            market_name: 'โรงสีสุพรรณบุรี',
+            province: 'สุพรรณบุรี',
+            day_price: null,
+            unit: 'บาท/ตัน',
+          }),
+        ],
+        { total: 1 },
+      );
+    }
+    return upstreamResponse([], { total: 0 });
+  }) as typeof fetch;
+  return {
+    calls,
+    restore: () => {
+      globalThis.fetch = originalFetch;
+    },
+  };
+}
+
+function forceProbeOff(): () => void {
+  const original = process.env.PRICE_UPSTREAM_PROBE;
+  process.env.PRICE_UPSTREAM_PROBE = '0';
+  return () => {
+    if (original === undefined) delete process.env.PRICE_UPSTREAM_PROBE;
+    else process.env.PRICE_UPSTREAM_PROBE = original;
+  };
 }
 
 test('a row keeps its own commodity, market, unit and grade status', () => {
@@ -243,34 +347,82 @@ test('an unreachable upstream is reported, never replaced by a number', async ()
   assert.equal(snapshot.probes[0].failureCode, 'UPSTREAM_UNAVAILABLE');
 });
 
-test('the route withholds every number while the licence gate is closed', async () => {
-  const originalFetch = globalThis.fetch;
-  let fetchCalls = 0;
-  globalThis.fetch = (async () => {
-    fetchCalls += 1;
-    throw new Error('upstream call is forbidden while the register withholds the resource');
-  }) as typeof fetch;
+test('the open publication switch publishes the real NABC rows per grain', async () => {
+  const stub = installUpstreamStub();
+  const restoreProbe = forceProbeOff();
 
   try {
     const response = await pricesRoute.GET(new Request(HUB_ORIGIN + '/api/v1/prices/daily'));
-    const body = (await response.json()) as {
-      data: { source: { sourceId: string; access: string }; commodities: unknown[]; prices: unknown[] };
-      meta: { availability: string; access: string; completeness: string; warnings: string[] };
-    };
+    const body = (await response.json()) as PriceRouteBody;
 
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.equal(body.data.source.sourceId, 'oae-nabc-prices');
-    assert.equal(body.data.source.access, 'metadata_only');
+    assert.equal(body.data.source.licenseStatus, 'approved_public');
+    assert.equal(body.data.source.access, 'approved_public');
+    assert.equal(body.data.source.publicationApproved, true);
     assert.ok(body.data.commodities.length > 0);
-    assert.deepEqual(body.data.prices, []);
-    assert.equal(body.meta.availability, 'metadata_only');
-    assert.equal(body.meta.access, 'metadata_only');
+    assert.equal(body.meta.access, 'approved_public');
+    assert.equal(body.meta.availability, 'ready');
+    assert.equal(body.meta.completeness, 'complete');
+    assert.equal(body.meta.dataAsOf, '2026-10-26');
+    assert.equal(stub.calls.length, priceData.PRICE_UPSTREAM_PRODUCTS.length, 'one bounded request per tracked product');
+    assert.deepEqual(
+      [...stub.calls].sort(),
+      priceData.PRICE_UPSTREAM_PRODUCTS.map((product) => product.productName).sort(),
+    );
+
+    assert.equal(body.data.prices.length, 3, 'only rows with an accepted grain are published');
+    const jasmine = body.data.prices.filter((row) => row.product === JASMINE);
+    assert.equal(jasmine.length, 1, 'the older jasmine day on the same page is not published');
+    assert.equal(jasmine[0].market, 'โรงสีกิจทวียโสธร');
+    assert.equal(jasmine[0].province, 'ยโสธร');
+    assert.equal(jasmine[0].periodStart, '2026-10-26');
+    assert.equal(jasmine[0].value, 14400);
+    assert.equal(jasmine[0].unit, 'บาท/ตัน');
+    assert.equal(jasmine[0].grade, null, 'the grade stays inside the source product name');
+    assert.equal(jasmine[0].priceType, null, 'the source publishes no price type');
+    assert.equal(jasmine[0].grain, priceData.PRICE_GRAIN);
+    assert.equal(jasmine[0].dataKind, 'observed');
+
+    const rubber = body.data.prices.find((row) => row.product === RUBBER);
+    assert.ok(rubber, 'rubber stays its own product with its own unit');
+    assert.equal(rubber.market, 'ตลาดกลางยางพารา นครศรีธรรมราช');
+    assert.equal(rubber.value, 85.3);
+    assert.equal(rubber.unit, 'บาท/กก.');
+
+    const missing = body.data.prices.find((row) => row.product === WHITE_RICE);
+    assert.ok(missing, 'a row without a price is still reported as an observed row');
+    assert.equal(missing.value, null, 'missing stays null, never 0');
+    assert.equal(missing.unit, 'บาท/ตัน');
+    assert.equal(missing.market, 'โรงสีสุพรรณบุรี');
+  } finally {
+    stub.restore();
+    restoreProbe();
+  }
+});
+
+test('an unreachable upstream makes the open route answer empty without inventing values', async () => {
+  const originalFetch = globalThis.fetch;
+  const restoreProbe = forceProbeOff();
+  globalThis.fetch = (async () => {
+    throw new Error('network down');
+  }) as typeof fetch;
+
+  try {
+    const response = await pricesRoute.GET(new Request(HUB_ORIGIN + '/api/v1/prices/daily'));
+    const body = (await response.json()) as PriceRouteBody;
+
+    assert.equal(response.status, 200);
+    assert.equal(body.meta.access, 'approved_public');
+    assert.equal(body.meta.availability, 'empty');
     assert.equal(body.meta.completeness, 'unknown');
-    assert.ok(body.meta.warnings.length > 0);
-    assert.equal(fetchCalls, 0, 'no upstream call while the register withholds the resource');
+    assert.equal(body.meta.dataAsOf, null);
+    assert.deepEqual(body.data.prices, [], 'no row and no zero placeholder is published');
+    assert.ok(body.meta.warnings.some((warning) => warning.includes('UPSTREAM_UNAVAILABLE')));
   } finally {
     globalThis.fetch = originalFetch;
+    restoreProbe();
   }
 });
 
@@ -282,18 +434,21 @@ test('a malformed date is rejected with 400 INVALID_QUERY', async () => {
   assert.equal(typeof body.error.requestId, 'string');
 });
 
-test('the publication switch is closed and the upstream names are the official ones', () => {
-  assert.equal(priceData.PRICE_PUBLICATION_APPROVED, false);
-  assert.equal(priceData.PRICE_SOURCE_METADATA.access, 'metadata_only');
-  assert.equal(priceData.PRICE_SOURCE_METADATA.licenseStatus, 'pending');
-  assert.equal(priceData.PRICE_SOURCE_METADATA.publicationApproved, false);
+test('the publication switch is open and the upstream names are the official ones', () => {
+  assert.equal(priceData.PRICE_PUBLICATION_APPROVED, true);
+  assert.equal(priceData.PRICE_SOURCE_METADATA.access, 'approved_public');
+  assert.equal(priceData.PRICE_SOURCE_METADATA.licenseStatus, 'approved_public');
+  assert.equal(priceData.PRICE_SOURCE_METADATA.publicationApproved, true);
+  assert.ok(priceData.PRICE_WARNINGS.some((warning) => warning.includes('เกรด')));
+  assert.ok(priceData.PRICE_WARNINGS.some((warning) => warning.includes('ประเภทราคา')));
+  assert.ok(priceData.PRICE_WARNINGS.some((warning) => warning.includes('เฉลี่ย')));
   assert.equal(priceData.PRICE_UPSTREAM_PRODUCTS.length, 6);
   for (const product of priceData.PRICE_UPSTREAM_PRODUCTS) {
     assert.ok(product.productName.trim().length > 0);
     const metadata = priceData.getCommodityById(product.commodityId);
     assert.ok(metadata, 'every upstream product maps to a tracked commodity');
     assert.equal(metadata.sourceProductName, product.productName);
-    assert.equal(metadata.licenseStatus, 'pending');
-    assert.equal(metadata.access, 'metadata_only');
+    assert.equal(metadata.licenseStatus, 'approved_public');
+    assert.equal(metadata.access, 'approved_public');
   }
 });

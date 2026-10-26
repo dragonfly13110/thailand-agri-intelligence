@@ -283,9 +283,23 @@ export interface D1ObservationRow {
 
 const LOCATION_KINDS = ['country', 'province', 'district', 'subdistrict', 'station', 'reservoir', 'grid'];
 
+/**
+ * Filter values are bound as D1 parameters and compared with `=`, never
+ * interpolated and never used inside a LIKE pattern, so the only things worth
+ * refusing are an overlong value, a NUL/control byte smuggled through a
+ * percent-encoded query, and `%` itself (an id that contains it is a probe,
+ * not a resource key).
+ *
+ * `_` is a normal character here: every metric id in the warehouse is
+ * snake_case (`reservoir_volume`, `reservoir_capacity`, `t2m_mean_c`) and it
+ * is a wildcard only to LIKE, which this reader does not build. Refusing it —
+ * the reported defect #7 — would make those metrics unreadable for no gain.
+ */
+const UNSAFE_FILTER_VALUE = /[%\u0000-\u001f\u007f]/;
+
 function filterId(value: string | undefined, name: string, maxLength: number): string {
   if (value === undefined || value === '') return '';
-  if (typeof value !== 'string' || value.length > maxLength || value.includes('%')) {
+  if (typeof value !== 'string' || value.length > maxLength || UNSAFE_FILTER_VALUE.test(value)) {
     throw new HubRequestError(400, 'INVALID_QUERY', 'ค่า ' + name + ' ไม่ถูกต้อง');
   }
   return value;

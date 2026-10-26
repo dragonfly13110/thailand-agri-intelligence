@@ -8,7 +8,8 @@ D1 is an in-memory SQLite database loaded from the real Hub schema.
 
 Covered contract (docs/assignments/2026-10-26-real-data-initiative.md §2, §3):
 licence gate pass/fail, dry-run-by-default writes nothing, the storage-percent
-derivation (100 x volume / storage), missing values stay null (never 0),
+derivation (100 x volume / storage), the provider capacity measure
+(``reservoir_capacity``, MCM), missing values stay null (never 0),
 documented units (percent / MCM), per-day idempotency through the shared
 writer, ``--date`` plumbing and the ``main(argv, *, client=None) -> int`` exit
 codes.
@@ -191,6 +192,33 @@ class ObservationRowTests(RidAdapterCase):
         vol = rows[("R1", "reservoir_volume")]
         self.assertEqual(vol["value"], 52.5)  # provider grain, not rescaled to m3
         self.assertEqual(vol["unit"], "MCM")
+        cap = rows[("R1", "reservoir_capacity")]
+        self.assertEqual(cap["value"], 100.0)  # the provider's own `storage` field
+        self.assertEqual(cap["unit"], "MCM")
+        self.assertEqual(cap["quality_flag"], "good")
+
+    def test_capacity_is_its_own_measure_and_not_back_derived(self):
+        """R3 has a volume but no capacity: the capacity row is null, never 0.
+
+        Back-deriving capacity from volume/percent would invent a number for a
+        reservoir the provider left blank, so the measure is published only from
+        the source field.
+        """
+        envelope, normalized, _ = ingest_rid_d1.fetch_report(REPORT_DATE, meta={"requests": []})
+        prepared = ingest_rid_d1.build_observation_rows(
+            envelope, normalized, license_status="approved_public")
+        rows = {(row["location_id"], row["measure"]): row for row in prepared["rows"]}
+        self.assertEqual({row["measure"] for row in prepared["rows"]}, set(ingest_rid_d1.MEASURES))
+        self.assertEqual(prepared["stats"]["rowsByMeasure"], {
+            "reservoir_storage_pct": 3, "reservoir_volume": 3, "reservoir_capacity": 3})
+        self.assertEqual(prepared["stats"]["rows"], 9)
+        self.assertIsNone(rows[("R3", "reservoir_capacity")]["value"])
+        self.assertEqual(rows[("R3", "reservoir_capacity")]["quality_flag"], "missing")
+        self.assertEqual(rows[("R3", "reservoir_capacity")]["unit"], "MCM")
+        self.assertEqual(rows[("R2", "reservoir_capacity")]["value"], 80.0)
+        self.assertEqual(rows[("R2", "reservoir_capacity")]["quality_flag"], "good")
+        # One stable row key per reservoir x day x measure.
+        self.assertEqual(len({row["observation_id"] for row in prepared["rows"]}), 9)
 
     def test_missing_stays_null_and_never_becomes_zero(self):
         envelope, normalized, _ = ingest_rid_d1.fetch_report(REPORT_DATE, meta={"requests": []})
@@ -206,6 +234,8 @@ class ObservationRowTests(RidAdapterCase):
         self.assertEqual(rows[("R3", "reservoir_storage_pct")]["quality_flag"], "missing")
         self.assertEqual(rows[("R3", "reservoir_volume")]["value"], 12.3)
         self.assertEqual(rows[("R3", "reservoir_volume")]["quality_flag"], "good")
+        self.assertIsNone(rows[("R3", "reservoir_capacity")]["value"])
+        self.assertEqual(prepared["stats"]["missingValues"], 4)
         for row in prepared["rows"]:
             if row["value"] is None:
                 self.assertEqual(row["quality_flag"], "missing")
@@ -314,15 +344,16 @@ class PublishTests(RidAdapterCase):
         run = self.client.rows("SELECT * FROM sync_runs")[0]
         self.assertEqual(run["kind"], "numeric")
         self.assertEqual(run["status"], "succeeded")
-        self.assertEqual(run["records_read"], 6)
-        self.assertEqual(run["records_written"], 6)
+        self.assertEqual(run["records_read"], 9)
+        self.assertEqual(run["records_written"], 9)
         metrics = self.client.rows(
             "SELECT metric_id, unit, COUNT(*) AS n FROM observations GROUP BY metric_id, unit")
         self.assertEqual({row["metric_id"]: (row["unit"], row["n"]) for row in metrics},
-                         {"reservoir_storage_pct": ("percent", 3), "reservoir_volume": ("MCM", 3)})
+                         {"reservoir_storage_pct": ("percent", 3), "reservoir_volume": ("MCM", 3),
+                          "reservoir_capacity": ("MCM", 3)})
         nulls = self.client.rows(
             "SELECT COUNT(*) AS n FROM observations WHERE value IS NULL AND quality_status='missing'")
-        self.assertEqual(nulls[0]["n"], 3)
+        self.assertEqual(nulls[0]["n"], 4)
         locations = self.client.rows("SELECT kind, COUNT(*) AS n FROM locations GROUP BY kind")
         self.assertEqual(locations, [{"kind": "reservoir", "n": 3}])
         resource = self.client.rows("SELECT active_run_id FROM resources")[0]
@@ -338,10 +369,10 @@ class PublishTests(RidAdapterCase):
         first = self.run_adapter(["--write"], client=self.client, output_dir=str(self.output))
         second = self.run_adapter(["--write"], client=self.client, output_dir=str(self.output))
         self.assertEqual(first["published"]["run_id"], second["published"]["run_id"])
-        self.assertEqual(second["published"]["skipped_identical"], 6)
+        self.assertEqual(second["published"]["skipped_identical"], 9)
         self.assertEqual(second["published"]["records_inserted"], 0)
         self.assertEqual(len(self.client.rows("SELECT run_id FROM sync_runs")), 1)
-        self.assertEqual(len(self.client.rows("SELECT row_key FROM observations")), 6)
+        self.assertEqual(len(self.client.rows("SELECT row_key FROM observations")), 9)
 
     def test_publish_carries_documented_units_into_dimensions(self):
         self.run_adapter(["--write"], client=self.client, output_dir=str(self.output))
@@ -352,6 +383,21 @@ class PublishTests(RidAdapterCase):
         self.assertEqual(dimensions["unit"], "percent")
         self.assertIn("100*volume/storage", dimensions["method"])
         self.assertNotIn("unitStatus", dimensions)  # units are documented, not pending
+        capacity = self.client.rows(
+            "SELECT value, unit, dimensions FROM observations "
+            "WHERE metric_id='reservoir_capacity' AND location_id='R1'")
+        self.assertEqual(capacity[0]["unit"], "MCM")
+        self.assertEqual(capacity[0]["value"], 100.0)
+        capacity_dimensions = json.loads(capacity[0]["dimensions"])
+        self.assertEqual(capacity_dimensions["measure"], "reservoir_capacity")
+        self.assertEqual(capacity_dimensions["storageField"], "storage")
+        self.assertIn("ล้าน ลบ.ม.", capacity_dimensions["unitEvidence"])
+        # A reservoir whose capacity is missing is stored as NULL, never as 0.
+        missing = self.client.rows(
+            "SELECT value, quality_status FROM observations "
+            "WHERE metric_id='reservoir_capacity' AND location_id='R3'")
+        self.assertIsNone(missing[0]["value"])
+        self.assertEqual(missing[0]["quality_status"], "missing")
 
 
 # ---------------------------------------------------------------------------
@@ -396,7 +442,7 @@ class CliDispatchTests(RidAdapterCase):
         self.assertEqual(summary["mode"], "write")
         self.assertEqual(summary["requestedDate"], REPORT_DATE)
         self.assertTrue(summary["written"])
-        self.assertEqual(len(client.rows("SELECT row_key FROM observations")), 6)
+        self.assertEqual(len(client.rows("SELECT row_key FROM observations")), 9)
 
     def test_call_adapter_dry_run_writes_nothing(self):
         from tadih.cli import call_adapter

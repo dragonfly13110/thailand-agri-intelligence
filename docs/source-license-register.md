@@ -1,8 +1,8 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
-หลังรอบ Real Data R1-A (26 ต.ค. 2569) ทะเบียนมี **87 รายการ**: `approved_public` **8 รายการ** และ `pending` **79 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — ทุกรายการที่เปิดมี `evidence` (URL + วันที่ + สิ่งที่พบ), `attribution_text` และ `project_publication_approved: true` ครบ ส่วนยอดที่เหลือยัง fail-closed ตามหลักฐานราย resource
+หลังรอบ Real Data R1-A (26 ต.ค. 2569) ทะเบียนมี **88 รายการ**: `approved_public` **9 รายการ** และ `pending` **79 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — ทุกรายการที่เปิดมี `evidence` (URL + วันที่ + สิ่งที่พบ), `attribution_text` และ `project_publication_approved: true` ครบ ส่วนยอดที่เหลือยัง fail-closed ตามหลักฐานราย resource
 
-รายการที่ `approved_public` ณ 26 ต.ค. 2569: `chirps_v3_daily_rnl_2026_09_30`, `open_meteo_thailand_era5_archive` (attribution `Weather data by Open-Meteo.com (CC BY 4.0)`), `gistda_flood_7days_daily`, `rid_medium_reservoirs`, `tmd_weather_today_by_agro_daily`, `tmd_weather_today_station_daily`, `tmd_weather_today_by_synop_daily`, `tmd_monthly_rainfall_monthly` — RID/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ (AGENTS.md ข้อ 3; บล็อก `owner_authorisation` ในไฟล์ทะเบียน) พร้อมบันทึกข้อจำกัดของข้อความสัญญาอนุญาตต้นทางไว้ใน `rights_facts` ทุกครั้ง ส่วน `open_meteo_thailand_forecast` คง `pending` เพราะ forecast ห้ามเก็บรวมเป็น observation
+รายการที่ `approved_public` ณ 26 ต.ค. 2569: `chirps_v3_daily_rnl_2026_09_30`, `open_meteo_thailand_era5_archive` (attribution `Weather data by Open-Meteo.com (CC BY 4.0)`), `gistda_flood_7days_daily`, `rid_medium_reservoirs`, `tmd_weather_today_by_agro_daily`, `tmd_weather_today_station_daily`, `tmd_weather_today_by_synop_daily`, `tmd_monthly_rainfall_monthly`, `tmd_hpc_nwp_d02_grid` — RID/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ (AGENTS.md ข้อ 3; บล็อก `owner_authorisation` ในไฟล์ทะเบียน) พร้อมบันทึกข้อจำกัดของข้อความสัญญาอนุญาตต้นทางไว้ใน `rights_facts` ทุกครั้ง โดย `tmd_hpc_nwp_d02_grid` เป็น forecast grid จากแบบจำลอง จึงอนุมัติเฉพาะการเผยแพร่ค่าพยากรณ์พร้อมเครดิต ไม่นับเป็นค่าตรวจวัด และไม่ยืนยันการใช้เชิงพาณิชย์ (`commercial_use_confirmed: false`) ส่วน `open_meteo_thailand_forecast` คง `pending` เพราะ forecast ห้ามเก็บรวมเป็น observation
 
 ประวัติรอบก่อนหน้า: 25 ต.ค. 2569 ทะเบียนมี 82 รายการ โดยเปิดเฉพาะ CHIRPS รายการเดียว
 
@@ -120,6 +120,14 @@
 ตรวจ [หน้า CHC CHIRPS v3](https://www.chc.ucsb.edu/data/chirps3), [daily README](https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/readme.txt), [diagnostics](https://www.chc.ucsb.edu/data/chirps3/diagnostics) และ exact [GeoTIFF](https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif) วันที่ 25 ต.ค. 2569. CHC ระบุ CHIRPS3 เป็น public domain และ CC BY 4.0; ต้องให้เครดิต, ลิงก์ license, แจ้งการเปลี่ยนแปลง และอ้าง DOI `10.15780/G2JQ0P` กับ Funk et al. (2026). จึงอนุมัติสิทธิ์เฉพาะ file URL นี้สำหรับการเผยแพร่ภายใต้ attribution ข้างต้น.
 
 ตรวจ directory ถึงวันที่ข้อมูล 30 ก.ย. 2569, HTTP 200, ETag `6ad152d4-119211a`, Last-Modified 15 ต.ค. 2569; header ยืนยัน EPSG:4326, 0.05° grid, float32 และ pixel-is-area. Grain เป็น grid cell × UTC date; daily RNL กระจายยอด pentad โดย ERA5 ไม่ใช่ daily gauge observation และไม่ใช่จังหวัด. ค่า bad/missing `-9999` ต้องเป็น null. License ผ่าน M4 และ M5 เทียบ 3 cells กับค่าจาก source revision เดียวกันแล้ว; ก่อนเปิด API ยังต้องตรวจ live D1 ingestion และ API/UI บน current preview.
+
+## TMD HPC NWP WRF 3km grid forecast (domain d02)
+
+หลักฐานในทะเบียนชี้ [หน้าดาวน์โหลด TMD HPC](https://hpc.tmd.go.th/download) และไดเรกทอรีไฟล์ static `https://hpc.tmd.go.th/static/csv/` ว่าเป็นบริการดาวน์โหลดสาธารณะของกรมอุตุนิยมวิทยาสำหรับผลพยากรณ์แบบจำลอง WRF domain d02 (Thailand 3km) ไฟล์ CSV เปิดให้ดาวน์โหลดโดยไม่ต้องใช้ API key และตรวจล่าสุดเมื่อ 26 ต.ค. 2569
+
+รายการ `tmd_hpc_nwp_d02_grid` เปิดเป็น `approved_public` ตาม AGENTS.md ข้อ 3 (Full Production Unlocked) โดยประกาศสัญญาอนุญาตเป็น Open Government Data of Thailand ([license](https://data.go.th/pages/license)) ไม่มีรุ่นกำกับ และไม่ยืนยันสิทธิ์เชิงพาณิชย์ (`commercial_use_confirmed: false`) เครดิตที่ต้องแสดงคือ `กรมอุตุนิยมวิทยา (TMD HPC NWP)` พร้อมลิงก์ https://hpc.tmd.go.th/
+
+ข้อจำกัดที่ต้องคงไว้: ค่าที่ได้เป็นผลพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัดหรือประกาศเตือนภัยราชการ; grain คือ grid cell × valid time × lead time ไม่ใช่จังหวัด และห้ามนำไปปนกับตาราง `observations`; หน่วยและนิยามตัวแปร (`p1h`, `p24h`, `t2m`, `rhum`, `ws10m`) ยังเป็น `pending_official_confirmation` จึงแสดงตัวเลขได้เฉพาะ `numeric_preview` พร้อมคำเตือน ส่วน API จะคง `metadata_only` จนกว่าหน่วยจะได้รับการยืนยัน การอนุมัตินี้ทำให้ licence gate ของ `scripts/sync_tmd_hpc_nwp.py` ผ่าน แต่ยังไม่ใช่หลักฐานว่ามี run พร้อมใช้งานใน D1 หรือมีตัวเลขเผยแพร่บนหน้า `/nwp`
 
 ## การใช้ทะเบียนนี้
 

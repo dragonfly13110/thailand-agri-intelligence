@@ -2,17 +2,23 @@ import { Metadata } from 'next';
 import { Shell } from '@/components/shell';
 import { PriceDashboard } from '@/components/price-dashboard';
 import { PRICE_COMMODITIES } from '@/lib/hub/price-data';
+import { readPriceSnapshot } from '@/lib/hub/price-repository';
 
 export const metadata: Metadata = {
-  title: 'สถานะข้อมูลราคาสินค้าเกษตร (metadata-only) | ศูนย์ข้อมูลเกษตรไทย',
+  title: 'ราคาสินค้าเกษตรรายวันจาก OAE/NABC | ศูนย์ข้อมูลเกษตรไทย',
   description:
-    'รายการสินค้า หน่วย และตลาดเป้าหมายจาก OAE/NABC ยังไม่เปิดเผยราคาเพราะทะเบียนสิทธิ์ยังเป็น pending',
+    'ราคาข้าว มันสำปะหลัง ข้าวโพด ยางพารา และปาล์มน้ำมันรายวันตามประกาศต้นทาง OAE/NABC แยกตามสินค้า/เกรด ตลาด จังหวัด วัน และหน่วย',
 };
 
-export default function PricesPage() {
+// The snapshot is read live from the upstream API on every request.
+export const dynamic = 'force-dynamic';
+
+export default async function PricesPage() {
+  const snapshot = await readPriceSnapshot();
+
   return (
     <Shell active="prices">
-      <PriceDashboard commodities={PRICE_COMMODITIES} />
+      <PriceDashboard commodities={PRICE_COMMODITIES} snapshot={snapshot} />
     </Shell>
   );
 }

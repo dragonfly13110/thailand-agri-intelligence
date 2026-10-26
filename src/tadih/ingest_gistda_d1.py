@@ -42,6 +42,13 @@ Governance rules enforced here
   ``quality_flag = "missing"``.
 * ``data_kind`` is ``estimated``: SAR flood delineation is an approximation of
   the inundated area, not an official statistic.
+* Chronology: ``observed_at`` is the feed's own product stamp (a stamp written
+  without an offset is read as the service's ICT clock) and ``retrieved_at`` is
+  the instant that product was captured. A capture never precedes the product
+  it captured, so the retrieval is lifted to the product stamp while the two
+  clocks are within ``MAX_SOURCE_CLOCK_SKEW_SECONDS`` of each other; a product
+  stamp further ahead than that is refused (``SOURCE_TIMESTAMP_INVALID``)
+  instead of being rewritten into a plausible-looking provenance.
 * ``--dry-run`` is the default and never touches D1.
 """
 
@@ -495,6 +502,68 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+#: GISTDA is a Thai service: a stamp it writes without an offset is ICT (UTC+7).
+SOURCE_UTC = timezone(timedelta(hours=7))
+
+#: The gateway stamps its product with its own clock.  Seconds of drift against
+#: our capture clock are normal and are absorbed by moving the retrieval
+#: instant up to the product stamp; a larger gap means the stamp is not a real
+#: observation instant, and the batch is refused rather than rewritten.
+MAX_SOURCE_CLOCK_SKEW_SECONDS = 900
+
+
+def _instant(value: Any) -> datetime | None:
+    """Parse a source/capture instant into UTC (``None`` when unusable)."""
+    text = _text(value).rstrip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text[:-1] + "+00:00") if text.endswith("Z") \
+            else datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=SOURCE_UTC)
+    return parsed.astimezone(timezone.utc)
+
+
+def _stamp(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def observation_chronology(observed_at_raw: Any, retrieved_at_raw: Any) -> dict[str, Any]:
+    """Resolve the observation/retrieval pair into a valid UTC chronology.
+
+    ``observed_at`` is the instant the feed says the product was built;
+    ``retrieved_at`` is the instant we captured it.  The capture can never
+    precede the product it captured, so when the source clock runs ahead of
+    ours the retrieval is lifted to the product stamp.  A source stamp that is
+    unusable or wildly ahead is refused with ``SOURCE_TIMESTAMP_INVALID`` -
+    the alternative is a published row whose provenance is invented.
+    """
+    captured = _instant(retrieved_at_raw)
+    observed = _instant(observed_at_raw) or captured
+    if captured is None or observed is None:
+        raise GistdaFetchError(
+            "SOURCE_TIMESTAMP_INVALID",
+            f"neither the source timestamp ({observed_at_raw!r}) nor the capture "
+            f"time ({retrieved_at_raw!r}) is a usable instant",
+        )
+    if (observed - captured).total_seconds() > MAX_SOURCE_CLOCK_SKEW_SECONDS:
+        raise GistdaFetchError(
+            "SOURCE_TIMESTAMP_INVALID",
+            f"the feed reports {observed.isoformat()} but it was captured at "
+            f"{captured.isoformat()} - the product claims a moment more than "
+            f"{MAX_SOURCE_CLOCK_SKEW_SECONDS}s after its own retrieval",
+        )
+    retrieved = max(captured, observed)
+    return {
+        "observed_at": _stamp(observed),
+        "retrieved_at": _stamp(retrieved),
+        "source_clock_skew_seconds": round((observed - captured).total_seconds(), 3),
+    }
+
+
 def _dataset_date(time_stamp: str) -> str:
     stamp = _text(time_stamp)
     if stamp:
@@ -544,12 +613,14 @@ def prepare_batch(
     aggregates = aggregate_by_province(polygons)
     if not aggregates:
         raise GistdaFetchError("NO_FLOOD_POLYGONS", "the source returned no usable flood polygon")
-    retrieved_at = _text(dataset.get("retrieved_at")) or _now_iso()
-    time_stamp = _text(dataset.get("time_stamp")) or retrieved_at
-    dataset_date = _dataset_date(time_stamp)
+    captured_at = _text(dataset.get("retrieved_at")) or _now_iso()
+    time_stamp = _text(dataset.get("time_stamp")) or captured_at
+    chronology = observation_chronology(time_stamp, captured_at)
+    observed_at = chronology["observed_at"]
+    retrieved_at = chronology["retrieved_at"]
+    dataset_date = _dataset_date(observed_at)
     resolved_date = resolve_batch_date(batch_date, dataset_date)
-    observed_at = time_stamp
-    revision_id = f"gistda-flood-7days:{time_stamp}"
+    revision_id = f"gistda-flood-7days:{observed_at}"
     rows = build_observation_rows(
         aggregates,
         observed_at=observed_at,
@@ -568,6 +639,7 @@ def prepare_batch(
         "retrieved_at": retrieved_at,
         "revision_id": revision_id,
         "time_stamp": time_stamp,
+        "source_clock_skew_seconds": chronology["source_clock_skew_seconds"],
         "polygon_count": len(polygons),
     }
 
@@ -672,6 +744,7 @@ def run_adapter(
             "batch_date": batch["batch_date"],
             "observed_at": batch["observed_at"],
             "retrieved_at": batch["retrieved_at"],
+            "source_clock_skew_seconds": batch["source_clock_skew_seconds"],
             "revision_id": batch["revision_id"],
             "polygon_count": batch["polygon_count"],
             "province_count": len(batch["aggregates"]),

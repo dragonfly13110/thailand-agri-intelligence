@@ -216,31 +216,43 @@ test('water reservoirs route reports the approved register but hides numbers wit
   );
 });
 
-test('daily prices route is metadata-only and carries no OAE prices', async () => {
-  const { response, body } = await call(pricesRoute.GET, '/api/v1/prices/daily');
-  const payload = body as PricesBody;
+test('daily prices route reports the approved register but hides numbers when upstream is unreachable', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new Error('offline unit test: upstream unreachable');
+  }) as typeof fetch;
 
-  assert.equal(response.status, 200);
-  assertNoStore(response, 'prices');
+  try {
+    const { response, body } = await call(pricesRoute.GET, '/api/v1/prices/daily');
+    const payload = body as PricesBody;
 
-  assert.equal(payload.data.source.sourceId, 'oae-nabc-prices');
-  assert.equal(payload.data.source.licenseStatus, 'pending');
-  assert.equal(payload.data.source.access, 'metadata_only');
-  assert.equal(payload.data.source.publicationApproved, false);
-  assert.ok(payload.data.commodities.length > 0, 'prices: commodity metadata should remain');
-  for (const commodity of payload.data.commodities) {
-    assert.equal(commodity.licenseStatus, 'pending', 'prices: commodity licence');
-    assert.equal(commodity.access, 'metadata_only', 'prices: commodity access');
+    assert.equal(response.status, 200);
+    assertNoStore(response, 'prices');
+
+    assert.equal(payload.data.source.sourceId, 'oae-nabc-prices');
+    assert.equal(payload.data.source.licenseStatus, 'approved_public');
+    assert.equal(payload.data.source.access, 'approved_public');
+    assert.equal(payload.data.source.publicationApproved, true);
+    assert.ok(payload.data.commodities.length > 0, 'prices: commodity metadata should remain');
+    for (const commodity of payload.data.commodities) {
+      assert.equal(commodity.licenseStatus, 'approved_public', 'prices: commodity licence');
+      assert.equal(commodity.access, 'approved_public', 'prices: commodity access');
+    }
+    assert.deepEqual(payload.data.prices, [], 'prices: numeric series must be empty when upstream fails');
+    assert.equal(payload.meta.availability, 'empty');
+    assert.equal(payload.meta.access, 'approved_public');
+    assert.equal(payload.meta.completeness, 'unknown');
+    assert.ok(payload.meta.warnings.length > 0);
+
+    assertNoKeys(
+      payload.data,
+      ['price', 'priceDate', 'pricePerUnit', 'change', 'percentChange', 'history', 'series', 'trend'],
+      'prices',
+    );
+    assertAbsent(JSON.stringify(payload.data), ['15200', '9100', '65.5', '9.45'], 'prices');
+  } finally {
+    globalThis.fetch = originalFetch;
   }
-  assert.deepEqual(payload.data.prices, [], 'prices: numeric series must be empty');
-  assertMetadataOnly(payload.meta, 'prices');
-
-  assertNoKeys(
-    payload.data,
-    ['price', 'priceDate', 'pricePerUnit', 'change', 'percentChange', 'history', 'series', 'trend'],
-    'prices',
-  );
-  assertAbsent(JSON.stringify(payload.data), ['15200', '9100', '65.5', '9.45'], 'prices');
 });
 
 test('early-warning route is deterministic simulation only', async () => {
@@ -373,9 +385,9 @@ test('licence register counts match the checked registry', () => {
     counts[resource.license_status] = (counts[resource.license_status] ?? 0) + 1;
   }
 
-  assert.equal(registry.resources.length, 87, 'registry: total');
+  assert.equal(registry.resources.length, 88, 'registry: total');
   assert.equal(counts.pending, 79, 'registry: pending');
-  assert.equal(counts.approved_public, 8, 'registry: approved_public');
+  assert.equal(counts.approved_public, 9, 'registry: approved_public');
   assert.equal(registry.reviewed_at, '2026-10-26', 'registry: reviewed_at');
 
   // The register doc must restate the registry counts, so the pins are derived
@@ -393,5 +405,54 @@ test('licence register counts match the checked registry', () => {
     doc,
     /RID\/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ/,
     'register doc: owner authorisation basis must be stated',
+  );
+  assert.ok(
+    doc.includes('`tmd_hpc_nwp_d02_grid`'),
+    'register doc must list the approved TMD HPC NWP resource',
+  );
+});
+
+test('TMD HPC NWP forecast grid is approved with forecast-only limits', () => {
+  type RegisteredResource = {
+    resource_key: string;
+    source_id: string;
+    license_status: string;
+    project_publication_approved: boolean;
+    commercial_use_confirmed: boolean;
+    rights_facts: string[];
+    attribution_text: string;
+    unresolved: string[];
+    evidence: Array<{ url: string; checked_at: string }>;
+  };
+
+  const registry = JSON.parse(readText('../../config/resource_licenses.json')) as {
+    resources: RegisteredResource[];
+  };
+
+  const matches = registry.resources.filter(
+    (resource) =>
+      resource.source_id === 'tmd_hpc_nwp' || resource.resource_key.startsWith('tmd_hpc'),
+  );
+  assert.equal(matches.length, 1, 'registry: exactly one TMD HPC NWP resource');
+
+  const entry = matches[0];
+  assert.equal(entry.resource_key, 'tmd_hpc_nwp_d02_grid', 'registry: HPC resource key');
+  assert.equal(entry.license_status, 'approved_public', 'registry: HPC licence');
+  assert.equal(entry.project_publication_approved, true, 'registry: HPC publication approval');
+  assert.equal(entry.commercial_use_confirmed, false, 'registry: HPC commercial use stays unconfirmed');
+  assert.deepEqual(entry.unresolved, [], 'registry: HPC has no unresolved items');
+  assert.match(
+    entry.rights_facts.join(' '),
+    /Full Production Unlocked/,
+    'registry: HPC approval basis',
+  );
+  assert.ok(entry.evidence.length > 0, 'registry: HPC evidence');
+  for (const item of entry.evidence) {
+    assert.ok(item.url.length > 0, 'registry: HPC evidence URL');
+    assert.match(item.checked_at, /^\d{4}-\d{2}-\d{2}$/, 'registry: HPC evidence date');
+  }
+  assert.ok(
+    entry.attribution_text.includes('กรมอุตุนิยมวิทยา'),
+    'registry: HPC attribution names TMD',
   );
 });

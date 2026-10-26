@@ -35,8 +35,10 @@ Data-quality decisions (AGENTS.md rule 4)
   registry's rights facts and in :data:`tadih.reservoirs.DOCUMENTED_UNITS` -
   so ``reservoir_volume`` is published with the repository token ``"MCM"`` at
   the provider's own grain (the raw million-m3 number is never silently
-  multiplied into m3, which would misstate the magnitude by 1e6), and the
-  calibrated ``reservoir_storage_pct`` is published as ``"percent"``.  Only
+  multiplied into m3, which would misstate the magnitude by 1e6), the
+  provider's capacity field ``storage`` is published as ``reservoir_capacity``
+  under the same token, and the calibrated ``reservoir_storage_pct`` is
+  published as ``"percent"``.  Only
   measures without a documented unit (inflow/outflow) would fall to
   ``unit = null`` + ``pending_official_confirmation``; this adapter does not
   publish them.
@@ -88,13 +90,18 @@ DOCUMENTATION_URL = "https://app.rid.go.th/reservoir/api/document/reservoir"
 
 MEASURE_STORAGE_PCT = "reservoir_storage_pct"
 MEASURE_VOLUME = "reservoir_volume"
-MEASURES = (MEASURE_STORAGE_PCT, MEASURE_VOLUME)
+MEASURE_CAPACITY = "reservoir_capacity"
+MEASURES = (MEASURE_STORAGE_PCT, MEASURE_VOLUME, MEASURE_CAPACITY)
 # Units are documented by the provider itself (API documentation page:
 # volume/capacity in ล้าน ลบ.ม. = million cubic metres; confirmed by the
 # approved registry's rights facts and tadih.reservoirs.DOCUMENTED_UNITS).
 # "MCM" is the repository token for that documented unit; raw values are
 # published at the provider grain, never rescaled into m3.
-MEASURE_UNITS = {MEASURE_STORAGE_PCT: "percent", MEASURE_VOLUME: "MCM"}
+MEASURE_UNITS = {
+    MEASURE_STORAGE_PCT: "percent",
+    MEASURE_VOLUME: "MCM",
+    MEASURE_CAPACITY: "MCM",
+}
 
 # The percentage is derived by this adapter with the repository's own
 # calibration rule (tadih.reservoirs.normalize_reservoirs):
@@ -140,6 +147,11 @@ UNIT_EVIDENCE = {
         "provider API documentation (https://app.rid.go.th/reservoir/api/document/reservoir) "
         "states volume in ล้าน ลบ.ม. (million cubic metres, repo token MCM); values kept at "
         "provider grain, not rescaled to m3"
+    ),
+    MEASURE_CAPACITY: (
+        "provider API documentation states capacity (the `storage` field) in ล้าน ลบ.ม. "
+        "(million cubic metres, repo token MCM); the value is the provider's own design "
+        "capacity, not a re-derived quantity"
     ),
     MEASURE_STORAGE_PCT: (
         "percent = 100 x volume / storage, calibrated against the provider's own "
@@ -336,11 +348,34 @@ def build_observation_rows(envelope: Mapping[str, Any], normalized: Mapping[str,
         ))
         dimensions[(reservoir_id, MEASURE_VOLUME)] = volume_dimensions
 
+        # The provider's own capacity field is `storage`.  It is published as its
+        # own measure so a reservoir's installed capacity never has to be
+        # back-derived from volume/percent (which silently drops the reservoirs
+        # whose volume is missing), and a null capacity stays null.
+        capacity_dimensions = dict(base_dimensions)
+        capacity_dimensions.update({
+            "measure": MEASURE_CAPACITY,
+            "unit": MEASURE_UNITS[MEASURE_CAPACITY],
+            "unitEvidence": UNIT_EVIDENCE[MEASURE_CAPACITY],
+            "method": "provider_field",
+            "storageField": "storage",
+        })
+        rows.append(_row(
+            reservoir_id=reservoir_id, measure=MEASURE_CAPACITY, value=storage,
+            unit=MEASURE_UNITS[MEASURE_CAPACITY],
+            observed_at=observed_at, retrieved_at=retrieved_at, revision_id=revision_id,
+            license_status=license_status, source_url=REPORT_URL, report_date=report_date,
+        ))
+        dimensions[(reservoir_id, MEASURE_CAPACITY)] = capacity_dimensions
+
         stats["reservoirs"] += 1
-        stats["rows"] += 2
+        stats["rows"] += 3
         stats["rowsByMeasure"][MEASURE_STORAGE_PCT] += 1
         stats["rowsByMeasure"][MEASURE_VOLUME] += 1
-        stats["missingValues"] += (1 if derived is None else 0) + (1 if volume is None else 0)
+        stats["rowsByMeasure"][MEASURE_CAPACITY] += 1
+        stats["missingValues"] += (
+            (1 if derived is None else 0) + (1 if volume is None else 0) + (1 if storage is None else 0)
+        )
 
     return {
         "rows": rows,

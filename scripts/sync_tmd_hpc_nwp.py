@@ -678,10 +678,22 @@ def approved_nwp_resource(registry_path: Optional[Path] = None) -> dict:
 # --------------------------------------------------------------------------
 
 
+def _first_row(result: Any) -> Optional[Mapping[str, Any]]:
+    """Extract the first row from either a real D1Client response or a flat test dict."""
+    if not isinstance(result, Mapping):
+        return None
+    rows = result.get("results")
+    if isinstance(rows, Sequence) and not isinstance(rows, (str, bytes)):
+        if rows and isinstance(rows[0], Mapping):
+            return rows[0]
+        return None
+    return result
+
+
 def _stored_payload_sha(client: Any, run_id: str) -> Optional[str]:
-    result = client.execute(_SELECT_RUN_SHA_SQL, [run_id])
-    if isinstance(result, Mapping):
-        value = result.get("payload_sha256")
+    row = _first_row(client.execute(_SELECT_RUN_SHA_SQL, [run_id]))
+    if row is not None:
+        value = row.get("payload_sha256")
         if isinstance(value, str):
             return value
     return None
@@ -690,12 +702,10 @@ def _stored_payload_sha(client: Any, run_id: str) -> Optional[str]:
 def _fetch_run_index(client: Any) -> list[dict]:
     """All stored runs as a list of {run_id, domain, init_at}."""
     try:
-        result = client.execute(_SELECT_RUN_INDEX_SQL)
+        row = _first_row(client.execute(_SELECT_RUN_INDEX_SQL))
     except Exception:  # pragma: no cover - defensive; the SQL fallback applies
         return []
-    raw = None
-    if isinstance(result, Mapping):
-        raw = result.get("runs_json")
+    raw = row.get("runs_json") if row is not None else None
     if not isinstance(raw, str):
         return []
     try:

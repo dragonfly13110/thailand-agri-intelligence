@@ -4,8 +4,9 @@
  * `buildWaterPayload` is the only place that turns published D1 observation
  * rows into the public reservoir shape, so these tests pin the data-quality
  * rules that used to be enforced by hiding the numbers entirely:
- * one report date per payload, nulls that stay null (never 0), no capacity
- * invention, and no province rollup. Runs fully in-memory; no D1 request.
+ * one report date per payload, nulls that stay null (never 0), capacity only
+ * from the published `reservoir_capacity` measure (never invented), and no
+ * province rollup. Runs fully in-memory; no D1 request.
  */
 
 import { test } from 'node:test';
@@ -73,6 +74,16 @@ function percentRow(locationId: string, value: number | null, extra: Record<stri
   });
 }
 
+function capacityRow(locationId: string, value: number | null): Row {
+  return row({
+    locationId,
+    metricId: water.RID_METRIC_CAPACITY,
+    value,
+    unit: 'MCM',
+    dimensions: { region: 'ภาคเหนือ', storageField: 'storage' },
+  });
+}
+
 test('the metadata payload carries no numeric keys and no summary', () => {
   const payload = water.buildWaterMetadataPayload();
   assert.deepEqual(payload.reservoirs, []);
@@ -85,7 +96,7 @@ test('the metadata payload carries no numeric keys and no summary', () => {
   }
 });
 
-test('rows from two metrics pivot into one record per reservoir on a single report date', () => {
+test('rows from the published metrics pivot into one record per reservoir on a single report date', () => {
   const payload = water.buildWaterPayload([
     row({ locationId: 'rsvA' }),
     percentRow('rsvA', 40),
@@ -102,7 +113,65 @@ test('rows from two metrics pivot into one record per reservoir on a single repo
   assert.equal(b?.percentUnit, 'percent');
   assert.equal(b?.region, 'ภาคเหนือ');
   assert.equal(b?.method, '100*volume/storage');
-  assert.equal(b?.capacityMcm, null, 'capacity is not in the numeric layer and must not be invented');
+  assert.equal(b?.capacityMcm, null, 'a reservoir with no published capacity row stays null');
+});
+
+test('capacity comes from the published reservoir_capacity measure', () => {
+  assert.equal(water.RID_METRIC_CAPACITY, 'reservoir_capacity');
+  const payload = water.buildWaterPayload([
+    row({ locationId: 'rsvA', value: 25 }),
+    percentRow('rsvA', 25),
+    capacityRow('rsvA', 100),
+    row({ locationId: 'rsvB', value: 10 }),
+    percentRow('rsvB', 50),
+    capacityRow('rsvB', 20),
+  ]);
+  assert.ok(payload);
+  assert.equal(payload.reservoirs.find((item) => item.reservoirId === 'rsvA')?.capacityMcm, 100);
+  assert.equal(payload.summary?.totalCapacityMcm, 120);
+  assert.equal(payload.summary?.missingCapacityCount, 0);
+});
+
+test('total capacity sums only reported capacities and never fills gaps with zero', () => {
+  const payload = water.buildWaterPayload([
+    row({ locationId: 'rsvA', value: 25 }),
+    capacityRow('rsvA', 100.5),
+    row({ locationId: 'rsvB', value: 10 }),
+    capacityRow('rsvB', null),
+    row({ locationId: 'rsvC', value: 4 }),
+    percentRow('rsvC', 8),
+  ]);
+  assert.ok(payload);
+  const byId = new Map(payload.reservoirs.map((item) => [item.reservoirId, item]));
+  assert.equal(byId.get('rsvA')?.capacityMcm, 100.5);
+  assert.equal(byId.get('rsvB')?.capacityMcm, null, 'a null capacity row must not become 0');
+  assert.equal(byId.get('rsvC')?.capacityMcm, null, 'no capacity row at all stays null');
+  assert.equal(payload.summary?.totalCapacityMcm, 100.5, 'only the reported capacity joins the total');
+  assert.equal(payload.summary?.missingCapacityCount, 2);
+  assert.equal(payload.summary?.reservoirCount, 3);
+});
+
+test('no published capacity anywhere leaves the total null, never zero', () => {
+  const payload = water.buildWaterPayload([
+    row({ locationId: 'rsvA', value: 25 }),
+    percentRow('rsvA', 25),
+  ]);
+  assert.ok(payload);
+  assert.equal(payload.summary?.totalCapacityMcm, null);
+  assert.equal(payload.summary?.missingCapacityCount, 1);
+});
+
+test('capacity rows from an older report date never mix into the current total', () => {
+  const payload = water.buildWaterPayload([
+    row({ locationId: 'rsvA', value: 25 }),
+    capacityRow('rsvA', 100),
+    { ...capacityRow('rsvA', 999), periodEnd: '2026-10-24' },
+    { ...capacityRow('rsvZ', 500), periodEnd: '2026-10-24' },
+  ]);
+  assert.ok(payload);
+  assert.equal(payload.summary?.reportDate, '2026-10-25');
+  assert.equal(payload.summary?.totalCapacityMcm, 100, 'the previous day capacity stays out of the total');
+  assert.deepEqual(payload.reservoirs.map((item) => item.reservoirId), ['rsvA']);
 });
 
 test('mixing report dates never produces a cross-period total', () => {

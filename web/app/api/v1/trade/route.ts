@@ -7,11 +7,31 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+const ALLOWED_PARAMS = ['commodity', 'year'] as const;
+
+/** ปฏิเสธพารามิเตอร์ที่ไม่รู้จัก ซ้ำ หรือระบุแต่ค่าว่าง — คงมาตรฐาน 400 INVALID_QUERY */
+function validateQuery(url: URL) {
+  const allowed = new Set<string>(ALLOWED_PARAMS);
+  for (const key of url.searchParams.keys()) {
+    if (!allowed.has(key)) {
+      throw new HubRequestError(400, 'INVALID_QUERY', 'ไม่รู้จักพารามิเตอร์: ' + key);
+    }
+  }
+  for (const name of ALLOWED_PARAMS) {
+    if (url.searchParams.getAll(name).length > 1) {
+      throw new HubRequestError(400, 'INVALID_QUERY', 'ระบุพารามิเตอร์ซ้ำ: ' + name);
+    }
+    if (url.searchParams.has(name) && !url.searchParams.get(name)?.trim()) {
+      throw new HubRequestError(400, 'INVALID_QUERY', 'ค่า ' + name + ' ต้องไม่ว่าง');
+    }
+  }
+}
+
 /**
  * GET /api/v1/trade
  *
  * สถิติการค้าและการส่งออก-นำเข้าสินค้าเกษตรสำคัญของไทย
- * แหล่งอ้างอิง: กรมศุลกากร, กระทรวงพาณิชย์ (สนค. TPSO), สำนักงานเศรษฐกิจการเกษตร (สศก. OAE)
+ * แหล่งอ้างอิง: กรมศุลกากร, กระทรวงพาณิชย์ (สนค. TPSO), สำนักงานเศรษฐกิจการเกษตร (สศก. OAE), data.go.th
  *
  * Query Parameters:
  * - commodity: 'rice' | 'durian' | 'rubber' | 'cassava' | 'palm' | 'all' (ค่าเริ่มต้น = 'all')
@@ -19,12 +39,13 @@ export const dynamic = 'force-dynamic';
  *
  * สิทธิ์และ Data Governance (AGENTS.md):
  * - access: 'metadata_only'
- * - sample: true (Deterministic Sample Data)
+ * - sample: true (Deterministic Sample Data) → freshness unknown, completeness partial
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
   return handleApi(async () => {
+    validateQuery(url);
     const rawCommodity = parseText(url, 'commodity', 30);
     const rawYear = url.searchParams.get('year');
 
@@ -64,12 +85,12 @@ export async function GET(request: Request) {
     return jsonData(payload, {
       meta: {
         availability: payload.meta.availability,
-        freshness: 'fresh',
-        completeness: 'complete',
+        freshness: 'unknown',
+        completeness: 'partial',
         access: payload.meta.access,
         sourceIds: payload.meta.sourceIds,
         dataAsOf: payload.meta.dataAsOf,
-        sourceUpdatedAt: payload.meta.dataAsOf,
+        sourceUpdatedAt: null,
         datasetVersion: payload.meta.datasetVersion,
         warnings: payload.meta.warnings,
         runtimeMode: 'source_api_fallback',

@@ -4,28 +4,40 @@ Contract under test: ``tadih.ingest_gistda_d1`` (Round 1, lane F) and the
 canonical observation contract it publishes through the shared fail-closed
 writer. The GISTDA gateway call is mocked, so the suite never touches the
 network and never needs the API key.
+
+The chronology block covers the ``ROWS_INVALID: invalid
+observation/release/retrieval chronology`` failure: the gateway stamps its
+product with its own clock (which runs ahead of ours) and a stamp without an
+offset is the service's ICT time, so the batch has to publish a pair the
+observation contract accepts - and refuse one it cannot justify.
 """
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
 
 from tadih.ingest_gistda_d1 import (
+    MAX_SOURCE_CLOCK_SKEW_SECONDS,
     MEASURE_FLOOD_KM2,
     MEASURE_FLOOD_RAI,
     MEASURE_RICE_RAI,
     PUBLIC_SOURCE_URL,
     RESOURCE_ID,
     RESOURCE_KEY,
+    GistdaFetchError,
     aggregate_by_province,
     build_observation_rows,
     main,
     normalize_feature_collection,
+    observation_chronology,
     polygons_from_snapshot,
+    prepare_batch,
     run_adapter,
     satellite_families,
+    validate_rows,
 )
 from tadih.observations import ObservationWriteError
 
@@ -302,6 +314,82 @@ class ProvenanceTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Chronology (the ROWS_INVALID regression)
+# ---------------------------------------------------------------------------
+
+class ChronologyTests(unittest.TestCase):
+    """``observed_at <= retrieved_at`` must hold for the feed and the snapshot."""
+
+    def dataset(self, *, time_stamp, captured):
+        payload = feature_collection([feature("f1", "64", 160000.0, rice_area_sqm=32000.0)],
+                                     time_stamp=time_stamp)
+        return normalize_feature_collection(payload, retrieved_at=captured)
+
+    def test_source_stamp_ahead_of_our_clock_moves_the_retrieval(self):
+        """The gateway clock runs ahead of ours: the capture cannot be earlier."""
+        batch = prepare_batch(self.dataset(
+            time_stamp="2026-10-26T04:00:01Z", captured="2026-10-26T04:00:00Z"))
+        self.assertEqual(batch["observed_at"], "2026-10-26T04:00:01Z")
+        self.assertEqual(batch["retrieved_at"], "2026-10-26T04:00:01Z")
+        self.assertEqual(batch["source_clock_skew_seconds"], 1.0)
+        self.assertEqual(validate_rows(batch["rows"]), [])
+        for row in batch["rows"]:
+            self.assertEqual(row["observed_at"], "2026-10-26T04:00:01Z")
+            self.assertEqual(row["retrieved_at"], "2026-10-26T04:00:01Z")
+
+    def test_naive_source_stamp_is_read_as_the_service_ict_clock(self):
+        """A stamp without an offset is ICT (UTC+7), not our own UTC time."""
+        batch = prepare_batch(self.dataset(
+            time_stamp="2026-10-26T11:00:00", captured="2026-10-26T04:00:01Z"))
+        self.assertEqual(batch["observed_at"], "2026-10-26T04:00:00Z")
+        self.assertEqual(batch["retrieved_at"], "2026-10-26T04:00:01Z")
+        self.assertEqual(batch["dataset_date"], "2026-10-26")
+        self.assertEqual(validate_rows(batch["rows"]), [])
+
+    def test_a_product_stamp_from_the_far_future_is_refused(self):
+        """Clamping a drift is true; clamping an hour of skew would be fiction."""
+        with self.assertRaises(GistdaFetchError) as caught:
+            prepare_batch(self.dataset(
+                time_stamp="2026-10-26T05:00:00Z", captured="2026-10-26T04:00:00Z"))
+        self.assertEqual(caught.exception.code, "SOURCE_TIMESTAMP_INVALID")
+        self.assertGreater(3600, MAX_SOURCE_CLOCK_SKEW_SECONDS)
+
+    def test_unusable_instants_are_refused_instead_of_defaulted(self):
+        with self.assertRaises(GistdaFetchError) as caught:
+            observation_chronology("not-a-timestamp", "also-not-a-timestamp")
+        self.assertEqual(caught.exception.code, "SOURCE_TIMESTAMP_INVALID")
+        # A missing product stamp falls back to the capture instant (unchanged).
+        self.assertEqual(
+            observation_chronology("", "2026-10-26T04:00:00Z")["observed_at"],
+            "2026-10-26T04:00:00Z",
+        )
+
+    def test_snapshot_batch_keeps_one_capture_instant(self):
+        snapshot = {
+            "metadata": {"retrieved_at": "2026-10-25T17:10:04.706967+00:00"},
+            "records": [{
+                "feature_id": "f1", "dopa_province_code": "64", "inundated_area_sqm": 71642.60,
+                "inundated_rice_area_rai": 26.07, "dopa_amphoe_code": "6403",
+                "dopa_tambon_code": "640303", "satellite_sources": "S1D_20261021_0600",
+            }],
+        }
+        batch = prepare_batch(polygons_from_snapshot(snapshot), batch_date="2026-10-24")
+        self.assertEqual(batch["observed_at"], batch["retrieved_at"])
+        self.assertEqual(batch["source_clock_skew_seconds"], 0.0)
+        self.assertEqual(batch["batch_date"], "2026-10-24")
+        self.assertEqual(validate_rows(batch["rows"]), [])
+
+    def test_realistic_live_capture_ahead_of_now_publishes(self):
+        """The exact live failure: the feed stamp lands a second after our clock."""
+        ahead = (datetime.now(timezone.utc) + timedelta(seconds=2)).isoformat().replace("+00:00", "Z")
+        payload = feature_collection([feature("f1", "64", 160000.0)], time_stamp=ahead)
+        batch = prepare_batch(normalize_feature_collection(payload))
+        self.assertEqual(validate_rows(batch["rows"]), [], 'chronology must accept the clamped pair')
+        self.assertLessEqual(datetime.fromisoformat(batch["observed_at"].replace("Z", "+00:00")),
+                             datetime.fromisoformat(batch["retrieved_at"].replace("Z", "+00:00")))
+
+
+# ---------------------------------------------------------------------------
 # Adapter behaviour (licence gate, dry run, publish)
 # ---------------------------------------------------------------------------
 
@@ -406,6 +494,24 @@ class AdapterRunTests(unittest.TestCase):
         for row in quality:
             self.assertNotIn("SECRET-KEY", row["quality"])
             self.assertNotIn("api_key", row["quality"])
+
+    def test_write_publishes_rows_when_the_feed_stamp_is_ahead_of_our_clock(self):
+        """Regression: this batch used to die in ``ROWS_INVALID`` before the write."""
+        ahead = (datetime.now(timezone.utc) + timedelta(seconds=2)).isoformat().replace("+00:00", "Z")
+        payload = feature_collection(
+            [feature("f1", "64", 160000.0, rice_area_sqm=32000.0)], time_stamp=ahead)
+        result = run_adapter(
+            client=self.client,
+            write=True,
+            registry_path=self.registry,
+            fetcher=lambda: payload,
+        )
+        self.assertEqual(result["mode"], "write")
+        self.assertEqual(result["records_written"], 3)
+        stored = self.client.rows(
+            "SELECT period_start, dimensions FROM observations WHERE resource_id=?", [RESOURCE_ID])
+        self.assertEqual(len(stored), 3)
+        self.assertEqual({row["period_start"][:10] for row in stored}, {ahead[:10]})
 
     def test_batch_date_outside_the_window_is_refused(self):
         from tadih.ingest_gistda_d1 import GistdaFetchError
