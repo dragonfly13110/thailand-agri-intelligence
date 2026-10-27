@@ -8,7 +8,7 @@
  * 3. ผลตรวจพิสูจน์ภาคสนาม (field verified)
  *
  * ข้อกำหนด:
- * - ข้อมูลทั้งหมดเป็น sample แบบ deterministic (ไม่มีการสุ่ม ไม่มีเวลาปัจจุบันในข้อมูล) และ access = metadata_only
+ * - ไม่มีแถวตัวเลขที่ยืนยันและอนุมัติ จึงส่งเฉพาะ metadata/ทะเบียนพื้นที่และรายการว่าง
  * - ค่าที่ไม่มีเก็บเป็น null ไม่แทนด้วย 0; อำเภอที่ไม่ปลูกพืชนั้นจะไม่มีแถว
  * - ไม่รวมเนื้อที่ข้ามพืช — สรุปรายจังหวัดแยกต่อพืชเท่านั้น
  * - districtCode เป็น null ทุกแถว เพราะ crosswalk รหัสอำเภอยังไม่ยืนยัน
@@ -16,8 +16,8 @@
  * - สายข้อมูลอ้างอิง src/tadih/crop_evidence.py (crop-evidence-v1, private_local_only) — ไม่อ่าน data/local หรือ exports/private
  */
 
-export const CROP_EVIDENCE_SAMPLE_MODE = true;
-export const CROP_EVIDENCE_DATA_AS_OF = '2026-10-25';
+export const CROP_EVIDENCE_SAMPLE_MODE = false;
+export const CROP_EVIDENCE_DATA_AS_OF: string | null = null;
 export const CROP_EVIDENCE_SCHEMA_VERSION = 'crop-evidence-reconciliation-v1';
 export const CROP_EVIDENCE_DEFAULT_PROVINCE = '73';
 
@@ -180,7 +180,7 @@ export interface DistrictCropEvidence {
   confidenceComponents: ConfidenceComponents;
   issues: string[];
   recommendations: string[];
-  sample: true;
+  sample: boolean;
 }
 
 export interface CropEvidenceCropSummary {
@@ -217,9 +217,9 @@ export interface CropEvidenceSource {
 
 export interface CropEvidencePayload {
   schemaVersion: typeof CROP_EVIDENCE_SCHEMA_VERSION;
-  sample: true;
+  sample: boolean;
   access: 'metadata_only';
-  dataAsOf: string;
+  dataAsOf: string | null;
   filters: { provinceCode: string; provinceName: string; crop: CropEvidenceFilter };
   provinces: CropEvidenceProvinceOption[];
   crops: CropEvidenceCropConfig[];
@@ -610,10 +610,8 @@ function buildRow(provinceCode: string, raw: RawRow): DistrictCropEvidence {
   return { ...base, issues, recommendations };
 }
 
-/** ทุกแถวตัวอย่าง (อำเภอ × พืช) ของทุกจังหวัดในขอบเขต */
-export const CROP_EVIDENCE_ROWS: DistrictCropEvidence[] = CROP_EVIDENCE_PROVINCES.flatMap((province) =>
-  (RAW_SAMPLE[province.code] ?? []).map((raw) => buildRow(province.code, raw))
-);
+/** ไม่มีแถว crop/district ที่ผ่านการอนุมัติและตรวจหลักฐานเพื่อเผยแพร่ */
+export const CROP_EVIDENCE_ROWS: DistrictCropEvidence[] = [];
 
 // ---------------------------------------------------------------------------
 // Aggregation
@@ -786,13 +784,12 @@ export const CROP_EVIDENCE_METHOD_NOTES: string[] = [
 ];
 
 export const CROP_EVIDENCE_WARNINGS: string[] = [
-  'ข้อมูลทั้งหมดเป็นตัวอย่างสาธิต (sample) แบบกำหนดค่าตายตัว ไม่ใช่สถิติทางการและห้ามใช้อ้างอิงเชิงนโยบาย',
-  'สิทธิ์การเผยแพร่ข้อมูลทะเบียน ทบก.01 และผลตรวจพิสูจน์ยังรอการยืนยัน จึงเปิดเฉพาะระดับ metadata_only',
-  'ยังไม่ยืนยัน crosswalk รหัสอำเภอ — districtCode เป็น null ทุกแถว ใช้ชื่ออำเภอเป็นตัวระบุชั่วคราว',
+  'ยังไม่มีข้อมูลตัวเลขพื้นที่เพาะปลูกระดับอำเภอที่ผ่านการยืนยัน จึงไม่เผยแพร่แถวหรือผลกระทบยอด',
+  'สิทธิ์การเผยแพร่ทะเบียน ทบก.01 และผลตรวจพิสูจน์ภาคสนามยังไม่ยืนยัน; CHIRPS 3 grid cells ในวันเดียวใช้แทนข้อมูลเหล่านี้ไม่ได้',
+  'ยังไม่มี crosswalk รหัสอำเภอที่ยืนยันได้สำหรับการเชื่อมหลักฐานรายพื้นที่',
   'การจับคู่ชื่อพื้นที่กับ snapshot ของ DOPA ไม่ใช่การยืนยันขอบเขตการปกครองย้อนหลัง',
   'ไม่รวมเนื้อที่ข้ามพืช (ข้าว มันสำปะหลัง ข้าวโพดเลี้ยงสัตว์) และไม่มียอดรวมทุกพืชของจังหวัด',
-  'ค่าที่ไม่มีข้อมูลแสดงเป็น null ไม่ใช่ 0; อำเภอที่ไม่มีแถวของพืชใดไม่ได้หมายความว่าไม่มีการปลูกพืชนั้น',
-  'ขอบเขตครอบคลุมเพียง 8 จังหวัดตัวอย่างและบางอำเภอ ไม่ใช่ความครอบคลุมทั้ง 77 จังหวัด',
+  'ไม่มีแถวที่ส่งกลับหมายถึงข้อมูลเผยแพร่ได้ยังไม่พร้อม ไม่ใช่หลักฐานว่าไม่มีการปลูกพืชในพื้นที่นั้น',
 ];
 
 export const CROP_EVIDENCE_SOURCES: CropEvidenceSource[] = [

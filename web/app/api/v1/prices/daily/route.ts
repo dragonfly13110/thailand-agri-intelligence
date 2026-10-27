@@ -6,6 +6,7 @@ import {
   getCommodityPrices,
 } from '../../../../../lib/hub/price-data';
 import {
+  findUpstreamProducts,
   probeDailyPriceCatalogue,
   readPriceSnapshot,
   type PriceCatalogueProbe,
@@ -25,22 +26,20 @@ export const dynamic = 'force-dynamic';
  * a repeated market/date identity is de-duplicated instead of counted twice.
  *
  * Governance:
- * - The daily market-price resource is still `pending` in
- *   `config/resource_licenses.json`, so `PRICE_PUBLICATION_APPROVED`
- *   (`web/lib/hub/price-data.ts`) is `false` and the route answers the
- *   metadata-only envelope with an empty `prices` array. No price, change,
- *   percentage or history series is published while the register withholds the
- *   resource.
- * - Turning the numbers on requires two coordinated changes by the
- *   Integrator: the exact registry row for the upstream daily endpoint must
- *   become `approved_public` with `project_publication_approved = true`, and
- *   `PRICE_PUBLICATION_APPROVED` must be set to `true`.
- * - While the switch is off the route still answers `200` with the same
- *   envelope, so a reader can tell "withheld by rights" apart from "broken".
+ * - The exact daily endpoint is recorded as `oae_nabc_daily_market_prices` and
+ *   is approved for project publication under AGENTS.md rule 3. The separate
+ *   OAE/NABC monthly-price resource remains pending and does not grant or revoke
+ *   rights for this endpoint.
+ * - `PRICE_PUBLICATION_APPROVED` is the project publication switch. If the
+ *   owner closes publication, the route returns metadata with an empty `prices`
+ *   array. Commercial use is not asserted by this API.
  *
  * Query:
- * - `category` filters the commodity metadata. An unknown category yields an
- *   empty list, not an error (published contract in `web/lib/hub/api-catalog.ts`).
+ * - `category` filters the commodity metadata **and** the price rows. Only the
+ *   upstream products of that category are requested. An unknown category, or a
+ *   category whose commodities have no tracked upstream product, yields an empty
+ *   list and no upstream call — not an error and not a "complete" snapshot
+ *   (published contract in `web/lib/hub/api-catalog.ts`).
  * - `date=YYYY-MM-DD` pins one calendar day of the upstream rows. A malformed
  *   value is rejected with `400 INVALID_QUERY`.
  *
@@ -55,9 +54,10 @@ export async function GET(request: Request) {
     const category = url.searchParams.get('category') || undefined;
     const date = parseDate(url, 'date');
     const commodities = getCommodityPrices(category);
+    const products = findUpstreamProducts(category);
 
     const probeEnabled = (process.env.PRICE_UPSTREAM_PROBE ?? '').trim() === '1';
-    const probe: PriceCatalogueProbe | null = probeEnabled
+    const probe: PriceCatalogueProbe | null = probeEnabled && products.length > 0
       ? await probeDailyPriceCatalogue()
       : null;
 
@@ -66,10 +66,10 @@ export async function GET(request: Request) {
       if (probe) {
         warnings.push(
           probe.ok
-            ? 'ตรวจสอบต้นทางสดเมื่อ ' + probe.retrievedAt + ': ตอบกลับ HTTP ' + probe.status
-              + ' มีรายการสินค้า ' + probe.productCount + ' รายการ — ยังไม่เผยแพร่ตัวเลขเพราะทะเบียนสิทธิ์ยังเป็น pending'
+              ? 'ตรวจสอบต้นทางสดเมื่อ ' + probe.retrievedAt + ': ตอบกลับ HTTP ' + probe.status
+              + ' มีรายการสินค้า ' + probe.productCount + ' รายการ — การเผยแพร่ตัวเลขถูกปิดสำหรับโปรเจกต์นี้'
             : 'ตรวจสอบต้นทางสดเมื่อ ' + probe.retrievedAt + ': ไม่สำเร็จ (code=' + probe.failureCode
-              + ') — ยังไม่เผยแพร่ตัวเลขเพราะทะเบียนสิทธิ์ยังเป็น pending',
+              + ') — การเผยแพร่ตัวเลขถูกปิดสำหรับโปรเจกต์นี้',
         );
       }
       return jsonData(
@@ -96,13 +96,29 @@ export async function GET(request: Request) {
       );
     }
 
-    // Publication is enabled: read the real rows and publish them per row.
-    const snapshot: PriceSnapshot = await readPriceSnapshot({ date });
+    // Publication is enabled: read the real rows of the selected products only.
+    const snapshot: PriceSnapshot = await readPriceSnapshot({ date, products });
 
     if (!snapshot.observations.length) {
       const failures = snapshot.probes
         .filter((item) => !item.ok)
         .map((item) => item.productName + '=' + item.failureCode);
+      const warnings = [...PRICE_WARNINGS];
+      if (!snapshot.productsRequested) {
+        warnings.push(
+          'หมวดที่เลือกไม่มีสินค้าที่ติดตามจากต้นทางใน endpoint นี้ จึงไม่มีการเรียกต้นทางในคำขอนี้ — '
+          + 'ข้อมูลว่างหมายถึงไม่มีสินค้าในหมวดนั้น ไม่ใช่ราคา 0 และไม่ใช่หลักฐานว่าอ่านครบทุกสินค้า',
+        );
+      } else {
+        warnings.push(
+          'ต้นทางตอบกลับแต่ไม่มีแถวของวันที่ต้องการในหน้าที่อ่าน (limit=100, page=1) — ค่าว่างหมายถึงยังไม่มีข้อมูลที่เผยแพร่ได้ ไม่ใช่ 0',
+        );
+        warnings.push(
+          failures.length
+            ? 'สินค้าที่อ่านไม่สำเร็จ: ' + failures.join(', ')
+            : 'ความครอบคลุมของหน้าที่อ่านยังไม่ครบประวัติทั้งหมดของต้นทาง',
+        );
+      }
       return jsonData(
         {
           source: PRICE_SOURCE_METADATA,
@@ -120,13 +136,7 @@ export async function GET(request: Request) {
             sourceUpdatedAt: null,
             sourceRetrievedAt: snapshot.retrievedAt,
             datasetVersion: null,
-            warnings: [
-              ...PRICE_WARNINGS,
-              'ต้นทางตอบกลับแต่ไม่มีแถวของวันที่ต้องการในหน้าที่อ่าน (limit=100, page=1) — ค่าว่างหมายถึงยังไม่มีข้อมูลที่เผยแพร่ได้ ไม่ใช่ 0',
-              failures.length
-                ? 'สินค้าที่อ่านไม่สำเร็จ: ' + failures.join(', ')
-                : 'ความครอบคลุมของหน้าที่อ่านยังไม่ครบประวัติทั้งหมดของต้นทาง',
-            ],
+            warnings,
             runtimeMode: 'source_api_fallback',
           },
         },
@@ -136,9 +146,11 @@ export async function GET(request: Request) {
     const warnings = [
       'ค่าที่เผยแพร่มาจากต้นทางโดยตรง แยกตามสินค้า/เกรด ตลาด จังหวัด วัน และหน่วย — ห้ามนำไปรวมกับสินค้า เกรด หน่วย หรือตลาดอื่น',
       'ต้นทางไม่ประกาศประเภทราคา (หน้าสวน/ตลาดกลาง) และไม่ประกาศคอลัมน์เกรดแยก ฟิลด์ priceType และ grade จึงเป็น null',
+      'ต้นทางไม่ระบุเวลาอัปเดตหรือเกณฑ์ความสดของข้อมูล จึงยังยืนยัน freshness ไม่ได้',
       snapshot.complete
-        ? 'อ่านต้นทางครบทุกสินค้าที่ติดตามในรอบนี้'
-        : 'อ่านต้นทางไม่ครบทุกสินค้าในรอบนี้ — รายการที่ล้มเหลวไม่ถูกแทนด้วยค่าอื่น',
+        ? 'อ่านต้นทางครบทุกสินค้าที่เลือกในรอบนี้ (' + snapshot.productsSucceeded + '/' + snapshot.productsRequested + ' รายการ)'
+        : 'อ่านต้นทางไม่ครบทุกสินค้าที่เลือกในรอบนี้ (' + snapshot.productsSucceeded + '/' + snapshot.productsRequested
+          + ' รายการ) — รายการที่ล้มเหลวไม่ถูกแทนด้วยค่าอื่น',
     ];
 
     return jsonData(
@@ -150,14 +162,14 @@ export async function GET(request: Request) {
       {
         meta: {
           availability: 'ready',
-          freshness: 'fresh',
+          freshness: 'unknown',
           completeness: snapshot.complete ? 'complete' : 'partial',
           access: 'approved_public',
           sourceIds: ['oae', 'nabc'],
           dataAsOf: snapshot.latestDate,
-          sourceUpdatedAt: snapshot.latestDate,
+          sourceUpdatedAt: null,
           sourceRetrievedAt: snapshot.retrievedAt,
-          datasetVersion: snapshot.retrievedAt,
+          datasetVersion: null,
           warnings,
           runtimeMode: 'source_api_fallback',
         },

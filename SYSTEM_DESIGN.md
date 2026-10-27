@@ -1,6 +1,6 @@
 # Thailand Agricultural Data Hub — System Design
 
-สถานะ: แบบระบบ ณ 25 ตุลาคม 2569 ใช้ Cloudflare Workers + vinext + D1; สร้าง D1 `tadih-hub` ใน APAC, apply schema 6 ตาราง/7 index, sync catalog และอ่านจาก D1 ได้แล้ว. มี Workers Preview ที่ตรวจแล้วแต่เป็น code ก่อน M3/M5; checkout ปัจจุบันยังรอ auth เพื่อ deploy ซ้ำ. ดูสถานะและหลักฐานล่าสุดใน [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) และ [HANDOFF.md](HANDOFF.md)
+สถานะปัจจุบันอ้างอิง `main` commit `14026f0` และ working tree ณ 27 ตุลาคม 2569. ระบบใช้ Next.js/vinext บน Cloudflare Workers, Cloudflare D1 เป็น catalog และ numeric store, และ Python connectors สำหรับ ingest. Handoff ล่าสุดบันทึก 9,923 numeric observations, NWP run `tmd_hpc_d02_2026102606` (220 snapshots, 8,657 ค่ารายจังหวัด), ราคา NABC จริง และสัญญาณเตือนภัยจาก RID/GISTDA/TMD. Preview deployment ล่าสุดผ่าน API smoke checks; สถานะ NWP และ CI ที่ยังค้างระบุใน [HANDOFF.md](HANDOFF.md). ส่วนรายละเอียดแผน M1–M6 และผล audit บางรายการด้านล่างเป็นบันทึกก่อน 27 ตุลาคม; ให้ยึด [HANDOFF.md](HANDOFF.md) กับ [docs/progress.md](docs/progress.md) สำหรับสถานะล่าสุด
 
 ## 1. เป้าหมายและขอบเขต
 
@@ -33,11 +33,11 @@
 
 - `web/` เป็น Next.js 16.4.3, React 19.3.1, TypeScript 5.9.3 มี shell ภาษาไทย, catalog, ตาราง, ราคา, หน้าจังหวัดและโครงการแล้ว เก็บโครงหน้า สี ตัวกรองและกราฟ SVG ที่ใช้ได้
 - `src/tadih/` มี Python connectors, parser, คุณภาพข้อมูล, geography, price history, water/weather/satellite และ DuckDB สำหรับงานเตรียม/ตรวจข้อมูล เก็บตรรกะที่ผ่านตรวจ ไม่ย้ายทั้งหมดไป TypeScript
-- `config/sources.json` มี registry 16 ระบบ; `config/resource_licenses.json` และ [ทะเบียนสิทธิ์](docs/source-license-register.md) เก็บสถานะราย resource; `config/provinces.csv` เป็นแกนรหัสจังหวัด; [แผนที่ API](docs/accessible-data-map.md) มีผลสำรวจบัญชีเจ้าของ 14 แห่งและระบบอื่น
+- `config/sources.json` มี 23 source entries; D1 catalog ที่ตรวจไว้มี 12 CKAN sources, 1,237 datasets และ 3,777 resources. `config/resource_licenses.json` มี 89 resources (10 `approved_public`, 79 `pending`); `config/provinces.csv` เป็นแกนรหัสจังหวัด ไม่ใช่หลักฐาน coverage
 - `web/app/api/v1/` มี read routes สำหรับ sources, datasets, records, series, observations, area evidence และ source status; `data_contracts/hub-api.schema.json` เป็นสัญญาร่วมของเว็บและผู้เชื่อมต่อ
-- `web/lib/hub/` ยังเก็บ PostgreSQL repository และ CKAN fallback เดิม พร้อม D1 catalog repository ที่เลือกตาม runtime; D1 read-only audit พบ 12 sources และ 1,237 metadata-only datasets. Local Next API เดิมตอบ 946 รายการแบบ partial เพราะ NABC จำกัด 300/591; ดูผลปัจจุบันใน [M2 audit](docs/m2-sync-audit.md)
+- `web/lib/hub/` มี D1 repositories สำหรับ catalog และข้อมูลตัวเลข พร้อม fallback/legacy code ที่บางส่วนยังเหลือ; ตัวเลขล่าสุดใน handoff คือ 9,923 observations. ตัวเลข catalog 1,237 datasets เป็นผล audit ก่อนหน้าและเป็น metadata เท่านั้น; ไม่ใช่จำนวน numeric datasets ที่พร้อมใช้งาน
 - หน้า catalog, explorer, ราคา และจังหวัดเรียก `/api/v1`; เส้นทาง `/api/local-data`, `/api/local-session` และ snapshot catalog ถูกถอดจากเว็บแล้ว `config/provinces.csv` คงไว้เป็นรหัสอ้างอิงสาธารณะ
-- `scripts/sync_hub_catalog.py` รองรับ CKAN 12 แหล่งและ D1 sink; live audit พบ 19 D1 sync runs โดย latest run ของ 12 sources สำเร็จ. Scheduled GitHub workflow ยัง untracked และยังตรวจ secret/schedule run ไม่ได้
+- Python sync scripts เขียน catalog และ approved numeric batches ลง D1; Git ติดตาม workflow `ci.yml`, `discover-sources.yml`, `sync-hub-catalog.yml` และ `sync-hub-numeric.yml`. ไฟล์ workflow มีอยู่ไม่ได้ยืนยันว่า secrets ครบหรือ GitHub Actions รอบล่าสุดสำเร็จ
 
 ข้อมูลเก่าใน `data/local/`, `exports/private/` และ Power BI เป็นหลักฐาน/งานวิจัยเดิม เก็บไว้เพื่อเทียบค่าหรือย้ายสูตรตามจำเป็น เว็บใหม่ไม่เปิดไฟล์เหล่านี้ระหว่าง request และ connector ใหม่ไม่สะสม raw ลงเครื่องเจ้าของงาน
 
@@ -46,28 +46,30 @@
 ```mermaid
 flowchart TD
   subgraph Upstream["หน่วยงานต้นทาง (Upstream Sources)"]
-    RID["RID (กรมชลประทาน)<br/>API 461 อ่างเก็บน้ำ"]
-    OAE["OAE (สศก.)<br/>ราคาสินค้าเกษตรรายวัน"]
+    RID["RID (กรมชลประทาน)<br/>อ่างเก็บน้ำและความจุ"]
+    OAE["NABC / OAE<br/>ราคาสินค้าเกษตรรายวัน"]
     DOAE["DOAE (กรมส่งเสริมฯ)<br/>ทะเบียนเกษตรกร & การผลิต"]
     LDD["LDD (กรมพัฒนาที่ดิน)<br/>กลุ่มชุดดิน & ปุ๋ย"]
-    TMD["TMD (กรมอุตุฯ)<br/>พยากรณ์อากาศ 7 วัน"]
+    TMD["TMD / TMD HPC<br/>สถานีและ NWP grid"]
+    GISTDA["GISTDA<br/>ภาพดาวเทียมและน้ำท่วม"]
     CKAN["12 CKAN Catalogs<br/>1,237 ชุดข้อมูล"]
   end
 
   subgraph Cloudflare["Cloudflare Edge Network"]
     D1[("Cloudflare D1<br/>Catalog + Cache")]
-    Worker["Cloudflare Worker (Next.js / vinext)<br/>API Gateway & Web SSR"]
+    Worker["Cloudflare Worker (Next.js / vinext)<br/>API v1 & Web SSR"]
   end
 
   subgraph WebApp["Interactive Web Portal"]
     Nav["Comprehensive Navigation Bar<br/>Dropdown เมนูย่อย 7 หมวด"]
     WaterDash["แดชบอร์ดสถานการณ์น้ำ<br/>461 อ่างเก็บน้ำ + เกจวัดความเสี่ยง"]
     PriceDash["แดชบอร์ดราคาสินค้าเกษตร<br/>ราคาวันนี้ + กราฟแนวโน้ม"]
-    CatalogUI["บัญชีข้อมูลกลาง<br/>ค้นหา 1,237 ชุดข้อมูล"]
+    CatalogUI["บัญชีข้อมูลกลาง<br/>ค้นหา metadata"]
   end
 
-  CKAN -->|Batch Sync| D1
-  RID & OAE & TMD -->|On-demand / Edge Cache| Worker
+  CKAN -->|Metadata sync| D1
+  RID & OAE & TMD & GISTDA -->|Python connectors / approved numeric sync| D1
+  NWP["NWP forecast"] -->|แยกจาก observations| D1
   D1 --> Worker
   Worker --> Nav
   Worker --> WaterDash
@@ -76,11 +78,9 @@ flowchart TD
 ```
 
 **เป้าหมายของระบบ:**
-1. **Catalog Path**: แคตตาล็อก 12 หน่วยงาน (1,237 ชุดข้อมูล) ดึงและค้นหาผ่าน Cloudflare D1
-2. **On-Demand Dashboard Gateway Path**: เมื่อเกษตรกรหรือผู้ใช้งานเข้าหน้าเฉพาะทาง (เช่น `/water`, `/prices`):
-   - Worker API (`/api/v1/water/reservoirs`, `/api/v1/prices/daily`) ทำหน้าที่เป็น Gateway ที่ส่งข้อมูลตัวเลขที่ผ่านการ Normalization แล้วให้หน้าบ้านทันที
-   - มีระบบ Edge Caching เพื่อความรวดเร็วและป้องกันการยิงซ้ำต้นทาง
-   - หน้าบ้านแสดงผลเป็น Interactive Dashboard มี Gauge, กราฟ, ตัวกรองระดับความเสี่ยง และตารางแบบละเอียด ไม่ใช่แค่หน้าคำอธิบาย
+1. **Catalog path:** sync metadata จาก CKAN เข้า D1 เพื่อค้นหาแหล่ง ชุดข้อมูล และ resource. จำนวน 1,237 datasets เป็นผล audit ล่าสุดที่บันทึกไว้ ไม่ใช่ตัวเลขวิเคราะห์
+2. **Numeric path:** Python connectors ดึง ตรวจ และ normalize ข้อมูลจริงที่เปิดใช้ แล้วเผยแพร่เป็น active run ใน D1; หน้าเว็บอ่านผ่าน repository/API เดียวกัน พร้อม source, grain, unit, run และวันข้อมูล
+3. **Forecast path:** NWP จาก TMD HPC เก็บในตาราง `nwp_*` แยกจาก `observations`; API และหน้า `/nwp` แสดงค่ากริด/ค่าที่สรุปในรัศมีจังหวัดตามวิธีที่ระบุ
 
 
 ### ทำไมใช้ชุดนี้
@@ -126,7 +126,7 @@ Cloudflare แนะนำ vinext สำหรับ Next.js บน Workers แ�
 | NABC Catalog / CAD / ALRO | 591 / 49 / 50 | เก็บ owner/harvest lineage และตรวจชุดซ้ำ |
 | ACFS / Royal Rain / THAGRI | 26 / 28 / 74 | metadata และ API ราย resource ที่ตรวจ endpoint ได้ |
 
-API อื่นที่ [แผนที่ข้อมูล](docs/accessible-data-map.md) สำรวจไว้: OpenD/data.go.th, GISTDA, Meteostat, DWR exchange/ArcGIS, RID reservoirs และ Open-Meteo/ERA5 เริ่มกับ API ที่ตอบได้และ resource ที่ชัดก่อน รายการที่ TLS/timeout/502/ต้องใช้ token แสดง `unavailable/needs_access` พร้อมวันตรวจ ไม่เดาข้อมูลเป็นศูนย์ ไม่ bypass TLS ชื่อ env ที่เคยเตรียมไว้ดู `.env.example`; บันทึกในระบบเฉพาะชื่อ key ไม่เก็บค่าใน Git หรือหน้าเว็บ **สถานะสิทธิ์ ณ 25 ต.ค. 2569: ทะเบียน 72 resources มี CHIRPS exact file หนึ่งรายการ `approved_public` และอีก 71 `pending`; M5 เทียบ CHIRPS 3 cells กับต้นทางแล้ว แต่ยังไม่มี active D1 observation หรือ numeric API output. Open-Meteo ต้องยืนยัน non-commercial/attribution ก่อน; NASA POWER เป็น metadata discovery เท่านั้น. ดู [M3 API audit](docs/m3-api-candidate-audit-2026-10-25.md)**
+แหล่งที่ลงทะเบียนรวมถึง OpenD/data.go.th, GISTDA, Meteostat, DWR, RID, TMD/TMD HPC, NABC และ Open-Meteo/ERA5. ตาม [AGENTS.md](AGENTS.md) ผู้ดูแลยืนยันสิทธิ์และ credentials สำหรับข้อมูลจริง; ให้คง source grain และใช้ null เมื่อหน่วยหรือค่าที่จำเป็นไม่ทราบ. ทะเบียน resource ปัจจุบันมี 89 รายการ โดย 10 `approved_public` และ 79 `pending`. NWP API อ่านสิทธิ์เผยแพร่จาก exact-resource registry จึงตอบ `access=approved_public`; D1 run row เดิมยัง pending เพราะยังไม่ได้ migrate. หน่วยยัง `pending_official_confirmation`, API unit เป็น null และ risk level ไม่จัดจนมีหลักฐานหน่วย. บันทึกในส่วนนี้ที่ลงวันที่ 25 ต.ค. และ [M3 API audit](docs/m3-api-candidate-audit-2026-10-25.md) เป็นผลสำรวจในอดีต ไม่ใช่สถานะปัจจุบัน
 
 **ลำดับตัวเลขที่แนะนำ:** 1) หนึ่ง resource ราคา OAE/NABC หรืออากาศจาก API ที่เงื่อนไขการใช้ผ่าน เพื่อให้มีกราฟจริงและ lineage, 2) พืช/แผน DOAE หลังยืนยันความหมายปี/รอบและสิทธิ์, 3) RID/DWR น้ำ, 4) GISTDA/อากาศ/ดิน, 5) โครงการหลายหน่วยงาน แต่ละตัวเชื่อมมีงานแยกใน implementation plan การค้น catalog ทุกเจ้าของเดินขนานกับตัวเลข ไม่ผูกกัน
 
@@ -176,7 +176,8 @@ API อื่นที่ [แผนที่ข้อมูล](docs/accessible
 
 - เริ่ม sync catalog วันละครั้ง และ API ตัวเลขตามรอบจริงของต้นทาง ใช้ GitHub Actions schedule + manual dispatch; schedule อาจมาช้า จึงใช้ `lastSuccessAt` ไม่อ้างเวลา cron ว่าเป็นเวลาข้อมูลจริง ([GitHub Actions schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule))
 - จำกัดขนาด/หน้า/เวลาของแต่ละ connector, หน่วงตาม quota, retry เฉพาะ 429/5xx จำนวนต่ำและเคารพ Retry-After; source ล้มเหลวคง batch ก่อนหน้า แสดงวันเก่าและ error code
-- หน้าอ่านจาก PostgreSQL; cache public metadata แบบสั้นและชุดตัวเลขตามรอบ refresh ของ resource เมื่อ publish batch ใหม่ให้เปลี่ยน `datasetVersion` เพื่อ invalidate cache; browser ไม่ใช้ค่าจากหนึ่ง batch ไปผสมอีก batch ในหน้ากราฟเดียว
+- Worker อ่าน D1 ผ่าน binding/prepared statements; Python jobs ใช้ D1 sink สำหรับ sync. เมื่อ publish batch ใหม่ให้เปลี่ยน `datasetVersion` เพื่อ invalidate cache; browser ไม่ใช้ค่าจากหนึ่ง batch ไปผสมอีก batch ในหน้ากราฟเดียว
+- D1 Free Tier มี daily write cap 100,000 rows; handoff ล่าสุดระบุว่ารอบ NWP ชนเพดานและจะรีเซ็ต 07:00 ICT. รักษา idempotent reruns, แบ่ง batch และเรียงเวลางานเพื่อไม่ให้ sync งานอื่นเขียนซ้ำโดยไม่จำเป็น
 - เริ่มด้วย index ตาม `source_id, dataset_id, province_code, period, series_id, active_run_id` ใช้ query plan จริงก่อนเพิ่ม partition/Redis/PostGIS/queue; บันทึกเวลาตอบของหน้าค้นหาและจำนวน sync fail แบบย่อ
 - backup ของฐาน managed เปิดใช้งานตามผู้ให้บริการ และลอง restore ใน preview ก่อนถือว่า recoverable; ประวัติ DuckDB ในเครื่องไม่ใช่ backup ของฐานใหม่นี้
 
@@ -192,7 +193,7 @@ API อื่นที่ [แผนที่ข้อมูล](docs/accessible
 
 **Catalog preview** เปิดให้ลองได้ก่อนมีตัวเลข เมื่อ catalog มาจาก API ต้นทางจริง, หน้า search/detail/mobile ใช้ได้, ระบุชัดว่าเป็น metadata-only และไม่มี local/private data ใน response. **รุ่นเปิดใช้ที่แสดงตัวเลข** ต้องเพิ่มฐานกลางที่ sync แล้วและ resource อย่างน้อยหนึ่งชุดที่มีหลักฐานสิทธิ์ พร้อมตาราง/กราฟที่เทียบกับต้นทางได้. Production ตรวจแยกหลัง preview
 
-สถานะวันนี้: D1 read-only audit พบ 12 sources, 1,237 metadata-only datasets, 3,777 pending resources, 19 sync runs และ 0 observations; latest run ของ 12 sources สำเร็จ. Local CKAN fallback เคยตอบ 946 รายการแบบ partial เพราะเพดาน NABC 300/591. มี Workers Preview ที่ตรวจแล้วสำหรับ code รุ่นก่อน M3/M5; current checkout ยังรอ deploy. ทะเบียนมี CHIRPS exact file หนึ่งรายการ approved แต่ยังไม่มี active D1 sample หรือ numeric API output. `cf` deploy auth และ runner D1 API token ยังขาด; ดู [HANDOFF](HANDOFF.md)
+สถานะที่ตรวจ ณ 27 ต.ค. 2569: D1 มี 9,923 numeric observations; NWP run `tmd_hpc_d02_2026102606` มี 220/220 snapshots และ 8,657 province values; `/water`, `/weather/observations`, `/satellite`, `/prices` และ `/early-warning` มีเส้นทางข้อมูลจริงตามขอบเขตใน [HANDOFF](HANDOFF.md). ทะเบียนมี 89 resources (10 approved, 79 pending). Preview deployment `761a2138-5608-46c9-affa-de32cafab964` ผ่าน API smoke checks; NWP API ใช้สิทธิ์จาก registry เป็น `approved_public`, แต่หน่วยเป็น null และยังไม่จัด risk level ส่วน D1 run row เดิมยัง pending. Web typecheck, tests 163/163 และ Preview build ผ่าน; GitHub Actions ยังไม่ rerun หลัง RID fix และ catalog sync ขาด repository secrets. D1 counts อ้าง run snapshots ไม่ใช่ live audit.
 
 ทบทวนแบบเมื่อข้อมูลตัวเลขเกินหลายล้านแถว, sync ใช้เวลาหรือ quota สูง, มีผู้ใช้พร้อมกันมากกว่าที่ฐานรับได้, ต้องให้เจ้าหน้าที่แก้ข้อมูล, ต้องเชื่อม geometry/raster มาก หรือมีคำขอข้อมูลภายในหลายหน่วยงาน ขณะนั้นค่อยพิจารณา partition, queue, PostGIS, search engine หรือ auth
 

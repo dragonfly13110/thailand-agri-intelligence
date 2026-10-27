@@ -31,18 +31,23 @@ Rules enforced here (never relaxed by CLI flags or caller arguments):
 6. Idempotency: the run id is derived from the *logical* payload hash and the
    row key is derived from the observation id, so republishing an identical
    batch reuses the run and reports ``skipped_identical``. The logical hash
-   covers only ``(resource_id, observation_id, observed_at at the run's
-   period grain, unit, value)`` per row (defect D-2): volatile per-row
-   ``retrieved_at`` and ``revision_id`` values (LastBuildDate/ETag churn) and
-   the intra-day instant of a daily/monthly product never mint a new run —
-   the GISTDA flood service echoes a per-request timeStamp as
-   ``observed_at``, so day-grain rows are identified by their period start
-   while point-grain runs keep the exact instant. Re-running the same logical
-   day reuses the run instead of orphaning a fresh batch of rows.
-   The envelope and the ``quality``/``sync_runs`` provenance still store the
-   real ``revision_id``/``retrieved_at`` as-is. Limitation of the rollout:
-   derived run ids change once — runs written before this rule keep their old
-   ids and rows.
+   covers each row's durable identity and publication semantics —
+   ``(resource_id, observation_id, period start/end, unit, value, measure,
+   spatial support, data kind, area/province, commodity, market, grade,
+   price type, season, location identity, product, metric name)`` plus the
+   published ``dimensions`` minus volatile request keys — so a corrected
+   province/area, commodity, market or grade mints a new run and updates what
+   readers serve (defect D-4). Volatile per-row ``retrieved_at`` and
+   ``revision_id`` values (LastBuildDate/ETag churn), ``release_at`` and
+   echoed per-request stamps (GISTDA's ``sourceTimeStamp``) never mint a new
+   run (defect D-2); the intra-day instant of a daily/monthly product is
+   folded to its period, while point-grain runs keep the exact instant.
+   Re-running the same logical day reuses the run instead of orphaning a
+   fresh batch of rows. The envelope and the ``quality``/``sync_runs``
+   provenance still store the real ``revision_id``/``retrieved_at`` as-is.
+   Limitation of the rollout: derived run ids change once — runs written
+   before this rule keep their old ids and rows, and the first republish after
+   deployment mints one new run per resource before idempotency resumes.
 7. A failed run is only marked ``failed``; previously published data and the
    active run pointer are never deleted or clobbered.
 8. Activation guard (defect D-9): a run whose rows mix ``NULL`` and non-NULL
@@ -57,6 +62,16 @@ Rules enforced here (never relaxed by CLI flags or caller arguments):
    official confirmation (``pending_official_confirmation``). The mixed
    NULL/non-NULL rule is fully deterministic: an all-NULL batch activates, a
    batch where the same measure carries both is quarantined from activation.
+9. Monotonic activation (defect D-1): ``resources.active_run_id`` is only
+   repointed when the candidate run's newest ``period_start`` is not older
+   than the current active run's newest ``period_start``. The comparison and
+   the pointer write run in a single UPDATE, so two ingestion jobs cannot
+   interleave a check-then-write and move the dashboard backwards. Old
+   backfills and retries of earlier days still store their rows and reuse
+   their run, but they never become active; the envelope reports
+   ``active_run_switched = False`` with
+   ``active_run_blocked_reason = ACTIVE_RUN_OLDER_THAN_ACTIVE``. Data periods
+   decide, never ``retrieved_at``.
 
 Adapter contract for the ingest commands (``tadih ingest --adapter <name>``):
 the module ``tadih.ingest_<name>_d1`` exposes ``main(argv: list[str], *,
@@ -90,6 +105,21 @@ RUN_ID_NAMESPACE = uuid.UUID("6f0bd2c8-1a54-5b3e-9b2f-7d0c1e4a5b63")
 #: measure is written but never activated; this is the stored ``error_code``
 #: and the envelope ``activation_blocked_reason``.
 MIXED_UNIT_ACTIVATION_REASON = "UNIT_MIXED_NULL_BATCH"
+
+#: Activation guard (D-1): a candidate run whose newest period is older than
+#: the current active run's newest period is written but never activated; this
+#: is the envelope ``active_run_blocked_reason``.
+OLDER_THAN_ACTIVE_RUN_REASON = "ACTIVE_RUN_OLDER_THAN_ACTIVE"
+
+#: Dimension keys that carry request/retrieval/release stamps or ETags rather
+#: than published content. Providers that re-stamp the same product on every
+#: request (GISTDA's ``sourceTimeStamp``, feed ``releaseAt``) must still reuse
+#: their run (defect D-2), so these keys are excluded from the logical
+#: fingerprint. Keys are matched case- and separator-insensitively.
+VOLATILE_DIMENSION_KEYS = frozenset({
+    "sourcetimestamp", "releaseat", "retrievedat", "revisionid", "etag",
+    "lastmodified", "lastbuilddate", "generatedat", "fetchedat",
+})
 
 # ``data_kind`` values that may be published as observations. The contract
 # schema also allows "unknown"; the writer refuses it because an observation
@@ -230,8 +260,8 @@ def publish_observations(
     ``records_written``, ``records_inserted``, ``records_skipped``,
     ``records_quarantined``, ``quarantine_reasons``, ``skipped_identical``,
     ``locations_written``, ``active_run_switched``, ``activation_blocked_reason``,
-    ``revision_id``, ``payload_sha256``, ``adapter_version``, ``retrieved_at``,
-    ``started_at``, ``completed_at``.
+    ``active_run_blocked_reason``, ``revision_id``, ``payload_sha256``,
+    ``adapter_version``, ``retrieved_at``, ``started_at``, ``completed_at``.
     """
     assert_resource_approved(resource)  # gate first: nothing is written before this passes
     resource_id = resource["resource_id"]
@@ -341,7 +371,7 @@ def publish_observations(
         _mark_failed(client, derived_run_id, "NUMERIC_WRITE_FAILED")
         raise ObservationWriteError("NUMERIC_WRITE_FAILED") from exc
 
-    active_run_switched = _switch_active_run(
+    active_run_switched, active_run_blocked_reason = _switch_active_run(
         client, resource_id=resource_id, run_id=derived_run_id, status=final_status,
         enabled=require_d1_approval and records_written > 0 and activation_guard is None,
     )
@@ -362,6 +392,7 @@ def publish_observations(
         "locations_written": len({entry["location"]["location_id"] for entry in plan}),
         "active_run_switched": active_run_switched,
         "activation_blocked_reason": activation_guard,
+        "active_run_blocked_reason": active_run_blocked_reason,
         "revision_id": revision_id,
         "payload_sha256": payload_sha256,
         "adapter_version": adapter_version,
@@ -377,7 +408,7 @@ def _finish_existing_run(
     records_quarantined, quarantine_reasons, require_d1_approval, activation_guard=None,
 ) -> dict:
     """Reuse an identical published run instead of writing the same rows twice."""
-    active_run_switched = _switch_active_run(
+    active_run_switched, active_run_blocked_reason = _switch_active_run(
         client, resource_id=resource_id, run_id=run_id, status=status,
         enabled=require_d1_approval and records_written > 0 and activation_guard is None,
     )
@@ -398,6 +429,7 @@ def _finish_existing_run(
         "locations_written": 0,
         "active_run_switched": active_run_switched,
         "activation_blocked_reason": activation_guard,
+        "active_run_blocked_reason": active_run_blocked_reason,
         "revision_id": revision_id,
         "payload_sha256": payload_sha256,
         "adapter_version": adapter_version,
@@ -407,28 +439,48 @@ def _finish_existing_run(
     }
 
 
-def _switch_active_run(client, *, resource_id, run_id, status, enabled) -> bool:
-    """Point the resource at this run only while the resource stays approved.
+def _switch_active_run(client, *, resource_id, run_id, status, enabled) -> tuple[bool, str | None]:
+    """Point the resource at this run unless a newer run is already active.
 
-    A revoked ``resources`` row keeps its previous pointer and the caller gets
-    ``ACTIVE_RUN_SWITCH_FAILED``; published rows and the old active run are
-    never deleted.
+    The candidate's newest ``period_start`` and the current ``active_run_id``
+    are compared inside the same UPDATE that writes the pointer (defect D-1),
+    so a concurrent job that activates a newer run between this run's data
+    write and this statement cannot be overwritten by an older backfill. A
+    blocked candidate keeps the existing pointer and is reported as
+    ``(False, OLDER_THAN_ACTIVE_RUN_REASON)``; data periods decide, never
+    ``retrieved_at``.
+
+    A revoked ``resources`` row or a candidate that is no longer final keeps
+    its previous pointer and the caller gets ``ACTIVE_RUN_SWITCH_FAILED``;
+    published rows and the old active run are never deleted.
     """
     if not enabled:
-        return False
+        return False, None
     try:
         result = client.execute(
-            "UPDATE resources SET active_run_id=? WHERE resource_id=? "
+            "UPDATE resources SET active_run_id = CASE "
+            "WHEN active_run_id IS NULL "
+            "OR NOT EXISTS (SELECT 1 FROM observations WHERE resource_id=? "
+            "AND run_id=resources.active_run_id) "
+            "OR (SELECT MAX(period_start) FROM observations WHERE resource_id=? AND run_id=?) "
+            ">= (SELECT MAX(period_start) FROM observations WHERE resource_id=? "
+            "AND run_id=resources.active_run_id) "
+            "THEN ? ELSE active_run_id END "
+            "WHERE resource_id=? "
             "AND access_status='approved_public' AND project_publication_approved=1 "
             "AND EXISTS (SELECT 1 FROM sync_runs WHERE run_id=? AND resource_id=? AND status=?) "
             "RETURNING active_run_id",
-            [run_id, resource_id, run_id, resource_id, status],
+            [resource_id, resource_id, run_id, resource_id, run_id,
+             resource_id, run_id, resource_id, status],
         )
     except Exception as exc:
         raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED") from exc
-    if not _returned(result, "active_run_id", run_id):
+    row = _first_row(result)
+    if row is None or row.get("active_run_id") is None:
         raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED")
-    return True
+    if row["active_run_id"] == run_id:
+        return True, None
+    return False, OLDER_THAN_ACTIVE_RUN_REASON
 
 
 # ---------------------------------------------------------------------------
@@ -733,7 +785,10 @@ def _infer_grain(observed_at: str) -> str:
 def _period(observed_at: str, grain: str) -> tuple[str, str, str]:
     parsed = _utc(observed_at)
     if grain == "daily":
-        day = parsed.date().isoformat()
+        # Daily products follow the calendar day encoded by the observation's
+        # timezone offset.  Converting an ICT midnight to UTC first would move
+        # it to the previous date and lose the provider's daily period label.
+        day = datetime.fromisoformat(observed_at.replace("Z", "+00:00")).date().isoformat()
         return day, day, day
     if grain == "monthly":
         first = parsed.date().replace(day=1)
@@ -865,35 +920,83 @@ _payload_hash = payload_sha256
 
 
 def _logical_payload_sha256(resource_id: str, plan: Sequence[Mapping[str, Any]]) -> str:
-    """Hash the *logical* batch for run-id derivation (defect D-2).
+    """Hash the *logical* batch for run-id derivation (defects D-2/D-4).
 
-    Only the durable identity of each observation takes part:
-    ``(resource_id, observation_id, observed_at at the run's period grain,
-    unit, value)``. Volatile per-row fields (``retrieved_at`` and provider
-    ``revision_id`` values such as a LastBuildDate ETag) are excluded on
-    purpose so that re-running the same logical day derives the same run id
-    and reports ``skipped_identical`` instead of minting a new run and
-    orphaning the previous rows. ``observed_at`` participates at the batch's
-    declared grain: a daily/monthly product is identified by its period
-    (period start), because some providers — the GISTDA flood service is the
-    live example — echo a per-request timestamp into ``observed_at`` and an
+    Only the durable identity and publication semantics of each observation
+    take part (see :func:`_logical_row`): the observation id, its period, unit
+    and value, the fields that give the value meaning (measure, spatial
+    support, data kind, area/province, commodity, market, grade, price type,
+    season), the location identity, the publication labels and the published
+    ``dimensions`` minus volatile request keys. A corrected province/area,
+    commodity, market or grade therefore derives a new run id instead of being
+    skipped as identical (defect D-4).
+
+    Volatile per-row fields are excluded on purpose so that re-running the
+    same logical day derives the same run id and reports ``skipped_identical``
+    instead of minting a new run and orphaning the previous rows (defect D-2):
+    ``retrieved_at``, provider ``revision_id`` values (LastBuildDate/ETag
+    churn), ``release_at`` and echoed per-request stamps such as GISTDA's
+    ``sourceTimeStamp``. ``observed_at`` participates at the run's declared
+    grain: a daily/monthly product is identified by its period (period start
+    and end), because some providers — the GISTDA flood service is the live
+    example — echo a per-request timestamp into ``observed_at`` and an
     instant-level comparison would keep churning runs for an unchanged day.
-    Point-grain runs keep the raw instant (their period start is the exact
+    Point-grain runs keep the raw instant (their period is the exact
     ``observed_at``), so genuinely different measurements still derive
     different runs. The rows still store their real ``retrieved_at``/
     ``revision_id``/``observed_at`` provenance as-is.
     """
     logical = sorted(
-        _json([
-            resource_id,
-            entry["observation"]["observation_id"],
-            entry["period"][0],
-            entry["unit"],
-            entry["observation"]["value"],
-        ])
+        _json(_logical_row(resource_id, entry))
         for entry in plan
     )
     return hashlib.sha256(_json(logical).encode("utf-8")).hexdigest()
+
+
+def _logical_row(resource_id: str, entry: Mapping[str, Any]) -> list:
+    """Durable identity and publication semantics of one planned observation."""
+    observation = entry["observation"]
+    location = entry["location"]
+    return [
+        resource_id,
+        observation["observation_id"],
+        entry["period"][0],
+        entry["period"][1],
+        entry["unit"],
+        observation["value"],
+        observation["measure"],
+        observation["spatial_support"],
+        observation["data_kind"],
+        observation["area_code"],
+        observation["commodity_id"],
+        observation["market_id"],
+        observation["grade"],
+        observation["price_type"],
+        observation["season"],
+        location["location_id"],
+        location["kind"],
+        location["native_code"],
+        location["province_code"],
+        location["name"],
+        entry["product"],
+        entry["metric_name"],
+        _semantic_dimensions(entry["dimensions"]),
+    ]
+
+
+def _semantic_dimensions(dimensions_json: str) -> str:
+    """Canonical digest of published dimensions minus volatile request stamps."""
+    dimensions = json.loads(dimensions_json)
+    semantic = {
+        key: value for key, value in dimensions.items()
+        if _dimension_key(key) not in VOLATILE_DIMENSION_KEYS
+    }
+    return json.dumps(semantic, sort_keys=True, ensure_ascii=False,
+                      separators=(",", ":"), allow_nan=False)
+
+
+def _dimension_key(key: Any) -> str:
+    return "".join(character for character in str(key).lower() if character.isalnum())
 
 
 def _activation_unit_guard(plan: Sequence[Mapping[str, Any]]) -> str | None:

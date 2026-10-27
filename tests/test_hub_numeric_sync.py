@@ -193,6 +193,24 @@ class HubNumericSyncTests(unittest.TestCase):
         self.assertEqual(report["completeness"], "partial")
         self.assertEqual(report["coverage"]["mode"], "sample_only")
 
+    def test_cli_loads_local_d1_credentials_before_connecting_for_write(self):
+        spec = importlib.util.spec_from_file_location("sync_hub_numeric", ROOT / "scripts/sync_hub_numeric.py")
+        cli = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli)
+        events = []
+        output = io.StringIO()
+        result = {"resource_id": RESOURCE_ID, "run_id": "run", "status": "partial"}
+
+        with (patch("tadih.env.load_dotenv", side_effect=lambda **kwargs: events.append(("load", kwargs))),
+              patch.object(cli, "connect_d1_client", side_effect=lambda: events.append(("connect", {})) or object()),
+              patch.object(cli, "sync_numeric_resource_d1", side_effect=lambda *args, **kwargs: events.append(("sync", {})) or result),
+              redirect_stdout(output)):
+            code = cli.main(["--write"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(events, [("load", {"override": True}), ("connect", {}), ("sync", {})])
+        self.assertEqual(json.loads(output.getvalue()), result)
+
     def test_cli_rejects_saved_input_for_write_before_connecting(self):
         input_path = Path(self.temp.name) / "forged-batch.json"
         input_path.write_text(json.dumps(batch()), encoding="utf-8")

@@ -22,8 +22,10 @@ python scripts/sync_hub_numeric.py --input .\chirps-batch.json
 python scripts/sync_hub_numeric.py --write
 ```
 
-`python -m unittest tests.test_hub_numeric_sync` passed 9/9. The SQLite mock verifies partial/null handling, failed-write preservation, D1 revocation preservation and blocking, refusal of caller-supplied observations, registry approval, sample validation, and CLI dry-run/write input behavior. No command above has been run against live D1: the runner token was rejected with `D1_UNAUTHORIZED`.
+`python -m unittest tests.test_hub_numeric_sync` passed 10/10. The SQLite mock verifies partial/null handling, failed-write preservation, D1 revocation preservation and blocking, refusal of caller-supplied observations, registry approval, sample validation, CLI dry-run/write input behavior, and that local D1 credentials load before connecting.
+
+Live acceptance on 27 October 2026: the first `--write` used an expired Wrangler OAuth token because this CLI had not loaded the ignored `.env`; it failed before any D1 write with `D1_UNAUTHORIZED`. The CLI now loads `.env` through the existing `tadih.env` helper before creating the D1 client. A fresh bounded write then returned run `dc6fb992-bf3e-543b-9385-a9fa9ca946b1`, `status=partial`, `records_read=3`, `records_written=3`, ETag `6ad152d4-119211a`, and `sample_only` coverage. A read-only D1 query confirmed that this run is active and has exactly three observations. The deployed D1 schema has no separate `revision_id` column, so each observation's `quality` JSON carries the reviewed revision and source URL.
 
 ## Remaining integration
 
-Records, series, and observation routes support D1 reads, and the Explorer labels an active run as partial. Live D1 write/read acceptance and browser verification on the current checkout remain pending. The existing Workers Preview is an older M3/M5 build; redeploy requires a separate authenticated `cf` CLI session.
+Records and series routes were checked on the existing Workers Preview after the D1 write: the records endpoint returned 3 rows with `availability=ready`, `access=approved_public`, `completeness=partial`, and `dataAsOf=2026-09-30`; the series endpoint returned one partial series with three observations. Total D1 `observations` count is now 9,926. These three cells remain a verification sample, not full-raster coverage. Browser review of the Explorer UI on this checkout remains pending; the Preview has not been redeployed for the other current working-tree changes.

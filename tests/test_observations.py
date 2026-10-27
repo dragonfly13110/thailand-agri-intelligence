@@ -72,6 +72,25 @@ class SqliteD1Mock:
         return found[0] if found else None
 
 
+class ActivationHookClient(SqliteD1Mock):
+    """Runs ``before_activation`` once, just before an activation UPDATE.
+
+    Simulates another ingestion job that activates a newer run between this
+    job's data write and its own ``resources.active_run_id`` UPDATE.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.before_activation = None
+
+    def execute(self, sql, params=None):
+        hook = self.before_activation
+        if hook is not None and "UPDATE resources SET active_run_id" in sql:
+            self.before_activation = None
+            hook()
+        return super().execute(sql, params)
+
+
 class ObservationPublisherTests(unittest.TestCase):
     def setUp(self):
         self.client = SqliteD1Mock()
@@ -398,6 +417,21 @@ class ObservationPublisherTests(unittest.TestCase):
                      retrieved_at=batch)
         self.assertNotEqual(p1["run_id"], p2["run_id"])
 
+    def test_daily_period_uses_the_source_calendar_date_for_offset_midnight(self):
+        batch = "2026-10-26T17:12:57Z"
+        client = SqliteD1Mock()
+        register_resource(client, resource=registry_row(), source_name="RID",
+                          base_url="https://app.rid.go.th")
+        result = publish(client, resource=registry_row(),
+                         rows=[observation(observed_at="2026-10-27T00:00:00+07:00",
+                                           retrieved_at=batch)],
+                         retrieved_at=batch, period_grain="daily")
+        stored = client.one(
+            "SELECT period_start, period_end, period_label FROM observations WHERE run_id=?",
+            [result["run_id"]])
+        self.assertEqual(stored, {"period_start": "2026-10-27", "period_end": "2026-10-27",
+                                  "period_label": "2026-10-27"})
+
     def test_all_null_unit_batch_still_activates_for_lane_d(self):
         """TMD intentionally publishes unit=NULL: no documented unit exists."""
         result = publish(self.client, resource=self.resource,
@@ -413,6 +447,155 @@ class ObservationPublisherTests(unittest.TestCase):
                                                           measure="reservoir_volume", unit=None)])
         self.assertIsNone(result["activation_blocked_reason"])
         self.assertTrue(result["active_run_switched"])
+
+    # -- audit 2026-10-27 #1: backfills never move the active run backwards --
+    def test_backfill_and_retry_never_move_the_active_run_backwards(self):
+        day24 = publish(self.client, resource=self.resource,
+                        rows=[observation(observation_id="rid-2026-10-24",
+                                          observed_at="2026-10-24T00:00:00Z", value=24.0)],
+                        completeness="complete")
+        day25 = publish(self.client, resource=self.resource,
+                        rows=[observation(observation_id="rid-2026-10-25",
+                                          observed_at="2026-10-25T00:00:00Z", value=25.0)],
+                        completeness="complete")
+        self.assertEqual(self._active_run_id(), day25["run_id"])
+
+        retry = publish(self.client, resource=self.resource,
+                        rows=[observation(observation_id="rid-2026-10-24",
+                                          observed_at="2026-10-24T00:00:00Z", value=24.0)],
+                        completeness="complete")
+        self.assertEqual(retry["run_id"], day24["run_id"])
+        self.assertEqual(retry["skipped_identical"], 1)
+        self.assertFalse(retry["active_run_switched"])
+        self.assertEqual(retry["active_run_blocked_reason"], "ACTIVE_RUN_OLDER_THAN_ACTIVE")
+        self.assertEqual(self._active_run_id(), day25["run_id"])
+
+        backfill = publish(self.client, resource=self.resource,
+                           rows=[observation(observation_id="rid-2026-10-23",
+                                             observed_at="2026-10-23T00:00:00Z", value=23.0)],
+                           completeness="complete")
+        self.assertEqual(backfill["status"], "succeeded")
+        self.assertFalse(backfill["active_run_switched"])
+        self.assertEqual(backfill["active_run_blocked_reason"], "ACTIVE_RUN_OLDER_THAN_ACTIVE")
+        self.assertEqual(self._active_run_id(), day25["run_id"])
+
+        active = self.client.one(
+            "SELECT o.period_start, o.value FROM observations o JOIN resources r "
+            "ON r.resource_id=o.resource_id AND r.active_run_id=o.run_id")
+        self.assertEqual((active["period_start"], active["value"]), ("2026-10-25", 25.0))
+        # Historical runs keep their rows: only the pointer is guarded.
+        for run_id, day in ((day24["run_id"], "2026-10-24"), (backfill["run_id"], "2026-10-23")):
+            stored = self.client.one(
+                "SELECT period_start FROM observations WHERE resource_id=? AND run_id=?",
+                [RESOURCE_ID, run_id])
+            self.assertEqual(stored["period_start"], day)
+
+    def test_interleaved_newer_publish_blocks_an_older_activation(self):
+        client = ActivationHookClient()
+        register_resource(client, resource=registry_row(), source_name="RID",
+                          base_url="https://app.rid.go.th")
+        publish(client, resource=registry_row(), rows=[observation(
+            observation_id="rid-2026-10-24", observed_at="2026-10-24T00:00:00Z", value=24.0)],
+            completeness="complete")
+        day25 = publish(client, resource=registry_row(), rows=[observation(
+            observation_id="rid-2026-10-25", observed_at="2026-10-25T00:00:00Z", value=25.0)],
+            completeness="complete")
+        newer = {}
+
+        def other_job():
+            newer["result"] = publish(client, resource=registry_row(), rows=[observation(
+                observation_id="rid-2026-10-26", observed_at="2026-10-26T00:00:00Z", value=26.0)],
+                completeness="complete")
+
+        client.before_activation = other_job
+        backfill = publish(client, resource=registry_row(), rows=[observation(
+            observation_id="rid-2026-10-23", observed_at="2026-10-23T00:00:00Z", value=23.0)],
+            completeness="complete")
+
+        self.assertTrue(newer["result"]["active_run_switched"])
+        self.assertNotEqual(newer["result"]["run_id"], day25["run_id"])
+        self.assertEqual(backfill["status"], "succeeded")
+        self.assertFalse(backfill["active_run_switched"])
+        self.assertEqual(backfill["active_run_blocked_reason"], "ACTIVE_RUN_OLDER_THAN_ACTIVE")
+        active = client.one("SELECT active_run_id FROM resources WHERE resource_id=?", [RESOURCE_ID])
+        self.assertEqual(active["active_run_id"], newer["result"]["run_id"])
+        self.assertEqual(client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                    [backfill["run_id"]])["total"], 1)
+
+    # -- audit 2026-10-27 #4: durable semantic changes mint a new run --------
+    def test_corrected_dimensions_mint_a_new_run_and_replace_the_active_rows(self):
+        first = publish(self.client, resource=self.resource, rows=[observation()],
+                        completeness="complete",
+                        dimensions_for=lambda o: {"provinceCode": "73"})
+        second = publish(self.client, resource=self.resource, rows=[observation()],
+                         completeness="complete",
+                         dimensions_for=lambda o: {"provinceCode": "10"})
+
+        self.assertNotEqual(first["run_id"], second["run_id"])
+        self.assertEqual(second["skipped_identical"], 0)
+        self.assertTrue(second["active_run_switched"])
+        active = self.client.one(
+            "SELECT o.dimensions FROM observations o JOIN resources r "
+            "ON r.resource_id=o.resource_id AND r.active_run_id=o.run_id")
+        self.assertEqual(json.loads(active["dimensions"])["provinceCode"], "10")
+        previous = self.client.one("SELECT dimensions FROM observations WHERE run_id=?",
+                                   [first["run_id"]])
+        self.assertEqual(json.loads(previous["dimensions"])["provinceCode"], "73")
+
+    def test_semantic_field_changes_are_never_silently_skipped(self):
+        base = dict(observation_id="rid-price-1", spatial_support="province", area_code="10",
+                    location_id="th:province:10", measure="price", unit="THB/kg",
+                    price_type="wholesale", commodity_id="rice:paddy", market_id="market-a",
+                    grade="A")
+        cases = (
+            ("area_code", {"area_code": "73", "location_id": "th:province:73"}),
+            ("commodity_id", {"commodity_id": "rice:white"}),
+            ("market_id", {"market_id": "market-b"}),
+            ("grade", {"grade": "B"}),
+        )
+        for label, change in cases:
+            with self.subTest(label):
+                client = SqliteD1Mock()
+                register_resource(client, resource=registry_row(), source_name="RID",
+                                  base_url="https://app.rid.go.th")
+                before = publish(client, resource=registry_row(), rows=[observation(**base)],
+                                 completeness="complete")
+                after = publish(client, resource=registry_row(),
+                                rows=[observation(**{**base, **change})], completeness="complete")
+                self.assertNotEqual(before["run_id"], after["run_id"])
+                self.assertTrue(after["active_run_switched"])
+                active = client.one(
+                    "SELECT o.province_code, o.market, o.grade, o.dimensions "
+                    "FROM observations o JOIN resources r "
+                    "ON r.resource_id=o.resource_id AND r.active_run_id=o.run_id")
+                dimensions = json.loads(active["dimensions"])
+                self.assertEqual(active["province_code"], "73" if label == "area_code" else "10")
+                self.assertEqual(dimensions["commodityId"],
+                                 "rice:white" if label == "commodity_id" else "rice:paddy")
+                self.assertEqual(active["market"], "market-b" if label == "market_id" else "market-a")
+                self.assertEqual(active["grade"], "B" if label == "grade" else "A")
+
+    def test_volatile_dimension_timestamps_stay_idempotent(self):
+        first = publish(self.client, resource=self.resource, rows=[observation()],
+                        dimensions_for=lambda o: {"areaCode": "10",
+                                                  "sourceTimeStamp": "2026-10-27T01:00:00Z"})
+        second = publish(self.client, resource=self.resource, rows=[observation()],
+                         dimensions_for=lambda o: {"areaCode": "10",
+                                                   "sourceTimeStamp": "2026-10-27T02:30:00Z"})
+        self.assertEqual(first["run_id"], second["run_id"])
+        self.assertEqual(second["skipped_identical"], 1)
+        # The default dimensions echo releaseAt; provider release churn is volatile too.
+        third = publish(self.client, resource=self.resource,
+                        rows=[observation(release_at="2026-10-26T00:00:00Z")])
+        fourth = publish(self.client, resource=self.resource,
+                         rows=[observation(release_at="2026-10-26T01:00:00Z")])
+        self.assertEqual(third["run_id"], fourth["run_id"])
+        self.assertEqual(fourth["skipped_identical"], 1)
+
+    def _active_run_id(self):
+        row = self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                              [RESOURCE_ID])
+        return row["active_run_id"] if row else None
 
     # -- failure handling ---------------------------------------------------
     def test_failed_run_is_marked_failed_and_keeps_the_previous_active_run(self):

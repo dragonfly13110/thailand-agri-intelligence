@@ -157,9 +157,7 @@ function pickCommodityId(raw: string): string {
  *
  * ข้อตกลงกับผู้ใช้:
  * - data.sample = true เสมอ — ตัวเลขทั้งหมดเป็นชุดตัวอย่าง deterministic ไม่ใช่สถิติทางการที่ผ่านการทวนสอบ
- * - meta.access = "metadata_only" — สิทธิ์เผยแพร่ตัวเลขจริงของแหล่งราชการยัง pending
- * - provinceStats มีครบ 77 แถวเมื่อไม่กรองพื้นที่ (meta.completeness = complete) ส่วนตัวกรองรายสินค้า
- *   จะสลับแถวจังหวัดเป็น grain ของสินค้านั้น ซึ่ง meta.completeness จะกลายเป็น partial ตามจำนวนแถวจริง
+ * - meta.access/availability = "metadata_only" — ยังไม่มีตัวเลขจริงจาก source ที่ได้รับอนุมัติ
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -175,18 +173,14 @@ export async function GET(request: Request) {
     const filters: FoodSafetyFilters = { provinceCode, region, standardId, mandateType, commodityId, search };
     const payload = buildFoodSafetyDashboard(filters);
 
-    // completeness วัดจาก "แถวจังหวัดครบทั้งตารางอ้างอิงหรือไม่" เท่านั้น ไม่ใช่ความครบถ้วนของแหล่งข้อมูลจริง
-    const allProvincesPresent = payload.provinceStats.length === FOOD_SAFETY_PROVINCE_CODES.size;
-
     return jsonData(payload, {
       meta: {
-        availability: 'ready',
-        // ชุดข้อมูล regenerate แบบ deterministic ที่ as-of คงที่จึงไม่มีความหมายถึงการ refresh ล่าสุด
-        freshness: 'fresh',
-        completeness: allProvincesPresent ? 'complete' : 'partial',
+        availability: 'metadata_only',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: 'metadata_only',
-        sourceIds: payload.sources.map((source) => source.id),
-        dataAsOf: payload.dataAsOf,
+        sourceIds: [],
+        dataAsOf: null,
         warnings: payload.warnings,
         runtimeMode: 'database',
       },

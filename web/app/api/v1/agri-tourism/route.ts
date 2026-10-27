@@ -192,7 +192,7 @@ function pickMonth(raw: string): number | 'all' {
  * - data.sample = true เสมอ — ตัวเลขทั้งหมดเป็นชุดตัวอย่าง deterministic ไม่ใช่สถิติทางการ
  * - meta.access = "metadata_only" — สิทธิ์เผยแพร่ตัวเลขจริงของแหล่งราชการยัง pending
  * - ทะเบียนจังหวัด 77 แถวเป็น reference register ไม่ใช่ข้ออ้าง coverage; ตัวเลขห้ามอ้างอิงในเอกสารราชการ
- * - provinceStats มีครบ 77 แถวเมื่อไม่กรองพื้นที่ (meta.completeness = complete)
+ * - meta.freshness/dataAsOf/completeness ไม่อ้างวันที่หรือ coverage ของ source จริง
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -207,20 +207,16 @@ export async function GET(request: Request) {
     const filters: AgriTourismFilters = { provinceCode, region, activity, month, search };
     const payload = buildAgriTourismDashboard(filters);
 
-    // completeness วัดจาก "แถวจังหวัดครบทั้งตารางอ้างอิงหรือไม่" เท่านั้น ไม่ใช่ความครบถ้วนของแหล่งข้อมูลจริง
-    const allProvincesPresent = payload.provinceStats.length === AGRI_TOURISM_PROVINCE_CODES.size;
-
     return jsonData(payload, {
       meta: {
         availability: 'ready',
-        // ชุดข้อมูล regenerate แบบ deterministic ที่ as-of คงที่จึงไม่มีความหมายถึงการ refresh ล่าสุด
-        freshness: 'fresh',
-        completeness: allProvincesPresent ? 'complete' : 'partial',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: 'metadata_only',
         sourceIds: payload.sources.map((source) => source.id),
-        dataAsOf: payload.dataAsOf,
+        dataAsOf: null,
         warnings: payload.warnings,
-        runtimeMode: 'database',
+        runtimeMode: 'source_api_fallback',
       },
     });
   });

@@ -12,7 +12,8 @@
  * Governance (must not be relaxed here):
  * - Values are model forecasts, never observations.
  * - `unit` stays `null` / `unitStatus: 'pending_official_confirmation'` until
- *   TMD documentation confirms definitions; `licenseStatus` stays `pending`.
+ *   TMD documentation confirms definitions; licence status follows the exact
+ *   resource row in `config/resource_licenses.json`.
  * - A grid cell is not a province value and never an official warning.
  */
 
@@ -48,6 +49,12 @@ export const NWP_VARIABLE_UNITS_PENDING: Record<NwpVariable, string | null> = {
 
 export function isNwpVariable(value: unknown): value is NwpVariable {
   return typeof value === 'string' && (NWP_VARIABLES as readonly string[]).includes(value);
+}
+
+/** Only explicit confirmation statuses enable unit-dependent thresholds. */
+export function isNwpUnitConfirmed(unitStatus: string | null | undefined): boolean {
+  const value = unitStatus?.trim().toLowerCase();
+  return Boolean(value && (value === 'confirmed' || value.startsWith('confirmed_')));
 }
 
 /* ------------------------------------------------------------------ */
@@ -181,6 +188,7 @@ export type NwpProvincesResponse = {
   runId: string;
   variable: NwpVariable;
   validAt: string;
+  unit: string | null;
   method: string;
   radiusKm: number;
   provinces: NwpProvinceRow[];

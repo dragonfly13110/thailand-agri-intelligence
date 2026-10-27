@@ -10,9 +10,8 @@ export const dynamic = 'force-dynamic';
  * Thailand bbox) with the block mean and the block maximum of every cell.
  * `mean` / `max` are row-major, exactly `nx * ny` long, and keep `null` for
  * blocks without source cells. `unit` stays `null` until TMD confirms the
- * units in writing, and the access status is derived from the stored licence
- * and unit state of the run — never claimed as `approved_public` while the
- * registry still says `pending`.
+ * units in writing. Access follows the exact-resource registry; unit status
+ * controls interpretation only, while `publicationMode` remains the kill switch.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);

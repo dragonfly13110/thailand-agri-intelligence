@@ -58,12 +58,12 @@ export async function GET(request: Request) {
       meta: {
         availability: 'ready',
         freshness: 'unknown',
-        completeness: 'partial',
+        completeness: 'unknown',
         access: 'metadata_only',
         sourceIds: ['tgo', 'ldd', 'doae', 'oae'],
-        dataAsOf: payload.dataAsOf,
+        dataAsOf: null,
         warnings: payload.warnings,
-        runtimeMode: 'database',
+        runtimeMode: 'source_api_fallback',
       },
     });
   });

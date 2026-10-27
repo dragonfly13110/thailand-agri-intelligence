@@ -6,9 +6,8 @@
  * local files.
  *
  * Truth rules for this feature (see AGENTS.md and SYSTEM_DESIGN.md):
- * - Rain values come from `/api/v1/weather` and are deterministic SAMPLE values
- *   while the TMD resource licence is pending. They are never a published
- *   forecast and must never be used to rank provinces.
+ * - `/api/v1/weather` returns no rain values until an approved forecast batch
+ *   exists. An empty cumulative value is unavailable data, not zero rainfall.
  * - Water values are RID medium-reservoir aggregates at REGION grain, not
  *   province grain. RID uses six regions (it splits ภาคตะวันตก) while the
  *   weather payload uses five, so a row is matched by exact region label only.
@@ -33,9 +32,9 @@ export type ProvinceOption = {
 export type RainStatus = 'below_normal' | 'normal' | 'above_normal' | 'unknown';
 
 export type WeatherSnapshot = {
-  issuedAt: string;
+  issuedAt: string | null;
   regionLabel: string;
-  /** True while the TMD resource is pending; every rain value is demo data. */
+  /** True only when values are explicitly sample data. */
   sample: boolean;
   warnings: string[];
   cumulative: {

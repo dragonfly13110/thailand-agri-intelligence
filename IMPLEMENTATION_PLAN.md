@@ -1,6 +1,6 @@
 # Thailand Agricultural Data Hub: Implementation Plan
 
-อัปเดต 25 ตุลาคม 2569 เวลา 02:52 น. ICT ตาม [handoff](HANDOFF.md). เป้าหมายช่วงแรกยังเป็น catalog metadata จาก API ต้นทางเข้า Cloudflare D1 แล้วเปิดค้นผ่านเว็บ โดยไม่อ่าน raw ในเครื่อง
+อัปเดตสถานะ 27 ตุลาคม 2569 โดยอ้างอิง `main` commit `14026f0`, [handoff](HANDOFF.md) และ [progress](docs/progress.md). แผน M1–M6 ด้านล่างเก็บประวัติการวางงานช่วง 25 ต.ค.; ให้ตรวจตารางสถานะปัจจุบันก่อนทำงานต่อ
 
 ## ผลลัพธ์ที่ต้องได้
 
@@ -11,22 +11,37 @@
 
 **เกณฑ์ความสำเร็จ:** catalog ต้องมาจากต้นทางจริงและมีที่มา; หน้าเว็บบอกได้เมื่อไม่มีข้อมูล; ถ้าจะเปิดตัวเลข ต้องเทียบกับต้นทางอย่างน้อยหนึ่ง resource ที่ได้รับอนุญาต การมี API, schema หรือ build ผ่านอย่างเดียวไม่ถือว่าเสร็จ
 
-## สถานะที่ตรวจแล้ว ณ 25 ตุลาคม 2569
+## สถานะปัจจุบันที่บันทึกไว้ ณ 27 ตุลาคม 2569
 
-| ส่วน | สถานะที่ตรวจได้ | หลักฐาน |
+| ส่วน | สถานะที่บันทึกล่าสุด | หลักฐาน/ขอบเขต |
 |---|---|---|
-| API contract และฐาน | มี JSON Schema; D1 `tadih-hub` สร้างใน APAC และ apply schema 6 ตาราง/7 index; มี catalog metadata ที่ sync แล้ว | `data_contracts/hub-api.schema.json`, `db/cloudflare/0001_hub.sql`, [M2 audit](docs/m2-sync-audit.md) |
-| API v1 | มี routes สำหรับ source, catalog, detail, record, series, observation, area และ sync status | `web/app/api/v1/` |
-| Catalog ต้นทาง | D1 read-only audit พบ 12 sources และ 1,237 datasets แบบ `metadata_only`; local CKAN fallback เดิมยังมีเพดาน NABC 300/591 | [M2 audit](docs/m2-sync-audit.md), `web/lib/hub/source-fallback.ts` |
-| Catalog sync | Python sync รองรับ D1 sink; D1 มี 19 sync runs และ latest run ของ 12 sources สำเร็จ. Workflow ยัง untracked และ GitHub secret/schedule run ยังไม่ตรวจ | `src/tadih/hub_catalog_sync.py`, `scripts/sync_hub_catalog.py`, [workflow review](docs/m2-workflow-review.md) |
-| เว็บ | catalog, explorer, ราคา และจังหวัดต่อ `/api/v1`; legacy local-data routes ถูกถอดแล้ว | `web/app/`, `web/components/` |
-| ฐานกลางและ schedule | D1 มี 12 sources, 1,237 datasets, 3,777 resources และ 19 sync runs; ไม่มี observations. Workflow มีใน working tree แต่ยัง untracked และยังไม่ยืนยัน secret หรือ run บน GitHub | [M2 audit](docs/m2-sync-audit.md), `.github/workflows/sync-hub-catalog.yml` |
-| Numeric rights/data | ทะเบียน 72 resources มี CHIRPS exact file หนึ่งรายการ `approved_public` และ 71 `pending`; source comparison ผ่าน 3 cells แต่ยังไม่มี active D1 run หรือ numeric API output | `config/resource_licenses.json`, [M5 sample](docs/m5-chirps-sample.md) |
-| Preview | มี Workers Preview ที่ตรวจแล้วสำหรับ code รุ่นก่อน M3/M5; checkout ปัจจุบันยังต้อง deploy และตรวจซ้ำเมื่อ `cf` CLI auth พร้อม | [HANDOFF](HANDOFF.md), [preview QA](docs/preview-browser-qa.md) |
+| Runtime และ API | Next.js App Router + vinext บน Cloudflare Workers; D1 เป็น catalog/numeric store; Python ใช้ดึงและ normalize | `web/`, `src/tadih/`, `web/app/api/v1/` |
+| Source registry/catalog | `config/sources.json` มี 23 sources; D1 catalog audit ก่อนหน้านี้มี 12 CKAN sources, 1,237 datasets และ 3,777 resources | Catalog counts เป็น metadata discovery ไม่ใช่ numeric availability/coverage |
+| Numeric data | Read-only D1 audit 27 ต.ค. ยืนยัน 9,926 observations; เพิ่ม CHIRPS exact-file verification run `dc6fb992-bf3e-543b-9385-a9fa9ca946b1` แบบ `partial` 3 grid cells. `/water` มี RID 461 อ่าง; `/weather/observations` มี TMD 37 สถานีและ ERA5 10 จุดกริด × 30 วัน | D1 count และ active CHIRPS run ตรวจสดหลัง sync; CHIRPS เป็น `sample_only`, ไม่ใช่ coverage ทั้ง raster |
+| NWP | Run `tmd_hpc_d02_2026102606` สถานะ `ready`, 220/220 snapshots และ 8,657 province values; แยกจาก `observations` | `scripts/sync_tmd_hpc_nwp.py`, `db/cloudflare/0003_nwp.sql` |
+| แดชบอร์ดรอบ 3 | `/prices` อ่านราคาจริง NABC daily; `/water` มี RID 461 อ่าง; `/early-warning` มี 288 สัญญาณ RID/GISTDA; soil มี 7 ชุดดินอ้างอิงที่ยืนยัน. `/weather`, `/trade`, `/climate-history`, `/crop-evidence` และ G1/G2 ยัง sample/metadata-only ตาม source availability | Trade ยังไม่มี numeric records ที่อนุมัติ; forecast จริงแยกอยู่ที่ `/nwp`; คะแนนเตือนเป็นเกณฑ์ภายใน ไม่ใช่ประกาศภัยทางการ; sample ไม่ถูกนับเป็น coverage |
+| Rights registry | 89 resources: 10 `approved_public`, 79 `pending`; owner authorization บันทึกใน `AGENTS.md`. NWP API projects `approved_public` จาก registry แต่ D1 run row เดิมยัง pending; unit status ยัง pending และ unit/risk ยังคง null | `config/resource_licenses.json`, `AGENTS.md`, `/api/v1/nwp/runs` |
+| Sync automation | `ci.yml`, `discover-sources.yml`, `sync-hub-catalog.yml`, `sync-hub-numeric.yml` อยู่ใน Git; ยังไม่ยืนยัน secrets/ผลรันล่าสุดของ GitHub Actions | `.github/workflows/` |
+| QA | Web typecheck ผ่าน, tests 163/163 และ Preview production build สำเร็จ; focused Python NWP tests 69/69. Full Python CI run เดิมยัง fail (661 tests, failures 3, errors 20, skipped 3) | รายละเอียดและ run `40366465177` อยู่ใน HANDOFF |
+| Deployment/quota | Preview deployment `761a2138-5608-46c9-affa-de32cafab964` ตอบ 200 บน 9 API smoke routes; หลังเขียน CHIRPS แล้ว records/series Preview API ส่ง 3 observations พร้อม `approved_public` + `partial`. NWP ยังไม่ยืนยันหน่วย. Scheduled catalog sync run หยุดเพราะขาด repository secret | [HANDOFF](HANDOFF.md); ยังไม่ได้ redeploy การเปลี่ยน working tree ล่าสุด |
 
-`records_written` ใน dry-run คือจำนวน metadata records ที่เตรียมเขียน ไม่ใช่จำนวน observation ตัวเลข ดูผลและเวลาตรวจล่าสุดใน [HANDOFF](HANDOFF.md)
+ตัวเลขข้างต้นมาจากสถานะล่าสุดใน repo ไม่ใช่การตรวจ D1/API สด. `records_written` ใน dry-run ของ catalog หมายถึง metadata records ที่เตรียมเขียน ไม่ใช่ observations
 
-## ลำดับลงมือ
+## งานใหม่ที่เตรียมให้ AI 5–7 (27 ตุลาคม 2569)
+
+ผู้ใช้ขอคำสั่งสำหรับสร้างงานใหม่ระหว่าง AI 1–4 ทำงานแก้ audit โดยยังไม่ให้ตรวจผลงานที่กำลังทำอยู่ งานด้านล่างเป็นรายการมอบหมายที่เตรียมไว้ ยังไม่ได้ยืนยันว่า implement/test/deploy แล้ว รายละเอียด ownership/acceptance อยู่ใน [prompts AI 5–7](docs/assignments/2026-10-27-new-features-agents-5-7.md)
+
+- [ ] AI 5: `/data-status` ใช้ sources/status APIs เดิม แสดงรอบดึงข้อมูลสำเร็จ/ล้มเหลว/unknown พร้อมที่มาและเวลาที่แยก metadata/numeric มีลิงก์จาก `/open-data`
+- [ ] AI 6: CSV export สำหรับหนึ่ง active public resource ผ่าน `/explore` จำกัด 1,000 rows พร้อม version/provenance/partial status และป้องกันข้อมูลต่าง run ปนกัน ไม่เปิดทุกชุดแบบ bulk download
+- [ ] AI 7: `/monthly-rainfall` และ read API จาก TMD station × month ที่มีอยู่ ใช้ builder เดิม มีลิงก์จาก `/weather` คง null/หน่วย pending/ช่วงเวลาจริง ไม่อ้างประวัติ 10–20 ปีหรือค่าเฉลี่ยจังหวัด
+
+เอกสารกลาง/API catalog/CI/build และการรับรวมเป็นหน้าที่ผู้รวมงานภายหลัง ไม่ให้ AI 5–7 เปลี่ยน shared files ของ AI 1–4 ไม่มีการสร้าง agent หรือรันตรวจแอปจากการเพิ่มแผนส่วนนี้
+
+## ประวัติแผน M1–M6 (snapshot 25 ตุลาคม 2569)
+
+Checklist ด้านล่างเก็บการวางงานและผลตรวจในรอบเริ่มต้นไว้เป็นประวัติ; สถานะ numeric data, workflow tracking และ deployment ที่ขัดกับ snapshot เก่าให้ยึดตารางปัจจุบันและ [HANDOFF](HANDOFF.md)
+
+### ลำดับ milestone เดิม
 
 ### M1: เปิด catalog preview
 
@@ -44,8 +59,8 @@
 - [x] สร้าง D1 `tadih-hub` ใน APAC โดยไม่แก้ฐาน Cloudflare เดิม
 - [x] Apply `db/cloudflare/0001_hub.sql` แล้ว; เพิ่ม binding `DB` ใน `web/cloudflare.config.ts`
 - [x] เพิ่ม D1 catalog repository ให้เว็บอ่าน sources, datasets, detail และสถานะจาก SQLite; อย่าใช้ `pg.Pool`/PostgreSQL SQL บน Workers
-- [x] เพิ่ม D1 sink ให้ Python sync ส่ง metadata ที่ normalize แล้ว; live audit พบ sync runs จริง 12 แหล่งและ resources ทั้งหมดยัง pending
-- [ ] ให้ GitHub Actions เรียก sync ตามรอบโดยใช้ secret; workflow มีใน working tree แต่ยัง untracked และยังไม่ได้ยืนยัน secret หรือ run บน GitHub
+- [x] เพิ่ม D1 sink ให้ Python sync ส่ง metadata ที่ normalize แล้ว; audit ในรอบ M2 พบ 12 แหล่งและ resources ยัง pending ณ เวลานั้น (สถานะปัจจุบันคือ 89 resources: 10 approved, 79 pending)
+- [x] เพิ่มและ track GitHub Actions workflows สำหรับ catalog และ numeric sync; การยืนยัน repository secrets และ run สำเร็จบน GitHub ยังเป็นงานค้าง
 - [x] Sync catalog 12 แหล่งและอ่าน `/api/v1/datasets`/source status จาก D1; ตรวจพบ 1,237 datasets และ latest run สำเร็จครบ 12 แหล่ง
 - [x] ตรวจ retry/upsert ไม่สร้างรายการซ้ำและ failed run ไม่ลบข้อมูลเดิมด้วย targeted tests และ audit D1 read-only
 
@@ -68,22 +83,22 @@
 
 - [x] ตรวจ CHIRPS v3.0 Daily final RNL exact file วันที่ 2026-09-30 จากหน้า CHC และ response metadata; สิทธิ์ public domain/CC BY 4.0 ลงทะเบียนพร้อม attribution ใน `config/resource_licenses.json`
 - [x] ยืนยันนิยาม daily RNL, หน่วย total mm/time step, grid-cell × UTC-date, EPSG:4326/0.05°, วันข้อมูล และ ETag/Last-Modified จากเอกสาร/metadata; ดู [M4 resource audit](docs/m4-chirps-resource.md)
-- [x] อัปเดต `config/resource_licenses.json` สำหรับ exact file นี้เท่านั้น; resources อื่นคง `pending`
+- [x] อัปเดต `config/resource_licenses.json` สำหรับ exact file นี้เท่านั้น; resources อื่นยัง pending ณ snapshot 25 ต.ค. (registry ปัจจุบันเปลี่ยนเป็น 10 approved, 79 pending)
 
-**M4 ผ่านหนึ่ง exact CHIRPS file เท่านั้น.** ในทะเบียน 72 รายการมี 1 `approved_public` และอีก 71 `pending`; M5 อ่านและเทียบ source values 3 cells ด้วย ETag-pinned ranges แล้ว แต่ยังไม่มี D1 active run หรือ public numeric API output. งานสิทธิ์แหล่งอื่นทำขนานกับ M1–M3 ได้
+**บันทึก M4 ณ 25 ต.ค.:** ผ่านหนึ่ง exact CHIRPS file. ทะเบียนปัจจุบันมี 89 รายการ (10 `approved_public`, 79 `pending`) ตามตารางสถานะด้านบน; M5 CHIRPS sample เป็นสถานะเฉพาะ resource นั้น ไม่ใช่สถานะรวมของ numeric feeds ที่ publish ภายหลัง
 
 ### M5: ทำ numeric vertical slice หนึ่งชุด
 
 - [x] เพิ่ม bounded CHIRPS reader/job ที่อ่าน 3 verification cells ผ่าน HTTP ranges; ไม่เก็บ raster ถาวร. Envelope ระบุ `partial/sample_only`, ไม่อ้าง coverage ทั้งไฟล์.
 - [x] ตรวจ schema, duplicate key, null, unit, revision และ source grain; writer อ่าน bounded sample ใหม่เอง, ไม่รับ caller-supplied observations, และ preserves D1-side publication revocation. Focused SQLite tests ผ่าน 9/9.
-- [ ] เขียน live D1 และตรวจ active run/3 observations แบบ read-only; runner token ปัจจุบันถูกปฏิเสธ `D1_UNAUTHORIZED`.
+- [x] CHIRPS sample เฉพาะ resource นี้: เขียน live D1 และตรวจ active run/3 observations แบบ read-only; run `dc6fb992-bf3e-543b-9385-a9fa9ca946b1` เป็น `partial`, active pointer ถูกต้อง, และ Preview records/series API คืน 3 observations. เพิ่มโหลด `.env` ก่อนสร้าง D1 client หลังพบ CLI ใช้ Wrangler OAuth token เก่าที่ถูกปฏิเสธ `D1_UNAUTHORIZED`.
 - [x] เปลี่ยน active batch หลังเขียนครบ sample; failure injection ยืนยัน active batch เดิมยังอยู่และ run ใหม่เป็น failed. ทดสอบด้วย SQLite mock เท่านั้น.
 - [x] ต่อ records/series/observations routes และ Explorer ให้รู้จัก active `partial` sample; แสดง source, unit, grid grain, data date, source retrieval time และ partial warning. Typecheck/build ผ่าน; deployment/API/UI live ยัง pending.
 - [x] เทียบ 3 cells จากไฟล์ต้นทางโดย ETag-pinned ranges; บันทึก URL, วันข้อมูล, ETag, retrieval time และค่าตัวอย่างใน [M5 sample](docs/m5-chirps-sample.md).
 
 **ไฟล์หลัก:** ระบุหลังเลือกรายการ M4; ใช้ parser ที่มีใน `src/tadih/` ก่อนเพิ่มตัวใหม่, `scripts/`, `web/lib/hub/numeric-repository.ts` และ `web/components/price-trend.tsx` หรือหน้าเฉพาะชุดนั้น
 
-**สถานะ M5:** source comparison และ local implementation ใช้ได้กับ verification sample 3 cells เท่านั้น; writer อ่าน source ใหม่เองและคง D1-side revocation, ผ่าน focused tests 9/9. Active live D1 run และ preview acceptance ยังไม่เกิดเพราะ runner token ถูกปฏิเสธและ `cf` CLI ยังไม่มี auth. Preview ปัจจุบันเป็น code ก่อน M3/M5. ห้ามแสดง sample นี้เป็น complete หรือเป็น coverage ของทั้ง raster.
+**สถานะ M5 เฉพาะ CHIRPS:** source comparison และ local implementation ใช้กับ verification sample 3 cells; writer อ่าน source ใหม่เองและคง D1-side revocation. วันที่ 27 ต.ค. D1 read-only ยืนยัน observations รวม 9,926 และ CHIRPS active run ข้างต้น; Preview records API คืน 3 แถว (`availability=ready`, `access=approved_public`, `completeness=partial`, `dataAsOf=2026-09-30`) และ series API คืนหนึ่ง series/3 observations. `python -m unittest tests.test_hub_numeric_sync` ผ่าน 10/10. ห้ามแสดง sample 3 cells นี้เป็น complete หรือ coverage ของทั้ง raster; browser UI review และ redeploy ของ working tree ล่าสุดยังไม่ทำ.
 
 ### M6: ตรวจ preview และเปิดใช้งาน
 
@@ -93,7 +108,7 @@
 - [x] Deploy preview และบันทึก URL, เวลา, แหล่งข้อมูลและข้อจำกัดไว้ใน [handoff](HANDOFF.md) และ `docs/preview-browser-qa.md`
 - [ ] ค่อยตัดสินใจ production หลังยืนยัน hosting, database, ต้นทุนและสิทธิ์ของข้อมูลที่จะเผย
 
-Preview ข้างต้นเป็นรุ่นก่อน M3/M5; การ deploy checkout ปัจจุบันรอ `cf auth login`. `scripts/deploy_preview.mjs` ตรวจ auth ผ่าน `cf` CLI และไม่อ่าน/แสดง token.
+Preview ที่ตรวจใน M6 เป็นรุ่นก่อนงาน M3/M5. เมื่อ 27 ต.ค. 2569 deploy working tree ขึ้น Preview (`761a2138-5608-46c9-affa-de32cafab964`) และ API smoke checks ผ่าน; NWP API ใช้สิทธิ์จาก registry เป็น `approved_public`, แต่หน่วยยังไม่ยืนยันและ D1 run row เดิมยัง pending เพราะไม่ได้เขียน D1. `scripts/deploy_preview.mjs` ตรวจ auth ผ่าน `cf` CLI โดยไม่พิมพ์ token.
 
 ## วิธีส่งงานให้ AI หลายค่าย
 

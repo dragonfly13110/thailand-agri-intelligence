@@ -13,9 +13,8 @@ export const dynamic = 'force-dynamic';
  *
  * Returns the provincial watchlist of one forecast step. `value` is the
  * maximum block maximum inside 25 km of the province reference point — not a
- * provincial average and not a single point of the province. `riskLevel` is
- * recomputed from the internal TADIH thresholds; when the thresholds file is
- * unavailable the level stays `null` instead of a guessed value.
+ * provincial average and not a single point of the province. `unit` stays
+ * `null`, and `riskLevel` stays `null` until the run has confirmed units.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);

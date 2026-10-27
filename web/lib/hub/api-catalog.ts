@@ -7,6 +7,7 @@
  */
 
 import type { ApiEndpoint, ApiGroup, ApiQueryParam } from './api-catalog-types';
+import { NWP_RESOURCE_LICENSE } from './nwp-resource-license.ts';
 
 export const API_VERSION = 'v1';
 export const API_BASE_PATH = '/api/v1';
@@ -26,7 +27,7 @@ export const API_GROUPS: ApiGroup[] = [
   {
     id: 'weather',
     label: 'อากาศและฝน',
-    description: 'พยากรณ์ 7 วันรายจังหวัดหรือรายภาค พร้อมฝนสะสมและคำแนะนำเกษตร และค่าตรวจวัดจริงรายสถานี',
+    description: 'ค่าตรวจวัดจริงรายสถานี; endpoint พยากรณ์ 7 วันยังว่างจนกว่าจะมี batch ที่อนุมัติ โดยพยากรณ์ TMD HPC แยกอยู่ที่ /nwp',
   },
   {
     id: 'water',
@@ -364,7 +365,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/v1/weather',
     title: 'พยากรณ์อากาศและฝน 7 วัน',
     description:
-      'คืนพยากรณ์ 7 วันสำหรับจังหวัดหรือภาค พร้อมฝนสะสมเทียบค่าปกติและคำแนะนำเกษตร ต้องระบุ provinceCode หรือ region อย่างน้อยหนึ่งตัว',
+      'ยังไม่มี batch พยากรณ์ที่อนุมัติ จึงคืนรายการวันว่าง; ระบุ provinceCode หรือ region อย่างน้อยหนึ่งตัวเพื่อเลือกพื้นที่ และดูพยากรณ์ TMD HPC ที่ /api/v1/nwp',
     access: 'metadata_only',
     contract: 'hub-v1',
     responseType: 'ApiResponse<WeatherOverview>',
@@ -384,8 +385,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       },
     ],
     notes: [
-      'ตัวเลขทุกชุดเป็น sample: true แบบ deterministic ระหว่างที่ทรัพยากร TMD ยัง pending — ห้ามใช้เป็นพยากรณ์ที่เผยแพร่แล้ว',
-      'meta.access เป็น metadata_only และ warnings ถูกส่งซ้ำทุก response; issuedAt เป็นวันที่ตามเวลา Asia/Bangkok',
+      'ยังไม่มีระเบียนพยากรณ์ที่อนุมัติ: data.days=[] และ cumulative=null; ระบบไม่ส่งตัวเลขตัวอย่าง',
+      'meta.availability=empty และ meta.access=metadata_only พร้อมคำเตือนทุก response; พยากรณ์ TMD HPC อยู่ที่ /api/v1/nwp และค่าตรวจวัดอยู่ที่ /api/v1/weather/observations',
       'ไม่ระบุทั้งสองตัวเลือกหรือรหัสไม่ถูกต้อง → 400 INVALID_QUERY',
     ],
   },
@@ -432,7 +433,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       },
     ],
     notes: [
-      'คนละ endpoint กับ /api/v1/weather ซึ่งยังเป็นการพยากรณ์ตัวอย่าง (sample: true) — ชุดนี้คือค่าตรวจวัดจริง ไม่ใช่การพยากรณ์',
+      'คนละ endpoint กับ /api/v1/weather ซึ่งปัจจุบันคืน empty/metadata_only จนกว่าจะมี batch พยากรณ์ที่อนุมัติ; TMD HPC อยู่ที่ /api/v1/nwp',
       'unit=null และ unit_status=pending_official_confirmation ทุกค่า เพราะห้ามเดาหน่วย; หน่วยที่ต้นทางระบุอยู่ใน declaredUnits ต่อสถานี (ความเร็วลมแปลงเป็น ม./วิ ตามขั้นตอนที่บันทึกไว้แล้ว)',
       'ค่าว่างคือต้นทางไม่รายงาน ไม่ใช่ 0 และไม่มีค่าเฉลี่ยระดับจังหวัด/ภาค: สถานีไม่ใช่จังหวัด รหัส 77 จังหวัดเป็นทะเบียนไม่ใช่ coverage',
       'อ่านได้เฉพาะแถวที่อยู่ใน active run kind=numeric สถานะ succeeded/partial และ resource approved_public; ไม่มี batch ที่เผยแพร่ได้ → ตอบ metadata_only พร้อม warnings ไม่ใช่ 0',
@@ -517,7 +518,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     title: 'กริดพยากรณ์ NWP',
     description:
       'คืนกริดพยากรณ์ 3 กม. ที่ลดขนาดเป็น 0.15° ของตัวแปรหนึ่ง ณ เวลาพยากรณ์หนึ่ง พร้อมค่าเฉลี่ยและค่าสูงสุดต่อเซลล์',
-    access: 'pending',
+    access: NWP_RESOURCE_LICENSE.access_status,
     contract: 'hub-v1',
     responseType: 'ApiResponse<NwpGridResponse>',
     query: [
@@ -547,7 +548,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'ค่าทุกค่าเป็นพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด; unit เป็น null จนกว่าหน่วย/นิยามจะได้รับการยืนยันจากต้นทาง',
       'payload จำกัด ≤ 250KB ต่อ request; เกินขนาด → 500 NWP_PAYLOAD_TOO_LARGE; run/snapshot ไม่พบ → 404 NWP_NOT_FOUND',
       'runId/variable/validAt ผิดรูปแบบหรือไม่ครบ → 400 INVALID_QUERY; publication mode = metadata_only → 403 NWP_PUBLICATION_DISABLED; D1 ไม่พร้อม → 503 HUB_DATABASE_NOT_CONFIGURED',
-      'สิทธิ์การเผยแพร่ของทรัพยากร TMD HPC NWP ยังอยู่สถานะ pending จึงยังไม่ถือเป็น approved_public; meta.access รายงานตามสถานะจริงของ run',
+      'สิทธิ์การเผยแพร่ยึดทะเบียนของ resource tmd_hpc_nwp_d02_grid; unit คง null จน TMD ยืนยันหน่วยและนิยาม',
       'ตัวแปร ws10m ถูกระงับไว้ เพราะไฟล์ต้นทางมีลักษณะสลับคอลัมน์กับ wd10m — ค่าลมจะกลับมาได้เมื่อต้นทางยืนยัน',
     ],
   },
@@ -558,8 +559,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/v1/nwp/provinces',
     title: 'ค่าพยากรณ์รายจังหวัด',
     description:
-      'คืนค่าพยากรณ์ของแต่ละจังหวัดจากค่าสูงสุดในรัศมี 25 กม. รอบจุดอ้างอิงจังหวัด พร้อมระดับความเสี่ยงจากเกณฑ์ภายใน',
-    access: 'pending',
+      'คืนค่าพยากรณ์ของแต่ละจังหวัดจากค่าสูงสุดในรัศมี 25 กม. รอบจุดอ้างอิงจังหวัด; riskLevel ใช้เมื่อหน่วยยืนยันแล้ว',
+    access: NWP_RESOURCE_LICENSE.access_status,
     contract: 'hub-v1',
     responseType: 'ApiResponse<NwpProvincesResponse>',
     query: [
@@ -587,7 +588,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'value คือค่าสูงสุดของเซลล์ในรัศมี 25 กม. รอบจุดอ้างอิงจังหวัด ไม่ใช่ค่าเฉลี่ยทั้งจังหวัด และไม่ใช่ค่าจุดเดียวของจังหวัด',
       'ต้องอ่าน method, radiusKm, distanceKm และ cellCount คู่กับ value เสมอ; ถ้าไม่มีเซลล์ในรัศมีจะใช้ nearest_cell และรายงานระยะจริง',
       '77 รหัสจังหวัดเป็นทะเบียนนำทาง ไม่ได้แปลว่าทุกจังหวัดมีค่าในรอบนั้น; จังหวัดที่ไม่มีข้อมูลจะไม่ถูกสร้างค่าแทน',
-      'riskLevel คำนวณจากเกณฑ์ภายใน TADIH (config/nwp_thresholds.json) ไม่ใช่ประกาศเตือนภัยของ TMD; ค่าทุกค่าเป็นพยากรณ์จากแบบจำลอง',
+      'unit ส่งเป็น null และ riskLevel เป็น null ระหว่างรอการยืนยันหน่วย/นิยาม; จากนั้น riskLevel คำนวณด้วยเกณฑ์ภายใน TADIH ไม่ใช่ประกาศเตือนภัย TMD',
       'runId/variable/validAt ผิดรูปแบบหรือไม่ครบ → 400 INVALID_QUERY; run/snapshot ไม่พบ → 404 NWP_NOT_FOUND; publication mode = metadata_only → 403 NWP_PUBLICATION_DISABLED; D1 ไม่พร้อม → 503 HUB_DATABASE_NOT_CONFIGURED',
     ],
   },
@@ -599,7 +600,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     title: 'รอบพยากรณ์ NWP',
     description:
       'คืนรายการรอบพยากรณ์ที่พร้อมใช้งานของ TMD HPC NWP domain ประเทศไทย 3 กม. เรียงจากรอบใหม่สุด ไม่เกิน 5 รายการ',
-    access: 'pending',
+    access: NWP_RESOURCE_LICENSE.access_status,
     contract: 'hub-v1',
     responseType: 'ApiResponse<{ runs: NwpRun[] }>',
     notes: [
@@ -607,6 +608,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'leadHoursByVariable สะท้อนแกนเวลาจริงของแต่ละตัวแปร (p24h มีรายวันละ 3 ค่า ส่วน p1h มีรายชั่วโมง 72 ค่า) — ห้ามใช้รายการ lead กลาง',
       'เป็น metadata ของรอบพยากรณ์เท่านั้น ไม่มีตัวเลขกริดหรือค่าจังหวัดใน payload นี้',
       'ตัวเลขจริงอ่านจาก /api/v1/nwp/grid และ /api/v1/nwp/provinces; ทุกค่าเป็นพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด และหน่วย/นิยามรอการยืนยันจากต้นทาง',
+      'meta.access และ licenseStatus อิงสิทธิ์ปัจจุบันของ resource ในทะเบียน; unitStatus แยกจากสิทธิ์และยังรอยืนยัน',
       'ไม่พบรอบที่พร้อมใช้งาน → data.runs = [] พร้อม availability empty ไม่ใช่ตัวเลขศูนย์หรือข้อมูลสมมติ',
     ],
   },
@@ -734,24 +736,37 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/v1/prices/daily',
     title: 'ราคาสินค้าเกษตรรายวัน',
     description:
-      'คืนราคาสินค้าเกษตรสำคัญจาก snapshot คงที่ของ OAE และ DIT พร้อมหน่วย ตลาด และประวัติราคารายเดือน',
-    access: 'pending',
-    contract: 'domain',
-    responseType: '{ data: CommodityPrice[]; meta: { source; asOf; retrievedAt; currency } }',
+      'อ่านราคาสินค้าเกษตรรายวันสดจาก NABC daily-prices ของ OAE คืน metadata ของสินค้าที่ติดตามพร้อมแถวราคาแบบรายตลาด รายจังหวัด และรายหน่วย กรองตามหมวดสินค้าและวันปฏิทิน',
+    access: 'approved_public',
+    contract: 'hub-v1',
+    responseType:
+      'ApiResponse<{ source: PriceSourceMetadata; commodities: PriceCommodityMetadata[]; prices: PriceObservation[] }>',
     query: [
       {
         name: 'category',
         type: 'enum',
-        description: 'หมวดสินค้า; all หรือไม่ระบุ = ทุกหมวด; ค่าที่ไม่ตรงจะได้ data ว่างโดยไม่ตอบ 400',
+        description:
+          'หมวดสินค้า กรองทั้งรายการ commodities และแถว prices โดยอ่านเฉพาะสินค้าของหมวดนั้น; ไม่ระบุหรือ all = ทุกหมวด; ค่าที่ไม่ตรงจะได้ทั้งสองรายการว่างโดยไม่ตอบ 400',
         example: 'ข้าว',
         values: ['ข้าว', 'ยางพาราและปาล์ม', 'พืชไร่', 'ปศุสัตว์', 'all'],
       },
+      {
+        name: 'date',
+        type: 'date',
+        description:
+          'วันปฏิทิน YYYY-MM-DD ที่ต้องการคงไว้เฉพาะแถวนั้น ใช้ร่วมกับ category ได้; ไม่ระบุ = ใช้วันล่าสุดของแต่ละสินค้าที่อ่าน ไม่ใช้วันของคำขอแทน',
+        example: '2026-10-26',
+      },
     ],
     notes: [
-      'response เป็น shape ของแดชบอร์ด (domain) ไม่ใช่ envelope ตาม hub-api.schema.json และไม่มี pagination',
-      'เป็น snapshot วันที่ 2026-10-24 ไม่ใช่ราคาเรียลไทม์; meta.asOf อ้างจากรายการแรก หรือ fallback เป็น 2026-10-24 เมื่อกรองแล้วไม่มีรายการ',
-      'สิทธิ์เผยแพร่ราคาของ OAE/DIT ยังไม่ยืนยัน สถานะจึงเป็น pending ไม่ใช่ approved_public',
-      'category ที่ไม่ตรงกับหมวดใดจะคืน data: [] ไม่ใช่ error',
+      'data เป็นอ็อบเจกต์ { source, commodities, prices } พร้อม meta ตาม envelope hub-v1 แต่ไม่มี pagination เพราะแต่ละคำขอส่งครบทุกแถวที่อ่านได้ในรอบนั้น',
+      'หนึ่งแถวราคา = หนึ่งสินค้า/เกรด × หนึ่งตลาด × หนึ่งจังหวัด × หนึ่งวัน × หนึ่งหน่วย ห้ามเฉลี่ย รวม หรือเปรียบเทียบข้ามสินค้า เกรด หน่วย หรือตลาด',
+      'หมวดที่กรองใช้กำหนดสินค้าที่จะเรียกต้นทางจริง: category=ข้าว อ่านเฉพาะสินค้าข้าว ส่วนหมวดที่ไม่ตรงกับหมวดใดหรือไม่มีสินค้าที่ติดตามจะคืน commodities=[], prices=[], meta.availability=empty โดยไม่เรียกต้นทางเลย และ ไม่อ้าง complete',
+      'ค่าที่ขาดคงเป็น null (รวมถึง grade และ priceType ที่ต้นทางไม่ประกาศ) ไม่มีค่าว่างถูกแทนด้วย 0 และไม่มีการแปลงหน่วย',
+      'การอ่านจำกัดที่หนึ่งหน้าต่อสินค้า (limit=100, page=1) ต่อคำขอ จึงไม่ใช่ประวัติย้อนหลังทั้งหมด; meta.completeness=complete เมื่อทุกสินค้าที่เลือกตอบสำเร็จเท่านั้น',
+      'meta.availability=ready พร้อม dataAsOf ของวันที่ในแถว, empty เมื่อไม่มีแถวที่ publish ได้, metadata_only เมื่อการเผยแพร่ของโครงการถูกปิด; สินค้าที่ต้นทางล้มเหลวรายงานเป็น failure code ใน warnings ไม่ถูกแทนด้วยตัวเลขอื่น',
+      'date ผิดรูปแบบหรือค่าไม่ใช่วันจริง → 400 INVALID_QUERY; ระบบต้นทางไม่พร้อม → 500 INTERNAL_ERROR ตามตัวห่อ handleApi',
+      'ตัวเลขที่เผยแพร่เป็นราคาจริงจาก OAE/NABC ตามนโยบาย Full Production Unlocked (AGENTS.md ข้อ 3) ต้องคงการอ้างอิงต้นทางและตรวจเงื่อนไขการใช้งานล่าสุดก่อนใช้เชิงพาณิชย์; resource ราคารายเดือนของ OAE ยัง pending และคนละ endpoint',
     ],
   },
 ];

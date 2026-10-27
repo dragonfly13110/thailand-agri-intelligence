@@ -282,6 +282,20 @@ export function CropEvidenceDashboard({ payload }: CropEvidenceDashboardProps) {
       return district ? `${district.districtName} · ${district.cropLabel}` : id;
     });
 
+  if (!activePayload.districts.length) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.emptyState} role="status">
+          <Icon name="info" size={28} />
+          <h3>ยังไม่มีข้อมูลหลักฐานพื้นที่เพาะปลูกที่เผยแพร่ได้</h3>
+          <ul className={styles.warningList}>
+            {activePayload.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <section className={styles.sampleBanner} aria-label="ข้อความแจ้งเตือนข้อมูลตัวอย่างและสิทธิ์">

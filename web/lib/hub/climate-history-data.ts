@@ -7,18 +7,18 @@ import { getProvinces } from '../provinces';
  * `/climate-history` and `/api/v1/climate-history`.
  *
  * Governance rules kept from SYSTEM_DESIGN.md / agents.md:
- * - The Open-Meteo ERA5 archive resource still has `license_status: 'pending'`, so no
- *   upstream numeric value is fetched and no pending figure leaves this module. While
- *   the license review is open, every number produced here is a deterministic sample
- *   statistic seeded by (province code, year) and calibrated against ERA5-style
- *   climatology (regional temperature/rainfall normals, +0.32 °C/decade warming since
- *   1980, ENSO-like interannual cycles). Values are flagged `dataKind: 'sample'` and
- *   `sample: true`; the API layer labels access as `metadata_only`.
+ * - The exact Open-Meteo ERA5 archive resource is approved for publication, but the
+ *   active D1 batch does not provide the 10-20 year grid-point coverage this view needs.
+ *   Until it does, every number produced here is a deterministic sample statistic
+ *   seeded by (province code, year) and calibrated against ERA5-style climatology
+ *   (regional temperature/rainfall normals, +0.32 °C/decade warming since 1980,
+ *   ENSO-like interannual cycles). Values are flagged `dataKind: 'sample'` and
+ *   `sample: true`; the API layer labels availability and access as `metadata_only`.
  * - "Province" values are grid-point statistics on the 0.25° ERA5 grid (~27 km), not
  *   station observations and not provincial coverage.
  * - The 77-province code list is a spatial reference registry, never a coverage claim.
- * - When the resource clears license review, replace the sample generator below with
- *   real archive aggregation; the exported response shape must not change.
+ * - When active D1 rows cover the requested grid points and year windows, replace the
+ *   sample generator below with real archive aggregation; keep the response shape.
  */
 
 export const CLIMATE_HISTORY_VERSION = 'climate-history-era5-sample-v1';
@@ -38,15 +38,15 @@ export const CLIMATE_HISTORY_SOURCE = {
   attribution: 'Weather data by Open-Meteo.com',
   attributionUrl: 'https://open-meteo.com/',
   license: 'CC-BY-4.0',
-  licenseStatus: 'pending',
+  licenseStatus: 'approved_public',
   archiveUrl: 'https://archive-api.open-meteo.com/v1/archive',
 } as const;
 
 export const CLIMATE_HISTORY_WARNINGS: string[] = [
-  'ตัวเลขทั้งหมดในชุดนี้เป็นข้อมูลตัวอย่างจำลองจาก climatology ของ ERA5 ยังไม่ใช่ค่า reanalysis จริง เพราะทรัพยากรยังอยู่ระหว่างตรวจสิทธิ์การใช้งาน',
+  'ยังไม่มีชุดข้อมูลที่ครอบคลุมช่วง 10–20 ปีที่หน้านี้ต้องใช้ จึงไม่ส่งค่าภูมิอากาศตัวอย่างออกจาก API',
   'ค่าระดับจังหวัดเป็นค่าที่จุดกริดขนาด 0.25° (ประมาณ 27 กิโลเมตร) ไม่ใช่ค่าจากสถานีวัดจริงและไม่คลุมทั้งจังหวัด',
   'รหัส 77 จังหวัดเป็นทะเบียนอ้างอิงพื้นที่ ไม่ได้หมายความว่ามีข้อมูลครอบคลุมทุกจังหวัด',
-  'ขณะที่สิทธิ์การใช้งานยังเป็น pending ตัวเลขเหล่านี้ไม่ถือเป็นข้อมูลสาธารณะ ใช้เพื่อสาธิตโครงสร้างหน้าจอและ API เท่านั้น',
+  'CHIRPS ที่เผยแพร่มีเพียง 3 grid cells ของวันเดียว จึงใช้แทนประวัติภูมิอากาศหรือค่าเฉลี่ยจังหวัดไม่ได้',
 ];
 
 export type ClimateRegion = 'north' | 'northeast' | 'central' | 'east' | 'south';
@@ -78,7 +78,7 @@ export type ClimateNotableYear = {
   normalMm: number | null;
 };
 
-export type ClimateHistoryOverview = {
+type ClimateHistoryOverviewBase = {
   location: {
     code: string;
     nameTh: string;
@@ -91,12 +91,12 @@ export type ClimateHistoryOverview = {
   endYear: number;
   yearsSpan: number;
   yearsWithData: number;
-  dataKind: 'sample';
-  sample: true;
   source: typeof CLIMATE_HISTORY_SOURCE;
   units: Record<string, string>;
+};
+
+type ClimateHistoryNumericSummary = {
   baseline: { tmeanNormalC: number; rainfallNormalMm: number; hotDaysNormal: number };
-  /** Yearly stats ordered oldest -> newest. */
   years: ClimateYearStats[];
   trends: {
     tmeanPerDecadeC: number;
@@ -109,6 +109,26 @@ export type ClimateHistoryOverview = {
   };
   notableYears: ClimateNotableYear[];
 };
+
+type ClimateHistoryEmptySummary = {
+  baseline: { tmeanNormalC: null; rainfallNormalMm: null; hotDaysNormal: null };
+  years: [];
+  trends: {
+    tmeanPerDecadeC: null;
+    tmaxPerDecadeC: null;
+    hotDaysPerDecade: null;
+    rainfallTrendMmPerDecade: null;
+    firstFiveYearMeanC: null;
+    lastFiveYearMeanC: null;
+    warmingDeltaC: null;
+  };
+  notableYears: [];
+};
+
+export type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
+  | ({ dataKind: 'sample'; sample: true } & ClimateHistoryNumericSummary)
+  | ({ dataKind: 'empty'; sample: false } & ClimateHistoryEmptySummary)
+);
 
 /* ------------------------------------------------------------------ */
 /* Regional climatology used to calibrate the sample series            */
@@ -338,7 +358,7 @@ function extremeRow(
 }
 
 /* ------------------------------------------------------------------ */
-/* Sample generation (license_status: 'pending' -> deterministic demo)  */
+/* Deterministic sample generation until D1 has enough historical coverage. */
 /* ------------------------------------------------------------------ */
 
 type ClimateProfile = {
@@ -452,6 +472,57 @@ export function validateClimateHistoryQuery(params: {
 /* ------------------------------------------------------------------ */
 
 export async function buildClimateHistoryOverview(params: {
+  provinceCode: string;
+  startYear: number;
+  endYear: number;
+}): Promise<ClimateHistoryOverview> {
+  const { provinceCode, startYear, endYear } = validateClimateHistoryQuery({
+    provinceCode: params.provinceCode,
+    startYear: String(params.startYear),
+    endYear: String(params.endYear),
+  });
+  const centroid = PROVINCE_CENTROIDS[provinceCode];
+  const provinces = await getProvinces();
+
+  return {
+    location: {
+      code: provinceCode,
+      nameTh: provinces.find((row) => row.code === provinceCode)?.name ?? centroid.nameEn,
+      nameEn: centroid.nameEn,
+      region: centroid.region,
+      regionLabelTh: REGION_LABEL_TH[centroid.region],
+      grid: {
+        latitude: centroid.lat,
+        longitude: centroid.lon,
+        resolutionDeg: CLIMATE_HISTORY_SOURCE.gridResolutionDeg,
+        support: 'grid_point',
+      },
+    },
+    startYear,
+    endYear,
+    yearsSpan: endYear - startYear + 1,
+    yearsWithData: 0,
+    dataKind: 'empty',
+    sample: false,
+    source: CLIMATE_HISTORY_SOURCE,
+    units: CLIMATE_UNITS,
+    baseline: { tmeanNormalC: null, rainfallNormalMm: null, hotDaysNormal: null },
+    years: [],
+    trends: {
+      tmeanPerDecadeC: null,
+      tmaxPerDecadeC: null,
+      hotDaysPerDecade: null,
+      rainfallTrendMmPerDecade: null,
+      firstFiveYearMeanC: null,
+      lastFiveYearMeanC: null,
+      warmingDeltaC: null,
+    },
+    notableYears: [],
+  };
+}
+
+/** Retained for offline visual development only; the public API uses the empty overview above. */
+export async function buildClimateHistorySampleOverview(params: {
   provinceCode: string;
   startYear: number;
   endYear: number;

@@ -205,7 +205,7 @@ export const LOGISTICS_SOURCES: SourceReference[] = [
     agencyLabel: 'กระทรวงเกษตรและสหกรณ์',
     role: 'ข้อมูลศูนย์รวบรวมผลผลิตการเกษตรและห้องเย็นสหกรณ์',
     sourceUrl: 'https://www.cpd.go.th',
-    licenseStatus: 'approved_public',
+    licenseStatus: 'pending',
   },
   {
     id: 'doae',
@@ -213,13 +213,13 @@ export const LOGISTICS_SOURCES: SourceReference[] = [
     agencyLabel: 'กระทรวงเกษตรและสหกรณ์',
     role: 'ตำแหน่งแปลงใหญ่และพื้นที่เพาะปลูกเพื่อประเมินระยะทาง Farm-to-Storage',
     sourceUrl: 'https://www.doae.go.th',
-    licenseStatus: 'approved_public',
+    licenseStatus: 'pending',
   },
 ];
 
 export const LOGISTICS_WARNINGS: string[] = [
   'ข้อมูลสิ่งอำนวยความสะดวกโลจิสติกส์การเกษตรในหน้านี้เป็นชุดข้อมูลจำลอง (Demo / Sample Data) เพื่อการวิเคราะห์เส้นทางขนส่งและประเมินดัชนี Farm-to-Storage Connectivity Score',
-  'พิกัดที่ตั้งจริง ปริมาณความจุ และสถานะการเปิดรับผลผลิตรายคลังอยู่ระหว่างการตรวจสอบสิทธิ์และกรอบความปลอดภัยตามระเบียบข้อมูลข่าวสารของหน่วยงานต้นทาง (อคส., คน., กสส.)',
+  'พิกัดที่ตั้งจริง ปริมาณความจุ และสถานะการเปิดรับผลผลิตรายคลังอยู่ระหว่างการตรวจสอบสิทธิ์และกรอบความปลอดภัยตามระเบียบข้อมูลข่าวสารของหน่วยงานต้นทาง (อคส., คน., กสส., กสก.)',
   'ค่าดัชนีระยะห่าง (Farm-to-Storage Connectivity Score) คำนวณจากระยะทางเฉลี่ยโครงข่ายถนนจากจุดกึ่งกลางแปลงเพาะปลูกระดับตำบลถึงคลังจัดเก็บ',
 ];
 

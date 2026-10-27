@@ -70,7 +70,7 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("null", observation["properties"]["value"]["type"])
         self.assertIn("release_at", observation["required"])
 
-    def test_resource_licenses_remain_pending_and_unique(self):
+    def test_resource_licenses_keep_approved_entries_explicit_and_pending_constrained(self):
         resources = load_resource_licenses()
         self.assertGreaterEqual(len(resources), 13)
         self.assertEqual(len(resources), len({r["resource_key"] for r in resources}))

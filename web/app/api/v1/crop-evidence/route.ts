@@ -42,8 +42,8 @@ function levelFromScore(score: number): ConfidenceLevel {
  * สรุปรายพืช (cropSummaries) และ statusCounts ไม่ถูกกรองด้วย status/minConfidence
  * ตัวกรองที่ใช้จริงอยู่ใน data.appliedFilters
  *
- * หมายเหตุ: ข้อมูลทั้งหมดเป็น deterministic sample (sample: true) และ
- * สิทธิ์เผยแพร่ตัวเลขจริงยังไม่ผ่านการยืนยัน (meta.access = metadata_only)
+ * หมายเหตุ: ยังไม่มีตัวเลขระดับอำเภอที่มี provenance และสิทธิ์เผยแพร่ที่ยืนยันได้
+ * จึงคงโครง response พร้อมรายการว่าง และไม่ส่งค่าตัวอย่างออกจาก API
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -132,12 +132,13 @@ export async function GET(request: Request) {
       },
       {
         meta: {
-          availability: districts.length ? 'ready' : 'empty',
+          availability: 'empty',
           freshness: 'unknown',
-          completeness: 'partial',
+          completeness: 'unknown',
           access: 'metadata_only',
-          sourceIds: ['oae', 'doae', 'dopa'],
-          dataAsOf: payload.dataAsOf,
+          sourceIds: [],
+          dataAsOf: null,
+          datasetVersion: null,
           warnings: [...payload.warnings, ...extraWarnings],
           runtimeMode: 'database',
         },

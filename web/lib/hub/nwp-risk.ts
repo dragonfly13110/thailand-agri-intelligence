@@ -55,6 +55,11 @@ export function riskLabelTh(level: RiskLevel | null | undefined): string {
   return RISK_LABELS_TH[level] ?? 'ไม่มีข้อมูล';
 }
 
+export function provinceRiskLabelTh(value: number | null, level: RiskLevel | null): string {
+  if (value === null) return 'ไม่มีข้อมูล';
+  return level === null ? 'ยังไม่จัดระดับ' : riskLabelTh(level);
+}
+
 /**
  * Sort key: normal 0 < watch 1 < high 2 < severe 3; unknown/null -1 so
  * descending sorts put unknown rows after every classified row.

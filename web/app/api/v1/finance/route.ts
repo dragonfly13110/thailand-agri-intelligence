@@ -1,7 +1,6 @@
 import { handleApi, HubRequestError, jsonData, parseText } from '../../../../lib/hub/http';
 import {
   buildFinanceDashboard,
-  FINANCE_AS_OF_DATE,
   FINANCE_DATA_VERSION,
   FINANCE_PROVINCE_MAP,
   FINANCE_SOURCES,
@@ -62,11 +61,11 @@ export async function GET(request: Request) {
     return jsonData(payload, {
       meta: {
         availability: hasRecords ? 'ready' : 'empty',
-        freshness: 'fresh',
-        completeness: hasRecords ? 'partial' : 'unknown',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: 'metadata_only',
         sourceIds: FINANCE_SOURCES.map((source) => source.id),
-        dataAsOf: FINANCE_AS_OF_DATE,
+        dataAsOf: null,
         sourceUpdatedAt: null,
         datasetVersion: FINANCE_DATA_VERSION,
         warnings: FINANCE_WARNINGS,

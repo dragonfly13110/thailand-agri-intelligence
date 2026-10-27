@@ -62,13 +62,13 @@ type Advisory = { code: string; severity: AdvisorySeverity; titleTh: string; mes
 
 type Overview = {
   location: { kind: 'province' | 'region'; code: string; name: string; region: RegionKey; regionLabel: string };
-  issuedAt: string;
+  issuedAt: string | null;
   dataKind: string;
   sample: boolean;
   source: { agency: string; sourceUrl: string; licenseStatus: string };
   units: Record<string, string>;
   days: ForecastDay[];
-  cumulative: Cumulative;
+  cumulative: Cumulative | null;
   advisories: Advisory[];
 };
 
@@ -101,7 +101,8 @@ function numberLabel(value: number | null, digits = 1) {
   return new Intl.NumberFormat('th-TH', { maximumFractionDigits: digits }).format(value);
 }
 
-function dateLabel(iso: string) {
+function dateLabel(iso: string | null) {
+  if (!iso) return 'ยังไม่ระบุ';
   if (!iso || Number.isNaN(Date.parse(iso + 'T00:00:00+07:00'))) return iso || 'ยังไม่ระบุ';
   return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeZone: 'Asia/Bangkok' })
     .format(new Date(iso + 'T00:00:00+07:00'));
@@ -136,7 +137,7 @@ export function WeatherDashboard({ regions, provinces }: { regions: RegionOption
     fetch('/api/v1/weather?' + query, { signal: controller.signal, headers: { accept: 'application/json' } })
       .then((response) => readJson<Envelope>(response))
       .then((value) => {
-        if (!value.data || !Array.isArray(value.data.days) || !value.data.cumulative || !Array.isArray(value.meta?.warnings)) {
+        if (!value.data || !Array.isArray(value.data.days) || !Array.isArray(value.meta?.warnings)) {
           throw new Error('รูปแบบข้อมูลพยากรณ์ไม่ถูกต้อง');
         }
         setState({ kind: 'ready', value, key: query });
@@ -202,11 +203,12 @@ function ForecastView({ value }: { value: Envelope }) {
   const { data, meta } = value;
   const { days, cumulative, advisories, location } = data;
 
-  if (!days.length) {
+  if (!days.length || !cumulative) {
     return <div className={styles.stateBlock} role="status">
       <Icon name="search" size={30}/>
-      <h2>ยังไม่มีพยากรณ์สำหรับพื้นที่นี้</h2>
-      <p>ลองเลือกภาคหรือจังหวัดอื่น</p>
+      <h2>ยังไม่มีพยากรณ์ที่เผยแพร่ได้สำหรับพื้นที่นี้</h2>
+      <p>ยังไม่มีข้อมูลจากแหล่งพยากรณ์ที่อนุมัติให้เผยแพร่ ลองดูข้อมูล TMD HPC แยกที่ <a href="/nwp">หน้าพยากรณ์ TMD HPC</a></p>
+      {meta.warnings.length > 0 && <ul>{meta.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>}
     </div>;
   }
 

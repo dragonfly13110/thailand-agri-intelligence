@@ -70,8 +70,6 @@ const soilRoute = await import('../app/api/v1/soil/route.ts');
 const livestockRoute = await import('../app/api/v1/livestock/route.ts');
 const livestock = await import('../lib/hub/livestock-data.ts');
 
-type WeatherOverview = Awaited<ReturnType<typeof weather.buildWeatherOverview>>;
-
 type ApiMeta = {
   access: string;
   availability: string;
@@ -85,7 +83,10 @@ type ApiMeta = {
   retrievedAt: string;
 };
 
-type WeatherApiPayload = { data: WeatherOverview; meta: ApiMeta };
+type WeatherApiPayload = {
+  data: Awaited<ReturnType<typeof weather.buildWeatherOverview>>;
+  meta: ApiMeta;
+};
 type CropsApiPayload = { data: typeof CROP_TABS; meta: ApiMeta };
 type SoilApiPayload = {
   data: {
@@ -105,49 +106,14 @@ type LivestockApiPayload = {
 };
 
 const HUB_ORIGIN = 'http://hub.local';
-const FIXED_NOW = new Date('2026-10-25T03:00:00Z');
-const FIXED_ISSUED_AT = '2026-10-25';
-const SEVERITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
 const provinces = parseProvinces(
   readFileSync(new URL('../data/provinces.csv', import.meta.url), 'utf8'),
 );
 
-const provinceForecasts = await Promise.all(
-  provinces.map(async (province) => ({
-    label: `province ${province.code} (${province.name})`,
-    province,
-    overview: await weather.buildWeatherOverview(
-      new URL(`/api/v1/weather?provinceCode=${province.code}`, HUB_ORIGIN),
-      FIXED_NOW,
-    ),
-  })),
-);
-
-const regionForecasts = await Promise.all(
-  weather.REGIONS.map(async (region) => ({
-    label: `region ${region.key}`,
-    region,
-    overview: await weather.buildWeatherOverview(
-      new URL(`/api/v1/weather?region=${region.key}`, HUB_ORIGIN),
-      FIXED_NOW,
-    ),
-  })),
-);
-
-const allForecasts = [...provinceForecasts, ...regionForecasts];
-
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
-
-function round1(value: number) {
-  return Math.round(value * 10) / 10;
-}
-
-function addDays(iso: string, days: number) {
-  return new Date(Date.parse(iso + 'T00:00:00Z') + days * 86_400_000).toISOString().slice(0, 10);
-}
 
 function assertReferenceUrl(url: string, label: string) {
   assert.equal(typeof url, 'string', `${label}: URL type`);
@@ -166,148 +132,18 @@ function assertReferenceUrl(url: string, label: string) {
   assert.ok(parsed.hostname.length > 0, `${label}: missing host`);
 }
 
-function assertForecastDays(overview: WeatherOverview, label: string) {
-  const { days, cumulative } = overview;
-  assert.equal(days.length, weather.THRESHOLDS.forecastDays, `${label}: forecastDays threshold`);
-  assert.equal(days.length, 7, `${label}: exactly seven forecast days`);
-  assert.equal(cumulative.byDay.length, 7, `${label}: byDay must mirror the seven days`);
-  assert.equal(cumulative.windowDays, 7, `${label}: cumulative windowDays`);
-  assert.equal(cumulative.daysWithData, 7, `${label}: every forecast day carries rainfall`);
-  assert.equal(cumulative.missingDays, 0, `${label}: no missing forecast days`);
-  assert.equal(cumulative.completeness, 'complete', `${label}: completeness`);
-
-  for (let index = 0; index < days.length; index += 1) {
-    const day = days[index];
-    const row = cumulative.byDay[index];
-    assert.equal(day.date, addDays(overview.issuedAt, index), `${label}: day ${index} date sequence`);
-    assert.equal(row.date, day.date, `${label}: cumulative date ${index}`);
-    assert.equal(day.sample, true, `${label}: day ${index} sample flag`);
-    assert.ok(day.weekdayTh.trim().length > 0, `${label}: day ${index} weekday`);
-    assert.ok(day.dateLabelTh.trim().length > 0, `${label}: day ${index} date label`);
-    assert.equal(
-      day.conditionLabelTh,
-      weather.CONDITION_LABELS[day.conditionCode],
-      `${label}: day ${index} condition label`,
-    );
-
-    const { tmaxC, tminC } = day;
-    assert.ok(tmaxC !== null && tminC !== null, `${label}: day ${index} temperature missing`);
-    assert.ok(tmaxC >= tminC, `${label}: day ${index} tmax ${tmaxC} < tmin ${tminC}`);
-
-    const { humidityMinPercent, humidityMaxPercent } = day;
-    assert.ok(
-      humidityMinPercent !== null && humidityMaxPercent !== null,
-      `${label}: day ${index} humidity missing`,
-    );
-    assert.ok(
-      humidityMinPercent >= 0 && humidityMinPercent <= 100,
-      `${label}: day ${index} humidityMin ${humidityMinPercent} outside 0-100`,
-    );
-    assert.ok(
-      humidityMaxPercent >= 0 && humidityMaxPercent <= 100,
-      `${label}: day ${index} humidityMax ${humidityMaxPercent} outside 0-100`,
-    );
-    assert.ok(
-      humidityMinPercent <= humidityMaxPercent,
-      `${label}: day ${index} humidityMin > humidityMax`,
-    );
-
-    const rainChance = day.rainChancePercent;
-    assert.ok(
-      rainChance !== null && rainChance >= 0 && rainChance <= 100,
-      `${label}: day ${index} rain chance ${rainChance} outside 0-100`,
-    );
-
-    const rainfall = day.rainfallMm;
-    assert.ok(rainfall !== null && rainfall >= 0, `${label}: day ${index} rainfall ${rainfall}`);
-
-    const windSpeed = day.windSpeedMs;
-    assert.ok(windSpeed !== null && windSpeed >= 0, `${label}: day ${index} wind speed ${windSpeed}`);
-
-    const windDirection = day.windDirectionDeg;
-    assert.ok(
-      windDirection !== null &&
-        Number.isInteger(windDirection) &&
-        windDirection >= 0 &&
-        windDirection <= 359,
-      `${label}: day ${index} wind direction ${windDirection}`,
-    );
-    assert.equal(
-      day.windDirectionLabelTh,
-      weather.windDirectionLabel(windDirection),
-      `${label}: day ${index} wind direction label`,
-    );
-
-    assert.equal(row.rainfallMm, rainfall, `${label}: day ${index} byDay rainfall`);
-    assert.ok(row.normalMm > 0, `${label}: day ${index} normal rainfall must be positive`);
-  }
-}
-
-function assertCumulativeRainfall(overview: WeatherOverview, label: string) {
-  const { days, cumulative } = overview;
-  let forecastRunning = 0;
-  let normalRunning = 0;
-
-  for (let index = 0; index < days.length; index += 1) {
-    const day = days[index];
-    const row = cumulative.byDay[index];
-    const rainfall = day.rainfallMm;
-    assert.ok(rainfall !== null, `${label}: day ${index} rainfall missing`);
-    forecastRunning += rainfall;
-    normalRunning += row.normalMm;
-    assert.equal(
-      row.forecastCumulativeMm,
-      round1(forecastRunning),
-      `${label}: day ${index} forecast cumulative`,
-    );
-    assert.equal(
-      row.normalCumulativeMm,
-      round1(normalRunning),
-      `${label}: day ${index} normal cumulative`,
-    );
-  }
-
-  assert.equal(cumulative.forecastTotalMm, round1(forecastRunning), `${label}: total rainfall`);
-  assert.equal(cumulative.normalTotalMm, round1(normalRunning), `${label}: total normal rainfall`);
-
-  const anomalyMm = cumulative.anomalyMm;
-  const anomalyPercent = cumulative.anomalyPercent;
-  assert.ok(anomalyMm !== null && anomalyPercent !== null, `${label}: anomaly missing`);
-  assert.equal(anomalyMm, round1(forecastRunning - normalRunning), `${label}: anomaly mm`);
-  assert.equal(
-    anomalyPercent,
-    round1(((forecastRunning - normalRunning) / normalRunning) * 100),
-    `${label}: anomaly percent`,
-  );
-
-  const expectedStatus =
-    anomalyPercent <= weather.THRESHOLDS.anomalyBelowPct
-      ? 'below_normal'
-      : anomalyPercent >= weather.THRESHOLDS.anomalyAbovePct
-        ? 'above_normal'
-        : 'normal';
-  assert.equal(cumulative.status, expectedStatus, `${label}: status threshold`);
-  assert.equal(
-    cumulative.dryDays,
-    days.filter((day) => day.rainfallMm !== null && day.rainfallMm < weather.THRESHOLDS.dryDayRainMm)
-      .length,
-    `${label}: dry day count`,
-  );
-  assert.equal(
-    cumulative.heavyRainDays,
-    days.filter(
-      (day) => day.rainfallMm !== null && day.rainfallMm >= weather.THRESHOLDS.heavyRainMm,
-    ).length,
-    `${label}: heavy rain day count`,
-  );
-  assert.equal(cumulative.calculationVersion, 'cumulative-rainfall-index-v1');
-}
-
 async function getWeatherPayload(path: string) {
   const response = await weatherRoute.GET(new Request(new URL(path, HUB_ORIGIN)));
   assert.equal(response.status, 200, `${path}: status`);
   assert.equal(response.headers.get('cache-control'), 'no-store', `${path}: cache-control`);
-  return (await response.json()) as WeatherApiPayload;
+  const body = (await response.json()) as WeatherApiPayload;
+  assert.deepEqual(Object.keys(body).sort(), ['data', 'meta'], `${path}: response envelope keys`);
+  assert.deepEqual(
+    Object.keys(body.data).sort(),
+    ['advisories', 'cumulative', 'dataKind', 'days', 'issuedAt', 'location', 'sample', 'source', 'units'],
+    `${path}: weather field names`,
+  );
+  return body;
 }
 
 /* ------------------------------------------------------------------ */
@@ -343,91 +179,34 @@ test('weather: five regions map all 77 provinces exactly once', () => {
   }
 });
 
-test('weather: every province and region keeps the 7-day temperature, humidity and rainfall invariants', () => {
-  assert.equal(provinceForecasts.length, 77);
-  assert.equal(regionForecasts.length, 5);
-
-  for (const { label, province, overview } of provinceForecasts) {
-    assert.equal(overview.issuedAt, FIXED_ISSUED_AT, `${label}: issuedAt`);
-    assert.equal(overview.location.kind, 'province', `${label}: location kind`);
-    assert.equal(overview.location.code, province.code, `${label}: location code`);
-    assert.equal(overview.location.name, province.name, `${label}: location name`);
-    assert.equal(
-      overview.location.region,
-      weather.REGION_BY_PROVINCE[province.code],
-      `${label}: location region`,
+test('weather: no approved forecast returns empty data for provinces and regions', async () => {
+  for (const province of provinces) {
+    const overview = await weather.buildWeatherOverview(
+      new URL(`/api/v1/weather?provinceCode=${province.code}`, HUB_ORIGIN),
     );
-    assert.equal(
-      overview.location.regionLabel,
-      weather.REGIONS.find((region) => region.key === overview.location.region)?.label,
-      `${label}: region label`,
+    assert.equal(overview.location.kind, 'province');
+    assert.equal(overview.location.code, province.code);
+    assert.equal(overview.location.name, province.name);
+    assert.equal(overview.location.region, weather.REGION_BY_PROVINCE[province.code]);
+    assert.equal(overview.issuedAt, null);
+    assert.equal(overview.dataKind, 'unavailable');
+    assert.equal(overview.sample, false);
+    assert.deepEqual(overview.days, []);
+    assert.equal(overview.cumulative, null);
+    assert.deepEqual(overview.advisories, []);
+    assert.equal(overview.source.licenseStatus, 'pending');
+  }
+
+  for (const region of weather.REGIONS) {
+    const overview = await weather.buildWeatherOverview(
+      new URL(`/api/v1/weather?region=${region.key}`, HUB_ORIGIN),
     );
-    assertForecastDays(overview, label);
-  }
-
-  for (const { label, region, overview } of regionForecasts) {
-    assert.equal(overview.issuedAt, FIXED_ISSUED_AT, `${label}: issuedAt`);
-    assert.equal(overview.location.kind, 'region', `${label}: location kind`);
-    assert.equal(overview.location.code, region.key, `${label}: location code`);
-    assert.equal(overview.location.name, region.label, `${label}: location name`);
-    assert.equal(overview.location.region, region.key, `${label}: location region`);
-    assert.equal(overview.location.regionLabel, region.label, `${label}: region label`);
-    assertForecastDays(overview, label);
-  }
-});
-
-test('weather: cumulative rainfall index reconciles with the daily forecast rows', () => {
-  for (const { label, overview } of allForecasts) {
-    assertCumulativeRainfall(overview, label);
-  }
-});
-
-test('weather: every payload is explicitly sample data under a pending licence', () => {
-  assert.equal(weather.SAMPLE_MODE, true);
-  assert.equal(weather.WEATHER_WARNINGS.length, 3);
-  assert.ok(weather.WEATHER_WARNINGS.every((warning) => warning.trim().length > 0));
-  assert.ok(weather.WEATHER_WARNINGS[0].includes('ตัวอย่าง'));
-  assert.ok(weather.WEATHER_WARNINGS[1].includes('สิทธิ์'));
-
-  for (const { label, overview } of allForecasts) {
-    assert.equal(overview.sample, true, `${label}: sample flag`);
-    assert.equal(overview.dataKind, 'sample', `${label}: dataKind`);
-    assert.ok(
-      overview.days.every((day) => day.sample === true),
-      `${label}: every forecast day must be flagged sample`,
-    );
-    assert.equal(overview.source.licenseStatus, 'pending', `${label}: licence status`);
-    assert.match(overview.source.sourceUrl, /^https:\/\//, `${label}: source URL`);
-    assert.ok(overview.source.agency.trim().length > 0, `${label}: source agency`);
-    assert.deepEqual(overview.units, weather.FORECAST_UNITS, `${label}: units`);
-    for (const key of ['temperature', 'rainfall', 'relative_humidity']) {
-      assert.ok(overview.units[key], `${label}: missing unit ${key}`);
-    }
-  }
-});
-
-test('weather: advisories keep severity order, unique codes and actionable text', () => {
-  for (const { label, overview } of allForecasts) {
-    const seen = new Set<string>();
-    let previousRank = -1;
-    for (const advisory of overview.advisories) {
-      assert.match(advisory.code, /^[A-Z][A-Z_]*$/, `${label}: advisory code ${advisory.code}`);
-      assert.ok(!seen.has(advisory.code), `${label}: duplicate advisory ${advisory.code}`);
-      seen.add(advisory.code);
-
-      const rank = SEVERITY_RANK[advisory.severity];
-      assert.notEqual(rank, undefined, `${label}: unknown severity ${advisory.severity}`);
-      assert.ok(rank >= previousRank, `${label}: advisories must be sorted high -> low`);
-      previousRank = rank;
-
-      assert.ok(advisory.titleTh.trim().length > 0, `${label}: advisory title`);
-      assert.ok(advisory.messageTh.trim().length > 0, `${label}: advisory message`);
-      assert.ok(advisory.actions.length > 0, `${label}: advisory actions`);
-      assert.ok(
-        advisory.actions.every((action) => action.trim().length > 0),
-        `${label}: empty advisory action`,
-      );
-    }
+    assert.equal(overview.location.kind, 'region');
+    assert.equal(overview.location.code, region.key);
+    assert.equal(overview.location.name, region.label);
+    assert.deepEqual(overview.days, []);
+    assert.equal(overview.cumulative, null);
+    assert.deepEqual(overview.advisories, []);
   }
 });
 
@@ -441,10 +220,7 @@ test('weather: selectors fail closed and a province wins over a region', async (
   ];
   for (const query of invalidQueries) {
     await assert.rejects(
-      weather.buildWeatherOverview(
-        new URL('/api/v1/weather' + query, HUB_ORIGIN),
-        FIXED_NOW,
-      ),
+      weather.buildWeatherOverview(new URL('/api/v1/weather' + query, HUB_ORIGIN)),
       (error: unknown) => {
         assert.ok(error instanceof http.HubRequestError, `${query}: expected HubRequestError`);
         assert.equal(error.status, 400, `${query}: status`);
@@ -456,45 +232,55 @@ test('weather: selectors fail closed and a province wins over a region', async (
 
   const trimmed = await weather.buildWeatherOverview(
     new URL('/api/v1/weather?provinceCode=%2073%20', HUB_ORIGIN),
-    FIXED_NOW,
   );
   assert.equal(trimmed.location.code, '73');
 
   const provinceWins = await weather.buildWeatherOverview(
     new URL('/api/v1/weather?provinceCode=73&region=west', HUB_ORIGIN),
-    FIXED_NOW,
   );
   assert.equal(provinceWins.location.kind, 'province');
   assert.equal(provinceWins.location.code, '73');
   assert.equal(provinceWins.location.name, 'นครปฐม');
 });
 
-test('weather API: meta.access stays metadata_only for all 77 provinces and 5 regions', async () => {
+test('weather API: no approved forecast returns empty data with unknown source status', async () => {
   for (const province of provinces) {
     const body = await getWeatherPayload(`/api/v1/weather?provinceCode=${province.code}`);
     assert.equal(body.meta.access, 'metadata_only', `${province.code}: access`);
-    assert.equal(body.meta.availability, 'ready', `${province.code}: availability`);
-    assert.equal(body.meta.freshness, 'fresh', `${province.code}: freshness`);
-    assert.equal(body.meta.completeness, 'complete', `${province.code}: completeness`);
-    assert.deepEqual(body.meta.sourceIds, ['tmd'], `${province.code}: sourceIds`);
-    assert.equal(body.meta.datasetVersion, 'weather-forecast-sample-v1');
+    assert.equal(body.meta.availability, 'empty', `${province.code}: availability`);
+    assert.equal(body.meta.freshness, 'unknown', `${province.code}: freshness`);
+    assert.equal(body.meta.completeness, 'unknown', `${province.code}: completeness`);
+    assert.deepEqual(body.meta.sourceIds, [], `${province.code}: sourceIds`);
+    assert.equal(body.meta.datasetVersion, null);
     assert.equal(body.meta.runtimeMode, 'source_api_fallback');
     assert.deepEqual(body.meta.warnings, weather.WEATHER_WARNINGS, `${province.code}: warnings`);
-    assert.equal(body.meta.dataAsOf, body.data.issuedAt, `${province.code}: dataAsOf`);
+    assert.equal(body.meta.dataAsOf, null, `${province.code}: dataAsOf`);
     assert.match(body.meta.retrievedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     assert.equal(body.data.location.code, province.code);
-    assert.equal(body.data.sample, true);
-    assert.equal(body.data.days.length, 7);
-    assert.equal(body.data.cumulative.completeness, 'complete');
+    assert.equal(body.data.issuedAt, null);
+    assert.equal(body.data.dataKind, 'unavailable');
+    assert.equal(body.data.sample, false);
+    assert.deepEqual(body.data.days, []);
+    assert.equal(body.data.cumulative, null);
+    assert.deepEqual(body.data.advisories, []);
   }
 
   for (const region of weather.REGIONS) {
     const body = await getWeatherPayload(`/api/v1/weather?region=${region.key}`);
     assert.equal(body.meta.access, 'metadata_only', `${region.key}: access`);
-    assert.equal(body.meta.completeness, 'complete', `${region.key}: completeness`);
+    assert.equal(body.meta.availability, 'empty', `${region.key}: availability`);
+    assert.equal(body.meta.freshness, 'unknown', `${region.key}: freshness`);
+    assert.equal(body.meta.completeness, 'unknown', `${region.key}: completeness`);
+    assert.deepEqual(body.meta.sourceIds, [], `${region.key}: sourceIds`);
+    assert.equal(body.meta.dataAsOf, null, `${region.key}: dataAsOf`);
+    assert.equal(body.meta.datasetVersion, null, `${region.key}: datasetVersion`);
     assert.equal(body.data.location.kind, 'region');
     assert.equal(body.data.location.code, region.key);
-    assert.equal(body.data.days.length, 7);
+    assert.equal(body.data.issuedAt, null);
+    assert.equal(body.data.sample, false);
+    assert.deepEqual(body.data.days, []);
+    assert.equal(body.data.cumulative, null);
+    assert.deepEqual(body.data.advisories, []);
   }
 });
 
@@ -817,8 +603,10 @@ test('soil API: seven verified series and five warning names stay metadata_only'
 
   assert.equal(body.meta.access, 'metadata_only');
   assert.equal(body.meta.availability, 'ready');
-  assert.equal(body.meta.completeness, 'complete');
+  assert.equal(body.meta.freshness, 'unknown');
+  assert.equal(body.meta.completeness, 'partial');
   assert.deepEqual(body.meta.sourceIds, ['ldd', 'doae']);
+  assert.equal(body.meta.dataAsOf, null);
   assert.equal(body.meta.datasetVersion, 'soil-fertilizer-reference-v1');
   assert.equal(body.data.totalSeries, 7);
   assert.deepEqual(

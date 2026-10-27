@@ -80,7 +80,7 @@
 | การยืนยันตัวตน/response | ไม่พบการกำหนด key หรือ login; directory index อ่านได้แบบ anonymous (HTTP 200). Raster เป็น GeoTIFF; repository ยังมี NetCDF และผลิตภัณฑ์ pentad/dekad/monthly ตามหน้า CHIRPS |
 | พื้นที่และเวลา | กริด quasi-global 60°S–60°N, 0.05°; daily time series ตั้งแต่ 1981 ถึงใกล้ปัจจุบันสำหรับ rnl. ค่าเป็นฝนรวมหน่วย mm ต่อ time step; `-9999` คือ bad/missing value. Daily value เป็นการกระจายยอด pentad ไม่ใช่การ blend สถานีอิสระรายวัน; CHC แนะนำ pentad/monthly เมื่อเหมาะกับการวิเคราะห์ |
 | ความหน่วงและ revision | Final ออกเดือนละครั้ง โดยทั่วไปสัปดาห์ที่สามของเดือนถัดไป; prelim ออกสองวันหลังสิ้น pentad แล้วแทนด้วย final. บันทึก final/prelim, variant และ version แยกกัน |
-| สิทธิ์และเผยแพร่ต่อ | หน้า CHC ระบุ CHIRPS3 เป็น public domain และ CC BY 4.0 พร้อมข้อมูลอ้างอิงชุดข้อมูล; ใช้ attribution ตาม citation ทางการ. สถานะใน registry ยัง `pending` และไม่ได้แก้ในงานสำรวจนี้ |
+| สิทธิ์และเผยแพร่ต่อ | หน้า CHC ระบุ CHIRPS3 เป็น public domain และ CC BY 4.0 พร้อมข้อมูลอ้างอิงชุดข้อมูล; ใช้ attribution ตาม citation ทางการ. ณ วันที่สำรวจสถานะใน registry ยัง `pending` และงานสำรวจนี้ไม่ได้แก้ทะเบียน; ภายหลัง M4 อนุมัติเฉพาะ exact file วันที่ 2026-09-30 ตาม [resource audit](m4-chirps-resource.md) |
 | Probe | อ่าน daily/final/rnl index และรายชื่อไฟล์ปี 2024 โดยไม่ดาวน์โหลด raster; index ตอบ HTTP 200 และพบรูปแบบไฟล์ตามตัวอย่าง |
 
 **ข้อควรระวังข้อมูล:** README v3 ระบุ sat เริ่มปี 1998 ขณะที่ FAQ ระบุ IMERG-based archive เริ่มปี 2001; อย่ากำหนด coverage ของ sat จากข้อความเดียว ให้ตรวจรายการวันจริงก่อน ingest. สำหรับ rain total และสัญญาณความแห้งแล้ง ให้เริ่มจาก final pentad/monthly หรือ rnl daily ตาม grain ที่คำถามต้องใช้ เก็บ raster nodata เป็น null และ clip เฉพาะพื้นที่เป้าหมาย อย่าดาวน์โหลด global archive ลง workspace

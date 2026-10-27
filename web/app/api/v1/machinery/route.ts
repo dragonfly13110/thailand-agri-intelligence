@@ -1,6 +1,5 @@
 import { handleApi, HubRequestError, jsonData, parseText } from '../../../../lib/hub/http';
 import {
-  DATA_AS_OF,
   MACHINERY_PROVINCES,
   SERVICE_CENTER_KIND_IDS,
   buildMachineryDashboard,
@@ -119,14 +118,14 @@ export async function GET(request: Request) {
     return jsonData(payload, {
       meta: {
         availability: 'ready',
-        freshness: 'fresh',
-        completeness: 'partial',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: 'metadata_only',
         sourceIds: ['doae', 'oae', 'tama'],
-        dataAsOf: DATA_AS_OF,
+        dataAsOf: null,
         datasetVersion: 'machinery-sample-2026-10-25-v1',
         warnings: payload.warnings,
-        runtimeMode: 'database',
+        runtimeMode: 'source_api_fallback',
       },
     });
   });

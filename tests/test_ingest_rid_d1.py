@@ -248,7 +248,7 @@ class ObservationRowTests(RidAdapterCase):
             self.assertEqual(row["spatial_support"], "reservoir")
             self.assertIsNone(row["area_code"])
             self.assertIn(row["location_id"], {"R1", "R2", "R3"})  # location_code = RID id
-            self.assertEqual(row["observed_at"], REPORT_DATE + "T00:00:00Z")
+            self.assertEqual(row["observed_at"], REPORT_DATE + "T00:00:00+07:00")
             self.assertEqual(row["source_id"], "rid")
             self.assertEqual(row["data_kind"], "official")
             self.assertEqual(row["license_status"], "approved_public")
@@ -399,6 +399,24 @@ class PublishTests(RidAdapterCase):
         self.assertIsNone(missing[0]["value"])
         self.assertEqual(missing[0]["quality_status"], "missing")
 
+    def test_ict_midnight_report_publishes_before_utc_midnight(self):
+        # CI can run shortly after midnight in Thailand, while UTC is still on
+        # the prior date.  The provider-day midnight must remain an instant
+        # before retrieval and retain the provider's daily period label.
+        script = ingest_rid_d1._SCRIPT_MODULE
+        envelope, _ = script.fetch_report(REPORT_DATE, meta={"requests": []})
+        envelope["retrieved_at"] = "2026-10-24T17:12:57Z"
+        script._envelope = envelope
+
+        summary = self.run_adapter(["--write", "--date", REPORT_DATE], client=self.client)
+
+        self.assertEqual(summary["observedAt"], REPORT_DATE + "T00:00:00+07:00")
+        self.assertEqual(summary["published"]["records_written"], 9)
+        periods = self.client.rows(
+            "SELECT DISTINCT period_start, period_end, period_label FROM observations")
+        self.assertEqual(periods, [{"period_start": REPORT_DATE, "period_end": REPORT_DATE,
+                                   "period_label": REPORT_DATE}])
+
 
 # ---------------------------------------------------------------------------
 # --date plumbing and CLI exit codes
@@ -410,7 +428,7 @@ class DatePlumbingTests(RidAdapterCase):
         self.assertEqual(self.stub.calls, [REPORT_DATE])
         self.assertEqual(summary["requestedDate"], REPORT_DATE)
         self.assertEqual(summary["reportDate"], REPORT_DATE)
-        self.assertEqual(summary["observedAt"], REPORT_DATE + "T00:00:00Z")
+        self.assertEqual(summary["observedAt"], REPORT_DATE + "T00:00:00+07:00")
 
     def test_main_exit_codes(self):
         self.assertEqual(ingest_rid_d1.main(["--dry-run"], client=SqliteD1(),

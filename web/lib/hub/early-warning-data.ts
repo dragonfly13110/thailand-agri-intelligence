@@ -40,8 +40,9 @@ export interface EarlyWarningSummary {
   highRiskProvincesCount: number;
   warningProvincesCount: number;
   normalProvincesCount: number;
-  avgRainfall7dMm: number;
-  maxRainfall7dMm: number;
+  /** `null` when no station with a confirmed unit reported rainfall — missing is never 0 mm. */
+  avgRainfall7dMm: number | null;
+  maxRainfall7dMm: number | null;
   /** States the grain the two rainfall figures came from, so a station value is never read as a province value. */
   rainfallBasis: string;
   disasterAlertLevel: DisasterAlertLevel;
@@ -57,10 +58,14 @@ export interface ProvinceRiskItem {
   region: string;
   basinName: string;
   overallRisk: DisasterAlertLevel;
-  floodRiskScore: number; // 0-100
-  floodRiskLevel: DisasterAlertLevel;
-  droughtRiskScore: number; // 0-100
-  droughtRiskLevel: DisasterAlertLevel;
+  floodRiskScore: number | null; // 0-100; null when flood evidence is absent
+  floodRiskLevel: DisasterAlertLevel | null;
+  /** `null` when no drought input backs this province — unknown is never 0/normal. */
+  droughtRiskScore: number | null; // 0-100
+  droughtRiskLevel: DisasterAlertLevel | null;
+  /** Heat severity from TMD station maxima; `null` when no confirmed heat signal exists. */
+  heatRiskScore?: number | null;
+  heatRiskLevel?: DisasterAlertLevel | null;
   /** `null` when no published observation backs the figure — missing is never 0. */
   rainfall7dMm: number | null;
   soilMoisturePercent: number | null; // %
@@ -1479,6 +1484,17 @@ function formatNumber(value: number | null, digits = 1): string {
   return value.toFixed(digits);
 }
 
+/**
+ * Thresholds below are stated in mm/°C, so they only apply to a station whose
+ * unit is explicitly confirmed (`confirmed` / `confirmed_*`). A pending unit
+ * never licenses a comparison or conversion; the raw value is still published
+ * by the weather layer under its own contract.
+ */
+function hasConfirmedUnit(unitStatus: string | null | undefined): boolean {
+  const value = unitStatus?.trim().toLowerCase();
+  return Boolean(value && (value === 'confirmed' || value.startsWith('confirmed_')));
+}
+
 function provenanceFor(
   sourceId: RiskSignalSourceId,
   runId: string | null,
@@ -1703,9 +1719,10 @@ function buildWeatherAlerts(bundle: EarlyWarningEvidenceBundle, names: Map<strin
     const stationName = station.stationNameTh ?? station.stationCode;
     const location = `${stationName} (${station.stationCode}, เครือข่าย ${station.network})`;
     const observedAt = station.observedAtIct ?? `${weather.observationDate}T07:00:00+07:00`;
+    const unitsConfirmed = hasConfirmedUnit(station.unitStatus);
 
     const rain = station.rainfallMm;
-    if (rain !== null && Number.isFinite(rain) && rain >= EARLY_WARNING_THRESHOLDS.tmdHeavyRainMm) {
+    if (unitsConfirmed && rain !== null && Number.isFinite(rain) && rain >= EARLY_WARNING_THRESHOLDS.tmdHeavyRainMm) {
       const critical = rain >= EARLY_WARNING_THRESHOLDS.tmdVeryHeavyRainMm;
       const level: DisasterAlertLevel = critical ? 'critical' : 'warning';
       const ratio = critical
@@ -1739,7 +1756,7 @@ function buildWeatherAlerts(bundle: EarlyWarningEvidenceBundle, names: Map<strin
     }
 
     const tmax = station.maxTemperatureC;
-    if (tmax !== null && Number.isFinite(tmax) && tmax >= EARLY_WARNING_THRESHOLDS.tmdHotMaxC) {
+    if (unitsConfirmed && tmax !== null && Number.isFinite(tmax) && tmax >= EARLY_WARNING_THRESHOLDS.tmdHotMaxC) {
       const critical = tmax >= EARLY_WARNING_THRESHOLDS.tmdVeryHotMaxC;
       const level: DisasterAlertLevel = critical ? 'critical' : 'warning';
       const ratio = critical
@@ -1860,8 +1877,10 @@ function urgencyFromLevel(level: DisasterAlertLevel): ProvinceRiskItem['urgency'
  * A reservoir is not a province, so RID drought context is attached by the
  * source's own `region` label and is named as region context in the row's
  * `droughtBasis`. A station is not a province either: `rainfall7dMm` carries the
- * single highest station daily value of the observation date and `rainfallBasis`
- * says so. Provinces with no published evidence are absent — never zero-filled.
+ * single highest **unit-confirmed** station daily value of the observation date
+ * and `rainfallBasis` says so. Drought stays `null`/unknown until a provincial
+ * input exists, and heat severity participates in `overallRisk`/`urgency`.
+ * Provinces with no published evidence are absent — never zero-filled.
  */
 export function buildEvidenceProvinces(
   alerts: RiskAlertItem[],
@@ -1894,6 +1913,20 @@ export function buildEvidenceProvinces(
     byProvince.set(alert.provinceCode, list);
   }
 
+  // Rainfall is only interpreted in mm when the station unit is confirmed; a
+  // pending raw value is counted so the row can explain the hold instead of 0.
+  const stationRainByProvince = new Map<string, { confirmed: number[]; pendingCount: number }>();
+  for (const station of bundle.weather?.rows ?? []) {
+    if (!station.provinceCode) continue;
+    const rain = station.rainfallMm;
+    if (rain === null || !Number.isFinite(rain)) continue;
+    const bucket = stationRainByProvince.get(station.provinceCode)
+      ?? { confirmed: [], pendingCount: 0 };
+    if (hasConfirmedUnit(station.unitStatus)) bucket.confirmed.push(rain);
+    else bucket.pendingCount += 1;
+    stationRainByProvince.set(station.provinceCode, bucket);
+  }
+
   const rows: ProvinceRiskItem[] = [];
   for (const code of [...codes].sort()) {
     const own = byProvince.get(code) ?? [];
@@ -1903,23 +1936,32 @@ export function buildEvidenceProvinces(
     const rainSignals = floodSignals.filter((alert) => alert.sourceId === 'tmd');
     const polygonSignals = floodSignals.filter((alert) => alert.sourceId === 'gistda');
 
-    const floodRiskScore = floodSignals.reduce((max, alert) => Math.max(max, alert.score), 0);
-    const floodRiskLevel = levelFromScore(floodRiskScore);
+    const floodRiskScore = floodSignals.length ? floodSignals.reduce((max, alert) => Math.max(max, alert.score), 0) : null;
+    const floodRiskLevel = floodRiskScore === null ? null : levelFromScore(floodRiskScore);
+
+    const heatRiskScore = heatSignals.length
+      ? heatSignals.reduce((max, alert) => Math.max(max, alert.score), 0)
+      : null;
+    const heatRiskLevel = heatRiskScore === null ? null : levelFromScore(heatRiskScore);
 
     const context = reference?.region ? regionDroughtContext.get(reference.region) : undefined;
-    const droughtRiskScore = context ? context.score : 0;
-    const droughtRiskLevel = levelFromScore(droughtRiskScore);
+    const droughtRiskScore = context ? context.score : null;
+    const droughtRiskLevel = context ? context.level : null;
 
-    const overallRisk: DisasterAlertLevel =
-      floodRiskLevel === 'critical' || droughtRiskLevel === 'critical'
-        ? 'critical'
-        : floodRiskLevel === 'warning' || droughtRiskLevel === 'warning'
-          ? 'warning'
-          : 'normal';
+    const knownLevels = [
+      floodRiskLevel,
+      ...(heatRiskLevel ? [heatRiskLevel] : []),
+      ...(droughtRiskLevel ? [droughtRiskLevel] : []),
+    ];
+    const overallRisk: DisasterAlertLevel = knownLevels.includes('critical')
+      ? 'critical'
+      : knownLevels.includes('warning')
+        ? 'warning'
+        : 'normal';
 
-    const rainfallValues = rainSignals
-      .map((alert) => alert.metricValue)
-      .filter((value): value is number => value !== null);
+    const stationRain = stationRainByProvince.get(code);
+    const confirmedRainValues = stationRain?.confirmed ?? [];
+    const rainfall7dMm = confirmedRainValues.length ? round1(Math.max(...confirmedRainValues)) : null;
     const polygonArea = polygonSignals.reduce((sum, alert) => sum + (alert.metricValue ?? 0), 0);
     const riceArea = bundle.flood?.rows.find((row) => row.provinceCode === code)?.riceAreaRai ?? null;
 
@@ -1929,8 +1971,8 @@ export function buildEvidenceProvinces(
         `ตรวจพบ polygon น้ำท่วมจริง ${formatNumber(polygonArea, 0)} ไร่${riceArea === null ? '' : ` (นาข้าว ${formatNumber(riceArea, 0)} ไร่)`}`,
       );
     }
-    if (rainfallValues.length) {
-      advisoryParts.push(`สถานีในจังหวัดรายงานฝนสูงสุด ${formatNumber(Math.max(...rainfallValues))} มม./วัน`);
+    if (rainfall7dMm !== null) {
+      advisoryParts.push(`สถานีในจังหวัดรายงานฝนสูงสุด ${formatNumber(rainfall7dMm)} มม./วัน`);
     }
     if (heatSignals.length) {
       advisoryParts.push(`สถานีในจังหวัดรายงานอุณหภูมิสูงสุด ${formatNumber(Math.max(...heatSignals.map((s) => s.metricValue ?? 0)))} °C`);
@@ -1942,7 +1984,7 @@ export function buildEvidenceProvinces(
 
     const actions: string[] = [];
     if (polygonSignals.length) actions.push('ตรวจสอบแปลงที่ปรากฏใน polygon ตามพิกัดตำบล และถ่ายภาพความเสียหายเป็นหลักฐานประกอบการขอช่วยเหลือ');
-    if (rainfallValues.length) actions.push('เปิดทางระบายน้ำในแปลงและงดใส่ปุ๋ย/สารเคมีก่อนรอบฝนหนักถัดไป');
+    if (rainSignals.length) actions.push('เปิดทางระบายน้ำในแปลงและงดใส่ปุ๋ย/สารเคมีก่อนรอบฝนหนักถัดไป');
     if (heatSignals.length) actions.push('คลุมดิน/โรงเรือนและเพิ่มรอบน้ำให้พืชระยะอ่อนในช่วงอุณหภูมิสูง');
     if (context) actions.push('ทบทวนแผนจัดสรรน้ำของแหล่งน้ำในภูมิภาคเดียวกันก่อนเริ่มรอบปลูกใหม่');
     if (!actions.length) actions.push('ติดตามสัญญาณรอบข้อมูลถัดไป — ยังไม่มีหลักฐานตรวจวัดที่ต้องมาตรการ');
@@ -1957,7 +1999,9 @@ export function buildEvidenceProvinces(
       floodRiskLevel,
       droughtRiskScore,
       droughtRiskLevel,
-      rainfall7dMm: rainfallValues.length ? round1(Math.max(...rainfallValues)) : null,
+      heatRiskScore,
+      heatRiskLevel,
+      rainfall7dMm,
       soilMoisturePercent: null,
       reservoirStoragePercent: null,
       affectedCrops: reference ? reference.crops : [],
@@ -1967,9 +2011,11 @@ export function buildEvidenceProvinces(
       keyReservoirs: [],
       signalIds: own.map((alert) => alert.id),
       evidenceSources: [...new Set(own.map((alert) => alert.sourceId))],
-      rainfallBasis: rainfallValues.length
+      rainfallBasis: rainfall7dMm !== null
         ? 'ค่าสูงสุดของสถานีที่รายงานในวันตรวจวัดเดียว (station × day) ไม่ใช่ฝนสะสม 7 วันระดับจังหวัด'
-        : 'ไม่มีสถานีที่รายงานปริมาณฝนในจังหวัดนี้สำหรับวันนี้ (absent ไม่ใช่ฝนเป็น 0)',
+        : (stationRain?.pendingCount ?? 0) > 0
+          ? 'สถานีในจังหวัดนี้รายงานปริมาณฝนแต่หน่วยยังไม่ได้รับการยืนยัน จึงไม่แปลงเป็น มม. (ยังไม่ทราบ ไม่ใช่ 0)'
+          : 'ไม่มีสถานีที่รายงานปริมาณฝนในจังหวัดนี้สำหรับวันนี้ (absent ไม่ใช่ฝนเป็น 0)',
       droughtBasis: context
         ? `บริบทรายภูมิภาค (${reference?.region}) จากอ่างเก็บน้ำ RID ที่มีระดับน้ำต่ำที่สุด — ไม่ใช่ค่าของจังหวัดนี้โดยตรง`
         : 'ยังไม่มีข้อมูลตรวจวัดระดับจังหวัดที่ป้อนดัชนีภัยแล้ง (ข้อมูลอ่างเก็บน้ำอยู่กับระดับรายอ่างเท่านั้น)',
@@ -1978,9 +2024,12 @@ export function buildEvidenceProvinces(
     });
   }
 
+  const evidenceScore = (row: ProvinceRiskItem) =>
+    Math.max(row.floodRiskScore ?? 0, row.heatRiskScore ?? 0, row.droughtRiskScore ?? 0);
+
   return rows.sort((left, right) =>
     LEVEL_ORDER[left.overallRisk] - LEVEL_ORDER[right.overallRisk]
-    || right.floodRiskScore - left.floodRiskScore
+    || evidenceScore(right) - evidenceScore(left)
     || left.provinceCode.localeCompare(right.provinceCode));
 }
 
@@ -2001,9 +2050,15 @@ export function buildEvidenceSummary(
   const overflowCount = reservoirPercents.filter((value) => value > EARLY_WARNING_THRESHOLDS.ridOverflowWarningPercent).length;
   const droughtCount = reservoirPercents.filter((value) => value < EARLY_WARNING_THRESHOLDS.ridDroughtWarningPercent).length;
 
-  const rainValues = (bundle.weather?.rows ?? [])
+  const weatherRows = bundle.weather?.rows ?? [];
+  const rainValues = weatherRows
+    .filter((station) => hasConfirmedUnit(station.unitStatus))
     .map((station) => station.rainfallMm)
     .filter((value): value is number => value !== null && Number.isFinite(value));
+  const pendingRainStations = weatherRows.filter((station) =>
+    !hasConfirmedUnit(station.unitStatus)
+    && station.rainfallMm !== null
+    && Number.isFinite(station.rainfallMm)).length;
   const polygonProvinces = alerts.filter((alert) => alert.sourceId === 'gistda');
   const criticalCount = alerts.filter((alert) => alert.level === 'critical').length;
   const warningCount = alerts.filter((alert) => alert.level === 'warning').length;
@@ -2029,11 +2084,13 @@ export function buildEvidenceSummary(
     highRiskProvincesCount: levelCount(provinces, 'critical'),
     warningProvincesCount: levelCount(provinces, 'warning'),
     normalProvincesCount: levelCount(provinces, 'normal'),
-    avgRainfall7dMm: rainValues.length ? round1(rainValues.reduce((sum, value) => sum + value, 0) / rainValues.length) : 0,
-    maxRainfall7dMm: rainValues.length ? round1(Math.max(...rainValues)) : 0,
+    avgRainfall7dMm: rainValues.length ? round1(rainValues.reduce((sum, value) => sum + value, 0) / rainValues.length) : null,
+    maxRainfall7dMm: rainValues.length ? round1(Math.max(...rainValues)) : null,
     rainfallBasis: rainValues.length
       ? `ค่าเฉลี่ย/ค่าสูงสุดของปริมาณน้ำฝนรายวันที่สถานี ${rainValues.length} แห่งรายงาน (grain: station × day) — ไม่ใช่ฝนสะสม 7 วันระดับจังหวัด`
-      : 'ไม่มีสถานีที่รายงานปริมาณฝนใน round ข้อมูลนี้ (absent ไม่ใช่ 0 มม.)',
+      : pendingRainStations > 0
+        ? `สถานี ${pendingRainStations} แห่งรายงานปริมาณฝนแต่หน่วยยังไม่ได้รับการยืนยัน จึงไม่คำนวณค่า มม. (ยังไม่ทราบ ไม่ใช่ 0 มม.)`
+        : 'ไม่มีสถานีที่รายงานปริมาณฝนใน round ข้อมูลนี้ (absent ไม่ใช่ 0 มม.)',
     disasterAlertLevel: criticalCount > 0 ? 'critical' : warningCount > 0 ? 'warning' : 'normal',
     headline: `${headlineParts.length ? headlineParts.join(' · ') : 'ไม่พบสัญญาณที่ผ่านเกณฑ์ภายในในรอบข้อมูลนี้'} — สัญญาณจริง ${alerts.length} รายการ`,
     subheadline: EARLY_WARNING_ANALYTICS_DISCLAIMER,

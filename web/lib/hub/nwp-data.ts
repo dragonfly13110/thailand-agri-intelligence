@@ -30,6 +30,7 @@ import { getD1 } from './d1';
 import { HubDatabaseError } from './db';
 import { HubRequestError } from './http';
 import { evaluateRisk, validateThresholds } from './nwp-risk';
+import { NWP_RESOURCE_LICENSE } from './nwp-resource-license.ts';
 import { BUNDLED_NWP_THRESHOLDS } from './nwp-thresholds';
 import {
   NWP_DATASET_VERSION,
@@ -44,6 +45,7 @@ import {
   NWP_SOURCE_ID,
   NWP_VARIABLES,
   NWP_WARNINGS,
+  isNwpUnitConfirmed,
   isNwpVariable,
   type NwpBbox,
   type NwpGridResponse,
@@ -305,7 +307,8 @@ export function toRunRow(raw: Record<string, unknown>): NwpRunRow {
     domain: text(raw.domain),
     initAt: text(raw.initAt),
     retrievedAt: text(raw.retrievedAt),
-    licenseStatus: text(raw.licenseStatus),
+    // Current registry approval supersedes the stale status stored with older runs.
+    licenseStatus: NWP_RESOURCE_LICENSE.license_status,
     unitStatus: text(raw.unitStatus),
     publicationMode: text(raw.publicationMode),
     variablesJson: text(raw.variablesJson),
@@ -534,26 +537,18 @@ export function mapProvinceRows(
 /* Access status                                                       */
 /* ------------------------------------------------------------------ */
 
-/** Internal thresholds are confirmed only by a non-pending unit status. */
-export function isUnitConfirmed(unitStatus: string | null | undefined): boolean {
-  if (!unitStatus) return false;
-  const value = unitStatus.trim().toLowerCase();
-  if (!value) return false;
-  if (value.startsWith('pending')) return false;
-  if (value === 'unknown' || value === 'unconfirmed') return false;
-  return true;
-}
-
 /**
- * Real publication state of a run. `approved_public` requires BOTH an
- * approved licence and confirmed units; the TMD HPC registry is still
- * `pending`, so the hub must answer `metadata_only` until that changes.
+ * Access follows current registry approval; unit confirmation controls
+ * interpretation and thresholds, not permission to publish numeric values.
  */
 export function resolveAccessStatus(
   licenseStatus: string | null | undefined,
-  unitStatus: string | null | undefined,
 ): AccessStatus {
-  if (licenseStatus === 'approved_public' && isUnitConfirmed(unitStatus)) return 'approved_public';
+  if (
+    licenseStatus === 'approved_public' &&
+    NWP_RESOURCE_LICENSE.project_publication_approved &&
+    NWP_RESOURCE_LICENSE.access_status === 'approved_public'
+  ) return 'approved_public';
   return 'metadata_only';
 }
 
@@ -745,8 +740,20 @@ async function hasCellCountColumn(runner: NwpSqlRunner): Promise<boolean> {
 /* Readers                                                             */
 /* ------------------------------------------------------------------ */
 
-/** `403` when the run is published as metadata only (kill switch). */
+/**
+ * A run is readable only after the publisher finished it (`ready`/`partial`).
+ * A failed run keeps the child rows written before the failure, so the status
+ * must be rejected before any snapshot is served; an unknown/null status is
+ * unpublished as well. `403` is reserved for the metadata-only kill switch.
+ */
 function assertPublishable(run: NwpRunRow): void {
+  if (run.status !== 'ready' && run.status !== 'partial') {
+    throw new HubRequestError(
+      404,
+      'NWP_NOT_FOUND',
+      'ไม่พบรอบพยากรณ์ที่เผยแพร่แล้ว',
+    );
+  }
   if (run.publicationMode === 'metadata_only') {
     throw new HubRequestError(
       403,
@@ -798,7 +805,7 @@ export async function readNwpRuns(runner: NwpSqlRunner): Promise<NwpPayload<NwpR
     meta: {
       availability: runs.length ? 'ready' : 'empty',
       completeness: runs.some((run) => run.status === 'partial') ? 'partial' : runs.length ? 'complete' : 'unknown',
-      access: 'metadata_only',
+      access: resolveAccessStatus(NWP_RESOURCE_LICENSE.license_status),
       sourceIds: [NWP_SOURCE_ID],
       dataAsOf: runs.length ? runs[0].initAt : null,
       datasetVersion: NWP_DATASET_VERSION,
@@ -827,6 +834,7 @@ export async function readNwpGrid(
   }
 
   const grid = mapSnapshotRow(snapshot, query);
+  grid.unit = isNwpUnitConfirmed(run.unitStatus) ? snapshot.unit : null;
   assertGridPayloadSize(grid);
 
   return {
@@ -834,7 +842,7 @@ export async function readNwpGrid(
     meta: {
       availability: 'ready',
       completeness: run.status === 'partial' ? 'partial' : 'complete',
-      access: resolveAccessStatus(run.licenseStatus, run.unitStatus),
+      access: resolveAccessStatus(run.licenseStatus),
       sourceIds: [NWP_SOURCE_ID],
       dataAsOf: grid.validAt,
       datasetVersion: NWP_DATASET_VERSION,
@@ -859,7 +867,7 @@ export async function readNwpProvinces(
   assertPublishable(run);
 
   const snapshotRows = await runner(
-    'SELECT run_id AS runId, variable, valid_at AS validAt, quality_json AS qualityJson FROM nwp_snapshots ' +
+    'SELECT run_id AS runId, variable, valid_at AS validAt, unit, quality_json AS qualityJson FROM nwp_snapshots ' +
       'WHERE run_id = ? AND variable = ? AND ' + VALID_AT_MATCH + ' LIMIT 1',
     [query.runId, query.variable, validAtKey(query.validAt)],
   );
@@ -893,7 +901,11 @@ export async function readNwpProvinces(
     cellCount: numberOrNull(row.cellCount),
   }));
 
-  const provinces = mapProvinceRows(rows, { variable: query.variable, thresholds, qualityCellCounts });
+  const provinces = mapProvinceRows(rows, {
+    variable: query.variable,
+    thresholds: isNwpUnitConfirmed(run.unitStatus) ? thresholds : null,
+    qualityCellCounts,
+  });
   const warnings = runWarnings();
   if (!cellCountExists && !Object.keys(qualityCellCounts).length) {
     warnings.push(
@@ -906,6 +918,7 @@ export async function readNwpProvinces(
       runId: query.runId,
       variable: query.variable,
       validAt: query.validAt,
+      unit: isNwpUnitConfirmed(run.unitStatus) ? text(snapshot.unit) : null,
       method: NWP_METHOD_PROVINCE,
       radiusKm: NWP_PROVINCE_RADIUS_KM,
       provinces,
@@ -913,7 +926,7 @@ export async function readNwpProvinces(
     meta: {
       availability: provinces.length ? 'ready' : 'empty',
       completeness: run.status === 'partial' ? 'partial' : provinces.length ? 'complete' : 'unknown',
-      access: resolveAccessStatus(run.licenseStatus, run.unitStatus),
+      access: resolveAccessStatus(run.licenseStatus),
       sourceIds: [NWP_SOURCE_ID],
       dataAsOf: query.validAt,
       datasetVersion: NWP_DATASET_VERSION,

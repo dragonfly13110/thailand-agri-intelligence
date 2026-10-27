@@ -502,12 +502,19 @@ export function EarlyWarningDashboard({
             </div>
           </div>
           <div className={styles.kpiValueRow}>
-            <span className={styles.kpiValue}>{initialSummary.avgRainfall7dMm}</span>
-            <span className={styles.kpiUnit}>มม.</span>
+            <span className={styles.kpiValue}>
+              {initialSummary.avgRainfall7dMm === null ? 'ไม่ทราบ' : initialSummary.avgRainfall7dMm}
+            </span>
+            {initialSummary.avgRainfall7dMm !== null && <span className={styles.kpiUnit}>มม.</span>}
           </div>
           <div className={styles.kpiFooter}>
             <span>
-              สูงสุด <strong>{initialSummary.maxRainfall7dMm} มม.</strong> — {initialSummary.rainfallBasis}
+              {initialSummary.maxRainfall7dMm === null ? (
+                'ยังไม่มีค่าสูงสุดที่หน่วยได้รับการยืนยัน — '
+              ) : (
+                <>สูงสุด <strong>{initialSummary.maxRainfall7dMm} มม.</strong> — </>
+              )}
+              {initialSummary.rainfallBasis}
             </span>
             <span className={`${styles.kpiSubtag} ${isRealEvidence ? styles.tagInfo : styles.tagWarning}`}>
               {isRealEvidence ? 'TMD สถานี' : 'แบบจำลอง'}
@@ -939,6 +946,14 @@ export function EarlyWarningDashboard({
                                   ))}
                                 </div>
                               )}
+                              {prov.heatRiskLevel && (
+                                <span
+                                  className={styles.basinTag}
+                                  title="ระดับความรุนแรงของสัญญาณร้อนจัดจากสถานี TMD (ดัชนีภายในของ TADIH)"
+                                >
+                                  ร้อนจัด: {getRiskBadgeText(prov.heatRiskLevel)} ({prov.heatRiskScore ?? 0}/100)
+                                </span>
+                              )}
                               <span className={styles.basinTag}>
                                 {provinceSignals.length > 0
                                   ? `${provinceSignals.length} สัญญาณตั้งต้น`
@@ -946,33 +961,58 @@ export function EarlyWarningDashboard({
                               </span>
                             </td>
                             <td className={styles.riskMeterCell}>
-                              <div className={styles.meterHeader}>
-                                <span className={styles.meterLabel}>ความเสี่ยง</span>
-                                <span className={styles.meterScore}>{prov.floodRiskScore}/100</span>
-                              </div>
-                              <div className={styles.meterBarBg}>
-                                <div
-                                  className={`${styles.meterBarFill} ${getRiskScoreClass(prov.floodRiskScore)}`}
-                                  style={{ width: `${prov.floodRiskScore}%` }}
-                                />
-                              </div>
+                              {prov.floodRiskScore === null ? (
+                                <div className={styles.meterHeader}>
+                                  <span className={styles.meterLabel}>ยังไม่มีข้อมูลน้ำท่วม</span>
+                                  <span className={styles.meterScore}>ไม่ทราบ</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className={styles.meterHeader}>
+                                    <span className={styles.meterLabel}>ความเสี่ยง</span>
+                                    <span className={styles.meterScore}>{prov.floodRiskScore}/100</span>
+                                  </div>
+                                  <div className={styles.meterBarBg}>
+                                    <div
+                                      className={`${styles.meterBarFill} ${getRiskScoreClass(prov.floodRiskScore)}`}
+                                      style={{ width: `${prov.floodRiskScore}%` }}
+                                    />
+                                  </div>
+                                </>
+                              )}
                             </td>
-                            <td className={styles.riskMeterCell}>
-                              <div className={styles.meterHeader}>
-                                <span className={styles.meterLabel}>ความเสี่ยง</span>
-                                <span className={styles.meterScore}>{prov.droughtRiskScore}/100</span>
-                              </div>
-                              <div className={styles.meterBarBg}>
-                                <div
-                                  className={`${styles.meterBarFill} ${getRiskScoreClass(prov.droughtRiskScore)}`}
-                                  style={{ width: `${prov.droughtRiskScore}%` }}
-                                />
-                              </div>
+                            <td
+                              className={styles.riskMeterCell}
+                              title={prov.droughtRiskScore === null ? (prov.droughtBasis ?? undefined) : undefined}
+                            >
+                              {prov.droughtRiskScore === null ? (
+                                <div className={styles.meterHeader}>
+                                  <span className={styles.meterLabel}>ยังไม่มีข้อมูลภัยแล้ง</span>
+                                  <span className={styles.meterScore}>ไม่ทราบ</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className={styles.meterHeader}>
+                                    <span className={styles.meterLabel}>ความเสี่ยง</span>
+                                    <span className={styles.meterScore}>{prov.droughtRiskScore}/100</span>
+                                  </div>
+                                  <div className={styles.meterBarBg}>
+                                    <div
+                                      className={`${styles.meterBarFill} ${getRiskScoreClass(prov.droughtRiskScore)}`}
+                                      style={{ width: `${prov.droughtRiskScore}%` }}
+                                    />
+                                  </div>
+                                </>
+                              )}
                             </td>
-                            <td className={styles.waterIndexCell}>
+                            <td className={styles.waterIndexCell} title={prov.rainfallBasis ?? undefined}>
                               <div className={styles.waterIndexLine}>
                                 <span>{isRealEvidence ? 'ฝนจากสถานี:' : 'ฝนสะสม:'}</span>
-                                <strong>{formatMeasure(prov.rainfall7dMm, 1, ' มม.')}</strong>
+                                <strong>
+                                  {prov.rainfall7dMm === null
+                                    ? 'ยังไม่มีข้อมูล'
+                                    : formatMeasure(prov.rainfall7dMm, 1, ' มม.')}
+                                </strong>
                               </div>
                               <div className={styles.waterIndexLine}>
                                 <span>ความชื้นดิน:</span>

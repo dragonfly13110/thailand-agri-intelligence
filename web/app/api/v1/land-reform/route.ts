@@ -100,7 +100,7 @@ export async function GET(request: Request) {
           completeness: 'unknown',
           access: 'metadata_only',
           sourceIds: ['alro-land-simulation'],
-          dataAsOf: dataset.asOfDate,
+          dataAsOf: null,
           sourceUpdatedAt: null,
           datasetVersion: dataset.datasetVersion,
           warnings: empty ? [...LAND_REFORM_WARNINGS, EMPTY_FILTER_WARNING] : [...LAND_REFORM_WARNINGS],

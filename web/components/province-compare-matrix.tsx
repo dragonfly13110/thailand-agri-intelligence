@@ -441,7 +441,7 @@ export function ProvinceCompareMatrix({ rows, shared, onRetry }: Props) {
               <span className={styles.dimensionTitle}>
                 ฝนสะสม 7 วัน <span className={styles.dimensionSub}>(ค่าพยากรณ์)</span>
               </span>
-              <span className={styles.dimensionNote}>ค่าพยากรณ์และค่าปกติจาก API v1</span>
+              <span className={styles.dimensionNote}>แสดงเมื่อมี forecast batch ที่อนุมัติแล้ว</span>
               <a className={styles.rowLink} href="/weather">
                 หน้าสภาพอากาศ<Icon name="arrow" size={12}/>
               </a>

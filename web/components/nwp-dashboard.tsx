@@ -9,12 +9,13 @@ import {
   NWP_METHOD_PROVINCE,
   NWP_VARIABLE_LABELS_TH,
   NWP_WARNINGS,
+  isNwpUnitConfirmed,
   isNwpVariable,
   type NwpThresholds,
   type NwpVariable,
   type RiskLevel,
 } from '@/lib/hub/nwp-types';
-import { advisoryFor, riskLabelTh, riskRank, unitFor } from '@/lib/hub/nwp-risk';
+import { advisoryFor, provinceRiskLabelTh, riskLabelTh, riskRank, unitFor } from '@/lib/hub/nwp-risk';
 
 /**
  * `/nwp` dashboard (lane E).
@@ -74,6 +75,7 @@ export type NwpProvincesPayload = {
   runId: string;
   variable: string;
   validAt: string;
+  unit: string | null;
   method: string;
   radiusKm: number;
   provinces: NwpProvinceRow[];
@@ -426,7 +428,7 @@ export function NwpDashboard({
   }, [activeRun]);
 
   const thresholdsForVariable = useMemo(() => {
-    if (!thresholds || !isNwpVariable(selection.variable)) return null;
+    if (!thresholds || !isNwpUnitConfirmed(activeRun?.unitStatus) || !isNwpVariable(selection.variable)) return null;
     const definition = thresholds.variables?.[selection.variable];
     if (!definition) return null;
     if (
@@ -437,7 +439,7 @@ export function NwpDashboard({
       return null;
     }
     return { watch: definition.watch, high: definition.high, severe: definition.severe };
-  }, [thresholds, selection.variable]);
+  }, [activeRun?.unitStatus, thresholds, selection.variable]);
 
   const grid = state.grid;
   const provincesPayload = state.provinces;
@@ -490,7 +492,7 @@ export function NwpDashboard({
   );
 
   const advisoryItems = useMemo(() => {
-    if (!isNwpVariable(selection.variable)) return [];
+    if (!isNwpUnitConfirmed(activeRun?.unitStatus) || !isNwpVariable(selection.variable)) return [];
     const rows = provincesPayload?.provinces ?? [];
     return rows
       .filter((row) => row.riskLevel !== null && row.riskLevel !== 'normal')
@@ -507,12 +509,11 @@ export function NwpDashboard({
         return (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY);
       })
       .slice(0, 6);
-  }, [provincesPayload, selection.variable]);
+  }, [activeRun?.unitStatus, provincesPayload, selection.variable]);
 
-  const unitHint = unitFor(
-    isNwpVariable(selection.variable) ? selection.variable : ('p24h' as NwpVariable),
-    thresholds,
-  );
+  const unitHint = isNwpUnitConfirmed(activeRun?.unitStatus)
+    ? unitFor(isNwpVariable(selection.variable) ? selection.variable : ('p24h' as NwpVariable), thresholds)
+    : null;
 
   const handleRunChange = (runId: string) => {
     const nextRun = runs.find((run) => run.runId === runId) ?? null;
@@ -683,10 +684,16 @@ export function NwpDashboard({
             <li className={styles.kpi}>
               <span className={styles.kpiLabel}>จังหวัดที่เข้าเกณฑ์เฝ้าระวัง</span>
               <span className={styles.kpiValue}>
-                {provincesPayload ? countFmt.format(watchCount) : NO_DATA}
+                {provincesPayload
+                  ? isNwpUnitConfirmed(activeRun?.unitStatus) ? countFmt.format(watchCount) : 'ยังไม่จัดระดับ'
+                  : NO_DATA}
                 <span className={styles.kpiUnit}>จังหวัด</span>
               </span>
-              <p className={styles.kpiNote}>เกณฑ์ภายในของระบบ (ยังไม่ใช่เกณฑ์ราชการ)</p>
+              <p className={styles.kpiNote}>
+                {isNwpUnitConfirmed(activeRun?.unitStatus)
+                  ? 'เกณฑ์ภายในของระบบ (ยังไม่ใช่เกณฑ์ราชการ)'
+                  : 'หน่วยและนิยามตัวแปรยังรอยืนยัน จึงยังไม่คำนวณจำนวนจังหวัดที่เข้าเกณฑ์'}
+              </p>
             </li>
           </ul>
 
@@ -805,7 +812,7 @@ export function NwpDashboard({
                         <td>{countFmt.format(row.cellCount)}</td>
                         <td>
                           <span className={`${styles.riskBadge} ${riskToneClass(row.riskLevel)}`}>
-                            {riskLabelTh(row.riskLevel as RiskLevel | null)}
+                            {provinceRiskLabelTh(row.value, row.riskLevel as RiskLevel | null)}
                           </span>
                         </td>
                       </tr>
@@ -834,10 +841,13 @@ export function NwpDashboard({
               </div>
               {advisoryItems.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <strong>ไม่พบจังหวัดที่เข้าเกณฑ์เฝ้าระวัง</strong>
+                  <strong>{isNwpUnitConfirmed(activeRun?.unitStatus)
+                    ? 'ไม่พบจังหวัดที่เข้าเกณฑ์เฝ้าระวัง'
+                    : 'ยังไม่จัดระดับความเสี่ยงรายจังหวัด'}</strong>
                   <span>
-                    ค่าพยากรณ์ของตัวแปร/เวลาที่เลือกอยู่ต่ำกว่าเกณฑ์เฝ้าระวังทั้งหมด
-                    (หรือยังไม่มีข้อมูลในรายการจังหวัด)
+                    {isNwpUnitConfirmed(activeRun?.unitStatus)
+                      ? 'ค่าพยากรณ์ของตัวแปร/เวลาที่เลือกอยู่ต่ำกว่าเกณฑ์เฝ้าระวังทั้งหมด (หรือยังไม่มีข้อมูลในรายการจังหวัด)'
+                      : 'หน่วยและนิยามตัวแปรยังรอยืนยัน จึงยังไม่ใช้เกณฑ์ภายในจัดระดับ'}
                   </span>
                 </div>
               ) : (

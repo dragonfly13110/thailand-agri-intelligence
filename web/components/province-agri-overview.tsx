@@ -67,11 +67,11 @@ type Advisory = {
 
 type WeatherPayload = {
   location: { kind: string; code: string; name: string; region: string; regionLabel: string };
-  issuedAt: string;
+  issuedAt: string | null;
   sample: boolean;
   source: { agency: string; sourceUrl: string; licenseStatus: string };
   days: ForecastDay[];
-  cumulative: CumulativeRainfall;
+  cumulative: CumulativeRainfall | null;
   advisories: Advisory[];
 };
 
@@ -163,7 +163,7 @@ function fmtPercent(value: number | null): string {
   return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 1 }).format(value) + '%';
 }
 
-function thaiDateLabel(iso: string): string {
+function thaiDateLabel(iso: string | null): string {
   if (!iso || Number.isNaN(Date.parse(iso + 'T00:00:00+07:00'))) return 'ยังไม่ระบุ';
   return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeZone: 'Asia/Bangkok' })
     .format(new Date(iso + 'T00:00:00+07:00'));
@@ -220,7 +220,7 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
     const weatherPromise = fetch('/api/v1/weather?provinceCode=' + encodeURIComponent(provinceCode), { signal, headers })
       .then((response) => readJson<WeatherEnvelope>(response))
       .then((envelope) => {
-        if (!envelope?.data || !Array.isArray(envelope.data.days) || !envelope.data.cumulative ||
+        if (!envelope?.data || !Array.isArray(envelope.data.days) ||
           !Array.isArray(envelope.data.advisories) || !envelope.data.location?.regionLabel) {
           throw new Error('รูปแบบข้อมูลพยากรณ์ไม่ถูกต้อง');
         }
@@ -273,16 +273,16 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
     <div className={styles.header}>
       <div>
         <h2 id="province-agri-heading">สถานการณ์การเกษตรในจังหวัด{provinceName}</h2>
-        <p>พยากรณ์ 7 วัน · คำเตือนเพื่อการเกษตร · สถานะสิทธิ์ข้อมูลน้ำต้นทุน — อ่านจาก `/api/v1/weather` และ `/api/v1/water/reservoirs`</p>
+        <p>สถานะข้อมูลพยากรณ์และน้ำต้นทุน — อ่านจาก `/api/v1/weather` และ `/api/v1/water/reservoirs`</p>
       </div>
       {sampleMode && <span className="badge pending"><Icon name="lock" size={13}/>ข้อมูลตัวอย่าง (ยังรอตรวจสิทธิ์)</span>}
     </div>
 
-    {sampleMode && weatherWarnings.length > 0 && (
+    {weatherReady && weatherWarnings.length > 0 && (
       <div className={styles.notice} role="status">
         <span className={styles.noticeIcon}><Icon name="info" size={17}/></span>
         <div>
-          <strong>ข้อมูลตัวอย่างเพื่อสาธิตหน้าจอ</strong>
+          <strong>สถานะข้อมูลพยากรณ์</strong>
           <ul>{weatherWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
         </div>
       </div>
@@ -310,6 +310,13 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
 /* ---------------------- weather view ---------------------- */
 
 function WeatherCards({ weather }: { weather: WeatherPayload }) {
+  if (!weather.days.length || !weather.cumulative) {
+    return <section className={styles.card} aria-label="สถานะข้อมูลพยากรณ์" role="status">
+      <h3>ยังไม่มีพยากรณ์ที่เผยแพร่ได้</h3>
+      <p>ข้อมูลพยากรณ์ TMD HPC แยกอยู่ที่ <a href="/nwp">หน้าพยากรณ์ TMD HPC</a></p>
+    </section>;
+  }
+
   const today = weather.days[0];
   const tone = todayTone(today);
   const rainy = today ? isRainy(today.conditionCode) : false;

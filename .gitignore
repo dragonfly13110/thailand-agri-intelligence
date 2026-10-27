@@ -25,3 +25,5 @@ chrome-profile/
 .wrangler/
 .impeccable/
 .mimocode/
+
+web/.playwright-cli/

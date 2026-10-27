@@ -1,14 +1,14 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
-หลังรอบ Real Data R1-A (26 ต.ค. 2569) ทะเบียนมี **88 รายการ**: `approved_public` **9 รายการ** และ `pending` **79 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — ทุกรายการที่เปิดมี `evidence` (URL + วันที่ + สิ่งที่พบ), `attribution_text` และ `project_publication_approved: true` ครบ ส่วนยอดที่เหลือยัง fail-closed ตามหลักฐานราย resource
+อัปเดต 27 ต.ค. 2569 หลังได้รับการยืนยันจากเจ้าของโปรเจกต์: ทะเบียนมี **89 รายการ**: `approved_public` **10 รายการ** และ `pending` **79 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — รายการใหม่ `oae_nabc_daily_market_prices` บันทึกสิทธิ์เผยแพร่จากคำยืนยันของเจ้าของโปรเจกต์ใน `AGENTS.md` ข้อ 3 และอ้างเครดิต OAE/NABC โดยตรง ไม่ได้อ้างว่าเป็นสัญญาอนุญาตต้นทางหรือยืนยันการใช้เชิงพาณิชย์ ส่วน `oae_nabc_monthly_jasmine_paddy_price` ยังคง `pending` และเป็นคนละ resource. รายการที่อนุมัติแล้วมีหลักฐานเป็น URL ต้นทางหรือการยืนยันจากเจ้าของโปรเจกต์ พร้อมวันที่และสิ่งที่ยืนยัน
 
-รายการที่ `approved_public` ณ 26 ต.ค. 2569: `chirps_v3_daily_rnl_2026_09_30`, `open_meteo_thailand_era5_archive` (attribution `Weather data by Open-Meteo.com (CC BY 4.0)`), `gistda_flood_7days_daily`, `rid_medium_reservoirs`, `tmd_weather_today_by_agro_daily`, `tmd_weather_today_station_daily`, `tmd_weather_today_by_synop_daily`, `tmd_monthly_rainfall_monthly`, `tmd_hpc_nwp_d02_grid` — RID/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ (AGENTS.md ข้อ 3; บล็อก `owner_authorisation` ในไฟล์ทะเบียน) พร้อมบันทึกข้อจำกัดของข้อความสัญญาอนุญาตต้นทางไว้ใน `rights_facts` ทุกครั้ง โดย `tmd_hpc_nwp_d02_grid` เป็น forecast grid จากแบบจำลอง จึงอนุมัติเฉพาะการเผยแพร่ค่าพยากรณ์พร้อมเครดิต ไม่นับเป็นค่าตรวจวัด และไม่ยืนยันการใช้เชิงพาณิชย์ (`commercial_use_confirmed: false`) ส่วน `open_meteo_thailand_forecast` คง `pending` เพราะ forecast ห้ามเก็บรวมเป็น observation
+รายการที่ `approved_public` ปัจจุบัน: `chirps_v3_daily_rnl_2026_09_30`, `open_meteo_thailand_era5_archive` (attribution `Weather data by Open-Meteo.com (CC BY 4.0)`), `gistda_flood_7days_daily`, `rid_medium_reservoirs`, `tmd_weather_today_by_agro_daily`, `tmd_weather_today_station_daily`, `tmd_weather_today_by_synop_daily`, `tmd_monthly_rainfall_monthly`, `tmd_hpc_nwp_d02_grid` และ `oae_nabc_daily_market_prices`. RID/TMD และ NABC daily ใช้คำยืนยันสิทธิ์เผยแพร่ของเจ้าของโปรเจกต์ตาม `AGENTS.md` ข้อ 3 และบันทึกแยกจากเงื่อนไขสัญญาอนุญาตต้นทาง ส่วน NWP เป็น forecast grid จึงไม่เก็บเป็น observation; `commercial_use_confirmed` ยังคง `false` สำหรับทรัพยากรที่ยังไม่มีการยืนยันเชิงพาณิชย์ ส่วน `open_meteo_thailand_forecast` และ NABC monthly rice ยังคง `pending` แยกตาม resource
 
 ประวัติรอบก่อนหน้า: 25 ต.ค. 2569 ทะเบียนมี 82 รายการ โดยเปิดเฉพาะ CHIRPS รายการเดียว
 
 ตรวจวันที่ 22–25 ตุลาคม 2569 จาก metadata และเงื่อนไขของผู้ให้บริการโดยตรง ผลแบบอ่านด้วยโปรแกรมอยู่ใน [resource_licenses.json](../config/resource_licenses.json) พร้อม URL หลักฐาน วันที่ตรวจ และ SHA-256 ของคำตอบที่ตรวจผ่านคำขอจริงเมื่อมี
 
-มีเพียง CHIRPS v3.0 Daily final RNL วันที่ 2026-09-30 ที่ได้รับ `approved_public` ในทะเบียน จาก license ของ CHC ซึ่งครอบคลุมชุด CHIRPS3 และ CC BY 4.0; เทียบ source values 3 cells แล้ว แต่ยังไม่มี active D1 run/observation หรือ numeric public API output. รายการอื่นคง pending ตามหลักฐานราย resource.
+บันทึกการตรวจสิทธิ์ระหว่าง 22–25 ต.ค. ด้านล่างเป็นภาพ ณ วันตรวจ ก่อนรอบอนุมัติเจ้าของโปรเจกต์และการเพิ่มข้อมูลจริงใน D1; ข้อความเดิมว่า CHIRPS เป็นรายการเดียวที่เปิดให้ถือเป็นประวัติ ไม่ใช่สถานะทะเบียนปัจจุบัน. CHIRPS v3.0 Daily final RNL วันที่ 2026-09-30 มีหลักฐาน public domain/CC BY 4.0 จาก CHC และเทียบ source values 3 cells; สิทธิ์ของ NABC daily ในปัจจุบันมาจากรายการ owner authorization แยกต่างหากด้านบน ไม่ได้อ้างสิทธิ์จาก NABC monthly.
 
 | Resource ที่ตรวจ | หลักฐานที่พบ | สถานะโครงการ |
 |---|---|---|
@@ -41,7 +41,7 @@
 
 [ชุด monthly_prices_rice](https://catalog.oae.go.th/api/3/action/package_show?id=monthly_prices_rice) มี resource เดียว โดย [resource metadata](https://catalog.oae.go.th/api/3/action/resource_show?id=4570daca-e727-4036-bde9-35fd84d0ffd4) ชี้ไปยัง NABC API รายเดือนสำหรับสินค้าข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15
 
-ข้อมูลกำหนด `license_id="อื่นๆ"` และ `license_id_other="Creative Commons Attributions Non-Commercial"` จึงมีหลักฐานเรื่องเงื่อนไขไม่เชิงพาณิชย์ แต่ยังขาดรุ่นและ URL ของสัญญาอนุญาตที่ใช้จริง [หน้าชุดข้อมูล](https://catalog.oae.go.th/dataset/monthly_prices_rice) แสดงข้อความเดียวกัน
+ข้อมูลกำหนด `license_id="อื่นๆ"` และ `license_id_other="Creative Commons Attributions Non-Commercial"` จึงมีหลักฐานเรื่องเงื่อนไขไม่เชิงพาณิชย์ แต่ยังขาดรุ่นและ URL ของสัญญาอนุญาตที่ใช้จริง [หน้าชุดข้อมูล](https://catalog.oae.go.th/dataset/monthly_prices_rice) แสดงข้อความเดียวกัน รายการนี้ยัง `pending`; การอนุมัติ NABC daily prices ด้านบนเป็นคนละ endpoint และไม่ได้ใช้สิทธิ์จาก resource รายเดือนนี้
 
 [license_list ของ OAE](https://catalog.oae.go.th/api/3/action/license_list) มีรายการ `cc-nc` ซึ่งลิงก์ไปยังรุ่น 2.0 แต่ dataset นี้ใช้ ID `อื่นๆ` จึงยังนำรุ่น 2.0 มาใช้เป็นข้อสรุปของ resource นี้ไม่ได้ ต้องยืนยันรุ่น เงื่อนไข API และลักษณะการใช้ในโครงการก่อนเผยแพร่ คำประกาศสิทธิ์ของชุดข้าวนี้ยังไม่ครอบคลุมทุกสินค้าหรือทุก endpoint ของ NABC
 
@@ -57,7 +57,7 @@
 
 รอบ P0 ขยายทะเบียนเพิ่ม exact CSV resources ครบ 21 ไฟล์ใน 10 datasets โดยคง pending และบันทึก metadata snapshot/hash, URL และ raw CSV hash/ขนาดของทุกไฟล์ ดู [ผลดึงและขอบเขต](doae-p0-ingestion.md) รอบ P0 ทั้งทะเบียนรวมแหล่งเดิมมี 33 รายการ ไม่มีรายการใหม่อนุมัติเผยแพร่จากการดาวน์โหลดสำเร็จ
 
-ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงยังยืนยันสิทธิ์ใช้ซ้ำหรือเผยแพร่ไม่ได้ ทะเบียนคง `pending` และการอนุมัติเผยแพร่/เชิงพาณิชย์เป็น false ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) จำนวน resources ในทะเบียนปัจจุบันเป็น 82 (pending 81, approved_public 1; ตรวจนับ 25 ต.ค. 2569) ไม่ได้เปลี่ยนสถานะของ resource ใดในรอบนี้; metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
+ตรวจ [metadata plan_dryplant](https://ckan.doae.go.th/api/3/action/package_show?id=plan_dryplant) และ resource `a7ce04a9-3535-4e88-98f5-7bc50fa63b2e` เมื่อ 23 ต.ค. 2569 พบ `license_id`/`license_title` เป็น `อื่นๆ` จึงคง resource นี้เป็น `pending` ตามการตรวจวันนั้น ข้อมูล staging 599 แถวเก็บในเครื่อง ดู [ขอบเขตและหลักฐาน](plan-dryplant.md) บันทึกเดิมนับทะเบียน ณ 25 ต.ค. 2569 เป็น 82 resources (pending 81, approved_public 1); ตัวเลขดังกล่าวเป็นประวัติ ไม่ใช่จำนวนปัจจุบัน. metadata timestamp และ row updated_at ยังไม่ใช้แทน release_at
 
 ## DDPM ขอบเขตจังหวัด
 

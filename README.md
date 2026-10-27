@@ -11,12 +11,12 @@
 - [เว็บ Next.js](web/README.md)
 - [Design system](DESIGN.md) และ [Product brief](PRODUCT.md)
 
-## สถานะ 24 ตุลาคม 2569
+## สถานะล่าสุดที่บันทึกไว้ ณ 27 ตุลาคม 2569
 
-เว็บมี Next.js, read API v1 และ catalog fallback ที่เรียก CKAN 12 แหล่งฝั่ง server แสดง metadata จากต้นทางจริงได้ 946 รายการแบบ partial เพราะ NABC ถูกจำกัด 300/591 หน้าเว็บเรียก API ของ Hub; legacy local-data routes ถูกถอดออกแล้ว
+ฐาน Git ปัจจุบันอยู่ที่ `main` commit `14026f0` และตรงกับ `origin/main`; working tree มีการแก้ไขที่ยังไม่ commit ดูไฟล์และหลักฐานใน [HANDOFF](HANDOFF.md). เว็บใช้ Next.js บน Cloudflare Workers ผ่าน vinext, API v1 และ Cloudflare D1; Python connectors ใช้ดึงและ normalize ข้อมูล. Commit ล่าสุดรวม NWP จริงจาก TMD, ราคาประจำวันจาก NABC, ความจุอ่าง RID และสัญญาณเตือนภัยจาก RID/GISTDA/TMD.
 
-ฐาน PostgreSQL ยังไม่ตั้งค่า: Supabase Free มี active projects ครบ 2 แห่งและยังสร้าง project Hub แยกไม่ได้. Catalog sync dry-run ผ่าน 5 แหล่งโดยไม่เขียนฐาน. ทะเบียนสิทธิ์มี 71 resources ที่ยัง `pending`; จึงยังไม่มีข้อมูลตัวเลขที่อนุมัติให้เปิด public และยังไม่มี preview deployment ที่ตรวจแล้ว
+บันทึก close-out ระบุว่า D1 มี numeric observations 9,923 แถว และ NWP run `tmd_hpc_d02_2026102606` มี 220 snapshots กับ 8,657 ค่ารายจังหวัด. เว็บ typecheck ผ่านและ tests ล่าสุด 163/163; ทะเบียน resource มี 89 รายการ (10 `approved_public`, 79 `pending`) และ `config/sources.json` มี 23 source entries. D1 catalog ที่รายงานไว้ก่อนหน้านี้มี 12 แหล่ง CKAN, 1,237 datasets และ 3,777 resources. ตัวเลข catalog เป็น metadata discovery ไม่ใช่จำนวนชุดตัวเลขพร้อมวิเคราะห์หรือ coverage จังหวัด.
 
-รายการที่ค้นพบเป็น metadata ไม่เท่ากับตัวเลขที่ใช้วิเคราะห์ได้ และรหัสจังหวัด 77 แห่งไม่ยืนยัน coverage ดู [แผนที่ข้อมูล](docs/accessible-data-map.md), [ทะเบียนสิทธิ์](docs/source-license-register.md) และ [handoff](HANDOFF.md) ก่อนใช้ข้อมูล
+Preview deploy ล่าสุดวันที่ 27 ต.ค. 2569 (deployment `761a2138-5608-46c9-affa-de32cafab964`) และ API smoke checks ตอบ 200. NWP API ใช้ `approved_public` จาก exact-resource registry แม้ D1 run metadata เดิมยัง pending; หน่วยคงเป็น null และไม่จัดระดับความเสี่ยงจนกว่าจะยืนยันหน่วย. CI และงานรับต่ออยู่ใน [สถานะและหลักฐานล่าสุด](HANDOFF.md) และ [ความคืบหน้า](docs/progress.md). ดู [แผนที่ข้อมูล](docs/accessible-data-map.md) และ [ทะเบียนสิทธิ์](docs/source-license-register.md) ก่อนอ้าง coverage.
 
 งาน Power BI ยุติเป็นช่องทางส่งมอบ; คู่มือเดิมถูกเก็บใน [archive](docs/archive/2026-10-24-redesign/README.md)

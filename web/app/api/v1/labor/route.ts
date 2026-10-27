@@ -194,8 +194,8 @@ export async function GET(request: Request) {
     return jsonData(data, {
       meta: {
         availability: 'ready',
-        freshness: 'fresh',
-        completeness: 'partial',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: payload.access,
         sourceIds: payload.sources.map((source) => source.id),
         dataAsOf: null,

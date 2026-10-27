@@ -23,8 +23,9 @@
  *   province count in `summary` is a count of stations reporting, never coverage.
  * - ERA5 is reanalysis (`dataKind: "estimated"`), not an observation, and is kept
  *   in a separate block with its own label.
- * - Forecast values are never read here; `/api/v1/weather` still owns the sample
- *   forecast block until an approved forecast resource exists.
+ * - Forecast values are never read here; `/api/v1/weather` returns an empty
+ *   contract until an approved forecast resource and batch exist. TMD HPC is
+ *   published separately under `/api/v1/nwp`.
  */
 
 export type WeatherObservationsSourceMetadata = {

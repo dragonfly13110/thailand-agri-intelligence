@@ -90,7 +90,13 @@ type PriceRouteBody = {
       licenseStatus: string;
       publicationApproved: boolean;
     };
-    commodities: unknown[];
+    commodities: Array<{
+      id: string;
+      name: string;
+      category: string;
+      unit: string;
+      sourceProductName: string | null;
+    }>;
     prices: Array<{
       product: string;
       market: string;
@@ -107,8 +113,12 @@ type PriceRouteBody = {
   meta: {
     availability: string;
     access: string;
+    freshness: string;
     completeness: string;
     dataAsOf: string | null;
+    sourceUpdatedAt: string | null;
+    sourceRetrievedAt: string | null;
+    datasetVersion: string | null;
     warnings: string[];
   };
 };
@@ -165,6 +175,28 @@ function installUpstreamStub() {
       );
     }
     return upstreamResponse([], { total: 0 });
+  }) as typeof fetch;
+  return {
+    calls,
+    restore: () => {
+      globalThis.fetch = originalFetch;
+    },
+  };
+}
+
+/**
+ * Records every upstream `product_name` the code asks for and answers each
+ * product with its own bounded page. A product with no entry answers empty.
+ */
+function installRowsStub(rowsByProduct: Record<string, unknown[]> = {}) {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const productName = new URL(raw).searchParams.get('product_name') ?? '';
+    calls.push(productName);
+    const rows = rowsByProduct[productName] ?? [];
+    return upstreamResponse(rows, { total: rows.length });
   }) as typeof fetch;
   return {
     calls,
@@ -364,8 +396,13 @@ test('the open publication switch publishes the real NABC rows per grain', async
     assert.ok(body.data.commodities.length > 0);
     assert.equal(body.meta.access, 'approved_public');
     assert.equal(body.meta.availability, 'ready');
+    assert.equal(body.meta.freshness, 'unknown');
     assert.equal(body.meta.completeness, 'complete');
     assert.equal(body.meta.dataAsOf, '2026-10-26');
+    assert.equal(body.meta.sourceUpdatedAt, null);
+    assert.match(body.meta.sourceRetrievedAt ?? '', /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(body.meta.datasetVersion, null);
+    assert.ok(body.meta.warnings.some((warning) => warning.includes('เกณฑ์ความสด')));
     assert.equal(stub.calls.length, priceData.PRICE_UPSTREAM_PRODUCTS.length, 'one bounded request per tracked product');
     assert.deepEqual(
       [...stub.calls].sort(),
@@ -451,4 +488,271 @@ test('the publication switch is open and the upstream names are the official one
     assert.equal(metadata.licenseStatus, 'approved_public');
     assert.equal(metadata.access, 'approved_public');
   }
+});
+
+test('a category resolves to the mapped upstream products of that category only', () => {
+  const names = (products: { productName: string }[]) => products.map((product) => product.productName).sort();
+  const all = priceData.PRICE_UPSTREAM_PRODUCTS;
+
+  assert.deepEqual(names(priceRepository.findUpstreamProducts()), names(all), 'no category keeps every product');
+  assert.deepEqual(names(priceRepository.findUpstreamProducts('all')), names(all), 'all keeps every product');
+  assert.deepEqual(names(priceRepository.findUpstreamProducts('')), names(all), 'a blank category is not a filter');
+
+  const rice = priceRepository.findUpstreamProducts('ข้าว');
+  assert.deepEqual(
+    rice.map((product) => product.commodityId).sort(),
+    ['jasmine-rice', 'white-rice'],
+  );
+  assert.deepEqual(names(rice), [JASMINE, WHITE_RICE].sort());
+  for (const product of rice) {
+    const metadata = priceData.getCommodityById(product.commodityId);
+    assert.ok(metadata, 'the mapped commodity exists');
+    assert.equal(metadata.category, 'ข้าว', 'the filter uses the existing commodityId mapping');
+  }
+
+  assert.deepEqual(priceRepository.findUpstreamProducts('unknown'), [], 'an unknown category maps to nothing');
+  assert.deepEqual(
+    priceRepository.findUpstreamProducts('ปศุสัตว์'),
+    [],
+    'a category without a tracked upstream product maps to nothing instead of falling back to all products',
+  );
+});
+
+test('a snapshot with no product to read makes no request and is not complete', async () => {
+  const calls: string[] = [];
+  const fetcher = (url: string) => {
+    calls.push(url);
+    return Promise.resolve(upstreamResponse([], { total: 0 }));
+  };
+
+  const snapshot = await priceRepository.readPriceSnapshot({
+    products: priceRepository.findUpstreamProducts('unknown'),
+    fetcher,
+  });
+
+  assert.deepEqual(calls, [], 'nothing is requested for an empty selection');
+  assert.deepEqual(snapshot.observations, []);
+  assert.deepEqual(snapshot.probes, []);
+  assert.equal(snapshot.productsRequested, 0);
+  assert.equal(snapshot.productsSucceeded, 0);
+  assert.equal(snapshot.latestDate, null);
+  assert.equal(snapshot.complete, false, 'zero requests is never evidence of a complete read');
+});
+
+test('category=ข้าว filters the rows and only requests the rice products', async () => {
+  const stub = installRowsStub({
+    [JASMINE]: [upstreamRow()],
+    [WHITE_RICE]: [
+      upstreamRow({
+        product_name: WHITE_RICE,
+        product_category: 'ข้าว',
+        market_name: 'โรงสีสุพรรณบุรี',
+        province: 'สุพรรณบุรี',
+        day_price: null,
+      }),
+    ],
+    [RUBBER]: [
+      upstreamRow({
+        product_name: RUBBER,
+        product_category: 'ยางพารา',
+        market_name: 'ตลาดกลางยางพารา นครศรีธรรมราช',
+        province: 'นครศรีธรรมราช',
+        day_price: 85.3,
+        unit: 'บาท/กก.',
+      }),
+    ],
+  });
+  const restoreProbe = forceProbeOff();
+
+  try {
+    const response = await pricesRoute.GET(
+      new Request(HUB_ORIGIN + '/api/v1/prices/daily?category=' + encodeURIComponent('ข้าว')),
+    );
+    const body = (await response.json()) as PriceRouteBody;
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(
+      [...stub.calls].sort(),
+      [JASMINE, WHITE_RICE].sort(),
+      'only the products of the selected category are requested',
+    );
+    assert.deepEqual(
+      body.data.commodities.map((commodity) => commodity.id).sort(),
+      ['jasmine-rice', 'white-rice'],
+    );
+    assert.equal(body.data.prices.length, 2, 'one row per product, market and day');
+    assert.deepEqual(body.data.prices.map((row) => row.product).sort(), [JASMINE, WHITE_RICE].sort());
+    assert.equal(
+      body.data.prices.some((row) => row.product === RUBBER),
+      false,
+      'no row outside the selected category is published',
+    );
+
+    const missing = body.data.prices.find((row) => row.product === WHITE_RICE);
+    assert.ok(missing, 'the rice row without a price is still published');
+    assert.equal(missing.value, null, 'a missing price stays null inside a filtered category');
+    assert.equal(missing.unit, 'บาท/ตัน');
+    assert.equal(missing.grade, null);
+    assert.equal(missing.priceType, null);
+
+    assert.equal(body.meta.availability, 'ready');
+    assert.equal(body.meta.completeness, 'complete', 'both selected products answered');
+    assert.equal(body.meta.dataAsOf, '2026-10-26');
+  } finally {
+    stub.restore();
+    restoreProbe();
+  }
+});
+
+test('an unknown category answers empty without touching any upstream product', async () => {
+  const stub = installRowsStub({
+    [JASMINE]: [upstreamRow()],
+    [RUBBER]: [
+      upstreamRow({
+        product_name: RUBBER,
+        product_category: 'ยางพารา',
+        market_name: 'ตลาดกลางยางพารา นครศรีธรรมราช',
+        province: 'นครศรีธรรมราช',
+        day_price: 85.3,
+        unit: 'บาท/กก.',
+      }),
+    ],
+  });
+  const restoreProbe = forceProbeOff();
+
+  try {
+    const response = await pricesRoute.GET(new Request(HUB_ORIGIN + '/api/v1/prices/daily?category=unknown'));
+    const body = (await response.json()) as PriceRouteBody;
+
+    assert.equal(response.status, 200, 'an unknown category is not an error');
+    assert.deepEqual(body.data.commodities, []);
+    assert.deepEqual(body.data.prices, [], 'no row of another category leaks through the filter');
+    assert.deepEqual(stub.calls, [], 'the upstream of every tracked product is not requested');
+    assert.equal(body.meta.availability, 'empty');
+    assert.equal(body.meta.completeness, 'unknown');
+    assert.equal(body.meta.dataAsOf, null);
+    assert.ok(
+      body.meta.warnings.some((warning) => warning.includes('ไม่มีการเรียกต้นทาง')),
+      'the empty response explains that nothing was requested',
+    );
+    assert.equal(
+      body.meta.warnings.some((warning) => warning.includes('ไม่มีแถวของวันที่ต้องการในหน้าที่อ่าน')),
+      false,
+      'a response that made no request must not claim an upstream page was read',
+    );
+    assert.equal(JSON.stringify(body).includes('"complete"'), false, 'the snapshot is not reported as complete');
+  } finally {
+    stub.restore();
+    restoreProbe();
+  }
+});
+
+test('unknown category does not probe upstream even when diagnostics are enabled', async () => {
+  const previous = process.env.PRICE_UPSTREAM_PROBE;
+  const stub = installRowsStub({});
+  process.env.PRICE_UPSTREAM_PROBE = '1';
+  try {
+    const response = await pricesRoute.GET(new Request(HUB_ORIGIN + '/api/v1/prices/daily?category=unknown'));
+    assert.equal(response.status, 200);
+    assert.deepEqual(stub.calls, []);
+  } finally {
+    stub.restore();
+    if (previous === undefined) delete process.env.PRICE_UPSTREAM_PROBE;
+    else process.env.PRICE_UPSTREAM_PROBE = previous;
+  }
+});
+
+test('category and date are applied together', async () => {
+  const stub = installRowsStub({
+    [JASMINE]: [
+      upstreamRow(),
+      upstreamRow({ data_date: '2026-10-25', day: '25', market_name: 'โรงสีเก่า', day_price: 14300 }),
+    ],
+    [RUBBER]: [
+      upstreamRow({
+        product_name: RUBBER,
+        product_category: 'ยางพารา',
+        data_date: '2026-10-25',
+        day: '25',
+        market_name: 'ตลาดกลางยางพารา',
+        province: 'นครศรีธรรมราช',
+        day_price: 85.3,
+        unit: 'บาท/กก.',
+      }),
+    ],
+  });
+  const restoreProbe = forceProbeOff();
+
+  try {
+    const response = await pricesRoute.GET(
+      new Request(
+        HUB_ORIGIN
+        + '/api/v1/prices/daily?category=' + encodeURIComponent('ข้าว') + '&date=2026-10-25',
+      ),
+    );
+    const body = (await response.json()) as PriceRouteBody;
+
+    assert.equal(response.status, 200);
+    assert.deepEqual([...stub.calls].sort(), [JASMINE, WHITE_RICE].sort());
+    assert.equal(body.data.prices.length, 1, 'only the pinned day of the selected category is published');
+    assert.equal(body.data.prices[0].product, JASMINE);
+    assert.equal(body.data.prices[0].periodStart, '2026-10-25');
+    assert.equal(body.data.prices[0].value, 14300);
+    assert.equal(body.data.prices[0].market, 'โรงสีเก่า');
+    assert.equal(body.meta.dataAsOf, '2026-10-25');
+    assert.deepEqual(
+      body.data.commodities.map((commodity) => commodity.id).sort(),
+      ['jasmine-rice', 'white-rice'],
+    );
+  } finally {
+    stub.restore();
+    restoreProbe();
+  }
+});
+
+test('a filtered category with an unreachable upstream stays empty, never a zero price', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  const restoreProbe = forceProbeOff();
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    calls.push(new URL(raw).searchParams.get('product_name') ?? '');
+    throw new Error('offline unit test: upstream unreachable');
+  }) as typeof fetch;
+
+  try {
+    const response = await pricesRoute.GET(
+      new Request(
+        HUB_ORIGIN + '/api/v1/prices/daily?category=' + encodeURIComponent('ยางพาราและปาล์ม'),
+      ),
+    );
+    const body = (await response.json()) as PriceRouteBody;
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(
+      calls.sort(),
+      [RUBBER, 'ผลปาล์มน้ำมันทั้งทะลาย คละ'].sort(),
+      'the request stays inside the selected category even when it fails',
+    );
+    assert.deepEqual(body.data.prices, [], 'a failure is not published as a price of zero');
+    assert.equal(body.meta.availability, 'empty');
+    assert.equal(body.meta.completeness, 'unknown');
+    assert.equal(body.meta.dataAsOf, null);
+    assert.ok(
+      body.meta.warnings.some((warning) => warning.includes('UPSTREAM_UNAVAILABLE')),
+      'the failed products are named with their failure code',
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreProbe();
+  }
+});
+
+test('a malformed date is rejected with 400 even when a category is present', async () => {
+  const response = await pricesRoute.GET(
+    new Request(HUB_ORIGIN + '/api/v1/prices/daily?category=unknown&date=2026-02-30'),
+  );
+  const body = (await response.json()) as { error: { code: string } };
+  assert.equal(response.status, 400);
+  assert.equal(body.error.code, 'INVALID_QUERY');
 });

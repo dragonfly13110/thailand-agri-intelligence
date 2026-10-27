@@ -57,6 +57,8 @@ registerHooks({
 const nwpData = await import('../lib/hub/nwp-data.ts');
 const nwpTypes = await import('../lib/hub/nwp-types.ts');
 const nwpRisk = await import('../lib/hub/nwp-risk.ts');
+const nwpLicense = await import('../lib/hub/nwp-resource-license.ts');
+const apiCatalog = await import('../lib/hub/api-catalog.ts');
 const { HubDatabaseError } = await import('../lib/hub/db.ts');
 const gridRoute = await import('../app/api/v1/nwp/grid/route.ts');
 const provincesRoute = await import('../app/api/v1/nwp/provinces/route.ts');
@@ -397,7 +399,7 @@ test('nwp data: a stored run maps to the published run shape', () => {
   assert.equal(run.domain, 'd02');
   assert.equal(run.domainLabel, 'Thailand 3km');
   assert.equal(run.status, 'ready');
-  assert.equal(run.licenseStatus, 'pending');
+  assert.equal(run.licenseStatus, 'approved_public');
   assert.equal(run.unitStatus, 'pending_official_confirmation');
   assert.equal(run.publicationMode, 'numeric_preview');
   assert.deepEqual(run.variables, ['p1h', 'p24h', 't2m', 'rhum', 'ws10m']);
@@ -405,11 +407,33 @@ test('nwp data: a stored run maps to the published run shape', () => {
   assert.deepEqual(run.leadHoursByVariable, leads);
 });
 
-test('nwp data: access status follows the stored licence and unit state', () => {
-  assert.equal(nwpData.resolveAccessStatus('pending', 'pending_official_confirmation'), 'metadata_only');
-  assert.equal(nwpData.resolveAccessStatus('approved_public', 'pending_official_confirmation'), 'metadata_only');
-  assert.equal(nwpData.resolveAccessStatus('approved_public', 'confirmed'), 'approved_public');
-  assert.equal(nwpData.resolveAccessStatus(null, null), 'metadata_only');
+test('nwp data: the access projection and API catalog match the exact registry resource', () => {
+  const registry = JSON.parse(readFileSync(new URL('../../config/resource_licenses.json', import.meta.url), 'utf8'));
+  const resources = registry.resources.filter((resource: Record<string, unknown>) =>
+    resource.resource_key === 'tmd_hpc_nwp_d02_grid');
+  assert.equal(resources.length, 1);
+  const resource = resources[0];
+  const unresolved = Array.isArray(resource.unresolved) ? resource.unresolved.length : resource.unresolved;
+  const accessStatus = resource.license_status === 'approved_public' &&
+    resource.project_publication_approved === true && !unresolved ? 'approved_public' : 'metadata_only';
+  assert.deepEqual(nwpLicense.NWP_RESOURCE_LICENSE, {
+    resource_key: resource.resource_key,
+    license_status: resource.license_status,
+    project_publication_approved: resource.project_publication_approved === true,
+    access_status: accessStatus,
+  });
+  const nwpEndpoints = apiCatalog.API_ENDPOINTS.filter((endpoint: { id: string }) => endpoint.id.startsWith('nwp-'));
+  assert.equal(nwpEndpoints.length, 3);
+  assert.ok(nwpEndpoints.every((endpoint: { access: string }) => endpoint.access === accessStatus));
+});
+
+test('nwp data: access follows registry approval independently of pending units', () => {
+  assert.equal(nwpData.resolveAccessStatus('pending'), 'metadata_only');
+  assert.equal(nwpData.resolveAccessStatus('approved_public'), 'approved_public');
+  assert.equal(nwpData.resolveAccessStatus(null), 'metadata_only');
+  assert.equal(nwpTypes.isNwpUnitConfirmed('pending_official_confirmation'), false);
+  assert.equal(nwpTypes.isNwpUnitConfirmed('unknown'), false);
+  assert.equal(nwpTypes.isNwpUnitConfirmed('confirmed_by_tmd'), true);
 });
 
 /* ------------------------------------------------------------------ */
@@ -432,7 +456,7 @@ test('nwp routes: the grid route returns the stored grid with a truthful access 
   assert.equal((data.mean as unknown[]).length, 4);
   assert.equal((data.mean as unknown[])[1], null);
   const meta = body.meta as Record<string, unknown>;
-  assert.equal(meta.access, 'metadata_only', 'a pending licence is never approved_public');
+  assert.equal(meta.access, 'approved_public', 'registry approval is independent of pending units');
   assert.equal(meta.availability, 'ready');
   assert.equal(meta.datasetVersion, 'tmd-hpc-d02-v1');
   assert.ok((meta.warnings as string[]).length >= 4);
@@ -488,6 +512,61 @@ test('nwp routes: the metadata_only kill switch is a 403 NWP_PUBLICATION_DISABLE
   assert.equal(errorCode(provinces.body), 'NWP_PUBLICATION_DISABLED');
 });
 
+test('nwp routes: a failed run is rejected by both readers even when rows are still stored', async () => {
+  const state: FakeState = {
+    run: runRow({ status: 'failed' }),
+    snapshot: snapshotRow(),
+    provinces: [
+      {
+        runId: RUN_ID,
+        variable: 'p24h',
+        validAt: VALID_AT,
+        provinceCode: '73',
+        provinceName: 'นครปฐม',
+        value: 62.4,
+        method: 'max_within_25km',
+        radiusKm: 25,
+        distanceKm: 3.2,
+        riskLevel: null,
+      },
+    ],
+  };
+
+  const grid = await withRunner(fakeRunner(state), () =>
+    call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+  );
+  assert.equal(grid.response.status, 404);
+  assert.equal(errorCode(grid.body), 'NWP_NOT_FOUND');
+  assert.equal(JSON.stringify(grid.body).includes('62.4'), false, 'stale numbers never leak');
+
+  const provinces = await withRunner(fakeRunner(state), () =>
+    call(provincesRoute.GET, '/api/v1/nwp/provinces?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+  );
+  assert.equal(provinces.response.status, 404);
+  assert.equal(errorCode(provinces.body), 'NWP_NOT_FOUND');
+});
+
+test('nwp routes: a run without a readable status is not published', async () => {
+  for (const status of [null, 'mystery']) {
+    const state: FakeState = { run: runRow({ status }), snapshot: snapshotRow() };
+    const { response, body } = await withRunner(fakeRunner(state), () =>
+      call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+    );
+    assert.equal(response.status, 404, String(status));
+    assert.equal(errorCode(body), 'NWP_NOT_FOUND', String(status));
+  }
+});
+
+test('nwp routes: a partial run stays readable and is not reported complete', async () => {
+  const state: FakeState = { run: runRow({ status: 'partial' }), snapshot: snapshotRow() };
+  const { response, body } = await withRunner(fakeRunner(state), () =>
+    call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+  );
+  assert.equal(response.status, 200);
+  assert.equal((body.meta as Record<string, unknown>).availability, 'ready');
+  assert.equal((body.meta as Record<string, unknown>).completeness, 'partial');
+});
+
 test('nwp routes: an unreachable database is a 503 HUB_DATABASE_NOT_CONFIGURED', async () => {
   const failing = async () => {
     throw new HubDatabaseError('HUB_DATABASE_NOT_CONFIGURED');
@@ -536,10 +615,10 @@ test('nwp routes: an oversized grid payload is a 500 NWP_PAYLOAD_TOO_LARGE', asy
   assert.equal(errorCode(body), 'NWP_PAYLOAD_TOO_LARGE');
 });
 
-test('nwp routes: the provinces route returns the watchlist with a computed risk level', async () => {
+test('nwp routes: provinces retain numeric values and null units while pending units suppress risk levels', async () => {
   const state: FakeState = {
     run: runRow(),
-    snapshot: snapshotRow(),
+    snapshot: snapshotRow({ unit: 'mm' }),
     provinces: [
       {
         runId: RUN_ID,
@@ -577,18 +656,36 @@ test('nwp routes: the provinces route returns the watchlist with a computed risk
     const data = body.data as Record<string, unknown>;
     assert.equal(data.method, 'max_within_25km');
     assert.equal(data.radiusKm, 25);
+    assert.equal(data.unit, null);
     const provinces = data.provinces as Array<Record<string, unknown>>;
     assert.equal(provinces.length, 2);
     assert.equal(provinces[0].provinceCode, '73');
-    assert.equal(provinces[0].riskLevel, 'high');
+    assert.equal(provinces[0].riskLevel, null);
+    assert.equal(provinces[0].value, 62.4, 'numeric values remain available');
     assert.equal(provinces[0].cellCount, 18, 'the cell count comes from the snapshot quality document');
     assert.equal(provinces[0].distanceKm, 3.2);
     assert.equal(provinces[1].value, null);
     assert.equal(provinces[1].riskLevel, null, 'a missing value is never a normal level');
     const meta = body.meta as Record<string, unknown>;
+    assert.equal(meta.access, 'approved_public');
     assert.ok((meta.warnings as string[]).some((warning) => warning.includes('ไม่ใช่ค่าของจังหวัด')));
   } finally {
     nwpData.setNwpThresholdsForTests(undefined);
+  }
+});
+
+test('nwp routes: a province unit is exposed only after confirmation and only from the snapshot', async () => {
+  for (const unit of ['mm', null]) {
+    const state: FakeState = {
+      run: runRow({ unitStatus: 'confirmed_by_tmd' }),
+      snapshot: snapshotRow({ unit }),
+      provinces: [],
+    };
+    const { response, body } = await withRunner(fakeRunner(state), () =>
+      call(provincesRoute.GET, '/api/v1/nwp/provinces?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+    );
+    assert.equal(response.status, 200);
+    assert.equal((body.data as Record<string, unknown>).unit, unit);
   }
 });
 
@@ -642,9 +739,12 @@ test('nwp routes: the runs route lists the usable runs with their lead times', a
   const runs = (body.data as { runs: Array<Record<string, unknown>> }).runs;
   assert.equal(runs.length, 1);
   assert.equal(runs[0].runId, RUN_ID);
+  assert.equal(runs[0].licenseStatus, 'approved_public');
+  assert.equal(runs[0].unitStatus, 'pending_official_confirmation');
   assert.deepEqual(runs[0].leadHoursByVariable, { p1h: [0, 6], p24h: [0, 24] });
   assert.deepEqual(runs[0].leadHours, [0, 6, 24]);
   assert.equal((body.meta as Record<string, unknown>).availability, 'ready');
+  assert.equal((body.meta as Record<string, unknown>).access, 'approved_public');
 });
 
 test('nwp routes: without any usable run the runs route answers an empty list', async () => {
@@ -652,6 +752,21 @@ test('nwp routes: without any usable run the runs route answers an empty list', 
   assert.equal(response.status, 200);
   assert.deepEqual((body.data as { runs: unknown[] }).runs, []);
   assert.equal((body.meta as Record<string, unknown>).availability, 'empty');
+  assert.equal((body.meta as Record<string, unknown>).access, 'approved_public');
+});
+
+test('nwp routes: the grid exposes its stored unit only after confirmation', async () => {
+  for (const unit of ['mm', null]) {
+    const state: FakeState = {
+      run: runRow({ unitStatus: 'confirmed_by_tmd' }),
+      snapshot: snapshotRow({ unit }),
+    };
+    const { response, body } = await withRunner(fakeRunner(state), () =>
+      call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+    );
+    assert.equal(response.status, 200);
+    assert.equal((body.data as Record<string, unknown>).unit, unit);
+  }
 });
 
 test('nwp routes: every route opts out of caching and keeps the request id', async () => {

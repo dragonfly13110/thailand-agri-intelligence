@@ -18,9 +18,9 @@
  *   project's Full Production Unlocked policy (AGENTS.md rule 3). Every
  *   published row keeps its own product/grade, market, province, day and unit
  *   and carries the source caveats in `PRICE_WARNINGS`.
- * - The registry in `config/resource_licenses.json` remains the rights record;
- *   this switch is the wiring that honours the project decision, not a
- *   substitute for keeping the exact daily resource evidence in sync.
+ * - `config/resource_licenses.json` records this exact endpoint as
+ *   `oae_nabc_daily_market_prices` under the owner authorization in AGENTS.md.
+ *   Its separate monthly-price resource remains pending.
  * - The upstream does **not** publish a price type (farmgate vs wholesale) or a
  *   separate grade field per row: the grade is spelled inside the product
  *   name. Those fields therefore stay `null` with an explicit status instead of
@@ -108,7 +108,7 @@ export const PRICE_SOURCE_METADATA: PriceSourceMetadata = {
   licenseStatus: PRICE_PUBLICATION_APPROVED ? 'approved_public' : 'pending',
   access: PRICE_PUBLICATION_APPROVED ? 'approved_public' : 'metadata_only',
   publicationApproved: PRICE_PUBLICATION_APPROVED,
-  licenseReviewedAt: '2026-10-26',
+  licenseReviewedAt: '2026-10-27',
   limitations: [
     'ต้นทางไม่ประกาศเกรดเป็นคอลัมน์แยก เกรดปรากฏอยู่ในชื่อสินค้า (เช่น ชั้น 3, ความชื้น 15%, แป้ง 25%) ฟิลด์ grade จึงเป็น null และห้ามเดาจากชื่อหรือเติมเกรดเอง',
     'ต้นทางไม่ประกาศประเภทราคา (หน้าสวน/ตลาดกลาง/ขายส่ง) แยกต่างหาก ฟิลด์ priceType จึงเป็น null และห้ามตีความเอง',

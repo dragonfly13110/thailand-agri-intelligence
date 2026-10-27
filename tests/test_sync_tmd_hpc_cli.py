@@ -8,6 +8,7 @@ upsert / cascade semantics of ``db/cloudflare/0003_nwp.sql``.
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import json
 import sys
@@ -97,6 +98,9 @@ class FakeD1Client:
         self.province_values: dict[tuple, dict] = {}
         self.statements: list[tuple[str, list]] = []
         self.fail_on: str | None = None
+        # Run status observed at the moment each child row was inserted. A run
+        # must not be readable as published while its children are written.
+        self.child_write_statuses: list[str | None] = []
 
     # -- helpers ----------------------------------------------------------
     @property
@@ -108,6 +112,18 @@ class FakeD1Client:
         self.runs[run_id] = {
             "run_id": run_id, "domain": domain, "init_at": init_at,
             "status": "ready", "payload_sha256": payload_sha256,
+        }
+
+    def seed_snapshot(self, run_id: str, variable: str, valid_at: str) -> None:
+        self.snapshots[(run_id, variable, valid_at)] = {
+            "run_id": run_id, "variable": variable, "valid_at": valid_at,
+        }
+
+    def seed_province(self, run_id: str, variable: str, valid_at: str,
+                      province_code: str) -> None:
+        self.province_values[(run_id, variable, valid_at, province_code)] = {
+            "run_id": run_id, "variable": variable, "valid_at": valid_at,
+            "province_code": province_code,
         }
 
     def deleted_run_ids(self) -> list[str]:
@@ -125,10 +141,26 @@ class FakeD1Client:
         upper = text.upper()
         if upper.startswith("SELECT 1 AS OK"):
             return {"ok": 1}
-        if upper.startswith("SELECT PAYLOAD_SHA256 FROM NWP_RUNS"):
+        if upper.startswith("SELECT PAYLOAD_SHA256, STATUS FROM NWP_RUNS"):
             row = self.runs.get(params[0])
-            return {"payload_sha256": row["payload_sha256"]} if row else {}
+            if row is None:
+                return {}
+            return {"payload_sha256": row.get("payload_sha256"), "status": row.get("status")}
         if upper.startswith("SELECT JSON_GROUP_ARRAY"):
+            if "NWP_SNAPSHOTS" in upper:
+                keys = [{"variable": variable, "valid_at": valid_at}
+                        for run_id, variable, valid_at in self.snapshots
+                        if run_id == params[0]]
+                return {"keys_json": json.dumps(keys)}
+            if "NWP_PROVINCE_VALUES" in upper:
+                counts: dict[tuple[str, str], list[str]] = {}
+                for run_id, variable, valid_at, code in self.province_values:
+                    if run_id == params[0]:
+                        key = (variable, valid_at)
+                        counts.setdefault(key, []).append(code)
+                groups = [{"variable": variable, "valid_at": valid_at, "codes": json.dumps(codes)}
+                          for (variable, valid_at), codes in sorted(counts.items())]
+                return {"groups_json": json.dumps(groups)}
             rows = [{"run_id": row["run_id"], "domain": row["domain"],
                      "init_at": row["init_at"]} for row in self.runs.values()]
             return {"runs_json": json.dumps(rows)}
@@ -136,19 +168,53 @@ class FakeD1Client:
             row = dict(zip(cli.RUN_COLUMNS, params))
             self.runs[row["run_id"]] = row
             return {}
+        if upper.startswith("UPDATE NWP_RUNS SET LICENSE_STATUS"):
+            row = self.runs.get(params[2])
+            if row is not None and row.get("payload_sha256") == params[3] and row.get("status") in ("ready", "partial"):
+                row["license_status"] = params[0]
+                row["payload_sha256"] = params[1]
+                return {"run_id": params[2]}
+            return {}
         if upper.startswith("INSERT INTO NWP_SNAPSHOTS"):
+            owner = self.runs.get(params[-2])
+            if not owner or owner.get("payload_sha256") != params[-1] or owner.get("status") != "failed":
+                return {}
             row = dict(zip(cli.SNAPSHOT_COLUMNS, params))
             self.snapshots[(row["run_id"], row["variable"], row["valid_at"])] = row
-            return {}
+            run_row = self.runs.get(row["run_id"])
+            self.child_write_statuses.append(run_row.get("status") if run_row else None)
+            return {"run_id": row["run_id"]}
         if upper.startswith("INSERT INTO NWP_PROVINCE_VALUES"):
+            owner = self.runs.get(params[-2])
+            if not owner or owner.get("payload_sha256") != params[-1] or owner.get("status") != "failed":
+                return {}
             row = dict(zip(cli.PROVINCE_COLUMNS, params))
             self.province_values[(row["run_id"], row["variable"], row["valid_at"],
                                   row["province_code"])] = row
+            run_row = self.runs.get(row["run_id"])
+            self.child_write_statuses.append(run_row.get("status") if run_row else None)
+            return {"run_id": row["run_id"]}
+        if upper.startswith("UPDATE NWP_RUNS SET STATUS = ? WHERE RUN_ID = ? AND PAYLOAD_SHA256 = ?"):
+            row = self.runs.get(params[1])
+            if row is not None and row.get("payload_sha256") == params[2] and row.get("status") == "failed":
+                row["status"] = params[0]
+                return {"run_id": params[1]}
             return {}
-        if upper.startswith("UPDATE NWP_RUNS SET STATUS"):
-            row = self.runs.get(params[0])
-            if row is not None:
-                row["status"] = "failed"
+        if upper.startswith("DELETE FROM NWP_PROVINCE_VALUES"):
+            run_id, variable, valid_at, codes, _, digest = params
+            owner = self.runs.get(run_id)
+            if owner and owner.get("payload_sha256") == digest and owner.get("status") == "failed":
+                for code in json.loads(codes):
+                    self.province_values.pop((run_id, variable, valid_at, code), None)
+            return {}
+        if upper.startswith("DELETE FROM NWP_SNAPSHOTS"):
+            run_id, variable, valid_at, _, digest = params
+            owner = self.runs.get(run_id)
+            if owner and owner.get("payload_sha256") == digest and owner.get("status") == "failed":
+                self.snapshots.pop((run_id, variable, valid_at), None)
+                for key in list(self.province_values):
+                    if key[:3] == (run_id, variable, valid_at):
+                        del self.province_values[key]
             return {}
         if upper.startswith("DELETE FROM NWP_RUNS"):
             run_id = params[0]
@@ -416,6 +482,16 @@ class ConfigurationTests(unittest.TestCase):
             self.assertEqual(last_json(out)["errorCode"], cli.RESOURCE_NOT_APPROVED)
             self.assertEqual(len(fake.runs), 0)
 
+    def test_licence_gate_requires_the_exact_d02_resource_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            document = json.loads(registry.read_text(encoding="utf-8"))
+            document["resources"][0]["resource_key"] = "tmd_hpc_nwp_d01_grid"
+            registry.write_text(json.dumps(document), encoding="utf-8")
+            with self.assertRaises(cli.NwpCliError) as ctx:
+                cli.approved_nwp_resource(registry)
+            self.assertEqual(ctx.exception.code, cli.RESOURCE_APPROVAL_MISSING)
+
 
 class PublishTests(unittest.TestCase):
     """Writer behaviour: parameter binding, idempotency, failure handling."""
@@ -444,6 +520,8 @@ class PublishTests(unittest.TestCase):
             self.assertEqual(len(fake.snapshots), 1)
             self.assertEqual(len(fake.province_values), 2)
             self.assertEqual(fake.runs[RUN_ID]["status"], "ready")
+            self.assertEqual(fake.runs[RUN_ID]["license_status"], "approved_public")
+            self.assertEqual(fake.runs[RUN_ID]["unit_status"], "pending_official_confirmation")
 
             code, out, err = self._publish(export_path, registry, fake)
             self.assertEqual(code, 0, err)
@@ -487,6 +565,117 @@ class PublishTests(unittest.TestCase):
             self.assertIn("tmd_hpc_d02_2026102500", fake.runs)
             self.assertEqual(fake.deleted_run_ids(), [])
             self.assertEqual(len(fake.snapshots), 0)
+
+
+class PublishRepairTests(unittest.TestCase):
+    """A failed or incomplete run is repaired by the next publish, never skipped."""
+
+    def _publish(self, export_path, registry, fake):
+        original = cli.connect_d1_client
+        cli.connect_d1_client = lambda *a, **k: fake
+        try:
+            return run_cli(["publish", "--run-id", RUN_ID, "--export", str(export_path),
+                            "--write", "--registry", str(registry)])
+        finally:
+            cli.connect_d1_client = original
+
+    @staticmethod
+    def _approved_digest(export):
+        publishable = dict(export)
+        publishable["run"] = dict(export["run"], license_status="approved_public")
+        return cli.payload_sha256(publishable)
+
+    def test_failed_run_is_retried_and_repaired_instead_of_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            export_path = Path(tmp) / "export.json"
+            export_path.write_text(json.dumps(make_export()), encoding="utf-8")
+            registry = write_registry(Path(tmp))
+            fake = FakeD1Client()
+            fake.fail_on = "INSERT INTO NWP_PROVINCE_VALUES"
+
+            code, out, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 1)
+            self.assertEqual(last_json(out)["errorCode"], cli.NWP_WRITE_FAILED)
+            self.assertEqual(fake.runs[RUN_ID]["status"], "failed")
+            self.assertEqual(len(fake.snapshots), 1)
+            self.assertEqual(len(fake.province_values), 0)
+
+            fake.fail_on = None
+            code, out, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 0, err)
+            retried = last_json(out)
+            self.assertEqual(retried["outcome"], "written")
+            self.assertEqual(fake.runs[RUN_ID]["status"], "ready")
+            self.assertEqual(len(fake.snapshots), 1)
+            self.assertEqual(len(fake.province_values), 2)
+
+            code, out, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(last_json(out)["outcome"], "skipped_identical")
+            self.assertEqual(len(fake.snapshots), 1)
+            self.assertEqual(len(fake.province_values), 2)
+
+    def test_run_is_not_published_while_its_children_are_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            export_path = Path(tmp) / "export.json"
+            export_path.write_text(json.dumps(make_export()), encoding="utf-8")
+            registry = write_registry(Path(tmp))
+            fake = FakeD1Client()
+
+            code, out, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(len(fake.child_write_statuses), 3,
+                             "one snapshot and two province rows are written")
+            self.assertEqual(set(fake.child_write_statuses), {"failed"},
+                             "readers only publish ready/partial runs")
+            self.assertEqual(fake.runs[RUN_ID]["status"], "ready")
+
+    def test_ready_run_with_missing_children_is_repaired_not_skipped(self):
+        export = make_export()
+        fake = FakeD1Client()
+        fake.seed_run(RUN_ID, "d02", "2026-10-26T00:00:00Z",
+                      payload_sha256=self._approved_digest(export))
+        for snapshot in export["snapshots"]:
+            fake.seed_snapshot(RUN_ID, snapshot["variable"], snapshot["valid_at"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            report = cli.publish_export(fake, export, registry_path=registry)
+
+        self.assertEqual(report["outcome"], "written")
+        self.assertEqual(fake.runs[RUN_ID]["status"], "ready")
+        self.assertEqual(len(fake.province_values), 2)
+
+    def test_retry_keeps_other_completed_runs_and_never_duplicates_children(self):
+        other_id = "tmd_hpc_d02_2026102500"
+        with tempfile.TemporaryDirectory() as tmp:
+            export_path = Path(tmp) / "export.json"
+            export_path.write_text(json.dumps(make_export()), encoding="utf-8")
+            registry = write_registry(Path(tmp))
+            fake = FakeD1Client()
+            fake.seed_run(other_id, "d02", "2026-10-25T00:00:00Z",
+                          payload_sha256="other-digest")
+            fake.seed_snapshot(other_id, "p24h", VALID_AT)
+            fake.seed_province(other_id, "p24h", VALID_AT, "10")
+
+            fake.fail_on = "INSERT INTO NWP_PROVINCE_VALUES"
+            code, _, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 1, err)
+
+            fake.fail_on = None
+            code, out, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(last_json(out)["outcome"], "written")
+            self.assertEqual(fake.deleted_run_ids(), [])
+            self.assertIn(other_id, fake.runs)
+            self.assertIn((other_id, "p24h", VALID_AT), fake.snapshots)
+            self.assertIn((other_id, "p24h", VALID_AT, "10"), fake.province_values)
+            self.assertEqual(len(fake.province_values), 3)
+
+            code, out, err = self._publish(export_path, registry, fake)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(last_json(out)["outcome"], "skipped_identical")
+            self.assertEqual(len(fake.province_values), 3)
 
 
 class RetentionTests(unittest.TestCase):
@@ -702,12 +891,46 @@ class LaneBContractTests(unittest.TestCase):
             row = fake.runs[RUN_ID]
             self.assertEqual(row["status"], "ready")
             self.assertEqual(json.loads(row["lead_hours_json"]), [0, 6])
-            self.assertEqual(row["license_status"], "pending")
+            self.assertEqual(row["license_status"], "approved_public")
+            self.assertEqual(row["unit_status"], "pending_official_confirmation")
             snapshot_row = list(fake.snapshots.values())[0]
             self.assertEqual(json.loads(snapshot_row["mean_json"]), [0.0] + [None] * 5)
             self.assertIsNone(snapshot_row["unit"])
             self.assertEqual(json.loads(snapshot_row["quality_json"])["method"],
                              "block_mean_0.15deg")
+
+    def test_registry_approval_updates_only_run_metadata_for_identical_pending_payload(self):
+        export = cli.canonicalize_export(
+            self.normalizer.build_export(self._normalized_envelope()))
+        pending_digest = cli.payload_sha256(export)
+        approved_export = dict(export)
+        approved_export["run"] = dict(export["run"], license_status="approved_public")
+        approved_digest = cli.payload_sha256(approved_export)
+        fake = FakeD1Client()
+        fake.seed_run(RUN_ID, "d02", "2026-10-26T00:00:00Z", pending_digest)
+        fake.runs[RUN_ID]["license_status"] = "pending"
+        # A run that reports ready must carry the children of its export;
+        # otherwise the publisher repairs it instead of skipping it.
+        for snapshot in export["snapshots"]:
+            fake.seed_snapshot(RUN_ID, snapshot["variable"], snapshot["valid_at"])
+        for row in export["province_values"]:
+            fake.seed_province(RUN_ID, row["variable"], row["valid_at"],
+                               row["province_code"])
+        fake.statements.clear()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            report = cli.publish_export(fake, export, registry_path=registry)
+
+        self.assertEqual(report["outcome"], "metadata_updated")
+        self.assertEqual(report["payload_sha256"], approved_digest)
+        self.assertEqual(report["written"], {"runs": 1, "snapshots": 0, "province_values": 0})
+        self.assertEqual(fake.runs[RUN_ID]["license_status"], "approved_public")
+        self.assertEqual(fake.runs[RUN_ID]["payload_sha256"], approved_digest)
+        self.assertEqual(len(fake.snapshots), 2)
+        self.assertEqual(len(fake.province_values), 1)
+        self.assertFalse([sql for sql, _ in fake.statements if sql.upper().startswith("INSERT")],
+                         "the metadata shortcut must not rewrite forecast rows")
 
     def test_lane_b_export_is_republished_as_identical(self):
         export = cli.canonicalize_export(
@@ -765,7 +988,11 @@ class MigrationSqlTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0][0], RUN_ID)
             self.assertEqual(rows[0][1], "ready")
-            self.assertEqual(rows[0][2], cli.payload_sha256(payload))
+            approved_payload = dict(payload)
+            approved_payload["run"] = dict(payload["run"], license_status="approved_public")
+            self.assertEqual(rows[0][2], cli.payload_sha256(approved_payload))
+            self.assertEqual(self.connection.execute(
+                "SELECT license_status FROM nwp_runs").fetchone()[0], "approved_public")
             self.assertEqual(self.connection.execute(
                 "SELECT COUNT(*) FROM nwp_snapshots").fetchone()[0], 1)
             self.assertEqual(self.connection.execute(
@@ -784,6 +1011,113 @@ class MigrationSqlTests(unittest.TestCase):
                 "SELECT COUNT(*) FROM nwp_snapshots").fetchone()[0], 1)
             self.assertEqual(self.connection.execute(
                 "SELECT COUNT(*) FROM nwp_province_values").fetchone()[0], 2)
+
+    def test_failed_write_is_retried_against_the_real_schema(self):
+        payload = cli.canonicalize_export(make_export())
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            failing = _FailingSqliteD1(self.connection, "insert into nwp_province_values")
+            with self.assertRaises(cli.NwpCliError) as ctx:
+                cli.publish_export(failing, payload, registry_path=registry)
+            self.assertEqual(ctx.exception.code, cli.NWP_WRITE_FAILED)
+
+            self.assertEqual(self.connection.execute(
+                "SELECT status FROM nwp_runs WHERE run_id = ?", (RUN_ID,)).fetchone()[0],
+                "failed")
+            self.assertEqual(self.connection.execute(
+                "SELECT COUNT(*) FROM nwp_snapshots").fetchone()[0], 1)
+            self.assertEqual(self.connection.execute(
+                "SELECT COUNT(*) FROM nwp_province_values").fetchone()[0], 0)
+
+            adapter = _SqliteD1(self.connection)
+            report = cli.publish_export(adapter, payload, registry_path=registry)
+            self.assertEqual(report["outcome"], "written")
+            self.assertEqual(self.connection.execute(
+                "SELECT status FROM nwp_runs WHERE run_id = ?", (RUN_ID,)).fetchone()[0],
+                "ready")
+            self.assertEqual(self.connection.execute(
+                "SELECT COUNT(*) FROM nwp_snapshots").fetchone()[0], 1)
+            self.assertEqual(self.connection.execute(
+                "SELECT COUNT(*) FROM nwp_province_values").fetchone()[0], 2)
+
+            again = cli.publish_export(adapter, payload, registry_path=registry)
+            self.assertEqual(again["outcome"], "skipped_identical")
+            self.assertEqual(self.connection.execute(
+                "SELECT COUNT(*) FROM nwp_province_values").fetchone()[0], 2)
+
+    def test_concurrent_revisions_cannot_mix_children(self):
+        old = cli.canonicalize_export(make_export())
+        new = copy.deepcopy(old)
+        new["snapshots"][0]["mean"][0] = 99.0
+        new["snapshots"][0]["max"][0] = 99.0
+        for row in new["province_values"]:
+            row["value"] = 99.0
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            connection = self.connection
+
+            class Interleaved(_SqliteD1):
+                triggered = False
+
+                def execute(self, sql, params=None):
+                    if sql.strip().upper().startswith("INSERT INTO NWP_PROVINCE_VALUES") and not self.triggered:
+                        self.triggered = True
+                        cli.publish_export(_SqliteD1(connection), new, registry_path=registry)
+                    return super().execute(sql, params)
+
+            with self.assertRaises(cli.NwpCliError):
+                cli.publish_export(Interleaved(connection), old, registry_path=registry)
+            self.assertEqual(connection.execute("SELECT status FROM nwp_runs").fetchone()[0], "ready")
+            self.assertEqual([r[0] for r in connection.execute("SELECT value FROM nwp_province_values")], [99.0, 99.0])
+            self.assertEqual(cli.publish_export(_SqliteD1(connection), new, registry_path=registry)["outcome"], "skipped_identical")
+
+    def test_revision_removes_obsolete_provinces_and_forecast_steps(self):
+        old = cli.canonicalize_export(make_export(variables=("p24h", "t2m"), province_rows=2))
+        new = cli.canonicalize_export(make_export(province_rows=1))
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            client = _SqliteD1(self.connection)
+            cli.publish_export(client, old, registry_path=registry)
+            cli.publish_export(client, new, registry_path=registry)
+            self.assertEqual(self.connection.execute("SELECT variable FROM nwp_snapshots").fetchall(), [("p24h",)])
+            self.assertEqual(self.connection.execute("SELECT province_code FROM nwp_province_values").fetchall(), [("10",)])
+            self.assertEqual(cli.publish_export(client, new, registry_path=registry)["outcome"], "skipped_identical")
+
+    def test_same_count_with_wrong_province_is_repaired(self):
+        payload = cli.canonicalize_export(make_export())
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            client = _SqliteD1(self.connection)
+            cli.publish_export(client, payload, registry_path=registry)
+            self.connection.execute("UPDATE nwp_province_values SET province_code='12' WHERE province_code='10'")
+            self.connection.commit()
+            self.assertEqual(cli.publish_export(client, payload, registry_path=registry)["outcome"], "written")
+            self.assertEqual(self.connection.execute("SELECT province_code FROM nwp_province_values ORDER BY province_code").fetchall(), [("10",), ("11",)])
+
+    def test_superseded_cleanup_does_not_delete_winners_province(self):
+        initial = cli.canonicalize_export(make_export())
+        older = cli.canonicalize_export(make_export(province_rows=1))
+        newer = copy.deepcopy(initial)
+        for row in newer["province_values"]:
+            row["value"] = 99.0
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = write_registry(Path(tmp))
+            connection = self.connection
+            cli.publish_export(_SqliteD1(connection), initial, registry_path=registry)
+
+            class InterleavedCleanup(_SqliteD1):
+                triggered = False
+
+                def execute(self, sql, params=None):
+                    if sql.strip().upper().startswith("DELETE FROM NWP_PROVINCE_VALUES") and not self.triggered:
+                        self.triggered = True
+                        cli.publish_export(_SqliteD1(connection), newer, registry_path=registry)
+                    return super().execute(sql, params)
+
+            with self.assertRaises(cli.NwpCliError):
+                cli.publish_export(InterleavedCleanup(connection), older, registry_path=registry)
+            self.assertEqual(connection.execute("SELECT status FROM nwp_runs").fetchone()[0], "ready")
+            self.assertEqual(connection.execute("SELECT province_code,value FROM nwp_province_values ORDER BY province_code").fetchall(), [("10", 99.0), ("11", 99.0)])
 
     def test_cascade_deletes_child_rows(self):
         payload = cli.canonicalize_export(make_export())
@@ -813,6 +1147,22 @@ class _SqliteD1:
             return {}
         columns = [description[0] for description in cursor.description]
         return dict(zip(columns, rows[0]))
+
+
+class _FailingSqliteD1(_SqliteD1):
+    """Fail once on a matching statement, then behave like ``_SqliteD1``."""
+
+    def __init__(self, connection, fail_on: str):
+        super().__init__(connection)
+        self.fail_on = fail_on.lower()
+        self.failed = False
+
+    def execute(self, sql, params=None):
+        text = " ".join(sql.lower().split())
+        if not self.failed and self.fail_on in text:
+            self.failed = True
+            raise RuntimeError("simulated D1 failure")
+        return super().execute(sql, params)
 
 
 if __name__ == "__main__":

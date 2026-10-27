@@ -69,7 +69,7 @@ def load_sources(path=None):
 
 
 def load_resource_licenses(path=None):
-    """Load exact resource license register; all entries must be reviewed and pending."""
+    """Load exact resource license register with explicit approved and pending entries."""
     with Path(path or ROOT / "config/resource_licenses.json").open(encoding="utf-8-sig") as stream:
         payload = json.load(stream)
     if not isinstance(payload, dict) or payload.get("automatic_approval") is not False:

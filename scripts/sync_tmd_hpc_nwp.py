@@ -19,8 +19,8 @@ Governance rules that are enforced (not just documented):
 
 * Forecast values never enter the ``observations`` table; they are written to
   ``nwp_runs`` / ``nwp_snapshots`` / ``nwp_province_values`` only.
-* ``unit`` stays NULL and ``license_status`` stays ``pending`` until TMD
-  confirms the variable definitions and the licence in writing. An export
+* ``unit`` stays NULL until TMD confirms the variable definitions. The writer
+  takes ``license_status`` from the exact approved registry row; an export
   payload may never self-declare ``approved_public``.
 * ``--write`` fails closed without D1 credentials (``D1_NOT_CONFIGURED``,
   exit code 2) and without an approved licence registry entry
@@ -30,7 +30,13 @@ Governance rules that are enforced (not just documented):
   is ever interpolated into SQL.
 * Writes are idempotent: the canonical export payload is hashed
   (``payload_sha256``) and stored on ``nwp_runs``; republishing an identical
-  payload reports ``skipped_identical`` instead of duplicating rows.
+  payload reports ``skipped_identical`` instead of duplicating rows — but only
+  when the stored run finished (``ready``/``partial``) and its child rows still
+  match the export. A failed or incomplete run is repaired by re-upserting all
+  of its children.
+* A run stays unreadable while it is written: the row is saved as ``failed``
+  (the only non-publishable status the schema allows) and is switched to its
+  declared status only after every snapshot and province row exists.
 
 Exit codes: 0 = ok, 1 = validation/data error, 2 = configuration missing
 (``D1_NOT_CONFIGURED``).
@@ -83,6 +89,7 @@ EXPORT_DIR = LOCAL_ROOT / "exports"
 RAW_ROOT = LOCAL_ROOT / "raw"
 
 SOURCE_ID = "tmd_hpc_nwp"
+NWP_RESOURCE_KEY = "tmd_hpc_nwp_d02_grid"
 EXPORT_VERSION = 1
 DEFAULT_MAX_BYTES = 200_000_000
 MAX_GRID_CELLS = 12_000            # work order §4.5 / gate G8
@@ -92,6 +99,10 @@ RETENTION_MAX_AGE_DAYS = 7         # work order §3.6
 PROBE_BYTES = 2048                 # bounded probe body (work order Lane A)
 RISK_LEVELS = ("normal", "watch", "high", "severe")
 PUBLICATION_MODES = ("numeric_preview", "metadata_only")
+# Statuses the public readers serve. Anything else (notably the transient
+# ``failed`` written while children are being stored) is not published.
+FINAL_RUN_STATUSES = ("ready", "partial")
+TRANSIENT_RUN_STATUS = "failed"
 RUN_ID_RE = re.compile(r"^[a-z0-9_]{8,80}$")
 INIT_TIME_RE = re.compile(r"^[0-9]{10}$")
 
@@ -603,13 +614,17 @@ def validate_export(payload: Any) -> dict:
 
 
 def _upsert_sql(table: str, columns: Sequence[str], conflict: Sequence[str],
-                updates: Sequence[str]) -> str:
+                updates: Sequence[str], *, guarded: bool = False) -> str:
     placeholders = ", ".join("?" for _ in columns)
     assignments = ",\n  ".join(f"{column} = excluded.{column}" for column in updates)
+    values = f"SELECT {placeholders} WHERE EXISTS (SELECT 1 FROM nwp_runs " \
+             "WHERE run_id = ? AND payload_sha256 = ? AND status = 'failed')" if guarded \
+        else f"VALUES ({placeholders})"
     return (
         f"INSERT INTO {table}\n  ({', '.join(columns)})\n"
-        f"VALUES ({placeholders})\n"
+        f"{values}\n"
         f"ON CONFLICT ({', '.join(conflict)}) DO UPDATE SET\n  {assignments}"
+        + (" RETURNING run_id" if guarded else "")
     )
 
 
@@ -619,21 +634,46 @@ _UPSERT_RUN_SQL = _upsert_sql(
 )
 _UPSERT_SNAPSHOT_SQL = _upsert_sql(
     "nwp_snapshots", SNAPSHOT_COLUMNS, ("run_id", "variable", "valid_at"),
-    [column for column in SNAPSHOT_COLUMNS if column not in ("run_id", "variable", "valid_at")],
+    [column for column in SNAPSHOT_COLUMNS if column not in ("run_id", "variable", "valid_at")], guarded=True,
 )
 _UPSERT_PROVINCE_SQL = _upsert_sql(
     "nwp_province_values", PROVINCE_COLUMNS,
     ("run_id", "variable", "valid_at", "province_code"),
     [column for column in PROVINCE_COLUMNS
-     if column not in ("run_id", "variable", "valid_at", "province_code")],
+     if column not in ("run_id", "variable", "valid_at", "province_code")], guarded=True,
 )
-_SELECT_RUN_SHA_SQL = "SELECT payload_sha256 FROM nwp_runs WHERE run_id = ?"
+_SELECT_RUN_STATE_SQL = "SELECT payload_sha256, status FROM nwp_runs WHERE run_id = ?"
+_SELECT_SNAPSHOT_KEYS_SQL = (
+    "SELECT json_group_array(json_object('variable', variable, 'valid_at', valid_at)) "
+    "AS keys_json FROM nwp_snapshots WHERE run_id = ?"
+)
+_SELECT_PROVINCE_KEYS_SQL = (
+    "SELECT json_group_array(json_object('variable', variable, 'valid_at', valid_at, 'codes', codes)) "
+    "AS groups_json FROM (SELECT variable, valid_at, json_group_array(province_code) AS codes "
+    "FROM nwp_province_values WHERE run_id = ? GROUP BY variable, valid_at)"
+)
 _SELECT_RUN_INDEX_SQL = (
     "SELECT json_group_array(json_object('run_id', run_id, 'domain', domain, "
     "'init_at', init_at)) AS runs_json FROM nwp_runs"
 )
 _DELETE_RUN_SQL = "DELETE FROM nwp_runs WHERE run_id = ?"
-_MARK_RUN_FAILED_SQL = "UPDATE nwp_runs SET status = 'failed' WHERE run_id = ?"
+_FINALIZE_RUN_SQL = (
+    "UPDATE nwp_runs SET status = ? WHERE run_id = ? AND payload_sha256 = ? "
+    "AND status = 'failed' RETURNING run_id"
+)
+_UPDATE_RUN_LICENSE_SQL = (
+    "UPDATE nwp_runs SET license_status = ?, payload_sha256 = ? "
+    "WHERE run_id = ? AND payload_sha256 = ? AND status IN ('ready','partial') RETURNING run_id"
+)
+_DELETE_PROVINCES_SQL = (
+    "DELETE FROM nwp_province_values WHERE run_id = ? AND variable = ? AND valid_at = ? "
+    "AND province_code IN (SELECT value FROM json_each(?)) "
+    "AND EXISTS (SELECT 1 FROM nwp_runs WHERE run_id = ? AND payload_sha256 = ? AND status = 'failed')"
+)
+_DELETE_SNAPSHOT_SQL = (
+    "DELETE FROM nwp_snapshots WHERE run_id = ? AND variable = ? AND valid_at = ? "
+    "AND EXISTS (SELECT 1 FROM nwp_runs WHERE run_id = ? AND payload_sha256 = ? AND status = 'failed')"
+)
 _PROBE_D1_SQL = "SELECT 1 AS ok"
 
 
@@ -645,14 +685,14 @@ _PROBE_D1_SQL = "SELECT 1 AS ok"
 def _is_nwp_resource(row: Mapping[str, Any]) -> bool:
     source_id = str(row.get("source_id") or "").strip().lower()
     resource_key = str(row.get("resource_key") or "").strip().lower()
-    return source_id in ("tmd_hpc_nwp", "tmd_hpc") or resource_key.startswith("tmd_hpc")
+    return source_id == SOURCE_ID and resource_key == NWP_RESOURCE_KEY
 
 
 def approved_nwp_resource(registry_path: Optional[Path] = None) -> dict:
     """Return the approved TMD HPC NWP licence row or fail closed.
 
-    The writer never trusts a flag: the licence register must list exactly one
-    TMD HPC NWP resource with ``license_status == 'approved_public'``,
+    The writer never trusts a payload flag: the licence register must list the
+    exact d02 grid resource with ``license_status == 'approved_public'``,
     ``project_publication_approved is True`` and no unresolved item.
     """
     try:
@@ -690,13 +730,81 @@ def _first_row(result: Any) -> Optional[Mapping[str, Any]]:
     return result
 
 
-def _stored_payload_sha(client: Any, run_id: str) -> Optional[str]:
-    row = _first_row(client.execute(_SELECT_RUN_SHA_SQL, [run_id]))
-    if row is not None:
-        value = row.get("payload_sha256")
-        if isinstance(value, str):
-            return value
-    return None
+def _stored_run_state(client: Any, run_id: str) -> Optional[dict]:
+    """Stored ``payload_sha256`` and ``status`` of one run, or ``None``."""
+    row = _first_row(client.execute(_SELECT_RUN_STATE_SQL, [run_id]))
+    if not row:
+        return None
+    sha = row.get("payload_sha256")
+    status = row.get("status")
+    return {
+        "payload_sha256": sha if isinstance(sha, str) else None,
+        "status": status if isinstance(status, str) else None,
+    }
+
+
+def _json_array(raw: Any) -> list:
+    """Decode a JSON array text column; malformed values mean "no rows"."""
+    if not isinstance(raw, str):
+        return []
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _stored_children(client: Any, run_id: str) -> tuple[set, dict]:
+    """Snapshot keys and per-snapshot province codes stored for a run."""
+    snapshot_row = _first_row(client.execute(_SELECT_SNAPSHOT_KEYS_SQL, [run_id])) or {}
+    snapshots: set[tuple[str, str]] = set()
+    for item in _json_array(snapshot_row.get("keys_json")):
+        if not isinstance(item, Mapping):
+            continue
+        variable, valid_at = item.get("variable"), item.get("valid_at")
+        if isinstance(variable, str) and isinstance(valid_at, str):
+            snapshots.add((variable, valid_at))
+
+    count_row = _first_row(client.execute(_SELECT_PROVINCE_KEYS_SQL, [run_id])) or {}
+    provinces: dict[tuple[str, str], set[str]] = {}
+    for item in _json_array(count_row.get("groups_json")):
+        if not isinstance(item, Mapping):
+            continue
+        variable, valid_at = item.get("variable"), item.get("valid_at")
+        if isinstance(variable, str) and isinstance(valid_at, str):
+            provinces[(variable, valid_at)] = set(_json_array(item.get("codes")))
+    return snapshots, provinces
+
+
+def _child_completeness(client: Any, run_id: str, payload: Mapping[str, Any]) -> dict:
+    """Compare a run's stored children with the rows its export requires.
+
+    Snapshot and province identities must exactly match the export.
+    """
+    expected_snapshots = {(snapshot["variable"], snapshot["valid_at"])
+                          for snapshot in payload["snapshots"]}
+    expected_provinces: dict[tuple[str, str], set[str]] = {}
+    for row in payload["province_values"]:
+        expected_provinces.setdefault((row["variable"], row["valid_at"]), set()).add(row["province_code"])
+    stored_snapshots, stored_provinces = _stored_children(client, run_id)
+
+    missing_snapshots = sorted(expected_snapshots - stored_snapshots)
+    short_groups = [{"variable": key[0], "valid_at": key[1],
+                     "expected": len(expected_provinces.get(key, set())),
+                     "stored": len(stored_provinces.get(key, set()))}
+                    for key in sorted(expected_provinces.keys() | stored_provinces.keys())
+                    if expected_provinces.get(key, set()) != stored_provinces.get(key, set())]
+
+    return {
+        "complete": expected_snapshots == stored_snapshots and not short_groups,
+        "expected_snapshots": len(expected_snapshots),
+        "stored_snapshots": len(stored_snapshots),
+        "missing_snapshots": [{"variable": variable, "valid_at": valid_at}
+                              for variable, valid_at in missing_snapshots],
+        "expected_province_rows": sum(map(len, expected_provinces.values())),
+        "stored_province_rows": sum(map(len, stored_provinces.values())),
+        "short_province_groups": short_groups,
+    }
 
 
 def _fetch_run_index(client: Any) -> list[dict]:
@@ -766,12 +874,24 @@ def prune_runs(client: Any, *, keep_per_domain: int = RETENTION_KEEP_PER_DOMAIN,
     return deleted
 
 
-def _mark_run_failed(client: Any, run_id: str) -> None:
-    """Best-effort status update; never masks the original failure."""
-    try:
-        client.execute(_MARK_RUN_FAILED_SQL, [run_id])
-    except Exception:  # pragma: no cover - bookkeeping must not mask errors
-        pass
+def _require_owned_write(result: Any, run_id: str) -> None:
+    row = _first_row(result)
+    if not row or row.get("run_id") != run_id:
+        raise NwpCliError(NWP_WRITE_FAILED, f"publication ownership lost for run {run_id}")
+
+
+def _remove_obsolete_children(client: Any, run_id: str, digest: str, payload: Mapping[str, Any]) -> None:
+    snapshots, provinces = _stored_children(client, run_id)
+    expected_snapshots = {(row["variable"], row["valid_at"]) for row in payload["snapshots"]}
+    expected_provinces: dict[tuple[str, str], set[str]] = {}
+    for row in payload["province_values"]:
+        expected_provinces.setdefault((row["variable"], row["valid_at"]), set()).add(row["province_code"])
+    for key, codes in provinces.items():
+        obsolete = codes - expected_provinces.get(key, set())
+        if obsolete and key in expected_snapshots:
+            client.execute(_DELETE_PROVINCES_SQL, [run_id, *key, canonical_json(sorted(obsolete)), run_id, digest])
+    for variable, valid_at in snapshots - expected_snapshots:
+        client.execute(_DELETE_SNAPSHOT_SQL, [run_id, variable, valid_at, run_id, digest])
 
 
 def publish_export(client: Any, payload: Mapping[str, Any], *,
@@ -779,28 +899,62 @@ def publish_export(client: Any, payload: Mapping[str, Any], *,
                    reference: Optional[datetime] = None) -> dict:
     """Write one validated export to D1 and apply the retention policy.
 
-    The run row is written first, then its snapshots, then the province values
-    (the province table has a foreign key onto the snapshot table). Every write
-    is an upsert, so republishing the same run never duplicates a row. A failure
-    marks the run ``failed`` and never deletes data written earlier.
+    The run row is written first with the transient ``failed`` status, then its
+    snapshots, then the province values (the province table has a foreign key
+    onto the snapshot table), and only then is the run switched to the status
+    its export declares. Readers serve ``ready``/``partial`` only, so a run is
+    never published while its children are incomplete. Guarded writes prevent
+    a superseded publisher from changing another revision. Obsolete children
+    are removed after the new children are written, before the run is ready.
+
+    An identical payload is skipped only when the stored run finished and its
+    children still match the export; a failed or incomplete run is repaired by
+    re-upserting every child row.
     """
     summary = validate_export(payload)
-    run = payload["run"]
+    resource = approved_nwp_resource(registry_path)
+    publishable_payload = dict(payload)
+    run = dict(payload["run"])
+    run["license_status"] = resource["license_status"]
+    publishable_payload["run"] = run
     run_id = run["run_id"]
-    digest = payload_sha256(payload)
+    input_digest = payload_sha256(payload)
+    digest = payload_sha256(publishable_payload)
+    final_status = run.get("status", "ready")
 
-    stored = _stored_payload_sha(client, run_id)
-    if stored is not None and stored == digest:
+    stored = _stored_run_state(client, run_id)
+    stored_sha = stored["payload_sha256"] if stored is not None else None
+    if stored is not None and stored["status"] in FINAL_RUN_STATUSES \
+            and stored_sha in (digest, input_digest) \
+            and _child_completeness(client, run_id, publishable_payload)["complete"]:
+        if stored_sha == digest:
+            return {
+                "outcome": "skipped_identical",
+                "run_id": run_id,
+                "payload_sha256": digest,
+                "counts": summary,
+                "written": {"runs": 0, "snapshots": 0, "province_values": 0},
+                "pruned_runs": [],
+            }
+
+        # A registry approval changes only run metadata for an otherwise
+        # identical payload; update that row without rewriting forecast rows.
+        try:
+            result = client.execute(_UPDATE_RUN_LICENSE_SQL, [
+                resource["license_status"], digest, run_id, input_digest,
+            ])
+            _require_owned_write(result, run_id)
+        except Exception as exc:
+            raise NwpCliError(NWP_WRITE_FAILED,
+                              f"D1 licence metadata update failed for run {run_id}: {exc}") from exc
         return {
-            "outcome": "skipped_identical",
+            "outcome": "metadata_updated",
             "run_id": run_id,
             "payload_sha256": digest,
             "counts": summary,
-            "written": {"runs": 0, "snapshots": 0, "province_values": 0},
+            "written": {"runs": 1, "snapshots": 0, "province_values": 0},
             "pruned_runs": [],
         }
-
-    approved_nwp_resource(registry_path)
 
     try:
         client.execute(_UPSERT_RUN_SQL, [
@@ -817,10 +971,10 @@ def publish_export(client: Any, payload: Mapping[str, Any], *,
             canonical_json(run["grid"]),
             run.get("manifest_sha256"),
             digest,
-            run.get("status", "ready"),
+            TRANSIENT_RUN_STATUS,
         ])
-        for snapshot in payload["snapshots"]:
-            client.execute(_UPSERT_SNAPSHOT_SQL, [
+        for snapshot in publishable_payload["snapshots"]:
+            result = client.execute(_UPSERT_SNAPSHOT_SQL, [
                 run_id,
                 snapshot["variable"],
                 snapshot["valid_at"],
@@ -830,10 +984,11 @@ def publish_export(client: Any, payload: Mapping[str, Any], *,
                 int(snapshot["ny"]),
                 canonical_json(snapshot["mean"]),
                 canonical_json(snapshot["max"]),
-                canonical_json(snapshot.get("quality") or {}),
+                canonical_json(snapshot.get("quality") or {}), run_id, digest,
             ])
-        for row in payload["province_values"]:
-            client.execute(_UPSERT_PROVINCE_SQL, [
+            _require_owned_write(result, run_id)
+        for row in publishable_payload["province_values"]:
+            result = client.execute(_UPSERT_PROVINCE_SQL, [
                 run_id,
                 row["variable"],
                 row["valid_at"],
@@ -844,10 +999,24 @@ def publish_export(client: Any, payload: Mapping[str, Any], *,
                 row.get("radius_km"),
                 row.get("distance_km"),
                 row.get("risk_level"),
-                row.get("cell_count"),
+                row.get("cell_count"), run_id, digest,
             ])
+            _require_owned_write(result, run_id)
+        _remove_obsolete_children(client, run_id, digest, publishable_payload)
+        completeness = _child_completeness(client, run_id, publishable_payload)
+        if not completeness["complete"]:
+            raise NwpCliError(
+                NWP_WRITE_FAILED,
+                f"D1 write for run {run_id} is incomplete after writing "
+                f"(snapshots {completeness['stored_snapshots']}/"
+                f"{completeness['expected_snapshots']}, province rows "
+                f"{completeness['stored_province_rows']}/"
+                f"{completeness['expected_province_rows']})",
+            )
+        _require_owned_write(client.execute(_FINALIZE_RUN_SQL, [final_status, run_id, digest]), run_id)
+    except NwpCliError:
+        raise
     except Exception as exc:
-        _mark_run_failed(client, run_id)
         raise NwpCliError(NWP_WRITE_FAILED,
                           f"D1 write failed for run {run_id}: {exc}") from exc
 
@@ -859,8 +1028,8 @@ def publish_export(client: Any, payload: Mapping[str, Any], *,
         "counts": summary,
         "written": {
             "runs": 1,
-            "snapshots": len(payload["snapshots"]),
-            "province_values": len(payload["province_values"]),
+            "snapshots": len(publishable_payload["snapshots"]),
+            "province_values": len(publishable_payload["province_values"]),
         },
         "pruned_runs": pruned,
     }

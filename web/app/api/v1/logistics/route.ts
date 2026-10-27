@@ -122,12 +122,12 @@ export async function GET(request: Request) {
 
     return jsonData(payload, {
       meta: {
-        availability: 'ready',
-        freshness: 'fresh',
-        completeness: 'complete',
+        availability: 'metadata_only',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: 'metadata_only',
-        sourceIds: ['pwo', 'dit', 'doae', 'cpd'],
-        dataAsOf: '2026-10-25',
+        sourceIds: [],
+        dataAsOf: null,
         warnings: payload.warnings,
         runtimeMode: 'database',
       },

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Shell } from '@/components/shell';
 import { WeatherDashboard } from '@/components/weather-dashboard';
 import { WeatherObservationsPanel } from '@/components/weather-observations-panel';
@@ -46,7 +47,11 @@ export default async function WeatherPage({ searchParams }: { searchParams: Prom
         <h1>สภาพอากาศเพื่อการเกษตร</h1>
         <p>
           ค่าตรวจวัดจริงจากสถานีอากาศเกษตรและสถานี synoptic ของกรมอุตุนิยมวิทยา เรียงตามวันตรวจวัดเดียวต่อหนึ่งครั้ง
-          พร้อมพยากรณ์ 7 วันสำหรับวางแผนเพาะปลูก (ยังเป็นการสาธิตหน้าจอ) เลือกได้ทั้งรายภาคและรายจังหวัด
+          ส่วนพยากรณ์ 7 วันจะแสดงเมื่อมีข้อมูลที่อนุมัติแล้ว ขณะนี้ยังไม่มีตัวเลข เลือกดูสถานีได้รายภาคและรายจังหวัด
+        </p>
+        <p>
+          <Link className="text-link" href="/monthly-rainfall">ดูยอดฝนรายเดือนต่อสถานีที่ /monthly-rainfall</Link>
+          {' '}— คนละเกรนกับตารางรายวันนี้ (สถานี × เดือน)
         </p>
       </div>
     </div>
@@ -60,7 +65,7 @@ export default async function WeatherPage({ searchParams }: { searchParams: Prom
     <p className="area-note">
       รหัสจังหวัด 77 รายการเป็นทะเบียนอ้างอิงพื้นที่ ไม่ได้หมายความว่ามีข้อมูลครอบคลุมทุกจังหวัด
       ตารางด้านบนเป็นค่ารายสถานี จังหวัดที่ปรากฏคือจังหวัดที่ลงทะเบียนของสถานีนั้น ไม่ใช่ค่าที่เฉลี่ยจากหลายสถานี
-      ค่าพยากรณ์ระดับภาค/จังหวัดด้านล่างเป็นค่าประมาณเพื่อการวางแผน โปรดตรวจสอบประกาศเตือนภัยฉบับจริงจากหน่วยงานต้นทางก่อนตัดสินใจงานในแปลง
+      ส่วนพยากรณ์ด้านล่างยังไม่มีข้อมูลที่อนุมัติให้เผยแพร่; ดู TMD HPC แยกที่หน้า /nwp
     </p>
   </Shell>;
 }

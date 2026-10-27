@@ -221,11 +221,6 @@ jobs:
           fi
       - name: Sync the RID reservoir observations
         id: sync
-        # TODO(R1-C): scripts/sync_rid_to_d1.py is not in the repository yet, so
-        # this step cannot fail the run while the lane is pending. The "Enforce"
-        # step below still fails the job as soon as the script exists and exits
-        # with a non-zero code. Delete this comment and the continue-on-error
-        # flag once the R1-C lane has landed.
         continue-on-error: true
         env:
           SYNC_DATE: ${{ inputs.date }}
@@ -233,18 +228,21 @@ jobs:
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
-            echo "::warning::TODO(R1-C): ${SYNC_SCRIPT} is not in the repository yet; the RID numeric sync is skipped until the lane lands."
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::${SYNC_SCRIPT} is missing; refusing to report the RID sync as successful."
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+            echo "status=failed_script_missing" >> "$GITHUB_OUTPUT"
+            echo "exit_code=127" >> "$GITHUB_OUTPUT"
+            exit 127
           fi
           args=(--write)
           if [[ -n "${SYNC_DATE:-}" ]]; then
             args+=(--date "${SYNC_DATE}")
           fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
+          set +e
           PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
           code=$?
+          set -e
           echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
           if [[ "${code}" -eq 0 ]]; then
             echo "status=succeeded" >> "$GITHUB_OUTPUT"
@@ -390,11 +388,6 @@ jobs:
           fi
       - name: Sync the TMD station observations
         id: sync
-        # TODO(R1-D): scripts/sync_tmd_to_d1.py is not in the repository yet, so
-        # this step cannot fail the run while the lane is pending. The "Enforce"
-        # step below still fails the job as soon as the script exists and exits
-        # with a non-zero code. Delete this comment and the continue-on-error
-        # flag once the R1-D lane has landed.
         continue-on-error: true
         env:
           SYNC_DATE: ${{ inputs.date }}
@@ -402,18 +395,21 @@ jobs:
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
-            echo "::warning::TODO(R1-D): ${SYNC_SCRIPT} is not in the repository yet; the TMD numeric sync is skipped until the lane lands."
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::${SYNC_SCRIPT} is missing; refusing to report the TMD sync as successful."
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+            echo "status=failed_script_missing" >> "$GITHUB_OUTPUT"
+            echo "exit_code=127" >> "$GITHUB_OUTPUT"
+            exit 127
           fi
           args=(--write)
           if [[ -n "${SYNC_DATE:-}" ]]; then
             args+=(--date "${SYNC_DATE}")
           fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
+          set +e
           PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
           code=$?
+          set -e
           echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
           if [[ "${code}" -eq 0 ]]; then
             echo "status=succeeded" >> "$GITHUB_OUTPUT"
@@ -554,11 +550,6 @@ jobs:
           fi
       - name: Sync the Open-Meteo observations
         id: sync
-        # TODO(R1-E): scripts/sync_open_meteo_to_d1.py is not in the repository yet,
-        # so this step cannot fail the run while the lane is pending. The
-        # "Enforce" step below still fails the job as soon as the script exists and
-        # exits with a non-zero code. Delete this comment and the
-        # continue-on-error flag once the R1-E lane has landed.
         continue-on-error: true
         env:
           SYNC_DATE: ${{ inputs.date }}
@@ -566,18 +557,21 @@ jobs:
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
-            echo "::warning::TODO(R1-E): ${SYNC_SCRIPT} is not in the repository yet; the Open-Meteo numeric sync is skipped until the lane lands."
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::${SYNC_SCRIPT} is missing; refusing to report the Open-Meteo sync as successful."
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+            echo "status=failed_script_missing" >> "$GITHUB_OUTPUT"
+            echo "exit_code=127" >> "$GITHUB_OUTPUT"
+            exit 127
           fi
           args=(--write)
           if [[ -n "${SYNC_DATE:-}" ]]; then
             args+=(--date "${SYNC_DATE}")
           fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
+          set +e
           PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
           code=$?
+          set -e
           echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
           if [[ "${code}" -eq 0 ]]; then
             echo "status=succeeded" >> "$GITHUB_OUTPUT"
@@ -711,10 +705,6 @@ jobs:
           python -m pip install "rasterio>=1.4,<2"
       - name: Sync the CHIRPS numeric observations
         id: sync
-        # Same temporary round-1 guard shape as the lane jobs; this writer has
-        # already landed, so a missing script here would be an accident, not a
-        # pending lane. Lane H / round-2 QA may drop the guards once all lanes
-        # are green.
         continue-on-error: true
         env:
           SYNC_DATE: ${{ inputs.date }}
@@ -722,10 +712,11 @@ jobs:
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
-            echo "::warning::${SYNC_SCRIPT} is missing unexpectedly; the CHIRPS numeric sync is skipped."
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::${SYNC_SCRIPT} is missing; refusing to report the CHIRPS sync as successful."
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+            echo "status=failed_script_missing" >> "$GITHUB_OUTPUT"
+            echo "exit_code=127" >> "$GITHUB_OUTPUT"
+            exit 127
           fi
           if [[ -n "${SYNC_DATE:-}" ]]; then
             echo "::warning::scripts/sync_hub_numeric.py has no --date flag (it publishes the latest reviewed sample); the batch-date input is ignored for chirps."
@@ -733,8 +724,10 @@ jobs:
           echo "ran=true" >> "$GITHUB_OUTPUT"
           # --write is this writer's documented write flag; --input and --write
           # are mutually exclusive, so the live bounded sample path is used.
+          set +e
           PYTHONPATH=src python "${SYNC_SCRIPT}" --write | tee sync-output.json
           code=$?
+          set -e
           echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
           if [[ "${code}" -eq 0 ]]; then
             echo "status=succeeded" >> "$GITHUB_OUTPUT"
@@ -879,11 +872,6 @@ jobs:
           fi
       - name: Sync the GISTDA flood observations
         id: sync
-        # TODO(R1-F): scripts/sync_gistda_to_d1.py is not in the repository yet, so
-        # this step cannot fail the run while the lane is pending. The "Enforce"
-        # step below still fails the job as soon as the script exists and exits
-        # with a non-zero code. Delete this comment and the continue-on-error
-        # flag once the R1-F lane has landed.
         continue-on-error: true
         env:
           SYNC_DATE: ${{ inputs.date }}
@@ -891,18 +879,21 @@ jobs:
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
-            echo "::warning::TODO(R1-F): ${SYNC_SCRIPT} is not in the repository yet; the GISTDA numeric sync is skipped until the lane lands."
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-            echo "status=pending_script_missing" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::${SYNC_SCRIPT} is missing; refusing to report the GISTDA sync as successful."
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+            echo "status=failed_script_missing" >> "$GITHUB_OUTPUT"
+            echo "exit_code=127" >> "$GITHUB_OUTPUT"
+            exit 127
           fi
           args=(--write)
           if [[ -n "${SYNC_DATE:-}" ]]; then
             args+=(--date "${SYNC_DATE}")
           fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
+          set +e
           PYTHONPATH=src python "${SYNC_SCRIPT}" "${args[@]}" | tee sync-output.json
           code=$?
+          set -e
           echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
           if [[ "${code}" -eq 0 ]]; then
             echo "status=succeeded" >> "$GITHUB_OUTPUT"

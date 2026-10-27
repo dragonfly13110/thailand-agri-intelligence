@@ -9,6 +9,7 @@ import type {
   HubObservation,
   Pagination as ApiPagination,
 } from '@/lib/hub/types';
+import { DatasetCsvDownload } from './dataset-csv-download';
 import { Icon } from './icon';
 
 type ListResponse = ApiResponse<DatasetSummary[]> & { pagination: ApiPagination };
@@ -245,6 +246,8 @@ export function DataExplorer({ dataset = '', q = '', page = '1' }: {
           <p className="area-note">แหล่งอ้างอิง: {current.data.owner || current.data.sourceId} · ปรับปรุงจากต้นทาง {dateLabel(current.data.modifiedAt)} · จำนวนแถวตาม API {currentRecords.value.pagination.total.toLocaleString('th-TH')}</p>
           <nav className="pagination" aria-label="หน้าของข้อมูล"><span>หน้า {currentRecords.value.pagination.page}</span><div>{pageNumber > 1 && <Link href={pageUrl(dataset, pageNumber - 1, query)}>ก่อนหน้า</Link>}{pageNumber * currentRecords.value.pagination.pageSize < currentRecords.value.pagination.total && <Link href={pageUrl(dataset, pageNumber + 1, query)}>ถัดไป</Link>}</div></nav>
         </>}
+        <h4>ส่งออกข้อมูลที่เผยแพร่</h4>
+        <DatasetCsvDownload datasetId={selectedDatasetId} resourceId={resourceId} resourceName={selectedResource?.name}/>
       </>}
     </>}
   </section>;

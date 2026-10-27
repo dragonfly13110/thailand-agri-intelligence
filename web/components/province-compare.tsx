@@ -31,9 +31,8 @@ import styles from './province-compare.module.css';
  *   exact region label carried by the province option.
  *
  * Truth rules enforced here:
- * - Weather numbers are deterministic SAMPLE values while the TMD licence is
- *   pending. The sample flag and deduplicated warnings are passed through and
- *   shown in a banner; the UI never ranks provinces from those values.
+ * - Weather stays empty until an approved forecast batch is available. The
+ *   client preserves nulls and never ranks provinces from missing values.
  * - RID water is a region aggregate, matched by exact label only. There is no
  *   fallback to the national average or to ภาคกลาง, and a missing row stays
  *   `grain: 'none'` with null numbers.
@@ -185,7 +184,7 @@ function parseWeatherSnapshot(body: unknown): WeatherSnapshot {
   }
 
   return {
-    issuedAt: text(data.issuedAt, 'วันออกพยากรณ์'),
+    issuedAt: data.issuedAt === null ? null : text(data.issuedAt, 'วันออกพยากรณ์'),
     regionLabel: text(location.regionLabel, 'ภาคของพยากรณ์'),
     sample: data.sample,
     warnings: stringList(meta.warnings),
@@ -686,7 +685,8 @@ export function ProvinceCompare({ provinces, initialCodes }: {
       <ul>
         <li>
           <strong>ฝน:</strong> พยากรณ์เพื่อการเกษตรของกรมอุตุนิยมวิทยา (TMD) ผ่าน <a href="/api/v1/weather">/api/v1/weather</a>
-          {' '}· ขณะนี้เป็นข้อมูลตัวอย่าง (sample) เพราะยังรอตรวจสิทธิ์ · อ่านนิยามและคำเตือนที่ <a href="/weather">หน้า /weather</a>
+          {' '}· ยังไม่มี forecast batch ที่อนุมัติให้เผยแพร่; พยากรณ์ TMD HPC อยู่ที่ <a href="/nwp">หน้า /nwp</a>
+          {' '}· อ่านนิยามและสถานะข้อมูลที่ <a href="/weather">หน้า /weather</a>
           {' '}· <a href={WEATHER_SOURCE_URL} target="_blank" rel="noreferrer">ต้นทาง TMD</a>
         </li>
         <li>

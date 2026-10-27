@@ -8,9 +8,10 @@ itself lives in large CSV/NetCDF files served over HTTPS (plain HTTP is reset).
 This module keeps the source grain: one run, one domain, one variable per file.
 It downloads only the requested variables, verifies size and SHA-256 while
 streaming, and records the result in a manifest that matches the TADIH data
-contract. Units and licensing are not confirmed in writing yet, so the
-manifest carries ``license_status: pending`` and
-``unit_status: pending_official_confirmation``.
+contract. Units are not confirmed in writing, so the manifest carries
+``unit_status: pending_official_confirmation`` and keeps its ingest-stage
+``license_status`` pending. The D1 publisher applies the current approved
+resource status from the exact licence-register row.
 
 Fail-closed rules: no manifest is ever marked ``ready`` when a requested file
 is missing or invalid, partially written files are deleted, and listing /

@@ -34,7 +34,7 @@ type ClimateNotableYear = {
   normalMm: number | null;
 };
 
-type ClimateHistoryOverview = {
+type ClimateHistoryOverviewBase = {
   location: {
     code: string;
     nameTh: string;
@@ -47,8 +47,6 @@ type ClimateHistoryOverview = {
   endYear: number;
   yearsSpan: number;
   yearsWithData: number;
-  dataKind: 'sample';
-  sample: true;
   source: {
     sourceId: string;
     providerModel: string;
@@ -62,6 +60,12 @@ type ClimateHistoryOverview = {
     archiveUrl: string;
   };
   units: Record<string, string>;
+};
+
+type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
+  | {
+  dataKind: 'sample';
+  sample: true;
   baseline: { tmeanNormalC: number; rainfallNormalMm: number; hotDaysNormal: number };
   years: ClimateYearStats[];
   trends: {
@@ -74,11 +78,30 @@ type ClimateHistoryOverview = {
     warmingDeltaC: number;
   };
   notableYears: ClimateNotableYear[];
-};
+  }
+  | {
+  dataKind: 'empty';
+  sample: false;
+  baseline: { tmeanNormalC: null; rainfallNormalMm: null; hotDaysNormal: null };
+  years: [];
+  trends: {
+    tmeanPerDecadeC: null;
+    tmaxPerDecadeC: null;
+    hotDaysPerDecade: null;
+    rainfallTrendMmPerDecade: null;
+    firstFiveYearMeanC: null;
+    lastFiveYearMeanC: null;
+    warmingDeltaC: null;
+  };
+  notableYears: [];
+  }
+);
+
+type PopulatedClimateHistoryOverview = Extract<ClimateHistoryOverview, { dataKind: 'sample' }>;
 
 type Envelope = {
   data: ClimateHistoryOverview;
-  meta: { access: string; warnings: string[] };
+  meta: { availability: string; access: string; warnings: string[] };
 };
 
 type YearRange = { id: string; label: string; startYear: number; endYear: number };
@@ -241,13 +264,22 @@ export function ClimateHistoryDashboard({ provinces }: { provinces: Array<{ code
 
 function OverviewView({ value }: { value: Envelope }) {
   const { data, meta } = value;
+
+  if (data.dataKind === 'empty') {
+    return <div className={styles.stateBlock} role="status">
+      <Icon name="info" size={30}/>
+      <h2>ยังไม่มีข้อมูลภูมิอากาศย้อนหลังที่เพียงพอ</h2>
+      <p>{meta.warnings.join(' ')}</p>
+    </div>;
+  }
+
   const { location, baseline, trends, years } = data;
 
   if (!years.length) {
     return <div className={styles.stateBlock} role="status">
       <Icon name="search" size={30}/>
       <h2>ยังไม่มีข้อมูลสำหรับพื้นที่หรือช่วงปีนี้</h2>
-      <p>ลองเลือกจังหวัดอื่นหรือช่วงปีอื่น</p>
+      <p>ไม่มีค่าจากแหล่งข้อมูลที่ใช้ได้ในช่วงปีที่เลือก</p>
     </div>;
   }
 
@@ -351,7 +383,7 @@ function OverviewView({ value }: { value: Envelope }) {
   </>;
 }
 
-function WarmingChart({ data }: { data: ClimateHistoryOverview }) {
+function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
   const width = 960;
   const height = 320;
   const pad = { left: 56, right: 20, top: 22, bottom: 46 };
@@ -436,7 +468,7 @@ function WarmingChart({ data }: { data: ClimateHistoryOverview }) {
   </figure>;
 }
 
-function HotDaysChart({ data }: { data: ClimateHistoryOverview }) {
+function HotDaysChart({ data }: { data: PopulatedClimateHistoryOverview }) {
   const width = 460;
   const height = 270;
   const pad = { left: 46, right: 14, top: 18, bottom: 42 };
@@ -498,7 +530,7 @@ function HotDaysChart({ data }: { data: ClimateHistoryOverview }) {
   </figure>;
 }
 
-function RainfallChart({ data }: { data: ClimateHistoryOverview }) {
+function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
   const width = 460;
   const height = 290;
   const pad = { left: 56, right: 14, top: 18, bottom: 42 };

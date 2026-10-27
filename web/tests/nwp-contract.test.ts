@@ -257,6 +257,9 @@ test('nwp contract: risk labels and ranks order normal < watch < high < severe',
   assert.equal(risk.riskRank(undefined), -1);
   assert.equal(risk.riskLabelTh(null), 'ไม่มีข้อมูล');
   assert.equal(risk.riskLabelTh(undefined), 'ไม่มีข้อมูล');
+  assert.equal(risk.provinceRiskLabelTh(null, null), 'ไม่มีข้อมูล');
+  assert.equal(risk.provinceRiskLabelTh(0, null), 'ยังไม่จัดระดับ');
+  assert.equal(risk.provinceRiskLabelTh(0, 'normal'), types.RISK_LABELS_TH.normal);
 });
 
 test('nwp contract: advisories exist for elevated levels and never read as official warnings', () => {

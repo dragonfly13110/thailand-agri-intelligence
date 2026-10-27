@@ -20,6 +20,8 @@
  *   dry-season zero for a month the provider has not finished.
  */
 
+import type { AccessStatus, Availability, Completeness, Pagination } from './types';
+
 export const MONTHLY_RAINFALL_RESOURCE_URL =
   'https://data.tmd.go.th/api/ThailandMonthlyRainfall/v1/index.php';
 
@@ -317,8 +319,17 @@ export function buildMonthlyRainfall(
       station.stationNameEn = station.stationNameEn ?? dimensionText(row, 'stationNameEn');
       station.provinceCode = station.provinceCode ?? provinceCode;
       station.provinceNameTh = station.provinceNameTh ?? dimensionText(row, 'provinceNameTh');
-      station.latitude = station.latitude ?? dimensionNumber(row, 'latitude');
-      station.longitude = station.longitude ?? dimensionNumber(row, 'longitude');
+      // A suspect field order is sticky: one implausible row makes the provider's
+      // position unprovable, so no later row may refill latitude/longitude.
+      const more = readCoordinates(row);
+      if (more.coordinateStatus === 'provider_field_order_suspect') {
+        station.latitude = null;
+        station.longitude = null;
+        station.coordinateStatus = 'provider_field_order_suspect';
+      } else if (station.coordinateStatus !== 'provider_field_order_suspect') {
+        station.latitude = station.latitude ?? more.latitude;
+        station.longitude = station.longitude ?? more.longitude;
+      }
     }
 
     const metric = row.metricId as MonthlyRainfallMetricId;
@@ -425,5 +436,252 @@ export function buildMonthlyRainfallMetadataPayload(): {
     summary: null,
     stations: [],
     calculationVersion: MONTHLY_RAINFALL_CALCULATION_VERSION,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Published batch: provenance, picker directory, response envelope    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Everything one read of the warehouse proved about the batch it returned.
+ * Every field is copied off a row or the resource register — the route never
+ * invents a date, a version or a row count.
+ */
+export type MonthlyRainfallBatch = {
+  runId: string | null;
+  runStatus: string | null;
+  /** Distinct active runs behind the collected rows; more than one means no single snapshot version. */
+  runCount: number;
+  adapterVersion: string | null;
+  payloadSha256: string | null;
+  sourceRetrievedAt: string | null;
+  runCompletedAt: string | null;
+  sourceUpdatedAt: string | null;
+  freshnessDays: number | null;
+  /** Rows this read actually collected from the published batch. */
+  collectedRows: number;
+  /** Rows the warehouse reported for the resource, taken from its own count. */
+  reportedTotal: number;
+  /** True when the walk stopped at the row ceiling, so `reportedTotal` was not fully read. */
+  capped: boolean;
+  pages: number;
+  /** Earliest/latest period the collected rows carry, as published. */
+  periodStart: string | null;
+  periodEnd: string | null;
+};
+
+export type MonthlyRainfallProvinceOption = {
+  code: string | null;
+  name: string | null;
+  stationCount: number;
+};
+
+export type MonthlyRainfallStationOption = {
+  stationCode: string;
+  stationNameTh: string | null;
+  provinceCode: string | null;
+  provinceNameTh: string | null;
+  monthCount: number;
+};
+
+/**
+ * What a reader can actually pick: years, provinces and stations present in the
+ * published batch. Options the warehouse did not return are never offered, so a
+ * picker can never lead the user to a filter that would read as "no rain".
+ */
+export type MonthlyRainfallDirectory = {
+  years: number[];
+  provinces: MonthlyRainfallProvinceOption[];
+  stations: MonthlyRainfallStationOption[];
+};
+
+/**
+ * Directory derived from an unfiltered build of the same rows the payload uses.
+ * It reads the builder's own station records, so the province/station mapping is
+ * never computed twice and cannot drift from the payload.
+ */
+export function buildMonthlyRainfallDirectory(payload: MonthlyRainfallPayload): MonthlyRainfallDirectory {
+  const provinces = new Map<string | null, MonthlyRainfallProvinceOption>();
+  for (const station of payload.stations) {
+    const key = station.provinceCode;
+    const known = provinces.get(key);
+    if (known) known.stationCount += 1;
+    else provinces.set(key, { code: key, name: station.provinceNameTh, stationCount: 1 });
+  }
+  const ordered = (left: string | null, right: string | null) => (left ?? '\uffff').localeCompare(right ?? '\uffff');
+  return {
+    years: payload.summary.years,
+    provinces: [...provinces.values()].sort((left, right) => ordered(left.code, right.code)),
+    stations: payload.stations.map((station) => ({
+      stationCode: station.stationCode,
+      stationNameTh: station.stationNameTh,
+      provinceCode: station.provinceCode,
+      provinceNameTh: station.provinceNameTh,
+      monthCount: station.months.length,
+    })),
+  };
+}
+
+export type MonthlyRainfallFilters = {
+  provinceCode: string | null;
+  stationCode: string | null;
+  year: number | null;
+};
+
+export type MonthlyRainfallRead = {
+  /** False only when the warehouse read itself failed — that is not "no data". */
+  databaseRead: boolean;
+  /** Null when the published batch holds no monthly rainfall row at all. */
+  batch: MonthlyRainfallBatch | null;
+  /** Directory of what is readable, independent of the filters below. */
+  directory: MonthlyRainfallDirectory | null;
+  payload: MonthlyRainfallPayload | null;
+  filters: MonthlyRainfallFilters;
+};
+
+/**
+ * The wire body of the endpoint. It is the payload plus what the reader filtered
+ * on, but a read with nothing publishable keeps `stations: []` and `summary: null`
+ * rather than a zeroed summary that could be misread as "no rain anywhere".
+ */
+export type MonthlyRainfallBody = Omit<MonthlyRainfallPayload, 'summary'> & {
+  summary: MonthlyRainfallSummary | null;
+  filters: MonthlyRainfallFilters;
+  directory: MonthlyRainfallDirectory | null;
+};
+
+/** Everything the envelope knows except `freshness`, which needs the clock. */
+export type MonthlyRainfallMeta = {
+  availability: Availability;
+  completeness: Completeness;
+  access: AccessStatus;
+  sourceIds: string[];
+  dataAsOf: string | null;
+  sourceUpdatedAt: string | null;
+  sourceRetrievedAt: string | null;
+  datasetVersion: string | null;
+  warnings: string[];
+  runtimeMode: 'database' | 'source_api_fallback';
+};
+
+export type MonthlyRainfallEnvelope = {
+  data: MonthlyRainfallBody;
+  meta: MonthlyRainfallMeta;
+  pagination: Pagination;
+};
+
+/**
+ * The four honest outcomes of one read, as a response envelope.
+ *
+ * `freshness` is deliberately left out: the route owns the clock and applies the
+ * shared `freshness()` rule. Nothing here counts, averages or converts a value;
+ * a body without publishable rows keeps `stations: []` and `summary: null` so an
+ * empty result can never be read as "no rain".
+ */
+export function monthlyRainfallResponse(
+  read: MonthlyRainfallRead,
+  page: { page: number; pageSize: number },
+): MonthlyRainfallEnvelope {
+  const { batch, directory, payload, filters } = read;
+  const active = read.databaseRead && batch ? payload : null;
+  const body: MonthlyRainfallBody = { ...(active ?? buildMonthlyRainfallMetadataPayload()), filters, directory };
+  const start = (page.page - 1) * page.pageSize;
+  const stations = body.stations.slice(start, start + page.pageSize);
+
+  const filterNote = [
+    filters.provinceCode ? 'provinceCode=' + filters.provinceCode : null,
+    filters.stationCode ? 'stationCode=' + filters.stationCode : null,
+    filters.year !== null ? 'year=' + filters.year : null,
+  ].filter((part): part is string => Boolean(part));
+
+  if (!read.databaseRead) {
+    return {
+      data: { ...body, stations: [] },
+      meta: {
+        availability: 'metadata_only',
+        completeness: 'unknown',
+        access: 'metadata_only',
+        sourceIds: [MONTHLY_RAINFALL_SOURCE.sourceId],
+        dataAsOf: null,
+        sourceUpdatedAt: null,
+        sourceRetrievedAt: null,
+        datasetVersion: null,
+        warnings: [...MONTHLY_RAINFALL_FALLBACK_WARNINGS, 'อ่านคลังข้อมูลกลางไม่สำเร็จ: ระบบไม่แสดงตัวเลขใด ๆ แทนค่าที่อ่านไม่ได้'],
+        runtimeMode: 'source_api_fallback',
+      },
+      pagination: { page: page.page, pageSize: page.pageSize, total: 0 },
+    };
+  }
+
+  if (!batch) {
+    return {
+      data: { ...body, stations: [] },
+      meta: {
+        availability: 'metadata_only',
+        completeness: 'unknown',
+        access: 'metadata_only',
+        sourceIds: [MONTHLY_RAINFALL_SOURCE.sourceId],
+        dataAsOf: null,
+        sourceUpdatedAt: null,
+        sourceRetrievedAt: null,
+        datasetVersion: null,
+        warnings: [...MONTHLY_RAINFALL_FALLBACK_WARNINGS, 'อ่านคลังข้อมูลกลางสำเร็จ แต่ไม่พบ active numeric batch ของทรัพยากรฝนรายเดือน'],
+        runtimeMode: 'database',
+      },
+      pagination: { page: page.page, pageSize: page.pageSize, total: 0 },
+    };
+  }
+
+  const shared = {
+    sourceIds: [MONTHLY_RAINFALL_SOURCE.sourceId],
+    dataAsOf: batch.periodEnd,
+    sourceUpdatedAt: batch.sourceUpdatedAt ?? batch.runCompletedAt ?? batch.sourceRetrievedAt,
+    sourceRetrievedAt: batch.sourceRetrievedAt,
+    datasetVersion: batch.runCount === 1 ? (batch.payloadSha256 ?? batch.runId) : null,
+    runtimeMode: 'database' as const,
+  };
+
+  if (!payload) {
+    return {
+      data: { ...body, stations: [] },
+      meta: {
+        availability: 'empty',
+        completeness: batch.capped ? 'partial' : 'complete',
+        access: 'approved_public',
+        ...shared,
+        warnings: [
+          'batch ที่เผยแพร่ได้อ่านได้ แต่ไม่มีสถานี × เดือนที่ตรงกับตัวกรองนี้ จึงไม่แสดงตัวเลข และไม่ใช่ "ไม่มีฝน"',
+          filterNote.length ? 'ตัวกรองที่ใช้: ' + filterNote.join(' · ') : 'ตัวกรองที่ใช้: ไม่มี',
+          ...MONTHLY_RAINFALL_SOURCE.limitations,
+        ],
+        runtimeMode: 'database',
+      },
+      pagination: { page: page.page, pageSize: page.pageSize, total: 0 },
+    };
+  }
+
+  const partial = batch.capped || batch.runStatus !== 'succeeded';
+  const warnings = [...MONTHLY_RAINFALL_WARNINGS];
+  if (batch.capped) {
+    warnings.push(
+      `อ่านถึงเพดาน ${batch.collectedRows} แถวจากที่คลังรายงาน ${batch.reportedTotal} แถว: รายการปี/จังหวัด/สถานีและตัวเลขชุดนี้จึงไม่ครบทั้ง batch (partial)`,
+    );
+  }
+  if (batch.runStatus && batch.runStatus !== 'succeeded') {
+    warnings.push('สถานะรอบข้อมูลของ batch นี้คือ ' + batch.runStatus + ' ไม่ใช่ succeeded');
+  }
+
+  return {
+    data: { ...body, stations },
+    meta: {
+      availability: 'ready',
+      completeness: partial ? 'partial' : 'complete',
+      access: 'approved_public',
+      ...shared,
+      warnings,
+      runtimeMode: 'database',
+    },
+    pagination: { page: page.page, pageSize: page.pageSize, total: payload.stations.length },
   };
 }

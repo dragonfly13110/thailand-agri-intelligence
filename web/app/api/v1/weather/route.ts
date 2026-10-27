@@ -6,10 +6,8 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/v1/weather?provinceCode=73  (or ?region=central)
  *
- * Reads one forecast view for a province or a region. Numeric values are
- * deterministic sample data while the TMD resource licence is pending; the
- * hub meta keeps `access: 'metadata_only'` and repeats the sample warnings so
- * no pending upstream number can be mistaken for published data.
+ * No approved forecast batch is available for this contract. Real TMD HPC
+ * forecast and station observation data remain on their separate endpoints.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -17,14 +15,14 @@ export async function GET(request: Request) {
     const overview = await buildWeatherOverview(url);
     return jsonData(overview, {
       meta: {
-        availability: 'ready',
-        freshness: 'fresh',
-        completeness: overview.cumulative.completeness,
+        availability: 'empty',
+        freshness: 'unknown',
+        completeness: 'unknown',
         access: 'metadata_only',
-        sourceIds: ['tmd'],
-        dataAsOf: overview.issuedAt,
+        sourceIds: [],
+        dataAsOf: null,
         sourceUpdatedAt: null,
-        datasetVersion: 'weather-forecast-sample-v1',
+        datasetVersion: null,
         warnings: WEATHER_WARNINGS,
         runtimeMode: 'source_api_fallback',
       },

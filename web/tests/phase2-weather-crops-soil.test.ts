@@ -6,8 +6,7 @@
  * required by AGENTS.md:
  * - wet-season rice and dry-season rice remain separate profiles
  * - only the seven LDD-verified soil series are published as rows
- * - trade totals, balances, destination shares and top-5 coverage are derived
- *   from the listed rows without double counting
+ * - trade remains empty until approved import/export records are available
  * - invalid queries answer 400 INVALID_QUERY with a requestId and no-store
  */
 
@@ -22,10 +21,7 @@ import type {
   FertilizerGuidance,
   SoilSeries,
 } from '../lib/hub/crops-soil-data.ts';
-import type {
-  CommodityTradeProfile,
-  TradeDashboardPayload,
-} from '../lib/hub/trade-data.ts';
+import type { TradeDashboardPayload } from '../lib/hub/trade-data.ts';
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -470,11 +466,11 @@ test('soil API: default payload serves seven series, six fertilizer guides and f
 
   const payload = body as SoilBody;
   assert.equal(payload.meta.availability, 'ready');
-  assert.equal(payload.meta.freshness, 'fresh');
-  assert.equal(payload.meta.completeness, 'complete');
+  assert.equal(payload.meta.freshness, 'unknown');
+  assert.equal(payload.meta.completeness, 'partial');
   assert.equal(payload.meta.access, 'metadata_only');
   assert.deepEqual(payload.meta.sourceIds, ['ldd', 'doae']);
-  assert.equal(payload.meta.dataAsOf, '2026-10-25');
+  assert.equal(payload.meta.dataAsOf, null);
   assert.equal(payload.meta.datasetVersion, 'soil-fertilizer-reference-v1');
   assert.ok(payload.meta.warnings.some((warning) => warning.includes('7 ชุดดิน')));
   assert.ok(payload.meta.warnings.some((warning) => warning.includes('ไม่ใช่ขอบเขตทั้งจังหวัด')));
@@ -552,249 +548,70 @@ test('soil API: invalid queries answer 400 INVALID_QUERY with requestId and no-s
 });
 
 /* ------------------------------------------------------------------ */
-/* Trade reference data                                                */
+/* Trade metadata-only state                                          */
 /* ------------------------------------------------------------------ */
 
-test('trade: every commodity-year row balances and keeps volume and value separate', () => {
-  assert.deepEqual(trade.AVAILABLE_YEARS, [2024, 2023, 2022]);
-  assert.equal(trade.COMMODITY_TRADE_PROFILES.length, 5);
-  assert.deepEqual(
-    trade.COMMODITY_TRADE_PROFILES.map((profile) => profile.id),
-    ['rice', 'rubber', 'cassava', 'palm', 'durian'],
-  );
-  assert.equal(new Set(trade.COMMODITY_TRADE_PROFILES.map((profile) => profile.id)).size, 5);
-
-  const risingStars = trade.COMMODITY_TRADE_PROFILES.filter((profile) => profile.isRisingStar);
-  assert.equal(risingStars.length, 1);
-  assert.equal(risingStars[0].id, 'durian');
-
-  for (const profile of trade.COMMODITY_TRADE_PROFILES as CommodityTradeProfile[]) {
-    assert.match(profile.hsCode, /\d{4}/, `${profile.id}: HS heading`);
-    assert.ok(profile.hsSubheadings.length >= 1);
-    assert.ok(profile.description.trim().length > 0);
-
-    for (const year of trade.AVAILABLE_YEARS) {
-      const data = profile.years[year];
-      assert.ok(data, `${profile.id}/${year}: year row`);
-      assert.equal(data.exportValueMillionBaht - data.importValueMillionBaht, data.tradeBalanceMillionBaht, `${profile.id}/${year}: balance`);
-      assert.ok(data.exportValueMillionBaht >= 0 && data.importValueMillionBaht >= 0);
-      assert.ok(data.exportVolumeMillionTons >= 0);
-      assert.ok(data.fobAvgPriceUsdPerTon > 0);
-      assert.ok(data.farmgateAvgPriceThbPerKg > 0);
-
-      assert.equal(data.topDestinations.length, 5, `${profile.id}/${year}: top-5 destinations`);
-      assert.deepEqual(
-        data.topDestinations.map((destination) => destination.rank),
-        [1, 2, 3, 4, 5],
-      );
-      assert.equal(
-        new Set(data.topDestinations.map((destination) => destination.countryCode)).size,
-        5,
-        `${profile.id}/${year}: country codes must be unique`,
-      );
-      let shareSum = 0;
-      let destinationValueSum = 0;
-      for (let index = 0; index < data.topDestinations.length; index += 1) {
-        const destination = data.topDestinations[index];
-        assert.ok(destination.country.trim().length > 0);
-        assert.match(destination.countryCode, /^[A-Z]{2}$/);
-        assert.ok(destination.flag.trim().length > 0);
-        assert.ok(destination.volumeMillionTons > 0);
-        assert.ok(destination.valueMillionBaht > 0);
-        if (index > 0) {
-          assert.ok(
-            data.topDestinations[index - 1].valueMillionBaht >= destination.valueMillionBaht,
-            `${profile.id}/${year}: destinations sorted by value`,
-          );
-        }
-        const expectedShare = Number(
-          ((destination.valueMillionBaht / data.exportValueMillionBaht) * 100).toFixed(1),
-        );
-        assert.ok(Math.abs(expectedShare - destination.sharePct) <= 0.051, `${profile.id}/${year}: share ${destination.country}`);
-        shareSum += destination.sharePct;
-        destinationValueSum += destination.valueMillionBaht;
-      }
-      assert.ok(shareSum <= 100.001, `${profile.id}/${year}: destination shares cannot exceed 100%`);
-      assert.ok(
-        destinationValueSum <= data.exportValueMillionBaht,
-        `${profile.id}/${year}: destination values are a subset of exports`,
-      );
-
-      assert.deepEqual(
-        data.quarterlyTrends.map((quarter) => quarter.quarter),
-        ['Q1', 'Q2', 'Q3', 'Q4'],
-      );
-      const quarterValueSum = data.quarterlyTrends.reduce((sum, quarter) => sum + quarter.valueMillionBaht, 0);
-      const quarterVolumeSum = data.quarterlyTrends.reduce((sum, quarter) => sum + quarter.volumeMillionTons, 0);
-      assert.ok(Math.abs(quarterValueSum - data.exportValueMillionBaht) <= 0.011, `${profile.id}/${year}: quarterly value sum`);
-      assert.ok(Math.abs(quarterVolumeSum - data.exportVolumeMillionTons) <= 0.011, `${profile.id}/${year}: quarterly volume sum`);
-
-      const costSum = data.costStructure.reduce((sum, cost) => sum + cost.sharePct, 0);
-      const gatewaySum = data.keyGateways.reduce((sum, gateway) => sum + gateway.sharePct, 0);
-      assert.ok(Math.abs(costSum - 100) <= 0.001, `${profile.id}/${year}: cost shares`);
-      assert.ok(Math.abs(gatewaySum - 100) <= 0.001, `${profile.id}/${year}: gateway shares`);
-    }
-  }
-});
-
-test('trade: dashboard totals, balance, shares and coverage derive from listed rows', () => {
-  for (const year of trade.AVAILABLE_YEARS) {
-    const payload: TradeDashboardPayload = trade.buildTradeDashboard({ year });
-    assert.equal(payload.sample, true);
-    assert.equal(payload.selectedYear, year);
-    assert.equal(payload.selectedCommodity, 'all');
-
-    const exportSum = payload.tradeBalances.reduce((sum, row) => sum + row.exportValue, 0);
-    const importSum = payload.tradeBalances.reduce((sum, row) => sum + row.importValue, 0);
-
-    // The KPI must equal the sum of the per-commodity rows, never a stored subtotal.
-    assert.equal(payload.kpi.totalExportValueMillionBaht, exportSum, `${year}: export KPI`);
-    assert.equal(payload.kpi.totalImportValueMillionBaht, importSum, `${year}: import KPI`);
-    assert.equal(payload.kpi.tradeBalanceMillionBaht, exportSum - importSum, `${year}: balance KPI`);
-    assert.equal(payload.tradeBalances.length, 5, `${year}: one row per commodity`);
-
-    for (const row of payload.tradeBalances) {
-      assert.equal(row.tradeBalance, row.exportValue - row.importValue, `${year}/${row.commodityId}: row balance`);
-      assert.equal(row.balanceStatus, row.tradeBalance >= 0 ? 'surplus' : 'deficit');
-    }
-
-    assert.ok(payload.topDestinationsOverall.length <= 5);
-    assert.equal(
-      new Set(payload.topDestinationsOverall.map((destination) => destination.countryCode)).size,
-      payload.topDestinationsOverall.length,
-      `${year}: overall destinations keyed by country code`,
-    );
-    for (let index = 0; index < payload.topDestinationsOverall.length; index += 1) {
-      const destination = payload.topDestinationsOverall[index];
-      assert.equal(destination.rank, index + 1);
-      const expectedShare = Number(((destination.valueMillionBaht / exportSum) * 100).toFixed(1));
-      assert.ok(Math.abs(expectedShare - destination.sharePct) <= 0.051);
-      if (index > 0) {
-        assert.ok(payload.topDestinationsOverall[index - 1].valueMillionBaht >= destination.valueMillionBaht);
-      }
-    }
-
-    const coverage = payload.destinationCoverage;
-    assert.equal(coverage.basis, 'top5_per_commodity');
-    assert.equal(coverage.totalExportValueMillionBaht, exportSum);
-    const expectedCovered = trade.COMMODITY_TRADE_PROFILES.reduce((sum, profile) => {
-      const data = profile.years[year];
-      return sum + data.topDestinations.reduce((inner, destination) => inner + destination.valueMillionBaht, 0);
-    }, 0);
-    assert.equal(coverage.coveredExportValueMillionBaht, Math.round(expectedCovered));
-    assert.ok(coverage.coveredExportValueMillionBaht <= coverage.totalExportValueMillionBaht);
-    assert.ok(Math.abs(coverage.coveragePct - (expectedCovered / exportSum) * 100) <= 0.051);
-    assert.ok(coverage.note.includes('5 อันดับแรก'));
-
-    const durian = trade.COMMODITY_TRADE_PROFILES.find((profile) => profile.id === 'durian')!;
-    const durianYear = durian.years[year];
-    assert.equal(payload.kpi.risingStar.id, 'durian');
-    assert.equal(payload.kpi.risingStar.yoyGrowthPct, durianYear.yoyExportValueGrowthPct);
-    assert.equal(payload.kpi.risingStar.exportValueMillionBaht, durianYear.exportValueMillionBaht);
-    assert.equal(payload.kpi.topPartner.country, payload.topDestinationsOverall[0].country);
-    assert.equal(payload.kpi.topPartner.sharePct, payload.topDestinationsOverall[0].sharePct);
-
-    // YoY must come from actual previous-year rows, or from the growth rate published
-    // with the year row when the previous year is not in the dataset (2022).
-    const previousYear = year - 1;
-    let expectedYoy: number;
-    if (trade.AVAILABLE_YEARS.includes(previousYear)) {
-      const previousTotal = trade.COMMODITY_TRADE_PROFILES.reduce(
-        (sum, profile) => sum + profile.years[previousYear].exportValueMillionBaht,
-        0,
-      );
-      expectedYoy = Number((((exportSum - previousTotal) / previousTotal) * 100).toFixed(1));
-    } else {
-      const impliedPrevious = trade.COMMODITY_TRADE_PROFILES.reduce(
-        (sum, profile) => {
-          const data = profile.years[year];
-          return sum + data.exportValueMillionBaht / (1 + data.yoyExportValueGrowthPct / 100);
-        },
-        0,
-      );
-      expectedYoy = Number((((exportSum - impliedPrevious) / impliedPrevious) * 100).toFixed(1));
-    }
-    assert.equal(payload.kpi.yoyExportGrowthPct, expectedYoy, `${year}: YoY`);
-    assert.equal(payload.kpi.yoyAvailable, true);
-
-    assert.equal(payload.meta.access, 'metadata_only');
-    assert.equal(payload.meta.availability, 'ready');
-    assert.deepEqual(payload.meta.sourceIds, ['customs', 'moc_tpso', 'oae', 'data_go_th']);
-    assert.ok(payload.meta.sources.length >= 4);
-    for (const source of payload.meta.sources) {
-      assert.ok(source.name.trim().length > 0);
-      assert.ok(source.org.trim().length > 0);
-      assertReferenceUrl(source.url, `trade source ${source.org}`);
-    }
-    assert.ok(payload.meta.warnings.some((warning) => warning.includes('sample: true')));
-    assert.ok(payload.meta.warnings.some((warning) => warning.includes('ล้านตัน')));
-    assert.ok(payload.meta.warnings.some((warning) => warning.includes('ครอบคลุม')));
-  }
-});
-
-test('trade: commodity selection narrows the KPI without double counting', () => {
-  const rice = trade.COMMODITY_TRADE_PROFILES.find((profile) => profile.id === 'rice')!;
-  const rice2024 = rice.years[2024];
-  const payload = trade.buildTradeDashboard({ year: 2024, commodityId: 'rice' });
-
+test('trade: builder contains no synthetic statistics while sources are unavailable', () => {
+  const payload: TradeDashboardPayload = trade.buildTradeDashboard({ year: 2024, commodityId: 'rice' });
+  assert.equal(payload.sample, false);
+  assert.equal(payload.selectedYear, 2024);
   assert.equal(payload.selectedCommodity, 'rice');
-  assert.equal(payload.commodityDetail?.id, 'rice');
-  assert.equal(payload.kpi.totalExportValueMillionBaht, rice2024.exportValueMillionBaht);
-  assert.equal(payload.kpi.totalImportValueMillionBaht, rice2024.importValueMillionBaht);
-  assert.equal(
-    payload.kpi.tradeBalanceMillionBaht,
-    rice2024.exportValueMillionBaht - rice2024.importValueMillionBaht,
-  );
-  assert.equal(payload.kpi.yoyExportGrowthPct, rice2024.yoyExportValueGrowthPct);
-  assert.equal(payload.kpi.topPartner.country, rice2024.topDestinations[0].country);
-  assert.equal(payload.kpi.topPartner.sharePct, rice2024.topDestinations[0].sharePct);
-  // The commodity KPI is not the five-commodity total.
-  assert.notEqual(payload.kpi.totalExportValueMillionBaht, payload.destinationCoverage.totalExportValueMillionBaht);
-
-  const alias = trade.buildTradeDashboard({ year: 2024, commodityId: 'oil-palm' });
-  assert.equal(alias.selectedCommodity, 'palm');
-  assert.equal(alias.commodityDetail?.id, 'palm');
-
-  const unknown = trade.buildTradeDashboard({ year: 2024, commodityId: 'unknown' });
-  assert.equal(unknown.selectedCommodity, 'all');
+  assert.deepEqual(payload.availableYears, []);
+  assert.deepEqual(payload.availableCommodities, []);
+  assert.equal(payload.kpi, null);
+  assert.deepEqual(payload.tradeBalances, []);
+  assert.deepEqual(payload.topDestinationsOverall, []);
+  assert.equal(payload.destinationCoverage, null);
+  assert.equal(payload.commodityDetail, null);
+  assert.deepEqual(payload.allCommodities, []);
+  assert.equal(payload.meta.access, 'metadata_only');
+  assert.equal(payload.meta.availability, 'empty');
+  assert.deepEqual(payload.meta.sourceIds, []);
+  assert.equal(payload.meta.dataAsOf, null);
+  assert.equal(payload.meta.datasetVersion, null);
+  assert.ok(payload.meta.warnings.some((warning) => warning.includes('ไม่มีระเบียนตัวเลข')));
+  assert.ok(payload.meta.warnings.some((warning) => warning.includes('NABC')));
 });
 
 /* ------------------------------------------------------------------ */
 /* Trade API                                                           */
 /* ------------------------------------------------------------------ */
 
-test('trade API: sample payload is metadata_only with partial/unknown freshness', async () => {
+test('trade API: no approved trade rows return an empty metadata-only payload', async () => {
   const { response, body } = await call(tradeRoute, '/api/v1/trade');
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
 
   const payload = body as TradeBody;
-  assert.equal(payload.data.sample, true);
+  assert.equal(payload.data.sample, false);
+  assert.equal(payload.data.kpi, null);
+  assert.deepEqual(payload.data.tradeBalances, []);
+  assert.deepEqual(payload.data.topDestinationsOverall, []);
+  assert.deepEqual(payload.data.allCommodities, []);
   assert.equal(payload.meta.access, 'metadata_only');
-  assert.equal(payload.meta.availability, 'ready');
+  assert.equal(payload.meta.availability, 'empty');
   assert.equal(payload.meta.freshness, 'unknown');
-  assert.equal(payload.meta.completeness, 'partial');
+  assert.equal(payload.meta.completeness, 'unknown');
   assert.equal(payload.meta.sourceUpdatedAt, null);
-  assert.equal(payload.meta.datasetVersion, 'agri-trade-reference-v2');
-  assert.deepEqual(payload.meta.sourceIds, ['customs', 'moc_tpso', 'oae', 'data_go_th']);
-
-  const exportSum = payload.data.tradeBalances.reduce((sum, row) => sum + row.exportValue, 0);
-  assert.equal(payload.data.kpi.totalExportValueMillionBaht, exportSum);
-  assert.equal(payload.data.selectedYear, 2024);
-  assert.equal(payload.data.selectedCommodity, 'all');
+  assert.equal(payload.meta.dataAsOf, null);
+  assert.equal(payload.meta.datasetVersion, null);
+  assert.deepEqual(payload.meta.sourceIds, []);
+  assert.ok(payload.meta.warnings.some((warning) => warning.includes('ไม่มีระเบียนตัวเลข')));
 });
 
-test('trade API: commodity/year filters accept CE and BE years plus the oil-palm alias', async () => {
+test('trade API: supported year and commodity filters remain valid with empty records', async () => {
   const rice = (await call(tradeRoute, '/api/v1/trade?commodity=rice&year=2567')).body as TradeBody;
   assert.equal(rice.data.selectedYear, 2024);
   assert.equal(rice.data.selectedCommodity, 'rice');
-  assert.equal(rice.data.commodityDetail?.id, 'rice');
+  assert.equal(rice.data.kpi, null);
 
   const previous = (await call(tradeRoute, '/api/v1/trade?year=2566')).body as TradeBody;
   assert.equal(previous.data.selectedYear, 2023);
+  assert.equal(previous.meta.availability, 'empty');
 
   const palm = (await call(tradeRoute, '/api/v1/trade?commodity=oil-palm&year=2024')).body as TradeBody;
   assert.equal(palm.data.selectedCommodity, 'palm');
+  assert.deepEqual(palm.data.tradeBalances, []);
 });
 
 test('trade API: invalid queries answer 400 INVALID_QUERY with requestId and no-store', async () => {

@@ -10,9 +10,6 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-const GI_DATA_AS_OF = '2026-10-25';
-const GI_DEFAULT_SOURCE_IDS = ['dip', 'doae', 'onc'];
-
 const VALID_PROVINCE_CODES = new Set(THAILAND_PROVINCES.map((province) => province.code));
 
 /** ป้ายภาค 6 ค่าที่เอกสาร API รับ — ใช้เฉพาะตอนเขียนข้อความเตือน ส่วนค่าจริงที่ส่งเข้าชั้นข้อมูลคือ label ในทะเบียนจังหวัด */
@@ -68,8 +65,8 @@ for (const label of GI_REGION_LABELS) {
  * ข้อตกลงกำกับข้อมูล:
  * - data.sample = true เสมอ — ตัวเลขและจำนวนรายการทั้งหมดเป็นชุดตัวอย่างเชิงโครงสร้างที่ยังไม่ผ่านการตรวจสอบ
  *   ห้ามนำไปอ้างอิงเป็นสถิติทางการหรืออ้างในเอกสารราชการ
- * - meta.access = "metadata_only" — สิทธิ์เผยแพร่ข้อมูลตัวเลขจริงจากแหล่งราชการยัง pending
- *   จึงเปิดเผยได้เฉพาะโครงสร้าง/metadata; meta.completeness = partial ถาวร เพราะยังไม่ครอบคุมทุกจังหวัด
+ * - meta.access/availability = "metadata_only" — สิทธิ์เผยแพร่ข้อมูลตัวเลขจริงยัง pending
+ *   จึงเปิดเผยได้เฉพาะตัวอย่างและ metadata; ความครบถ้วนกับวันที่ข้อมูลจริงยังไม่ทราบ
  * - จังหวัด GI ที่ไม่พบรายการที่ตรงเงื่อนไข ยังตอบ HTTP 200 พร้อม meta.availability = "empty" (ไม่ใช่ 404)
  */
 export async function GET(request: Request) {
@@ -143,21 +140,16 @@ export async function GET(request: Request) {
 
     // ค่า filter ที่ถูกแต่ไม่มีรายการตรง = payload ว่าง พร้อม availability 'empty' ไม่ใช่ error
     const hasProducts = Array.isArray(payload.products) && payload.products.length > 0;
-    const sourceIds =
-      Array.isArray(payload.sources) && payload.sources.length > 0
-        ? payload.sources.map((source) => source.id)
-        : GI_DEFAULT_SOURCE_IDS;
-
     return jsonData(payload, {
       meta: {
-        availability: hasProducts ? 'ready' : 'empty',
+        availability: hasProducts ? 'metadata_only' : 'empty',
         // ชุดตัวอย่างเชิงโครงสร้างสร้างแบบ deterministic ไม่มีรอบ refresh จึงไม่มีความหมายของ 'fresh'/'stale'
         freshness: 'unknown',
-        // charter ห้ามอ้างความครบถ้วน — ข้อมูลยังครอบคลุมเพียงบางส่วนถาวร
-        completeness: 'partial',
+        // แถวที่มีเป็น sample ไม่ใช่หลักฐานสำหรับประเมิน completeness ของทะเบียนจริง
+        completeness: 'unknown',
         access: 'metadata_only',
-        sourceIds,
-        dataAsOf: GI_DATA_AS_OF,
+        sourceIds: [],
+        dataAsOf: null,
         warnings: payload.warnings,
         // ApiMeta มีเฉพาะ 'database' | 'source_api_fallback' จึงใช้ 'database' ตาม lane พี่น้องที่ sample ในโค้ด
         runtimeMode: 'database',

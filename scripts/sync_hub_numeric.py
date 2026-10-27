@@ -33,6 +33,9 @@ def main(argv=None):
         return 1
     try:
         if args.write:
+            from tadih.env import load_dotenv
+
+            load_dotenv(override=True)
             client = connect_d1_client()
             result = sync_numeric_resource_d1(client, registry_path=args.registry)
         else:

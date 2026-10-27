@@ -74,11 +74,11 @@ export async function GET(request: Request) {
     return jsonData(payload, {
       meta: {
         availability: 'ready',
-        freshness: 'fresh',
-        completeness: 'complete',
+        freshness: 'unknown',
+        completeness: 'partial',
         access: 'metadata_only',
         sourceIds: ['ldd', 'doae'],
-        dataAsOf: '2026-10-25',
+        dataAsOf: null,
         sourceUpdatedAt: null,
         datasetVersion: 'soil-fertilizer-reference-v1',
         warnings: [

@@ -385,10 +385,10 @@ test('licence register counts match the checked registry', () => {
     counts[resource.license_status] = (counts[resource.license_status] ?? 0) + 1;
   }
 
-  assert.equal(registry.resources.length, 88, 'registry: total');
+  assert.equal(registry.resources.length, 89, 'registry: total');
   assert.equal(counts.pending, 79, 'registry: pending');
-  assert.equal(counts.approved_public, 9, 'registry: approved_public');
-  assert.equal(registry.reviewed_at, '2026-10-26', 'registry: reviewed_at');
+  assert.equal(counts.approved_public, 10, 'registry: approved_public');
+  assert.equal(registry.reviewed_at, '2026-10-27', 'registry: reviewed_at');
 
   // The register doc must restate the registry counts, so the pins are derived
   // from the registry itself: a new round that flips a resource to
@@ -401,15 +401,38 @@ test('licence register counts match the checked registry', () => {
   ]) {
     assert.ok(doc.includes(expected), `register doc must state "${expected}"`);
   }
-  assert.match(
-    doc,
-    /RID\/TMD เปิดตามหนังสืออนุมัติของเจ้าของระบบ/,
-    'register doc: owner authorisation basis must be stated',
-  );
+  assert.match(doc, /RID\/TMD.*AGENTS\.md/, 'register doc: owner authorisation basis must be stated');
   assert.ok(
     doc.includes('`tmd_hpc_nwp_d02_grid`'),
     'register doc must list the approved TMD HPC NWP resource',
   );
+});
+
+test('NABC daily prices have exact owner authorization separate from monthly prices', () => {
+  const registry = JSON.parse(readText('../../config/resource_licenses.json')) as {
+    resources: Array<{
+      resource_key: string;
+      resource_id: string;
+      license_status: string;
+      project_publication_approved: boolean;
+      commercial_use_confirmed: boolean;
+      attribution_text: string | null;
+      rights_facts: string[];
+    }>;
+    owner_authorisation: { approved_resource_keys: string[] };
+  };
+  const daily = registry.resources.find((resource) => resource.resource_key === 'oae_nabc_daily_market_prices');
+  const monthly = registry.resources.find((resource) => resource.resource_key === 'oae_nabc_monthly_jasmine_paddy_price');
+
+  assert.ok(daily, 'registry: exact NABC daily endpoint');
+  assert.equal(daily.resource_id, 'https://agriapi.nabc.go.th/api/daily-prices/product');
+  assert.equal(daily.license_status, 'approved_public');
+  assert.equal(daily.project_publication_approved, true);
+  assert.equal(daily.commercial_use_confirmed, false);
+  assert.match(daily.attribution_text ?? '', /NABC.*OAE/);
+  assert.match(daily.rights_facts.join(' '), /AGENTS\.md rule 3/);
+  assert.ok(registry.owner_authorisation.approved_resource_keys.includes(daily.resource_key));
+  assert.equal(monthly?.license_status, 'pending', 'monthly resource remains separately reviewed');
 });
 
 test('TMD HPC NWP forecast grid is approved with forecast-only limits', () => {

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "reviewed_at": "2026-10-26",
+  "reviewed_at": "2026-10-27",
   "scope": "Exact resources currently investigated for Thailand Core",
   "review_kind": "read_only_official_metadata_and_terms",
   "automatic_approval": false,
@@ -4057,10 +4057,50 @@
           "finding": "Publicly accessible WRF model CSV forecasts"
         }
       ]
+    },
+    {
+      "resource_key": "oae_nabc_daily_market_prices",
+      "source_id": "nabc",
+      "resource_id": "https://agriapi.nabc.go.th/api/daily-prices/product",
+      "dataset_id": null,
+      "name": "ราคาสินค้าเกษตรรายวันรายตลาด (NABC daily-prices)",
+      "resource_url": "https://agriapi.nabc.go.th/api/daily-prices/product",
+      "reviewed_at": "2026-10-27",
+      "license_status": "approved_public",
+      "review_outcome": "owner_authorisation_under_agents_md_rule_3_for_the_exact_daily_endpoint",
+      "declared_license": {
+        "license_id": null,
+        "license_id_other": null,
+        "license_url": null,
+        "version": null,
+        "scope": "Project publication authorization for the exact NABC daily-prices endpoint; this entry does not assert an upstream licence label or version."
+      },
+      "access_evidence": {
+        "note": "The project owner confirms that API credentials and permissions are registered and authorizes processing, D1 storage, and API/web publication of real source values under AGENTS.md rule 3. This is project authorization, not an upstream licence claim."
+      },
+      "rights_facts": [
+        "Project owner instruction in AGENTS.md rule 3 (2026-10-27) authorizes retrieval, processing, D1 storage, and public API/web display of real data from registered sources, including this daily endpoint.",
+        "This approval applies to the exact NABC daily-prices endpoint used by web/lib/hub/price-data.ts and does not extend the separate OAE monthly_prices_rice resource or its declared licence.",
+        "The upstream does not publish price type or a separate grade field; the project preserves its product, market, province, date, and unit grain and leaves undeclared fields null.",
+        "Commercial use is not separately confirmed."
+      ],
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "attribution_text": "ข้อมูลราคาสินค้าเกษตรรายวัน โดยศูนย์ข้อมูลเกษตรแห่งชาติ (NABC) / สำนักงานเศรษฐกิจการเกษตร (OAE)",
+      "attribution_url": "https://agriapi.nabc.go.th/api/daily-prices/product-names",
+      "unresolved": [],
+      "next_action": null,
+      "evidence": [
+        {
+          "url": "AGENTS.md#3",
+          "checked_at": "2026-10-27",
+          "finding": "Project owner confirms registered credentials and publication authorization for real data on Hub API/web. Recorded as owner authorization only; no upstream licence text or commercial-use grant is asserted."
+        }
+      ]
     }
   ],
   "owner_authorisation": {
-    "decided_at": "2026-10-26",
+    "decided_at": "2026-10-27",
     "basis": "AGENTS.md rule 3 (owner attestation of registered credentials and full production unlock)",
     "approved_resource_keys": [
       "rid_medium_reservoirs",
@@ -4068,7 +4108,8 @@
       "tmd_weather_today_by_agro_daily",
       "tmd_weather_today_by_synop_daily",
       "tmd_weather_today_station_daily",
-      "tmd_hpc_nwp_d02_grid"
+      "tmd_hpc_nwp_d02_grid",
+      "oae_nabc_daily_market_prices"
     ],
     "note": "Approval is per exact resource with attribution. Licence-text caveats stay recorded in rights_facts; units remain null until officially documented; forecast values stay out of the observation contract."
   }

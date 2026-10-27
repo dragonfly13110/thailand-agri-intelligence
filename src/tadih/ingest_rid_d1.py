@@ -52,10 +52,10 @@ Data-quality decisions (AGENTS.md rule 4)
 Time-zone assumption
 --------------------
 The provider labels a report with the Thai (ICT, UTC+7) calendar day and
-publishes no observation time.  ``observed_at`` is therefore the report day
-anchored at ``00:00:00Z`` - 07:00 ICT of that same ICT day - so the daily
-period label equals the provider's own report date.  ``retrieved_at`` is the
-UTC capture time of the payload.
+publishes no observation time.  ``observed_at`` is therefore the report day at
+``00:00:00+07:00``.  Keeping the provider's offset preserves chronology for
+reports fetched just after Thai midnight and lets the daily period retain the
+provider's report date.  ``retrieved_at`` is the UTC capture time of the payload.
 """
 
 from __future__ import annotations
@@ -264,7 +264,7 @@ def build_observation_rows(envelope: Mapping[str, Any], normalized: Mapping[str,
     happens here, so the whole row contract is testable offline.
     """
     report_date = str(envelope["report_date"])
-    observed_at = f"{report_date}T00:00:00Z"
+    observed_at = f"{report_date}T00:00:00+07:00"
     retrieved_at = _iso_utc(str(envelope["retrieved_at"]))
     revision_id = str(envelope["content_signature"])
     request_url = str(envelope.get("request_url") or REPORT_URL)
@@ -497,7 +497,7 @@ def run(argv: Sequence[str] | None = None, *, client: Any = None, fetcher: Any =
         "reportDate": report_date,
         "requestedDate": envelope.get("requested_date"),
         "observedAt": prepared["observed_at"],
-        "observedAtTimeZone": "UTC anchor of the provider's ICT (UTC+7) report day",
+        "observedAtTimeZone": "provider report-day midnight, represented in ICT (UTC+07:00)",
         "retrievedAt": prepared["retrieved_at"],
         "dataKind": DATA_KIND,
         "units": dict(MEASURE_UNITS),

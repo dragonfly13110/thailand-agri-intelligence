@@ -2,6 +2,7 @@ import 'server-only';
 
 import {
   PRICE_CATALOGUE_URL,
+  PRICE_COMMODITIES,
   PRICE_GRAIN,
   PRICE_ROW_ENDPOINT,
   PRICE_UPSTREAM_PRODUCTS,
@@ -25,10 +26,11 @@ import {
  * A repeated (product, market, province, date, unit) identity is dropped as a
  * duplicate instead of being counted twice.
  *
- * BOUNDS: one request per product (limit=100, page=1) plus, for the optional
- * reachability probe, one catalogue request. Every request has a timeout and
- * no retry loop; failures degrade to an explicit failure code, never to a
- * fabricated number.
+ * BOUNDS: one request per selected product (limit=100, page=1; the selection
+ * defaults to every tracked product and can be narrowed by category), plus,
+ * for the optional reachability probe, one catalogue request. Every request has
+ * a timeout and no retry loop; failures degrade to an explicit failure code,
+ * never to a fabricated number.
  *
  * GOVERNANCE: the numbers are only published when
  * `PRICE_PUBLICATION_APPROVED` (see `price-data.ts`) is enabled by the
@@ -116,7 +118,7 @@ export type PriceSnapshot = {
   productsSucceeded: number;
   /** Latest calendar day present in the returned rows. */
   latestDate: string | null;
-  /** True when every requested product answered successfully. */
+  /** True when at least one product was requested and every one answered. */
   complete: boolean;
   retrievedAt: string;
 };
@@ -446,11 +448,33 @@ export async function probeDailyPriceCatalogue(
 }
 
 /**
+ * The tracked upstream products that belong to one commodity category.
+ *
+ * The category list and the product names come from the existing `commodityId`
+ * mapping in `PRICE_UPSTREAM_PRODUCTS` and `PRICE_COMMODITIES`; this adds no
+ * second category table. An unknown category and a category whose commodities
+ * are metadata only both resolve to an empty list, so the caller makes no
+ * upstream request instead of falling back to every product.
+ */
+export function findUpstreamProducts(category?: string | null): PriceUpstreamProduct[] {
+  const commodityIds = new Set(
+    PRICE_COMMODITIES.filter(
+      (commodity) => !category || category === 'all' || commodity.category === category,
+    ).map((commodity) => commodity.id),
+  );
+  return PRICE_UPSTREAM_PRODUCTS.filter((product) => commodityIds.has(product.commodityId));
+}
+
+/**
  * Reads the daily market prices of the tracked products.
  *
  * `date` pins one calendar day; without it each product contributes only the
  * latest day it published on its own page (products are never mixed into one
  * day, and no product is ever averaged with another).
+ *
+ * `products` limits the read to a filtered set (see `findUpstreamProducts`).
+ * An empty set reads nothing and is reported as an incomplete snapshot: zero
+ * requests is never evidence of completeness.
  */
 export async function readPriceSnapshot(options: {
   date?: string | null;
@@ -500,7 +524,7 @@ export async function readPriceSnapshot(options: {
     productsRequested: products.length,
     productsSucceeded,
     latestDate: dates[dates.length - 1] ?? null,
-    complete: productsSucceeded === products.length,
+    complete: products.length > 0 && productsSucceeded === products.length,
     retrievedAt: new Date().toISOString(),
   };
 }

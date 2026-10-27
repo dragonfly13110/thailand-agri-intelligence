@@ -174,8 +174,8 @@ test('GET /api/v1/cooperatives serves the governance envelope with no-store', as
   assert.equal(payload.sample, true);
   assert.equal(meta.access, 'metadata_only');
   assert.equal(meta.datasetVersion, 'coop-cad-v1');
-  assert.equal(meta.completeness, 'partial');
-  assert.equal(meta.availability, 'ready');
+  assert.equal(meta.completeness, 'unknown');
+  assert.equal(meta.availability, 'metadata_only');
   assert.ok(meta.warnings.length > 0, 'warnings must explain the sample/licence hold');
   assert.equal(payload.summary.coverageClaim, false);
 });
