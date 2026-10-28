@@ -17,6 +17,7 @@ from unittest.mock import patch
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from tadih.cli import main as cli_main
+from tadih.hub_catalog_sync import D1Client
 from tadih.observations import (
     ObservationWriteError,
     publish_observations,
@@ -122,6 +123,8 @@ class SqliteD1Mock:
         self.observation_writes = 0
         self.fail_after_observations = None
         self.before_run_insert = None
+        self.after_run_insert = None
+        self.after_run_reclaim = None
         self.before_run_finalize = None
         self.before_snapshot_upsert = None
         self.before_observation_insert = None
@@ -171,6 +174,14 @@ class SqliteD1Mock:
         cursor = self.db.execute(sql, list(params or []))
         rows = [dict(row) for row in cursor.fetchall()] if cursor.description else []
         self.db.commit()
+        if self.after_run_insert is not None and "INSERT INTO sync_runs" in sql:
+            hook = self.after_run_insert
+            self.after_run_insert = None
+            hook()
+        if self.after_run_reclaim is not None and "UPDATE sync_runs SET status='running',started_at=?" in sql:
+            hook = self.after_run_reclaim
+            self.after_run_reclaim = None
+            hook()
         return {"results": rows}
 
     def rows(self, sql, params=None):
@@ -371,13 +382,15 @@ class ObservationPublisherTests(unittest.TestCase):
         self.assertEqual(stored[1]["series_key"], "reservoir_volume:daily:reservoir:m3")
         self.assertEqual(json.loads(stored[1]["quality"])["revisionId"], REVISION)
 
-    def test_daily_writer_keeps_one_location_upsert_per_observation(self):
+    def test_daily_writer_upserts_each_location_once_per_batch(self):
         rows = [observation(observation_id="rid-daily-location-a"),
                 observation(observation_id="rid-daily-location-b")]
         publish(self.client, resource=self.resource, rows=rows, completeness="complete",
                 coverage={"mode": "daily_full", "count": len(rows)})
 
-        self.assertEqual(self.client.location_upserts, 2)
+        self.assertEqual(self.client.location_upserts, 1)
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM locations")["n"], 1)
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM observations")["n"], 2)
 
     def test_daily_and_monthly_location_upserts_reject_persisted_identity_mismatch(self):
         for grain in ("daily", "monthly"):
@@ -1555,6 +1568,97 @@ class SourceYearLabelPublisherTests(unittest.TestCase):
         self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
                                          [retry["run_id"]])["total"], 2)
 
+    def test_claim_with_lost_response_leaves_the_run_reclaimable(self):
+        rows = [dld_cattle_observation()]
+        self.client.after_run_insert = lose_response
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years(rows)
+
+        self.assertEqual(caught.exception.code, "RUN_CLAIM_FAILED")
+        run = self.client.one("SELECT status,error_code FROM sync_runs")
+        self.assertEqual(run["status"], "failed")
+        self.assertEqual(run["error_code"], "RUN_CLAIM_FAILED")
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations")["total"], 0)
+
+        retry = self.publish_years(rows)
+        self.assertEqual(retry["status"], "succeeded")
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [retry["run_id"]])["total"], 1)
+
+    def test_reclaim_with_lost_response_leaves_the_run_reclaimable(self):
+        rows = [dld_cattle_observation(),
+                dld_cattle_observation(area_code="11", source_row_id="124", value=18000)]
+        self.client.fail_after_observations = self.client.observation_writes + 1
+        with self.assertRaises(ObservationWriteError) as first_attempt:
+            self.publish_years(rows)
+        self.assertEqual(first_attempt.exception.code, "NUMERIC_WRITE_FAILED")
+        failed = self.client.one("SELECT run_id,status FROM sync_runs")
+        self.assertEqual(failed["status"], "failed")
+
+        self.client.fail_after_observations = None
+        self.client.after_run_reclaim = lose_response
+        with self.assertRaises(ObservationWriteError) as reclaim:
+            self.publish_years(rows)
+        self.assertEqual(reclaim.exception.code, "RUN_CLAIM_FAILED")
+        stuck = self.client.one("SELECT status,error_code FROM sync_runs WHERE run_id=?",
+                                [failed["run_id"]])
+        self.assertEqual(stuck["status"], "failed")
+        self.assertEqual(stuck["error_code"], "RUN_CLAIM_FAILED")
+
+        retry = self.publish_years(rows)
+        self.assertEqual(retry["run_id"], failed["run_id"])
+        self.assertEqual(retry["status"], "succeeded")
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [retry["run_id"]])["total"], 2)
+
+    def test_a_failing_claim_never_fails_another_writer_run(self):
+        def competitor_owns_the_run():
+            self.client.execute(
+                "INSERT INTO sync_runs (run_id,source_id,resource_id,kind,status,started_at,adapter_version,"
+                "source_year_writer_token) VALUES (?,?,?,?,'running',?,?,?)",
+                ["competitor-run", "dld", self.resource["resource_id"], "numeric", "2026-10-28T03:00:00Z",
+                 "test-adapter/1", "competitor-token"],
+            )
+            raise RuntimeError("simulated lost response on the claim")
+
+        self.client.before_run_insert = competitor_owns_the_run
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years([dld_cattle_observation()])
+
+        self.assertEqual(caught.exception.code, "RUN_CLAIM_FAILED")
+        run = self.client.one("SELECT status,source_year_writer_token FROM sync_runs WHERE run_id=?",
+                              ["competitor-run"])
+        self.assertEqual(run["status"], "running")
+        self.assertEqual(run["source_year_writer_token"], "competitor-token")
+
+    def test_a_second_writer_does_not_touch_the_live_owner_run(self):
+        rows = [dld_cattle_observation(),
+                dld_cattle_observation(area_code="11", source_row_id="124", value=18000)]
+        second_attempt = {}
+
+        def competing_writer():
+            second_attempt["owner_before"] = dict(self.client.one(
+                "SELECT run_id,status,error_code,source_year_writer_token FROM sync_runs"))
+            try:
+                self.publish_years(rows)
+            except ObservationWriteError as exc:
+                second_attempt["code"] = exc.code
+            second_attempt["owner_after"] = dict(self.client.one(
+                "SELECT run_id,status,error_code,source_year_writer_token FROM sync_runs"))
+
+        self.client.before_observation_insert = competing_writer
+        winner = self.publish_years(rows)
+
+        self.assertEqual(second_attempt["code"], "SOURCE_YEAR_RUN_IN_PROGRESS")
+        self.assertEqual(second_attempt["owner_before"]["status"], "running")
+        self.assertEqual(second_attempt["owner_after"]["status"], "running")
+        self.assertIsNone(second_attempt["owner_after"]["error_code"])
+        self.assertEqual(second_attempt["owner_before"]["source_year_writer_token"],
+                         second_attempt["owner_after"]["source_year_writer_token"])
+        self.assertEqual(winner["status"], "succeeded")
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [winner["run_id"]])["total"], 2)
+
     def test_source_year_order_compares_fractional_timezone_timestamps_as_instants(self):
         first = self.publish_years([dld_cattle_observation()],
                                    retrieved_at="2026-10-26T03:00:00Z")
@@ -1634,6 +1738,234 @@ class SourceYearLabelPublisherTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "RESOURCE_NOT_APPROVED")
 
 
+CLAIM_INSERT = "INSERT INTO sync_runs"
+RECLAIM_UPDATE = "UPDATE sync_runs SET status='running',started_at=?"
+COMPETITOR_TOKEN = "competitor-token-0000-0000-000000000000"
+TOKEN_SOURCE_VERSION = "2026-10-26T02:14:23.162261"
+TOKEN_SOURCE_HASH = "0123456789abcdef0123456789abcdef"
+
+HUB_MIGRATIONS = (
+    "0001_hub.sql", "0002_observation_extensions.sql", "0004_source_year_snapshot_revision.sql",
+    "0005_source_year_writer_token.sql", "0006_source_year_token_snapshot.sql",
+)
+
+
+class D1HttpPost:
+    """Answers the real D1Client over SQLite and can commit before returning a retryable 500."""
+
+    def __init__(self, db):
+        self.db = db
+        self.faults = []
+        self.statements = []
+        self.readback_after = None
+        self.readback_failures = 0
+
+    def fail_after_commit(self, match, *, attempts=1, takeover_token=None):
+        self.faults.append({"match": match, "fails": attempts, "committed": False,
+                            "takeover_token": takeover_token})
+
+    def count(self, match):
+        return sum(1 for sql in self.statements if match in sql)
+
+    def __call__(self, url, headers, body, timeout):
+        request = json.loads(body.decode("utf-8"))
+        sql, params = request["sql"], request["params"]
+        self.statements.append(sql)
+        if (self.readback_failures and self.readback_after
+                and self.count(self.readback_after) >= 2
+                and sql.startswith("SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,")):
+            self.readback_failures -= 1
+            return 500, b'{"errors":[{"message":"simulated readback error"}]}'
+        fault = next((item for item in self.faults if item["match"] in sql), None)
+        if fault is not None and fault["fails"]:
+            fault["fails"] -= 1
+            if not fault["committed"]:
+                if fault["takeover_token"] is None:
+                    self._run(sql, params)
+                else:
+                    self._run(sql, own_to_competitor(sql, params, fault["takeover_token"]))
+                fault["committed"] = True
+            if fault["fails"] == 0:
+                self.faults.remove(fault)
+            return 500, b'{"errors":[{"message":"simulated upstream error"}]}'
+        return 200, json.dumps({"success": True,
+                                "result": [{"results": self._run(sql, params), "success": True}]}).encode()
+
+    def _run(self, sql, params):
+        cursor = self.db.execute(sql, list(params or []))
+        rows = [dict(row) for row in cursor.fetchall()] if cursor.description else []
+        self.db.commit()
+        return rows
+
+
+def own_to_competitor(sql, params, token):
+    """The same claim statement with another writer's token, so the row belongs to them."""
+    columns = sql.split("VALUES")[0].split("(", 1)[1].rsplit(")", 1)[0].split(",")
+    values = sql.split("VALUES", 1)[1].split("(", 1)[1].rsplit(")", 1)[0].split(",")
+    bound = [name.strip() for name, value in zip(columns, values) if value.strip() == "?"]
+    competitor = list(params)
+    competitor[bound.index("source_year_writer_token")] = token
+    return competitor
+
+
+def dld_token_observation(**change):
+    row = dld_cattle_observation(**change)
+    row["source_year_label"] = str(row.pop("source_year_be"))
+    row["observation_id"] = f"dld-token:{row['source_year_label']}:{row['area_code']}"
+    return row
+
+
+class LostClaimResponseTests(unittest.TestCase):
+    """A claim that committed before its 500 must not strand the run or let another writer in."""
+
+    def setUp(self):
+        self.db = sqlite3.connect(":memory:")
+        self.db.row_factory = sqlite3.Row
+        self.db.executescript("\n".join((ROOT / "db/cloudflare" / name).read_text(encoding="utf-8")
+                                         for name in HUB_MIGRATIONS))
+        self.db.execute("PRAGMA foreign_keys=ON")
+        self.post = D1HttpPost(self.db)
+        self.client = D1Client("test-account", "test-token", "test-database",
+                               max_attempts=4, backoff_seconds=0.0, timeout=5.0, post=self.post)
+        self.resource = dld_registry_row()
+        register_resource(self.client, resource=self.resource,
+                          source_name="Department of Livestock Development",
+                          base_url="https://dld.gdcatalog.go.th", category="livestock",
+                          grain="province x source-year label")
+
+    def tearDown(self):
+        self.db.close()
+
+    def publish_years(self, rows, **kwargs):
+        return publish(self.client, resource=self.resource, rows=rows, completeness="complete",
+                       coverage={"mode": "source_response", "count": len(rows)}, unit="ตัว",
+                       period_grain="source_year_label", **kwargs)
+
+    def publish_tokens(self, rows, **kwargs):
+        return publish(self.client, resource=self.resource, rows=rows, completeness="complete",
+                       coverage={"mode": "source_response", "count": len(rows)}, unit="ตัว",
+                       period_grain="source_year_token", source_version=TOKEN_SOURCE_VERSION,
+                       source_hash=TOKEN_SOURCE_HASH, **kwargs)
+
+    def stored_runs(self):
+        return [dict(row) for row in self.db.execute(
+            "SELECT run_id,status,error_code,source_year_writer_token FROM sync_runs ORDER BY started_at")]
+
+    def stored_row_count(self, run_id):
+        return list(self.db.execute("SELECT count(*) AS n FROM observations WHERE run_id=?",
+                                    [run_id]))[0]["n"]
+
+    def test_annual_claim_response_lost_after_commit_is_not_stranded(self):
+        self.post.fail_after_commit(CLAIM_INSERT)
+        result = self.publish_years([dld_cattle_observation()])
+        self.assertEqual(self.post.count(CLAIM_INSERT), 2)
+        self.assertEqual(result["records_written"], 1)
+        self.assertEqual(self.stored_runs()[0]["status"], "succeeded")
+        self.assertEqual(self.stored_row_count(result["run_id"]), 1)
+
+    def test_token_claim_response_lost_after_commit_is_not_stranded(self):
+        self.post.fail_after_commit(CLAIM_INSERT)
+        result = self.publish_tokens([dld_token_observation()])
+        self.assertEqual(result["records_written"], 1)
+        self.assertEqual(self.stored_row_count(result["run_id"]), 1)
+        self.assertEqual(self.stored_runs()[0]["status"], "succeeded")
+        self.assertEqual(self.post.count(CLAIM_INSERT), 2)
+
+    def test_annual_reclaim_response_lost_after_commit_is_not_stranded(self):
+        self.post.fail_after_commit(CLAIM_INSERT, attempts=4)
+        with self.assertRaises(ObservationWriteError) as lost:
+            self.publish_years([dld_cattle_observation()])
+        self.assertEqual(lost.exception.code, "RUN_CLAIM_FAILED")
+        run_id = self.stored_runs()[0]["run_id"]
+        self.assertEqual(self.stored_runs()[0]["status"], "failed")
+        self.post.fail_after_commit(RECLAIM_UPDATE)
+        result = self.publish_years([dld_cattle_observation()], retrieved_at="2026-10-28T03:00:00Z")
+        self.assertEqual(result["run_id"], run_id)
+        self.assertEqual(self.stored_runs()[0]["status"], "succeeded")
+        self.assertEqual(self.stored_row_count(run_id), 1)
+
+    def test_token_reclaim_response_lost_after_commit_is_not_stranded(self):
+        self.post.fail_after_commit(CLAIM_INSERT, attempts=4)
+        with self.assertRaises(ObservationWriteError) as lost:
+            self.publish_tokens([dld_token_observation()])
+        self.assertEqual(lost.exception.code, "RUN_CLAIM_FAILED")
+        run_id = self.stored_runs()[0]["run_id"]
+        self.post.fail_after_commit(RECLAIM_UPDATE)
+        result = self.publish_tokens([dld_token_observation()], retrieved_at="2026-10-28T03:00:00Z")
+        self.assertEqual(result["run_id"], run_id)
+        self.assertEqual(self.stored_runs()[0]["status"], "succeeded")
+        self.assertEqual(self.stored_row_count(run_id), 1)
+
+    def test_a_competitor_claim_on_the_same_run_id_is_not_adopted(self):
+        self.post.fail_after_commit(CLAIM_INSERT, takeover_token=COMPETITOR_TOKEN)
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years([dld_cattle_observation()])
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_RUN_IN_PROGRESS")
+        stored = self.stored_runs()[0]
+        self.assertEqual(stored["source_year_writer_token"], COMPETITOR_TOKEN)
+        self.assertEqual(stored["status"], "running")
+        self.assertEqual(self.stored_row_count(stored["run_id"]), 0)
+
+    def test_repeated_lost_response_retry_stays_idempotent(self):
+        self.post.fail_after_commit(CLAIM_INSERT)
+        first = self.publish_years([dld_cattle_observation()])
+        second = self.publish_years([dld_cattle_observation()], retrieved_at="2026-10-28T03:00:00Z")
+        self.assertEqual(first["run_id"], second["run_id"])
+        self.assertEqual(self.stored_row_count(first["run_id"]), 1)
+        self.assertEqual(len(self.stored_runs()), 1)
+
+    def assert_readback_failure_recoverable(self, *, token_mode, reclaim):
+        publish_rows = self.publish_tokens if token_mode else self.publish_years
+        rows = [dld_token_observation() if token_mode else dld_cattle_observation()]
+        if reclaim:
+            self.post.fail_after_commit(CLAIM_INSERT, attempts=4)
+            with self.assertRaises(ObservationWriteError):
+                publish_rows(rows)
+            self.assertEqual(self.stored_runs()[0]["status"], "failed")
+        claim_sql = RECLAIM_UPDATE if reclaim else CLAIM_INSERT
+        self.post.fail_after_commit(claim_sql)
+        self.post.readback_after = claim_sql
+        self.post.readback_failures = 4
+        with self.assertRaises(ObservationWriteError) as caught:
+            publish_rows(rows)
+        self.assertEqual(caught.exception.code, "RUN_CLAIM_FAILED")
+        self.assertEqual(self.post.readback_failures, 0)
+        stored = self.stored_runs()[0]
+        self.assertEqual(stored["status"], "failed")
+        self.assertEqual(stored["error_code"], "RUN_CLAIM_FAILED")
+        self.assertEqual(self.stored_row_count(stored["run_id"]), 0)
+        retry = publish_rows(rows)
+        self.assertEqual(retry["run_id"], stored["run_id"])
+        self.assertEqual(self.stored_runs()[0]["status"], "succeeded")
+        self.assertEqual(self.stored_row_count(stored["run_id"]), 1)
+
+    def test_annual_claim_readback_failure_is_reclaimable(self):
+        self.assert_readback_failure_recoverable(token_mode=False, reclaim=False)
+
+    def test_token_claim_readback_failure_is_reclaimable(self):
+        self.assert_readback_failure_recoverable(token_mode=True, reclaim=False)
+
+    def test_annual_reclaim_readback_failure_is_reclaimable(self):
+        self.assert_readback_failure_recoverable(token_mode=False, reclaim=True)
+
+    def test_token_reclaim_readback_failure_is_reclaimable(self):
+        self.assert_readback_failure_recoverable(token_mode=True, reclaim=True)
+
+    def test_failed_readback_does_not_fail_same_run_competitor(self):
+        self.post.fail_after_commit(CLAIM_INSERT, takeover_token=COMPETITOR_TOKEN)
+        self.post.readback_after = CLAIM_INSERT
+        self.post.readback_failures = 4
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years([dld_cattle_observation()])
+        self.assertEqual(caught.exception.code, "RUN_CLAIM_FAILED")
+        self.assertEqual(self.post.readback_failures, 0)
+        stored = self.stored_runs()[0]
+        self.assertEqual(stored["status"], "running")
+        self.assertEqual(stored["source_year_writer_token"], COMPETITOR_TOKEN)
+        self.assertIsNone(stored["error_code"])
+        self.assertEqual(self.stored_row_count(stored["run_id"]), 0)
+
+
 def publish(client, *, resource, rows, completeness="partial", coverage=None, unit=None,
             adapter_version="test-adapter/1", retrieved_at=RETRIEVED_AT, run_id=None, **kwargs):
     """Call the writer with the shared contract's required keyword arguments."""
@@ -1649,6 +1981,11 @@ def publish(client, *, resource, rows, completeness="partial", coverage=None, un
         run_id=run_id,
         **kwargs,
     )
+
+
+def lose_response():
+    """Fail after the statement was committed, as a lost HTTP response does."""
+    raise RuntimeError("simulated lost response")
 
 
 def registry_row(**change):

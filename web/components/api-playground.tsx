@@ -10,10 +10,18 @@ import type {
 } from '@/lib/hub/api-catalog-types';
 import {
   apiAcceptHeader,
+  buildInitialQueryValues,
   csvDownloadFilename,
+  describeSuggestOutcome,
+  exportDatasetCandidates,
+  exportResourceCandidates,
   parseApiResponseBody,
+  readExportDatasets,
+  readExportResources,
+  readPaginationTotal,
   validateApiRequest,
   type ParsedApiBody,
+  type SuggestOutcomeStatus,
 } from '@/lib/hub/api-playground-contract';
 import { ApiSnippets } from './api-snippets';
 import styles from './api-playground.module.css';
@@ -39,7 +47,7 @@ type ResultState =
   | { phase: 'done'; result: ApiResult }
   | { phase: 'error'; kind: 'abort' | 'network'; message: string };
 
-type SuggestStatus = 'idle' | 'loading' | 'success' | 'partial' | 'empty' | 'error';
+type SuggestStatus = 'idle' | 'loading' | SuggestOutcomeStatus;
 type CopyStatus = 'idle' | 'copied' | 'failed';
 
 interface EnvelopeSummary {
@@ -97,16 +105,6 @@ function resolveInitialEndpoint(
 function initialPathValues(endpoint: ApiEndpoint): Record<string, string> {
   const values: Record<string, string> = {};
   for (const param of endpoint.pathParams ?? []) values[param.name] = param.example;
-  return values;
-}
-
-function initialQueryValues(endpoint: ApiEndpoint): Record<string, string> {
-  const values: Record<string, string> = {};
-  for (const param of endpoint.query ?? []) {
-    const example = param.example ?? '';
-    const validEnum = param.type !== 'enum' || !example || (param.values ?? []).includes(example);
-    values[param.name] = validEnum ? example : '';
-  }
   return values;
 }
 
@@ -296,7 +294,7 @@ export function ApiPlayground({
   });
   const [queryValues, setQueryValues] = useState<Record<string, string>>(() => {
     const endpoint = resolveInitialEndpoint(endpoints, defaultEndpointId);
-    return endpoint ? initialQueryValues(endpoint) : {};
+    return endpoint ? buildInitialQueryValues(endpoint) : {};
   });
   const [result, setResult] = useState<ResultState>({ phase: 'idle' });
   const [liveMessage, setLiveMessage] = useState('');
@@ -375,7 +373,7 @@ export function ApiPlayground({
     abortActiveSuggest();
     setSelectedId(endpoint.id);
     setPathValues(initialPathValues(endpoint));
-    setQueryValues(initialQueryValues(endpoint));
+    setQueryValues(buildInitialQueryValues(endpoint));
     setResult({ phase: 'idle' });
     setSuggestStatus({ status: 'idle', message: '' });
     clearCopyFeedback();
@@ -411,7 +409,7 @@ export function ApiPlayground({
     abortActiveRequest();
     abortActiveSuggest();
     setPathValues(initialPathValues(selectedEndpoint));
-    setQueryValues(initialQueryValues(selectedEndpoint));
+    setQueryValues(buildInitialQueryValues(selectedEndpoint));
     setResult({ phase: 'idle' });
     setSuggestStatus({ status: 'idle', message: '' });
     clearCopyFeedback();
@@ -428,25 +426,13 @@ export function ApiPlayground({
     activeSuggest.current = controller;
     setSuggestStatus({ status: 'loading', message: 'กำลังค้นหา id จาก API จริง…' });
 
-    const needed = new Set<SuggestKind>();
-    for (const param of suggestParams) {
-      if (param.suggest) needed.add(param.suggest);
-    }
-
-    const resolved: Partial<Record<SuggestKind, string>> = {};
-    const missing: SuggestKind[] = [];
-    let hadError = false;
-    let lastErrorStatus: number | null = null;
-
-    const addMissing = (kind: SuggestKind) => {
-      if (!missing.includes(kind)) missing.push(kind);
-    };
-
     type LookupOutcome =
       | { kind: 'ok'; payload: unknown }
       | { kind: 'http'; status: number }
       | { kind: 'network' }
       | { kind: 'aborted' };
+
+    let suggestError: { status: number | null } | null = null;
 
     const lookup = async (url: string): Promise<LookupOutcome> => {
       try {
@@ -462,11 +448,118 @@ export function ApiPlayground({
       }
     };
 
+    const stale = () => controller.signal.aborted || activeSuggest.current !== controller;
+
+    // 404 during a lookup means "no such id", which the message reports as missing, not as a failed search.
     const noteFailure = (outcome: LookupOutcome) => {
-      if (outcome.kind === 'http' || outcome.kind === 'network') {
-        hadError = true;
-        if (outcome.kind === 'http') lastErrorStatus = outcome.status;
+      if (suggestError !== null) return;
+      if (outcome.kind === 'http' && outcome.status !== 404) suggestError = { status: outcome.status };
+      else if (outcome.kind === 'network') suggestError = { status: null };
+    };
+
+    const fetchPayload = async (url: string): Promise<unknown | null> => {
+      const outcome = await lookup(url);
+      if (outcome.kind === 'ok') return outcome.payload;
+      noteFailure(outcome);
+      return null;
+    };
+
+    const finish = (
+      filledParams: string[],
+      keptParams: string[],
+      missingLabels: string[],
+      updates: { path?: Record<string, string>; query?: Record<string, string> },
+    ) => {
+      if (stale()) return;
+      activeSuggest.current = null;
+      if (updates.path) setPathValues((current) => ({ ...current, ...updates.path }));
+      if (updates.query) setQueryValues((current) => ({ ...current, ...updates.query }));
+      setSuggestStatus(describeSuggestOutcome({ filledParams, keptParams, missingLabels, error: suggestError }));
+    };
+
+    const resourceParam = (selectedEndpoint.query ?? []).find((param) => param.name === 'resourceId');
+    const datasetParam = (selectedEndpoint.pathParams ?? []).find((param) => param.suggest === 'dataset');
+    if (selectedEndpoint.contract === 'csv' && resourceParam && datasetParam) {
+      const currentDataset = (pathValues[datasetParam.name] ?? '').trim();
+      const currentResource = (queryValues[resourceParam.name] ?? '').trim();
+
+      const resourceCandidates = async (datasetId: string, preferred: string): Promise<string[]> => {
+        const payload = await fetchPayload(`/api/v1/datasets/${encodeURIComponent(datasetId)}`);
+        if (payload === null) return [];
+        return exportResourceCandidates(readExportResources(payload), preferred);
+      };
+      const hasRows = async (datasetId: string, resourceId: string): Promise<boolean> => {
+        const payload = await fetchPayload(
+          `/api/v1/datasets/${encodeURIComponent(datasetId)}/records?resourceId=${encodeURIComponent(resourceId)}&pageSize=1`,
+        );
+        return payload !== null && (readPaginationTotal(payload) ?? 0) > 0;
+      };
+      const firstResourceWithRows = async (datasetId: string, preferred: string): Promise<string | null> => {
+        for (const resourceId of await resourceCandidates(datasetId, preferred)) {
+          if (stale()) return null;
+          if (await hasRows(datasetId, resourceId)) return resourceId;
+        }
+        return null;
+      };
+
+      if (currentDataset) {
+        const resourceId = await firstResourceWithRows(currentDataset, currentResource);
+        if (stale()) return;
+        if (resourceId !== null) {
+          if (resourceId === currentResource) {
+            activeSuggest.current = null;
+            setSuggestStatus({
+              status: 'kept',
+              message: 'ใช้ id และ resourceId ที่กรอกไว้ โดยตรวจกับ API แล้วว่า resource นี้มีแถวให้ส่งออก',
+            });
+            return;
+          }
+          finish([resourceParam.name], [datasetParam.name], [], {
+            query: { [resourceParam.name]: resourceId },
+          });
+          return;
+        }
       }
+
+      const listPayload = await fetchPayload('/api/v1/datasets?pageSize=100');
+      if (stale()) return;
+      const candidates = listPayload === null
+        ? []
+        : exportDatasetCandidates(readExportDatasets(listPayload)).filter((id) => id !== currentDataset);
+      for (const datasetId of candidates) {
+        const resourceId = await firstResourceWithRows(datasetId, '');
+        if (stale()) return;
+        if (resourceId === null) continue;
+        finish([datasetParam.name, resourceParam.name], [], [], {
+          path: { [datasetParam.name]: datasetId },
+          query: { [resourceParam.name]: resourceId },
+        });
+        return;
+      }
+
+      if (suggestError !== null) {
+        finish([], [], [], {});
+      } else if (!stale()) {
+        activeSuggest.current = null;
+        setSuggestStatus({
+          status: 'empty',
+          message: 'API จริงยังไม่พบชุดข้อมูลที่มี resource อนุมัติและมีแถวให้ส่งออก; กรอก id และ resourceId เองได้',
+        });
+      }
+      return;
+    }
+
+    const needed = new Set<SuggestKind>();
+    for (const param of suggestParams) {
+      if (param.suggest) needed.add(param.suggest);
+    }
+
+    const resolved: Partial<Record<SuggestKind, string>> = {};
+    const missing: SuggestKind[] = [];
+    const keptKinds = new Set<SuggestKind>();
+
+    const addMissing = (kind: SuggestKind) => {
+      if (!missing.includes(kind)) missing.push(kind);
     };
 
     const firstId = async (url: string): Promise<{ id: string | null; aborted: boolean }> => {
@@ -479,11 +572,14 @@ export function ApiPlayground({
       return { id: readFirstId(outcome.payload), aborted: false };
     };
 
-    const datasetParam = (selectedEndpoint.pathParams ?? []).find(
+    const typedDataset = (selectedEndpoint.pathParams ?? []).find(
       (param) => param.suggest === 'dataset' && (pathValues[param.name] ?? '').trim(),
     );
-    let datasetId = datasetParam ? (pathValues[datasetParam.name] ?? '').trim() : null;
-    if (datasetId) resolved.dataset = datasetId;
+    let datasetId = typedDataset ? (pathValues[typedDataset.name] ?? '').trim() : null;
+    if (datasetId) {
+      resolved.dataset = datasetId;
+      keptKinds.add('dataset');
+    }
     let triedDatasetLookup = false;
 
     const ensureDataset = async (): Promise<{ id: string | null; aborted: boolean }> => {
@@ -528,38 +624,30 @@ export function ApiPlayground({
       }
     }
 
-    if (controller.signal.aborted || activeSuggest.current !== controller) return;
+    if (stale()) return;
     activeSuggest.current = null;
 
     const updates: Record<string, string> = {};
+    const filledParams: string[] = [];
+    const keptParams: string[] = [];
     for (const param of suggestParams) {
-      const value = param.suggest ? resolved[param.suggest] : undefined;
-      if (param.suggest && value) updates[param.name] = value;
+      if (!param.suggest) continue;
+      const value = resolved[param.suggest];
+      if (!value) continue;
+      updates[param.name] = value;
+      if (keptKinds.has(param.suggest)) keptParams.push(param.name);
+      else filledParams.push(param.name);
     }
-    const updateCount = Object.keys(updates).length;
-    const missingText = missing.length ? ` ยังไม่พบ ${missing.map((kind) => SUGGEST_LABELS[kind]).join(' และ ')}` : '';
-    const errorText = hadError
-      ? ` · ค้นบางรายการไม่สำเร็จ${lastErrorStatus ? ` (HTTP ${lastErrorStatus})` : ''}`
-      : '';
 
-    if (updateCount > 0) {
+    if (Object.keys(updates).length > 0) {
       setPathValues((current) => ({ ...current, ...updates }));
-      const allResolved = missing.length === 0 && !hadError;
-      setSuggestStatus({
-        status: allResolved ? 'success' : 'partial',
-        message: `เติม id จาก API จริงแล้ว${missingText}${errorText}${allResolved ? ' · ตรวจ id ก่อนเรียก API' : ''}`,
-      });
-    } else if (hadError) {
-      setSuggestStatus({
-        status: 'error',
-        message: `ค้นหา id จาก API จริงไม่สำเร็จ${errorText} กรอก id เองหรือลองอีกครั้ง`,
-      });
-    } else {
-      setSuggestStatus({
-        status: 'empty',
-        message: 'API จริงยังไม่คืน id สำหรับ endpoint นี้ กรอก id เองได้',
-      });
     }
+    setSuggestStatus(describeSuggestOutcome({
+      filledParams,
+      keptParams,
+      missingLabels: missing.map((kind) => SUGGEST_LABELS[kind]),
+      error: suggestError,
+    }));
   }
 
   async function handleSubmit() {

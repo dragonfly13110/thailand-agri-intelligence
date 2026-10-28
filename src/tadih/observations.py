@@ -51,7 +51,10 @@ Rules enforced here (never relaxed by CLI flags or caller arguments):
    before this rule keep their old ids and rows, and the first republish after
    deployment mints one new run per resource before idempotency resumes.
 7. A failed run is only marked ``failed``; previously published data and the
-   active run pointer are never deleted or clobbered.
+   active run pointer are never deleted or clobbered. A source-year claim
+   whose response is lost is closed as ``failed`` under its own writer token,
+   so the next attempt reclaims the run instead of meeting a stuck
+   ``running`` run.
 8. Activation guard (defect D-9): a run whose rows mix ``NULL`` and non-NULL
    units *for the same measure* is written but never activated — the run is
    closed as ``partial`` with ``error_code``/``activation_blocked_reason``
@@ -329,9 +332,12 @@ def publish_observations(
     source_year_mode = period_grain == "source_year_label"
     source_year_token_mode = period_grain == "source_year_token"
     source_snapshot_mode = source_year_mode or source_year_token_mode
-    source_year_location_ids = (
-        _validate_source_year_location_mappings(plan) if source_snapshot_mode else None
-    )
+    if source_snapshot_mode:
+        source_year_location_ids = _validate_source_year_location_mappings(plan)
+    else:
+        source_year_location_ids = None
+        # Daily/monthly batches share the locations table, so the same one-to-one identity rule applies.
+        _validate_batch_location_identity(plan)
     source_year_token_label = None
     if source_year_token_mode:
         labels = {entry["observation"].get("source_year_label") for entry in plan}
@@ -464,6 +470,23 @@ def publish_observations(
                 source_hash=source_hash if source_year_token_mode else None,
             )
 
+        def own_committed_claim(row) -> bool:
+            """A claim that committed before the response arrived still proves itself by its own token."""
+            if not row or row.get("status") != "running":
+                return False
+            if row.get("source_year_writer_token") != source_year_writer_token:
+                return False
+            if (row.get("payload_sha256") != payload_sha256
+                    or row.get("source_revision_id") != source_year_revision):
+                return False
+            if source_year_token_mode and (
+                row.get("source_year_label") != source_year_token_label
+                or row.get("source_version") != source_version
+                or row.get("source_hash") != source_hash
+            ):
+                return False
+            return True
+
         snapshot_extra_select = ",source_year_label,source_version,source_hash" if source_year_token_mode else ""
         existing = client.execute(
             "SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,"
@@ -475,7 +498,8 @@ def publish_observations(
         claimed = False
         if existing_row is None:
             if source_year_token_mode:
-                created = client.execute(
+                created = _execute_claim(
+                    client,
                     "INSERT INTO sync_runs (run_id,source_id,resource_id,kind,status,started_at,adapter_version,"
                     "source_retrieved_at,source_revision_id,payload_sha256,source_year_writer_token,"
                     "source_year_label,source_version,source_hash) "
@@ -483,26 +507,32 @@ def publish_observations(
                     [derived_run_id, source_id, resource_id, RUN_KIND, _iso(started_at), adapter_version,
                      source_year_retrieved_at, source_year_revision, payload_sha256, source_year_writer_token,
                      source_year_token_label, source_version, source_hash],
+                    run_id=derived_run_id, writer_token=source_year_writer_token,
                 )
             else:
-                created = client.execute(
+                created = _execute_claim(
+                    client,
                     "INSERT INTO sync_runs (run_id,source_id,resource_id,kind,status,started_at,adapter_version,"
                     "source_retrieved_at,source_revision_id,payload_sha256,source_year_writer_token) "
                     "VALUES (?,?,?,?,'running',?,?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING run_id",
                     [derived_run_id, source_id, resource_id, RUN_KIND, _iso(started_at), adapter_version,
                      source_year_retrieved_at, source_year_revision, payload_sha256, source_year_writer_token],
+                    run_id=derived_run_id, writer_token=source_year_writer_token,
                 )
             claimed = _returned(created, "run_id", derived_run_id)
             if not claimed:
                 # Unique run ids make simultaneous create attempts converge on
                 # one row. Only its token owner can continue writing rows.
-                existing = client.execute(
+                existing = _execute_claim(
+                    client,
                     "SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,"
                     "source_year_writer_token" + snapshot_extra_select
                     + " FROM sync_runs WHERE run_id=? AND resource_id=?",
                     [derived_run_id, resource_id],
+                    run_id=derived_run_id, writer_token=source_year_writer_token,
                 )
                 existing_row = _first_row(existing)
+                claimed = own_committed_claim(existing_row)
 
         if not claimed:
             reused = reuse_completed_source_year(existing_row)
@@ -511,7 +541,8 @@ def publish_observations(
             # A failed attempt can be reclaimed by one writer using an atomic
             # status transition and a fresh UUID, independent of started_at.
             if source_year_token_mode:
-                claimed_result = client.execute(
+                claimed_result = _execute_claim(
+                    client,
                     "UPDATE sync_runs SET status='running',started_at=?,adapter_version=?,"
                     "source_retrieved_at=?,source_revision_id=?,payload_sha256=?,source_year_writer_token=?,"
                     "source_year_label=?,source_version=?,source_hash=?,completed_at=NULL,error_code=NULL,"
@@ -523,30 +554,38 @@ def publish_observations(
                      payload_sha256, source_year_writer_token, source_year_token_label, source_version,
                      source_hash, derived_run_id, resource_id, payload_sha256, source_year_revision,
                      source_year_token_label, source_version, source_hash],
+                    run_id=derived_run_id, writer_token=source_year_writer_token,
                 )
             else:
-                claimed_result = client.execute(
+                claimed_result = _execute_claim(
+                    client,
                     "UPDATE sync_runs SET status='running',started_at=?,adapter_version=?,"
                     "source_retrieved_at=?,source_revision_id=?,payload_sha256=?,source_year_writer_token=?,"
                     "completed_at=NULL,error_code=NULL,records_read=0,records_written=0,records_quarantined=0 "
                     "WHERE run_id=? AND resource_id=? AND status='failed' RETURNING run_id",
                     [_iso(started_at), adapter_version, source_year_retrieved_at, source_year_revision,
                      payload_sha256, source_year_writer_token, derived_run_id, resource_id],
+                    run_id=derived_run_id, writer_token=source_year_writer_token,
                 )
             claimed = _returned(claimed_result, "run_id", derived_run_id)
             if not claimed:
-                latest = _first_row(client.execute(
+                latest = _first_row(_execute_claim(
+                    client,
                     "SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,"
                     "source_year_writer_token" + snapshot_extra_select
                     + " FROM sync_runs WHERE run_id=? AND resource_id=?",
                     [derived_run_id, resource_id],
+                    run_id=derived_run_id, writer_token=source_year_writer_token,
                 ))
-                reused = reuse_completed_source_year(latest)
-                if reused is not None:
-                    return reused
-                if latest is not None and latest.get("status") == "running":
-                    raise ObservationWriteError("SOURCE_YEAR_RUN_IN_PROGRESS")
-                raise ObservationWriteError("SOURCE_YEAR_RUN_CLAIM_LOST")
+                if own_committed_claim(latest):
+                    claimed = True
+                else:
+                    reused = reuse_completed_source_year(latest)
+                    if reused is not None:
+                        return reused
+                    if latest is not None and latest.get("status") == "running":
+                        raise ObservationWriteError("SOURCE_YEAR_RUN_IN_PROGRESS")
+                    raise ObservationWriteError("SOURCE_YEAR_RUN_CLAIM_LOST")
     else:
         existing_columns = "run_id, status, payload_sha256"
         if has_run_source_revision:
@@ -627,16 +666,18 @@ def publish_observations(
     skipped = 0
     source_year_locations_upserted = set()
     try:
+        if not source_snapshot_mode:
+            # One upsert per distinct location before the rows, so a conflict aborts without half a batch.
+            for location in _distinct_locations(plan):
+                _upsert_location(client, location)
         for entry in plan:
             if source_snapshot_mode:
                 location = entry["location"]
                 if (location is not None
                         and location["location_id"] in source_year_location_ids
                         and location["location_id"] not in source_year_locations_upserted):
-                    _upsert_location(client, entry, source_year_guard=source_year_owner_guard)
+                    _upsert_location(client, location, source_year_guard=source_year_owner_guard)
                     source_year_locations_upserted.add(location["location_id"])
-            else:
-                _upsert_location(client, entry)
             if _row_matches(client, resource_id, derived_run_id, entry):
                 skipped += 1
                 continue
@@ -751,9 +792,7 @@ def publish_observations(
         "records_quarantined": len(quarantined),
         "quarantine_reasons": quarantine_reasons,
         "skipped_identical": skipped,
-        "locations_written": len({
-            entry["location"]["location_id"] for entry in plan if entry["location"] is not None
-        }),
+        "locations_written": _plan_location_count(plan),
         "active_run_switched": active_run_switched,
         "activation_blocked_reason": activation_guard,
         "active_run_blocked_reason": active_run_blocked_reason,
@@ -864,7 +903,7 @@ def _finish_existing_run(
         "records_quarantined": records_quarantined,
         "quarantine_reasons": quarantine_reasons,
         "skipped_identical": skipped_identical,
-        "locations_written": 0,
+        "locations_written": _plan_location_count(plan),
         "active_run_switched": active_run_switched,
         "activation_blocked_reason": activation_guard,
         "active_run_blocked_reason": active_run_blocked_reason,
@@ -2019,6 +2058,49 @@ def _validate_source_year_location_mappings(plan: Sequence[Mapping[str, Any]]) -
     return set(metadata_by_id)
 
 
+def _validate_batch_location_identity(plan: Sequence[Mapping[str, Any]]) -> None:
+    """Refuse a batch whose location IDs and natural keys are not one-to-one."""
+    key_by_location_id: dict[str, tuple] = {}
+    location_id_by_key: dict[tuple, str] = {}
+    for entry in plan:
+        location = entry["location"]
+        if location is None:
+            continue
+        location_id = location["location_id"]
+        natural_key = (location["source_id"], location["kind"], location["native_code"])
+        prior_key = key_by_location_id.get(location_id)
+        if prior_key is not None and prior_key != natural_key:
+            raise ObservationWriteError("LOCATION_IDENTITY_CONFLICT")
+        prior_location_id = location_id_by_key.get(natural_key)
+        if prior_location_id is not None and prior_location_id != location_id:
+            raise ObservationWriteError("LOCATION_IDENTITY_CONFLICT")
+        key_by_location_id[location_id] = natural_key
+        location_id_by_key[natural_key] = location_id
+
+
+def _distinct_locations(plan: Sequence[Mapping[str, Any]]) -> list[dict]:
+    """The distinct locations of one batch, in first-seen order."""
+    distinct: dict[str, dict] = {}
+    for entry in plan:
+        location = entry["location"]
+        if location is None:
+            continue
+        stored = distinct.get(location["location_id"])
+        if stored is None:
+            distinct[location["location_id"]] = dict(location)
+        elif location.get("province_code") is not None:
+            stored["province_code"] = location["province_code"]
+    return list(distinct.values())
+
+
+def _plan_location_count(plan: Sequence[Mapping[str, Any]]) -> int:
+    """The number of distinct locations a batch covers."""
+    return len({
+        entry["location"]["location_id"]
+        for entry in plan if entry["location"] is not None
+    })
+
+
 def _dimensions(observation: dict, effective_unit: str | None,
                 dimensions_for: Callable[[dict], dict] | None) -> dict:
     if dimensions_for is not None:
@@ -2320,10 +2402,9 @@ def _activation_unit_guard(plan: Sequence[Mapping[str, Any]]) -> str | None:
 
 
 def _upsert_location(
-    client, entry: dict, *,
+    client, location: Mapping[str, Any] | None, *,
     source_year_guard: tuple | None = None,
 ) -> None:
-    location = entry["location"]
     if location is None:
         return
     values = [location["location_id"], location["source_id"], location["kind"],
@@ -2454,6 +2535,15 @@ def _row_count(client, run_id: str, resource_id: str) -> int:
         return int(row["total"]) if row else 0
     except (KeyError, TypeError, ValueError):
         return 0
+
+
+def _execute_claim(client, sql: str, params: Sequence[Any], *, run_id: str, writer_token: str):
+    """A claim whose response is lost must not strand the run as ``running``: close it under our own token."""
+    try:
+        return client.execute(sql, params)
+    except Exception as exc:
+        _mark_failed(client, run_id, "RUN_CLAIM_FAILED", source_year_writer_token=writer_token)
+        raise ObservationWriteError("RUN_CLAIM_FAILED") from exc
 
 
 def _mark_failed(client, run_id: str, error_code: str = "NUMERIC_WRITE_FAILED", *,

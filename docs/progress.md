@@ -1,3 +1,10 @@
+## ตรวจรับ AI 1–3 ก่อนรวม main — 28 ต.ค. 2026 (ผ่าน local merge gate)
+
+- ปิด own-token reconciliation และ post-claim readback cleanup แล้ว; 5 regressions fail ก่อน/pass หลัง. AI 3 พบ DLD test เวลา Windows ซ้ำ; ผู้คุมแก้เฉพาะเทสต์ให้เวลาเรียงกัน: 14 tests ผ่าน 20 รอบ และ full Python 836 ผ่าน32.341s. Independent retry/competitor reproผ่าน. Source freeze510 files อัปเดต DLD test เวลา16:48 UTC; AI 3 ตรวจอิสระ full Python836 ผ่าน25.398s พร้อม web315/typecheck/build และ manifest510/510: local merge GO; AI 1–2หยุดแล้ว
+- ผู้คุมแก้ CPD/OAE test-only CRLF/timestamp: 61 tests ผ่าน 20 รอบ; guards ไม่เปลี่ยน. Helper แก้ D1/PostgreSQL selected-run partial metadata พร้อม regressions
+- ผู้คุม web315/typecheck/build:vinext ผ่านหลัง AI 2 freeze (build มี sourcemap/dynamic-import warnings); ตรวจ completed CSV download GUID และไฟล์จริง 5,209 bytes/34 columns/3 partial rows. Python final836 ผ่านหลัง retry/readback follow-up. Offline CLI build/verify ฐาน `:memory:` ผ่าน (0 observations) ไม่แตะ data/local
+- ผ่านตรวจและอนุมัติ commit repairs/merge เข้า local main ตามคำสั่งเจ้าของงาน; ยังไม่ push/deploy/production writes. D1 migrations/annual data และ live PostgreSQL/performance เป็น rollout/validation แยก
+
 ## เตรียมงาน AI 1–3 — 28 ต.ค. 2026
 
 - ผู้คุมงานออกใบสั่งงาน 3 lanes ที่ `docs/assignments/2026-10-28-ai-1-3-location-web-qa.md` (AI 1 location dedupe, AI 2 web/CSV/UX, AI 3 independent review) โดยแยก allowlist ไม่ให้แตะไฟล์ชนกัน

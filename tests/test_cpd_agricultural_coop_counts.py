@@ -24,7 +24,7 @@ from tadih.cpd_agricultural_coop_counts import (
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
-CSV_BYTES = (FIXTURES / "cpd_agricultural_coop_counts.csv").read_bytes()
+CSV_BYTES = (FIXTURES / "cpd_agricultural_coop_counts.csv").read_bytes().replace(b"\r\n", b"\n")
 PACKAGE_SHOW = json.loads((FIXTURES / "cpd_agricultural_coop_package_show.json").read_text(encoding="utf-8"))
 RETRIEVED_AT = datetime(2026, 10, 28, 5, 0, tzinfo=timezone.utc)
 
@@ -111,6 +111,21 @@ class CpdAgriculturalCoopNormalizerTests(unittest.TestCase):
         self.assertFalse(hasattr(snapshot, "period_start"))
         self.assertFalse(hasattr(snapshot, "national_total"))
         self.assertFalse(hasattr(snapshot, "coverage_claim"))
+
+    def test_lf_and_crlf_preserve_values_and_verify_the_exact_content_hash(self):
+        for newline in (b"\n", b"\r\n"):
+            with self.subTest(newline=newline):
+                content = CSV_BYTES.replace(b"\n", newline)
+                snapshot = normalize_cpd_agricultural_coop_csv(content, metadata=_metadata_for(content))
+                self.assertEqual(snapshot.records[0].operating_count, 5)
+                self.assertEqual(snapshot.content_sha256, hashlib.sha256(content).hexdigest())
+                blank = content.replace(b",0,5,1" + newline, b",,5,1" + newline, 1)
+                self.assertNotEqual(blank, content)
+                missing = normalize_cpd_agricultural_coop_csv(blank, metadata=_metadata_for(blank))
+                self.assertIsNone(missing.records[0].not_started_count)
+                tampered = content.replace(b",0,5,1" + newline, b",0,6,1" + newline, 1)
+                with self.assertRaisesRegex(CpdCoopSourceError, "CPD resource hash mismatch"):
+                    normalize_cpd_agricultural_coop_csv(tampered, metadata=_metadata_for(content))
 
     def test_blank_count_stays_null_and_zero_stays_zero(self):
         content = CSV_BYTES.replace(b",0,5,1\n", b",,5,1\n", 1)

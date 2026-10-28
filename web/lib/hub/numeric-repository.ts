@@ -16,7 +16,7 @@ import { postgresSemanticDimensionsExpression } from './series-sql';
 import type { ApiMeta, AreaEvidence, DatasetSummary, HubObservation, HubSeries } from './types';
 
 type Row = Record<string, unknown>;
-type DatasetInfo = { sourceId: string; freshnessDays: number | null; hasNumeric: boolean };
+type DatasetInfo = { sourceId: string; freshnessDays: number | null; hasNumeric: boolean; numericStatus: 'succeeded' | 'partial' | null };
 const MAX_NUMERIC_TOKEN_PAYLOAD_BYTES = 512 * 1024;
 
 function add(values: unknown[], value: unknown) {
@@ -219,9 +219,13 @@ async function getDatasetInfo(id: string): Promise<DatasetInfo> {
   const rows = await query<Row>(
     'SELECT d.source_id AS "sourceId",s.freshness_days AS "freshnessDays",' +
     'EXISTS (SELECT 1 FROM hub.resources r JOIN hub.sync_runs run ON run.run_id=r.active_run_id ' +
-      "AND run.resource_id=r.resource_id AND run.status='succeeded' " +
+      "AND run.resource_id=r.resource_id AND run.kind='numeric' AND run.status IN ('succeeded','partial') " +
       "WHERE r.dataset_id=d.dataset_id AND r.access_status='approved_public' " +
-      'AND r.project_publication_approved AND r.active_run_id IS NOT NULL) AS "hasNumeric" ' +
+      'AND r.project_publication_approved AND r.active_run_id IS NOT NULL) AS "hasNumeric",' +
+    'EXISTS (SELECT 1 FROM hub.resources r JOIN hub.sync_runs run ON run.run_id=r.active_run_id ' +
+      "AND run.resource_id=r.resource_id AND run.kind='numeric' AND run.status='partial' " +
+      "WHERE r.dataset_id=d.dataset_id AND r.access_status='approved_public' " +
+      'AND r.project_publication_approved AND r.active_run_id IS NOT NULL) AS "hasPartial" ' +
     'FROM hub.datasets d JOIN hub.sources s ON s.source_id=d.source_id ' +
     "WHERE d.dataset_id=$1 AND d.metadata_access_status IN ('approved_public','metadata_only') " +
     "AND s.metadata_access_status IN ('approved_public','metadata_only')",
@@ -232,6 +236,7 @@ async function getDatasetInfo(id: string): Promise<DatasetInfo> {
     sourceId: String(rows[0].sourceId),
     freshnessDays: number(rows[0].freshnessDays),
     hasNumeric: rows[0].hasNumeric === true,
+    numericStatus: rows[0].hasPartial === true ? 'partial' : rows[0].hasNumeric === true ? 'succeeded' : null,
   };
 }
 
@@ -243,7 +248,9 @@ async function observationStats(where: string, values: unknown[]) {
     'max(run.source_retrieved_at) AS "retrievedAt",' +
     'CASE WHEN count(DISTINCT run.run_id)=1 THEN max(coalesce(run.payload_sha256,run.run_id::text)) ELSE NULL END AS "datasetVersion",' +
     'CASE WHEN count(DISTINCT s.source_id)=1 THEN max(s.freshness_days) ELSE NULL END AS "freshnessDays",' +
-    'count(DISTINCT run.run_id)::int AS "runCount"' + observationFrom + 'WHERE ' + where,
+    'count(DISTINCT run.run_id)::int AS "runCount",' +
+    "CASE WHEN max(CASE WHEN run.status='partial' THEN 1 ELSE 0 END)=1 THEN 'partial' " +
+    "WHEN count(*)>0 THEN 'succeeded' ELSE NULL END AS \"numericStatus\"" + observationFrom + 'WHERE ' + where,
     values,
   );
   return rows[0] ?? {};
@@ -255,17 +262,20 @@ function numericMeta(info: DatasetInfo, stats: Row, hasRows: boolean, warning?: 
     : [];
   const sourceUpdatedAt = text(stats.sourceUpdatedAt);
   const freshnessDays = number(stats.freshnessDays) ?? info.freshnessDays;
+  const numericStatus = text(stats.numericStatus) ?? info.numericStatus;
   return {
     availability: hasRows ? 'ready' : info.hasNumeric ? 'empty' : 'metadata_only',
     freshness: freshness(sourceUpdatedAt, freshnessDays),
-    completeness: info.hasNumeric ? completeness('succeeded') : 'unknown',
+    completeness: numericStatus ? completeness(numericStatus) : 'unknown',
     access: info.hasNumeric ? 'approved_public' : 'metadata_only',
     sourceIds: sourceIds.length ? sourceIds : [info.sourceId],
     dataAsOf: text(stats.dataAsOf),
     sourceUpdatedAt,
     sourceRetrievedAt: text(stats.retrievedAt),
     datasetVersion: text(stats.datasetVersion),
-    warnings: info.hasNumeric ? [] : [warning ?? 'ชุดข้อมูลนี้มีเฉพาะ metadata ที่ค้นพบ ยังไม่มีตัวเลขที่อนุมัติให้เผยแพร่'],
+    warnings: numericStatus === 'partial'
+      ? ['ชุดนี้มีข้อมูลตัวอย่างบางส่วน ยังไม่ครอบคลุมข้อมูลทั้งหมดของทรัพยากร']
+      : info.hasNumeric ? [] : [warning ?? 'ชุดข้อมูลนี้มีเฉพาะ metadata ที่ค้นพบ ยังไม่มีตัวเลขที่อนุมัติให้เผยแพร่'],
     runtimeMode: 'database',
   };
 }
@@ -486,13 +496,14 @@ export async function listDbSeriesObservations(id: string, url: URL) {
   const visibleValues: unknown[] = [];
   addPostgresSeriesIdentity(visibleConditions, visibleValues, identity);
   const visible = await query<Row>(
-    'SELECT s.source_id AS "sourceId",s.freshness_days AS "freshnessDays" ' + observationFrom +
+    'SELECT s.source_id AS "sourceId",s.freshness_days AS "freshnessDays",run.status AS "numericStatus" ' + observationFrom +
     'WHERE ' + visibleConditions.join(' AND ') + ' LIMIT 1',
     visibleValues,
   );
   if (!visible.length) throw new HubRequestError(404, 'SERIES_NOT_FOUND', 'ไม่พบชุดข้อมูลนี้');
   const info: DatasetInfo = {
     sourceId: String(visible[0].sourceId), freshnessDays: number(visible[0].freshnessDays), hasNumeric: true,
+    numericStatus: text(visible[0].numericStatus) === 'partial' ? 'partial' : 'succeeded',
   };
   const values: unknown[] = [];
   const conditions = [publicObservationConditions];

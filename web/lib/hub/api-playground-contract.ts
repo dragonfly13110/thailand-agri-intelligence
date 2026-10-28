@@ -66,3 +66,139 @@ export function validateApiRequest(
   if (from && to && from > to) issues.push('from/to: ช่วงวันที่ไม่ถูกต้อง');
   return issues;
 }
+
+// CSV export ต้องไม่เติม from/to: ช่วงวันที่ค้างจะตัดแถวจริงจนได้ EXPORT_NO_ROWS
+export function buildInitialQueryValues(endpoint: ApiEndpoint): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const param of endpoint.query ?? []) {
+    const example = param.example ?? '';
+    if (endpoint.contract === 'csv' && param.type === 'date' && !param.required) {
+      values[param.name] = '';
+      continue;
+    }
+    const validEnum = param.type !== 'enum' || !example || (param.values ?? []).includes(example);
+    values[param.name] = validEnum ? example : '';
+  }
+  return values;
+}
+
+export type SuggestOutcomeStatus = 'success' | 'partial' | 'kept' | 'empty' | 'error';
+
+export interface SuggestOutcome {
+  status: SuggestOutcomeStatus;
+  message: string;
+}
+
+export interface SuggestOutcomeInput {
+  filledParams: string[];
+  keptParams: string[];
+  missingLabels: string[];
+  error: { status: number | null } | null;
+}
+
+function listParams(names: string[]): string {
+  return names.length > 0 ? ` (${names.join(', ')})` : '';
+}
+
+export function describeSuggestOutcome(input: SuggestOutcomeInput): SuggestOutcome {
+  const missingText = input.missingLabels.length > 0 ? ` · ยังไม่พบ ${input.missingLabels.join(' และ ')}` : '';
+  const errorText = input.error !== null
+    ? ` · ค้นบางรายการไม่สำเร็จ${input.error.status !== null ? ` (HTTP ${input.error.status})` : ''}`
+    : '';
+  const hasGap = input.missingLabels.length > 0 || input.error !== null;
+
+  if (input.filledParams.length > 0) {
+    const keptText = input.keptParams.length > 0 ? ` · ใช้ค่าที่กรอกไว้${listParams(input.keptParams)}` : '';
+    return {
+      status: hasGap ? 'partial' : 'success',
+      message: `เติม id จาก API จริงแล้ว${listParams(input.filledParams)}${keptText}${missingText}${errorText}${hasGap ? '' : ' · ตรวจ id ก่อนเรียก API'}`,
+    };
+  }
+  if (input.keptParams.length > 0) {
+    const base = `ใช้ค่าที่กรอกไว้${listParams(input.keptParams)}`;
+    return hasGap
+      ? { status: 'partial', message: `${base}${missingText}${errorText}` }
+      : { status: 'kept', message: `${base} โดยไม่ได้ค้นหาใหม่` };
+  }
+  if (input.error !== null) {
+    return {
+      status: 'error',
+      message: `ค้นหา id จาก API จริงไม่สำเร็จ${errorText} กรอก id เองหรือลองอีกครั้ง`,
+    };
+  }
+  return { status: 'empty', message: 'API จริงยังไม่คืน id สำหรับ endpoint นี้ กรอก id เองได้' };
+}
+
+export interface ExportDatasetSummaryLike {
+  id: string;
+  availability: string;
+}
+
+export interface ExportResourceLike {
+  id: string;
+  accessStatus: string | null;
+  projectPublicationApproved: boolean;
+  activeRunId: string | null;
+}
+
+/** Enough candidates to find a working pair without scanning the whole catalog. */
+export const EXPORT_CANDIDATE_LIMIT = 10;
+
+export function isExportableResource(resource: ExportResourceLike): boolean {
+  return resource.accessStatus === 'approved_public'
+    && resource.projectPublicationApproved
+    && typeof resource.activeRunId === 'string'
+    && resource.activeRunId.trim().length > 0;
+}
+
+export function exportResourceCandidates(resources: ExportResourceLike[], currentResource: string): string[] {
+  const exportable = resources.filter(isExportableResource).map((resource) => resource.id);
+  if (!currentResource || !exportable.includes(currentResource)) return exportable;
+  return [currentResource, ...exportable.filter((id) => id !== currentResource)];
+}
+
+export function exportDatasetCandidates(datasets: ExportDatasetSummaryLike[]): string[] {
+  return [
+    ...datasets.filter((dataset) => dataset.availability === 'ready'),
+    ...datasets.filter((dataset) => dataset.availability === 'empty'),
+  ].map((dataset) => dataset.id).slice(0, EXPORT_CANDIDATE_LIMIT);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function readExportDatasets(payload: unknown): ExportDatasetSummaryLike[] {
+  if (!isRecord(payload) || !Array.isArray(payload.data)) return [];
+  const datasets: ExportDatasetSummaryLike[] = [];
+  for (const item of payload.data) {
+    if (!isRecord(item) || typeof item.id !== 'string' || !item.id.trim()) continue;
+    datasets.push({
+      id: item.id.trim(),
+      availability: typeof item.availability === 'string' ? item.availability : '',
+    });
+  }
+  return datasets;
+}
+
+export function readExportResources(payload: unknown): ExportResourceLike[] {
+  const data = isRecord(payload) ? payload.data : null;
+  if (!isRecord(data) || !Array.isArray(data.resources)) return [];
+  const resources: ExportResourceLike[] = [];
+  for (const item of data.resources) {
+    if (!isRecord(item) || typeof item.id !== 'string' || !item.id.trim()) continue;
+    resources.push({
+      id: item.id.trim(),
+      accessStatus: typeof item.accessStatus === 'string' ? item.accessStatus : null,
+      projectPublicationApproved: item.projectPublicationApproved === true,
+      activeRunId: typeof item.activeRunId === 'string' ? item.activeRunId : null,
+    });
+  }
+  return resources;
+}
+
+export function readPaginationTotal(payload: unknown): number | null {
+  if (!isRecord(payload) || !isRecord(payload.pagination)) return null;
+  const total = payload.pagination.total;
+  return typeof total === 'number' && Number.isFinite(total) ? total : null;
+}

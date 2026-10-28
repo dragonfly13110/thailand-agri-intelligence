@@ -11,6 +11,7 @@ import sqlite3
 import tempfile
 import unittest
 from typing import Any
+from unittest.mock import patch
 
 from tadih.cpd_agricultural_coop_counts import (
     METADATA_URL,
@@ -154,6 +155,18 @@ class CpdCoopD1AdapterTests(unittest.TestCase):
     def setUp(self):
         self.opener, self.calls = cpd_opener_for()
         self._review_tempdirs = []
+        self.retrieved_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+        def fetch_with_ordered_time(*, opener=None):
+            self.retrieved_at += timedelta(milliseconds=1)
+            return fetch_cpd_agricultural_coop_counts(opener=opener, retrieved_at=self.retrieved_at)
+
+        fetch_patch = patch(
+            "tadih.ingest_cpd_agricultural_coop_counts_d1.fetch_cpd_agricultural_coop_counts",
+            side_effect=fetch_with_ordered_time,
+        )
+        fetch_patch.start()
+        self.addCleanup(fetch_patch.stop)
 
     def test_cli_adapter_dispatch_resolves_exact_module_name(self):
         from tadih.cli import _adapter_module

@@ -1,6 +1,6 @@
 # Thailand Agricultural Data Hub: Implementation Plan
 
-อัปเดตสถานะ 28 ตุลาคม 2569 โดยอ้างอิง `main` HEAD `6a54c2b`, [HANDOFF](HANDOFF.md) และ [progress](docs/progress.md). Working tree มีงานหลาย lane ที่ยังไม่ commit; ตารางนี้ใช้หลักฐานล่าสุดที่บันทึกไว้และไม่ถือว่างานค้างผ่านการรวม/production validation แล้ว. แผน M1–M6 ด้านล่างเก็บประวัติช่วง 25 ต.ค.; ใช้ตารางสถานะนี้และ handoff สำหรับงานต่อ
+อัปเดต 28 ตุลาคม 2569: ตรวจรับกิ่ง `codex/checkpoint-2026-10-28` ก่อนรวม local main; สถานะรวมและผล final gates ให้ยึด [HANDOFF](HANDOFF.md)/[progress](docs/progress.md). การตรวจโค้ดและ local merge แยกจากการอนุญาต push, remote CI, apply migrations, ingest และ deploy. แผน M1–M6 ด้านล่างเก็บประวัติช่วง 25 ต.ค.
 
 ## ผลลัพธ์ที่ต้องได้
 
@@ -15,31 +15,31 @@
 
 | ส่วน | สถานะที่บันทึกล่าสุด | หลักฐาน/ขอบเขต |
 |---|---|---|
-| Runtime และ API | `main` HEAD `6a54c2b`; Next.js App Router + vinext บน Cloudflare Workers; D1 เป็น catalog/numeric store; Python ใช้ดึงและ normalize | `web/`, `src/tadih/`, `web/app/api/v1/`; working tree ยังมีงานไม่ commit |
-| Source registry/catalog | บันทึกเดิมมี `config/sources.json` 23 sources; D1 catalog audit เคยรายงาน 12 CKAN sources, 1,237 datasets และ 3,777 resources | เป็น metadata discovery ไม่ใช่ numeric availability/coverage; ไม่มี audit catalog ใหม่ใน handoff 28 ต.ค. |
-| Numeric data | Read-only D1 audit 27 ต.ค. รายงาน 9,926 observations; CHIRPS run `dc6fb992-bf3e-543b-9385-a9fa9ca946b1` เป็น `partial` 3 grid cells | ไม่ตรวจ D1 ใหม่ในบันทึกล่าสุด; CHIRPS sample ไม่ใช่ coverage ทั้ง raster |
-| NWP | Run `tmd_hpc_d02_2026102606` มี 220 snapshots/16,940 province rows ตาม audit 27 ต.ค.; แยกจาก `observations` | สถานะย้อนหลัง ไม่ได้ query ซ้ำ 28 ต.ค.; `scripts/sync_tmd_hpc_nwp.py`, `db/cloudflare/0003_nwp.sql` |
-| แดชบอร์ด | `/prices`, `/water`, `/early-warning` และหน้าอื่นมีหลักฐานตามรายงานก่อนหน้า; `/data-status`, CSV export และ `/monthly-rainfall` รวมใน repo ตาม handoff | API catalog ยังไม่มี endpoint ฝนรายเดือนและ CSV; local preview ล่าสุดไม่มี D1 จึงยังไม่ยืนยัน flow จริง |
-| Rights registry | บันทึกเดิม: 89 resources, 10 `approved_public`, 79 `pending`; NWP unit/risk ยังเป็น null เมื่อหน่วยไม่ยืนยัน | `config/resource_licenses.json`, `AGENTS.md`; ยึดข้อมูลตามวันที่ใน HANDOFF |
-| Sync automation | Workflows อยู่ใน Git; CI run `40482482461` ล้มใน Python tests และไม่มี web job; catalog sync run `40598609522` ล้มเพราะ repository secrets ไม่พร้อม | `HANDOFF.md`; ห้ามถือว่า automation ผ่าน |
-| QA | ผลล่าสุดที่บันทึก 27 ต.ค.: web tests 248/248, typecheck และ vinext build ผ่าน; Python discover 680 มี failures 3, errors 11, skipped 1 | ผลดังกล่าวเป็นบันทึกก่อนงานใน working tree ปัจจุบัน; ยังไม่บันทึกผล rerun รวมรอบใหม่ |
-| Deployment/production | Preview `761a2138-5608-46c9-affa-de32cafab964` เคยตอบ 200 บน API smoke routes; latest local preview ไม่มี D1 | การเปลี่ยนล่าสุดยังไม่ deploy; ไม่มี production validation รอบนี้ |
+| Runtime และ API | Next.js App Router + vinext/Cloudflare Workers; D1 catalog/numeric store; Python ingest | งาน checkpoint และ repairs รอ final local merge gate; ดู HEAD ล่าสุดใน HANDOFF |
+| Source registry/catalog | Checkout มี 24 sources; D1 catalog audit เก่า 12 CKAN sources/1,237 datasets/3,777 resources | Registry ไม่เท่ากับผล sync หรือ coverage |
+| Numeric data | D1 read-only probe 28 ต.ค.: 9,926 observations/607 locations; CHIRPS partial sample 3 cells | ไม่ใช่ coverage ทั้ง raster; DLD/OAE/CPD ยังไม่มี numeric rows ใหม่ |
+| NWP | Audit 27 ต.ค.: `tmd_hpc_d02_2026102606`, 220 snapshots/16,940 province rows; แยกจาก observations | ไม่ query NWP ซ้ำรอบนี้ |
+| แดชบอร์ด/API docs | Catalog 21 endpoints รวมฝนรายเดือนและ CSV; browser อ่าน D1 จริงตรวจ monthly rainfall และ CSV download ได้ | DLD แสดง unavailable (404); trade/price-trend แสดง empty ตามข้อมูลจริง; ไม่อ้างว่า annual dashboards พร้อม |
+| Rights registry | Checkout มี 91 resources: 13 `approved_public`, 78 `pending` | เป็นสิทธิ์ใน registry ไม่ใช่จำนวน resources ที่มีตัวเลขใน D1; หน่วยที่ยังไม่ยืนยันคง null |
+| Sync automation | Workflows อยู่ใน Git; CI/catalog run เก่าที่บันทึกไว้ล้ม | ยังไม่ push หรือรัน remote CI ใหม่; local tests ไม่แทน Actions |
+| QA | ผู้คุมและ AI 3 ตรวจอิสระผ่าน Python 836/web 315/typecheck/build; manifest 510/510 ตรง; local merge GO | DLD test-only clock fix ผ่าน 20 รอบ; Python discover ไม่รวม opt-in private integration tests |
+| Deployment/production | ยังไม่ deploy/push/apply migrations/ingest รอบนี้ | D1 probe ไม่พบ schema effects ของ 0004–0006; production rollout เป็นงานแยก |
 
-ตัวเลขนอกเหนือจาก commit/CI มาจากการตรวจตามวันที่ใน HANDOFF/progress ไม่ใช่การตรวจ D1/API สดวันที่ 28 ต.ค. `records_written` ใน dry-run ของ catalog หมายถึง metadata records ที่เตรียมเขียน ไม่ใช่ observations
+ตัวเลขสดมีขอบเขตตามรายงาน AI 1–3 และ HANDOFF/progress วันที่ 28 ต.ค.; ส่วน M1–M6 เก็บหลักฐานย้อนหลัง. `records_written` ของ catalog dry-run เป็น metadata records ไม่ใช่ observations
 
 ## งาน AI 5–7 ที่รวมอยู่ใน repo (27 ตุลาคม 2569)
 
 งานด้านล่างถูกรวมใน repo ตาม HANDOFF วันที่ 27 ต.ค.; ผล local tests/typecheck/build ที่รายงานไว้ไม่เท่ากับ production acceptance. รายละเอียด ownership/acceptance อยู่ใน [prompts AI 5–7](docs/assignments/2026-10-27-new-features-agents-5-7.md)
 
 - [x] AI 5: `/data-status` ใช้ sources/status APIs แสดงรอบดึงข้อมูลและที่มา แยก metadata/numeric และมีลิงก์จาก `/open-data`; local link ตรวจได้ตาม HANDOFF แต่ flow กับ D1/production ยังไม่ตรวจ
-- [x] AI 6: CSV export หนึ่ง active public resource ผ่าน `/explore` จำกัด 1,000 rows พร้อม version/provenance/partial status; ยังไม่ได้ตรวจ download กับ D1 จริงหรือ production
-- [x] AI 7: `/monthly-rainfall` และ read API แบบ TMD station × month พร้อมลิงก์จาก `/weather`, คง null/หน่วย pending/ช่วงเวลาจริง; local preview ไม่มี D1 จึงยังไม่ตรวจ flow จริง/production
+- [x] AI 6: CSV export หนึ่ง active public resource ผ่าน `/explore` จำกัด 1,000 rows พร้อม version/provenance/partial status; browser playground ที่อ่าน D1 จริงยืนยัน download event และไฟล์ CHIRPS sample แล้ววันที่ 28 ต.ค. ไม่ใช่ production deployment ใหม่
+- [x] AI 7: `/monthly-rainfall` และ API แบบ station × month; browser playground ที่อ่าน D1 จริงได้ 131 stations/71 จังหวัดที่มีสถานีรายงาน คง grain และหน่วย pending ไม่อ้าง coverage จังหวัดทั้งหมด
 
-- [ ] เพิ่มรายการ endpoint ฝนรายเดือนและ CSV ใน API catalog/playground ตามที่ HANDOFF ระบุว่ายังขาด
-- [ ] ตรวจ UX desktop/mobile และ CSV download กับ runtime ที่เชื่อม D1 ได้
-- [ ] Deploy และตรวจ production หลังการรับรวม; ยังไม่มีหลักฐานว่าทำแล้ว
+- [x] API catalog มี monthly-rainfall/CSV และทั้ง 21 documented paths มี route modules จริง
+- [x] ตรวจ desktop 1440/mobile 390 ของ livestock/trade/api-docs/price-trend และ CSV download จริง (BOM/34 columns/3 partial rows/provenance); suggest/date-prefill/typed-approved-empty follow-up ผ่าน browser รอบสุดท้ายแล้ว
+- [ ] Deploy และตรวจ production หลังได้รับอนุญาต; ยังไม่ทำรอบนี้
 
-ผลตรวจรวมรอบใหม่ยังรอผู้ประสานยืนยัน; ห้ามอัปเดต checklist นี้จากผลที่ยังไม่ยืนยัน
+Final source-freeze gates และ local merge ให้ยึดสถานะล่าสุดใน HANDOFF; browser download ข้างบนไม่ยืนยัน annual data rollout หรือ live PostgreSQL
 
 ## ประวัติแผน M1–M6 (snapshot 25 ตุลาคม 2569)
 

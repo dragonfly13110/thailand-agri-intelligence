@@ -8,6 +8,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   API_BASE_PATH,
   API_CONTRACT_ID,
@@ -56,6 +58,16 @@ const EXPECTED_ENDPOINT_IDS = [
 
 function placeholders(path: string): string[] {
   return [...path.matchAll(/\{([^{}]+)\}/g)].map((match) => match[1]);
+}
+
+/** Maps a documented API path to the App Router module that serves it. */
+function routeFileFor(path: string): string {
+  const base = fileURLToPath(new URL('../app/api/v1/', import.meta.url));
+  const relative = path.slice(API_BASE_PATH.length).replace(/^\/+|\/+$/g, '');
+  const segments = (relative ? relative.split('/') : []).map((segment) =>
+    /^\{[^{}]+\}$/.test(segment) ? '[' + segment.slice(1, -1) + ']' : segment,
+  );
+  return base + [...segments, 'route.ts'].join('/');
 }
 
 test('api catalog: version and contract constants match the v1 schema', () => {
@@ -223,6 +235,13 @@ test('api catalog: pagination bounds follow the shared parsePage contract', () =
   }
 });
 
+test('api catalog: every documented path is served by an existing route module', () => {
+  for (const endpoint of API_ENDPOINTS) {
+    const file = routeFileFor(endpoint.path);
+    assert.ok(existsSync(file), `${endpoint.id}: ${endpoint.path} has no route at ${file}`);
+  }
+});
+
 test('api catalog: monthly rainfall documents the route filters and station grain', () => {
   const endpoint = API_ENDPOINTS.find((item) => item.id === 'weather-monthly-rainfall');
   assert.ok(endpoint);
@@ -245,6 +264,19 @@ test('api catalog: CSV export documents its required resource, row limit, and pr
   assert.equal(endpoint.query?.find((param) => param.name === 'resourceId')?.required, true);
   assert.ok(endpoint.notes?.some((note) => note.includes('1,000 แถว')));
   assert.ok(endpoint.notes?.some((note) => note.includes('datasetVersion')));
+});
+
+test('api catalog: water reservoirs documents the hub-v1 envelope and filters the route serves', () => {
+  const endpoint = API_ENDPOINTS.find((item) => item.id === 'water-reservoirs');
+  assert.ok(endpoint);
+  assert.equal(endpoint.path, '/api/v1/water/reservoirs');
+  assert.equal(endpoint.contract, 'hub-v1');
+  assert.equal(endpoint.access, 'approved_public');
+  assert.equal(endpoint.responseType, 'ApiResponse<WaterPayload>');
+  assert.deepEqual(endpoint.query?.map((param) => param.name), ['date', 'page', 'pageSize']);
+  assert.equal(endpoint.query?.find((param) => param.name === 'date')?.type, 'date');
+  assert.ok(endpoint.notes?.some((note) => note.includes('reservoir × report_date')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('metadata_only') && note.includes('summary: null')));
 });
 
 test('api catalog: beef cattle documents source-year grain and unverified dates and license', () => {

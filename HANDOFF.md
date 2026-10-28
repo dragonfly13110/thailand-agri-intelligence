@@ -1,3 +1,10 @@
+## ตรวจรับ AI 1–3 ก่อนรวม main — 28 ต.ค. 2026 (ผ่าน local merge gate)
+
+- แก้ location dedupe, claim exception recovery, own-token reconciliation หลัง commit+HTTP500→retry200 และ readback cleanup ครบแล้ว. ผู้คุมเพิ่ม 5 regressions พิสูจน์ fail ก่อน/pass หลัง. AI 3 พบ DLD test ใช้เวลาซ้ำใน Windows; ผู้คุมแก้เฉพาะเทสต์ให้ retrieved_at เรียงกัน: 14 tests ผ่าน 20 รอบ และ full Python 836 ผ่าน 32.341s. AI 1–2 หยุดแล้ว; source freeze 510 files อัปเดตเฉพาะ DLD test เวลา 16:48 UTC; AI 3 ตรวจอิสระ full Python 836 ผ่าน 25.398s พร้อม web315/typecheck/build และยืนยัน manifest 510/510: local merge GO
+- ผู้คุมแก้ CPD/OAE tests: normalize fixture line endings และควบคุม retrieved_at ใน tests; เพิ่ม LF/CRLF exact-hash/null/tamper regression. ผ่าน 61 tests ทวน 20 รอบ; ไม่เปลี่ยน production guards. Helper แก้ PostgreSQL/D1 partial metadata และเพิ่ม selected-resource regressions
+- ผู้คุมรัน web 315/315, typecheck และ build:vinext ผ่านหลัง AI 2 หยุดแก้; build มี sourcemap/dynamic-import warnings. Browser รอบสุดท้ายมี golden/empty/invalid และ typed approved-but-empty regression; ผู้คุมตรวจ completed download GUID/ไฟล์จริง 5,209 bytes, BOM, 34 columns, 3 partial rows, provenance ครบ. Python final 836 ผ่านหลัง retry/readback follow-up. Offline CLI `--db :memory:` build/verify ผ่าน (0 observations)
+- ผ่านตรวจและอนุมัติ commit งานแก้/merge เข้า local main ตามคำสั่งเจ้าของงาน; ยังไม่ push/deploy หรือเขียน D1 รอบนี้. D1 probe ยังขาด schema effects ของ 0004–0006/annual rows; DLD unavailable และ trade/price-trend empty เป็นข้อจำกัด production rollout แยกจาก local merge
+
 ## เตรียมงาน AI 1–3 — 28 ต.ค. 2026 (ผู้คุมงาน: Qoder)
 
 - สร้าง [ใบสั่งงาน AI 1–3](docs/assignments/2026-10-28-ai-1-3-location-web-qa.md): AI 1 แก้ location dedupe (Python), AI 2 พิสูจน์ API catalog/playground/CSV/mobile UX, AI 3 ตรวจรวมแบบอิสระหลัง AI 1–2 เสร็จ; รายงานของแต่ละตัวอยู่ใน `docs/assignments/location-web-qa-2026-10-28/`

@@ -115,6 +115,17 @@ def review_timestamp_now():
 
 class OaeTradeD1AdapterTests(unittest.TestCase):
     def setUp(self):
+        self.retrieved_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+        def fetch_with_ordered_time(*, opener=None):
+            self.retrieved_at += timedelta(milliseconds=1)
+            return replace(fetch_oae_trade_snapshot(opener=opener), retrieved_at=self.retrieved_at)
+
+        fetch_patch = patch(
+            "tadih.ingest_oae_trade_d1.fetch_oae_trade_snapshot", side_effect=fetch_with_ordered_time,
+        )
+        fetch_patch.start()
+        self.addCleanup(fetch_patch.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.registry_path = Path(self.temp.name) / "resources.json"
         self.registry_path.write_text(json.dumps({

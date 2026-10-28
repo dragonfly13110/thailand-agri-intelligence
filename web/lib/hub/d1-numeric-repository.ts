@@ -278,7 +278,9 @@ async function observationStats(where: string, values: unknown[]) {
   const rows = await queryD1<Row>(
     'SELECT count(*) AS total,max(o.period_end) AS dataAsOf,max(r.source_updated_at) AS sourceUpdatedAt,' +
       'max(run.source_retrieved_at) AS sourceRetrievedAt,' +
-      'CASE WHEN count(DISTINCT run.run_id)=1 THEN max(coalesce(run.payload_sha256,run.run_id)) ELSE NULL END AS datasetVersion ' +
+      'CASE WHEN count(DISTINCT run.run_id)=1 THEN max(coalesce(run.payload_sha256,run.run_id)) ELSE NULL END AS datasetVersion,' +
+      "CASE WHEN max(CASE WHEN run.status='partial' THEN 1 ELSE 0 END)=1 THEN 'partial' " +
+      "WHEN count(*)>0 THEN 'succeeded' ELSE NULL END AS numericStatus " +
       observationFrom + 'WHERE ' + where,
     values
   );
@@ -286,17 +288,18 @@ async function observationStats(where: string, values: unknown[]) {
 }
 
 function numericMeta(info: DatasetInfo, stats: Row, hasRows: boolean): Partial<ApiMeta> {
+  const numericStatus = text(stats.numericStatus) ?? info.numericStatus;
   return {
     availability: hasRows ? 'ready' : info.hasNumeric ? 'empty' : 'metadata_only',
     freshness: freshness(text(stats.sourceUpdatedAt), info.freshnessDays),
-    completeness: info.numericStatus ? completeness(info.numericStatus) : 'unknown',
+    completeness: numericStatus ? completeness(numericStatus) : 'unknown',
     access: info.hasNumeric ? 'approved_public' : 'metadata_only',
     sourceIds: [info.sourceId],
     dataAsOf: text(stats.dataAsOf),
     sourceUpdatedAt: text(stats.sourceUpdatedAt),
     sourceRetrievedAt: text(stats.sourceRetrievedAt),
     datasetVersion: text(stats.datasetVersion),
-    warnings: info.numericStatus === 'partial'
+    warnings: numericStatus === 'partial'
       ? ['ชุดนี้มีข้อมูลตัวอย่างบางส่วน ยังไม่ครอบคลุมข้อมูลทั้งหมดของทรัพยากร']
       : info.hasNumeric ? [] : ['ชุดข้อมูลนี้มีเฉพาะ metadata ที่ค้นพบ ยังไม่มีตัวเลขที่อนุมัติให้เผยแพร่'],
     runtimeMode: 'database',

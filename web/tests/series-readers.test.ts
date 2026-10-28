@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { registerHooks, stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 import { decodeSeriesId, encodeSeriesId } from '../lib/hub/series-id.ts';
+import { postgresSemanticDimensionsExpression } from '../lib/hub/series-sql.ts';
 
 type QueryCall = { sql: string; values: unknown[] };
 type D1QueryCall = { sql: string; values: SQLInputValue[] };
@@ -26,7 +27,37 @@ const pgCalls: QueryCall[] = [];
 (globalThis as Record<string, unknown>).__seriesPgHandler = async (sql: string, values: unknown[] = []) => {
   pgCalls.push({ sql, values });
   if (sql.includes('FROM hub.datasets d JOIN hub.sources s')) {
-    return [{ sourceId: 'source-1', freshnessDays: 30, hasNumeric: true }];
+    if ((globalThis as Record<string, unknown>).__seriesPgStatusFixture) {
+      return sqlite.prepare(sql.replace(/hub\./g, '').replace(/\$(\d+)/g, '?$1')).all(...values as SQLInputValue[])
+        .map(row => ({ ...row, hasNumeric: row.hasNumeric === 1, hasPartial: row.hasPartial === 1 }));
+    }
+    return [{ sourceId: 'source-1', freshnessDays: 30, hasNumeric: true, hasPartial: false }];
+  }
+  if (sql.includes('sourceIds') && (globalThis as Record<string, unknown>).__seriesPgStatusFixture) {
+    const statusExpression = sql.match(/CASE WHEN max\(CASE WHEN run.status='partial'[\s\S]*?END AS "numericStatus"/);
+    assert.ok(statusExpression, 'Postgres stats must aggregate the selected run statuses, including zero rows');
+    const from = sql.slice(sql.indexOf(' FROM hub.observations o '))
+      .replaceAll(postgresSemanticDimensionsExpression(), 'json(o.dimensions)')
+      .replace(/hub\./g, '').replace(/\$(\d+)/g, '?$1').replace(/::(?:date|jsonb)/g, '')
+      .replace(/IS NOT DISTINCT FROM/g, 'IS');
+    const stats = sqlite.prepare('SELECT count(*) AS total,' + statusExpression[0] + from).get(...values as SQLInputValue[]);
+    const rows = sqlite.prepare('SELECT o.row_key AS rowKey,r.resource_id AS resourceId,o.series_key AS seriesKey,' +
+      'r.grain AS sourceGrain,o.period_start AS periodStart,o.period_end AS periodEnd,o.product,o.unit,' +
+      'o.metric_id AS metricId,o.metric_name AS metricName,o.value,o.dimensions,1 AS identityCount,1 AS observationCount' + from)
+      .all(...values as SQLInputValue[]);
+    (globalThis as Record<string, unknown>).__seriesPgRecordRows = rows;
+    (globalThis as Record<string, unknown>).__seriesPgRows = rows;
+    return [{ ...stats, sourceIds: ['source-1'], freshnessDays: 30 }];
+  }
+  if ((globalThis as Record<string, unknown>).__seriesPgStatusFixture &&
+    (sql.includes('SELECT s.source_id AS "sourceId"') || sql.includes('legacy_series') ||
+      sql.startsWith('SELECT r.resource_id AS "resourceId"') || sql.startsWith('SELECT o.row_key AS "rowKey"') ||
+      sql.startsWith('WITH scoped_rows AS'))) {
+    if (sql.includes('SELECT s.source_id AS "sourceId"')) assert.ok(sql.includes('run.status AS "numericStatus"'));
+    const translated = sql.replaceAll(postgresSemanticDimensionsExpression(), 'json(o.dimensions)')
+      .replace(/hub\./g, '').replace(/\$(\d+)/g, '?$1').replace(/::(?:double precision|jsonb|text|date)/g, '')
+      .replace(/IS NOT DISTINCT FROM/g, 'IS').replace(/COLLATE "C"/g, 'COLLATE BINARY');
+    return sqlite.prepare(translated).all(...values as SQLInputValue[]);
   }
   if (sql.includes('numeric_safety') && sql.includes('numericTokenOverflowCount')) {
     const audit = (globalThis as Record<string, unknown>).__seriesPgAudit as { overflowCount: number; tokens: string[] };
@@ -36,7 +67,14 @@ const pgCalls: QueryCall[] = [];
   }
   if (sql.includes('SELECT count(*)::text AS total FROM identified_series WHERE product=')) return [{ total: '1' }];
   if (sql.includes('SELECT count(*)::text AS total FROM identified_series')) return [{ total: '6' }];
-  if (sql.includes('count(*) OVER')) return (globalThis as Record<string, unknown>).__seriesPgRows;
+  if (sql.includes('count(*) OVER')) {
+    const rows = (globalThis as Record<string, unknown>).__seriesPgRows as Row[];
+    if ((globalThis as Record<string, unknown>).__seriesPgStatusFixture) {
+      const offset = Number(values.at(-1) ?? 0);
+      return rows.slice(offset, offset + Number(values.at(-2) ?? rows.length));
+    }
+    return rows;
+  }
   if (sql.startsWith('WITH scoped_rows AS')) {
     const rows = [...(globalThis as Record<string, unknown>).__seriesPgRecordRows as Row[]];
     rows.sort((left, right) => {
@@ -743,3 +781,143 @@ test('Postgres uses the same identity dimensions and null-safe, bound v2 lookup 
   ));
   assert.equal(safeDecimalPgResponse.status, 200, 'safe coordinate decimals remain valid in the Postgres audit');
 });
+
+for (const [backend, records, series, observations] of [
+  ['D1', listD1Records, listD1Series, listD1SeriesObservations],
+  ['Postgres stub', listDbRecords, listDbSeries, listDbSeriesObservations],
+] as const) {
+  test(`${backend} reports completeness from selected public numeric runs`, async t => {
+    const prefix = backend === 'D1' ? 'd1-status' : 'pg-status';
+    const partialDataset = prefix + '-partial';
+    const mixedDataset = prefix + '-mixed';
+    const gatedDataset = prefix + '-gated';
+    const partialResource = prefix + '-partial-resource';
+    const succeededResource = prefix + '-succeeded-resource';
+    const mixedPartialResource = prefix + '-mixed-partial-resource';
+    const insertDataset = sqlite.prepare('INSERT INTO datasets VALUES (?,\'source-1\',\'approved_public\')');
+    for (const id of [partialDataset, mixedDataset, gatedDataset]) insertDataset.run(id);
+    const resourceFixtures: Array<[string, string, string, number, string, string]> = [
+      [partialResource, partialDataset, 'approved_public', 1, 'numeric', 'partial'],
+      [succeededResource, mixedDataset, 'approved_public', 1, 'numeric', 'succeeded'],
+      [mixedPartialResource, mixedDataset, 'approved_public', 1, 'numeric', 'partial'],
+    ];
+    for (const id of [partialDataset, mixedDataset, gatedDataset]) {
+      for (const [label, access, approved, kind, status] of [
+        ['private', 'private', 1, 'numeric', 'partial'],
+        ['unapproved', 'approved_public', 0, 'numeric', 'partial'],
+        ['catalog-succeeded', 'approved_public', 1, 'catalog', 'succeeded'],
+        ['catalog-partial', 'approved_public', 1, 'catalog', 'partial'],
+        ['failed', 'approved_public', 1, 'numeric', 'failed'],
+      ] as const) resourceFixtures.push([id + '-' + label, id, access, approved, kind, status]);
+    }
+    for (const [resourceId, id, access, approved, kind, status] of resourceFixtures) {
+      sqlite.prepare('INSERT INTO resources VALUES (?,?,?,?,?,?,?)')
+        .run(resourceId, id, resourceId + '-run', access, approved, 'daily', null);
+      sqlite.prepare('INSERT INTO sync_runs VALUES (?,?,?,?,?,?)')
+        .run(resourceId + '-run', resourceId, kind, status, null, resourceId + '-version');
+      sqlite.prepare('INSERT INTO observations (resource_id,run_id,row_key,series_key,period_start,period_end,' +
+        'product,metric_id,metric_name,unit,value,dimensions) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+        .run(resourceId, resourceId + '-run', resourceId + '-row', 'status-series', '2026-01-01', '2026-01-01',
+          status === 'partial' ? 'Partial' : 'Succeeded', 'count', 'Count', 'kg', 1, '{}');
+    }
+    const globals = globalThis as Record<string, unknown>;
+    globals.__seriesPgStatusFixture = backend === 'Postgres stub';
+    globals.__seriesPgAudit = { overflowCount: 0, tokens: [] };
+    type Result = { data: Row[]; meta: { availability: string; completeness: string; access: string; warnings: string[] };
+      pagination: { total: number } };
+    const read = async (reader: typeof records, id: string, query: string, total: number) => {
+      globals.__seriesPgCountTotal = total;
+      return readJson<Result>(await reader(id, new URL('https://hub.test/read' + query)));
+    };
+    const check = (result: Result, availability: string, complete: string, access: string, total: number) => {
+      assert.equal(result.meta.availability, availability);
+      assert.equal(result.meta.completeness, complete);
+      assert.equal(result.meta.access, access);
+      assert.equal(result.pagination.total, total);
+      if (complete === 'partial') {
+        assert.deepEqual(result.meta.warnings, ['ชุดนี้มีข้อมูลตัวอย่างบางส่วน ยังไม่ครอบคลุมข้อมูลทั้งหมดของทรัพยากร']);
+      } else if (access === 'approved_public') assert.deepEqual(result.meta.warnings, []);
+      else assert.ok(result.meta.warnings.length > 0);
+    };
+    try {
+      await t.test('partial-only dataset is ready, partial, approved public, with a warning', async () => {
+        for (const reader of [records, series]) {
+          const result = await read(reader, partialDataset, '', 1);
+          check(result, 'ready', 'partial', 'approved_public', 1);
+          assert.equal(result.data.length, 1);
+        }
+        const result = await read(observations, partialResource + '|status-series', '', 1);
+        check(result, 'ready', 'partial', 'approved_public', 1);
+        assert.equal(result.data.length, 1);
+      });
+      await t.test('mixed runs retain partial status only when partial rows are selected', async () => {
+        for (const reader of [records, series]) {
+          check(await read(reader, mixedDataset, '', 2), 'ready', 'partial', 'approved_public', 2);
+          check(await read(reader, mixedDataset, '?resourceId=' + mixedPartialResource, 1),
+            'ready', 'partial', 'approved_public', 1);
+          check(await read(reader, mixedDataset, '?resourceId=' + succeededResource, 1),
+            'ready', 'complete', 'approved_public', 1);
+        }
+        check(await read(series, mixedDataset, '?product=Partial&metric=count', 1), 'ready', 'partial', 'approved_public', 1);
+        check(await read(series, mixedDataset, '?product=Succeeded&metric=Count', 1), 'ready', 'complete', 'approved_public', 1);
+        for (const [resourceId, complete] of [[mixedPartialResource, 'partial'], [succeededResource, 'complete']]) {
+          check(await read(observations, resourceId + '|status-series', '', 1), 'ready', complete, 'approved_public', 1);
+        }
+      });
+      await t.test('private, unapproved, catalog and failed runs contribute no rows or numeric status', async () => {
+        for (const reader of [records, series]) {
+          const result = await read(reader, gatedDataset, '', 0);
+          check(result, 'metadata_only', 'unknown', 'metadata_only', 0);
+          assert.deepEqual(result.data, []);
+        }
+        for (const [resourceId, id] of resourceFixtures.filter(([, id]) => id === mixedDataset).slice(2)) {
+          for (const reader of [records, series]) {
+            const result = await read(reader, id, '?resourceId=' + resourceId, 0);
+            check(result, 'empty', 'partial', 'approved_public', 0);
+            assert.deepEqual(result.data, []);
+          }
+          await assert.rejects(() => observations(resourceId + '|status-series', new URL('https://hub.test/read')),
+            (error: unknown) => (error as { code?: string }).code === 'SERIES_NOT_FOUND');
+        }
+        sqlite.prepare('UPDATE sync_runs SET status=\'succeeded\' WHERE resource_id=?').run(mixedPartialResource);
+        for (const reader of [records, series]) {
+          check(await read(reader, mixedDataset, '', 2), 'ready', 'complete', 'approved_public', 2);
+          const result = await read(reader, mixedDataset, '?resourceId=missing', 0);
+          check(result, 'empty', 'complete', 'approved_public', 0);
+          assert.deepEqual(result.data, []);
+        }
+        sqlite.prepare('UPDATE sync_runs SET status=\'partial\' WHERE resource_id=?').run(mixedPartialResource);
+      });
+      await t.test('empty matches fall back to dataset status; empty series dates retain the resource status', async () => {
+        for (const reader of [records, series]) {
+          const query = reader === records ? '?from=2030-01-01' : '?product=Missing';
+          for (const id of [partialDataset, mixedDataset]) {
+            const result = await read(reader, id, query, 0);
+            check(result, 'empty', 'partial', 'approved_public', 0);
+            assert.deepEqual(result.data, []);
+          }
+          check(await read(reader, mixedDataset, '?resourceId=missing', 0), 'empty', 'partial', 'approved_public', 0);
+        }
+        for (const [resourceId, complete] of [[partialResource, 'partial'], [succeededResource, 'complete']]) {
+          const result = await read(observations, resourceId + '|status-series', '?from=2030-01-01', 0);
+          check(result, 'empty', complete, 'approved_public', 0);
+          assert.deepEqual(result.data, []);
+        }
+      });
+      await t.test('blank filters are unset and empty pages preserve the selected status', async () => {
+        check(await read(records, partialDataset, '?resourceId=&from=&to=&cropCode=&provinceCode=', 1),
+          'ready', 'partial', 'approved_public', 1);
+        check(await read(series, partialDataset, '?resourceId=&product=&metric=', 1),
+          'ready', 'partial', 'approved_public', 1);
+        for (const reader of [records, series]) {
+          const result = await read(reader, partialDataset, '?page=2&pageSize=1', 1);
+          check(result, 'ready', 'partial', 'approved_public', 1);
+          assert.deepEqual(result.data, []);
+        }
+      });
+    } finally {
+      globals.__seriesPgStatusFixture = false;
+      globals.__seriesPgCountTotal = null;
+    }
+  });
+}

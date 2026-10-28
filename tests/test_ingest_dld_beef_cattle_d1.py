@@ -9,7 +9,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
-from tadih.dld_livestock_cattle import RESOURCE_ID, RESOURCE_METADATA_URL, normalize_dld_beef_cattle
+from tadih.dld_livestock_cattle import (
+    RESOURCE_ID, RESOURCE_METADATA_URL, fetch_dld_beef_cattle, normalize_dld_beef_cattle,
+)
 from tadih.ingest_dld_beef_cattle_d1 import DldBeefCattleAdapterError, main as adapter_main, run
 from tadih.observations import ObservationWriteError, register_resource
 from tadih.cli import call_adapter
@@ -182,6 +184,18 @@ class DldBeefCattleAdapterTests(unittest.TestCase):
         client = SqliteD1Mock()
         source_rows = copy.deepcopy(SOURCE_ROWS)
         source_revision = "dld-resource-hash-v1"
+        retrieved_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+        def fetch_with_ordered_time(*, fetcher):
+            nonlocal retrieved_at
+            retrieved_at += timedelta(milliseconds=1)
+            return fetch_dld_beef_cattle(fetcher=fetcher, retrieved_at=retrieved_at.isoformat())
+
+        fetch_patch = patch(
+            "tadih.ingest_dld_beef_cattle_d1.fetch_dld_beef_cattle", side_effect=fetch_with_ordered_time,
+        )
+        fetch_patch.start()
+        self.addCleanup(fetch_patch.stop)
 
         def changing_fetcher(url):
             if url == RESOURCE_METADATA_URL:
