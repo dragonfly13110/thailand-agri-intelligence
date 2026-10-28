@@ -1,3 +1,10 @@
+## เตรียมงาน AI 1–3 — 28 ต.ค. 2026 (ผู้คุมงาน: Qoder)
+
+- สร้าง [ใบสั่งงาน AI 1–3](docs/assignments/2026-10-28-ai-1-3-location-web-qa.md): AI 1 แก้ location dedupe (Python), AI 2 พิสูจน์ API catalog/playground/CSV/mobile UX, AI 3 ตรวจรวมแบบอิสระหลัง AI 1–2 เสร็จ; รายงานของแต่ละตัวอยู่ใน `docs/assignments/location-web-qa-2026-10-28/`
+- แก้ประเด็นค้างของแผน: API catalog ในกิ่งนี้มี monthly-rainfall และ CSV export แล้ว จึงเปลี่ยนจาก "เพิ่มรายการ" เป็น "พิสูจน์ว่าใช้ได้จริง"
+- เพิ่มกฎการสื่อสารกับเจ้าของงานใน `AGENTS.md` และไฟล์ `CLAUDE.md`, `GEMINI.md`, `QODER.md`, `.cursorrules`, `.clinerules`, `.github/copilot-instructions.md`
+- รอบนี้แก้เฉพาะเอกสาร/ไฟล์กฎ ไม่แก้ application code ไม่รันเทสต์ ไม่เขียน D1 ไม่ commit/push/deploy; งานถัดไปคือรอรายงาน AI 1–3 แล้วตรวจ diff และรัน full suite ก่อนเสนอ merge
+
 ## จุดพักงาน 28 ต.ค. 2026
 
 - หยุดตามคำขอและเก็บงานบน branch พักงาน: การแก้ location identity conflict เพิ่งเพิ่ม ยังต้องให้ผู้ตรวจอิสระทดสอบซ้ำก่อน merge หรือใช้งานจริง

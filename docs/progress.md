@@ -1,3 +1,9 @@
+## เตรียมงาน AI 1–3 — 28 ต.ค. 2026
+
+- ผู้คุมงานออกใบสั่งงาน 3 lanes ที่ `docs/assignments/2026-10-28-ai-1-3-location-web-qa.md` (AI 1 location dedupe, AI 2 web/CSV/UX, AI 3 independent review) โดยแยก allowlist ไม่ให้แตะไฟล์ชนกัน
+- ตรวจพบว่า API catalog มี monthly-rainfall และ CSV export อยู่แล้วในกิ่งนี้ งานของ AI 2 จึงเป็นการพิสูจน์การใช้งานจริง ไม่ใช่สร้างใหม่
+- รอบนี้ไม่แก้ code ไม่รันเทสต์ ไม่เขียน D1 ไม่ commit/push/deploy; รอรายงานใน `docs/assignments/location-web-qa-2026-10-28/`
+
 ## จุดพักงาน 28 ต.ค. 2026
 
 - หยุดตามคำขอและเก็บงานบน branch พักงาน: การแก้ location identity conflict เพิ่งเพิ่ม ยังต้องให้ผู้ตรวจอิสระทดสอบซ้ำก่อน merge หรือใช้งานจริง
