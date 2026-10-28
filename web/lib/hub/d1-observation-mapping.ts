@@ -1,4 +1,5 @@
 import type { HubObservation } from './types';
+import { parseJsonDimensions, SeriesIdError } from './series-id.ts';
 
 type Row = Record<string, unknown>;
 
@@ -13,13 +14,12 @@ function number(value: unknown): number | null {
 }
 
 export function mapD1Observation(row: Row): HubObservation {
-  let rawDimensions = row.dimensions;
-  if (typeof rawDimensions === 'string') {
-    try { rawDimensions = JSON.parse(rawDimensions); } catch { rawDimensions = null; }
+  let dimensions: HubObservation['dimensions'] = {};
+  try {
+    dimensions = parseJsonDimensions(row.dimensions) as HubObservation['dimensions'];
+  } catch (error) {
+    if (error instanceof SeriesIdError && error.code === 'SERIES_NUMERIC_PRECISION') throw error;
   }
-  const dimensions = rawDimensions && typeof rawDimensions === 'object' && !Array.isArray(rawDimensions)
-    ? rawDimensions as HubObservation['dimensions']
-    : {};
   return {
     rowKey: String(row.rowKey),
     seriesId: String(row.seriesId),

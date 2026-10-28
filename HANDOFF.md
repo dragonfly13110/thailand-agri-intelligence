@@ -1,4 +1,68 @@
+## จุดพักงาน 28 ต.ค. 2026
+
+- หยุดตามคำขอและเก็บงานบน branch พักงาน: การแก้ location identity conflict เพิ่งเพิ่ม ยังต้องให้ผู้ตรวจอิสระทดสอบซ้ำก่อน merge หรือใช้งานจริง
+- หลังแก้ล่าสุด ชุด Python เฉพาะ observations/CPD/DLD/OAE ผ่าน 121 tests; ชุดใหญ่ 806 tests และเว็บ 296 tests, typecheck, build ผ่านก่อนแก้ล่าสุด ต้องรัน Python ชุดใหญ่อีกครั้งหลังตรวจแก้
+- ยังไม่ได้เขียน migrations หรือข้อมูลชุดใหม่ลง Cloudflare; เขียนได้เมื่อจำเป็นโดยประหยัดโควต้ารายวัน
+- ทำต่อ: ตรวจ SQLite repro กรณี location เดิมใช้ natural key เดียวกันแต่ location_id ต่าง, owner race, daily/monthly; จากนั้นรัน full suite และตรวจสถานะก่อนเผยแพร่
+
 # HANDOFF — Thailand Agricultural Data Hub
+
+## สถานะประสานงานล่าสุด · 28 ต.ค. 2569 · CPD/preflight ก่อนปิด location dedupe
+
+- **CPD:** targeted SQLite tests 15/15 ผ่าน; bounded source evidence มี 78 rows และ adapter สร้าง 234 observation rows ใน SQLite
+- **Shared writer preflight:** observations + OAE/DLD targeted tests 97/97 ผ่าน; malformed/partial SQLite schema ถูกปฏิเสธก่อน mutation
+- **Cloudflare:** probe อ่าน 54, เขียน 0. ผู้ใช้อนุญาตให้เขียน Cloudflare เมื่อจำเป็น โดยต้องประหยัด quota; รอบนี้ไม่มี production writes
+- **Production:** ยังไม่ได้ apply migrations หรือเขียนข้อมูล production ใน D1 และยังไม่ deploy
+- **Location calls:** กำลังลด location upsert ซ้ำ; ต้องทวน identity metadata, owner-token race และ daily/monthly regressions หลังหยุดแก้
+- **ค้าง:** Python/web ชุดใหญ่ยังรอรันหลังงาน location dedupe และ lane ที่กำลังแก้เสร็จ ห้ามถือผล targeted เป็นผล full suite
+- **รับต่อ:** หลัง owner แจ้งหยุด รันทดสอบชุดใหญ่ที่เกี่ยวข้อง ตรวจจำนวน location upserts กับ observation rows และยืนยันว่าไม่มี D1 writes โดยไม่จำเป็น
+
+## สถานะประสานงานล่าสุด · 28 ต.ค. 2569 · หลังตรวจรวม series patch
+
+- **ผลตรวจ working-tree:** Python full suite 776/776 ผ่าน โดยมี ResourceWarning จาก SQLite test แต่ไม่ทำให้ชุดทดสอบล้ม; web 295/295 ผ่าน; typecheck และ build:vinext ผ่าน ณ working-tree หลัง series patch
+- **DLD/OAE:** local writer, migration, API และ UI สร้างแล้ว; SQLite/mock QA ผ่าน. OAE อยู่ใน API catalog ที่ /api/v1/trade/oae?yearLabel=. รอบนี้ไม่มี Cloudflare D1 write หรือ deploy; SQLite/mock ไม่ใช่หลักฐานข้อมูลจริงใน D1
+- **OAE/CPD:** ป้ายปี OAE คงเป็นข้อความต้นทางและ source license ยัง unverified; CPD มี parser/fixture แบบ standalone แต่ยังไม่มี writer, API หรือ UI
+- **Series:** independent review ของ fix ผ่าน SQLite และ PostgreSQL stub; PostgreSQL/D1 live parity และ performance ยังไม่ยืนยัน
+- **UI/CSV:** viewport QA ของ price-trend และ OAE mock ผ่าน; browser file-download event ของ CSV ยังไม่ยืนยัน
+- **Cloudflare:** ผู้ใช้อนุญาตให้เขียนเมื่อจำเป็นและขอให้ประหยัด quota; รอบนี้ไม่มี writes. ยังไม่มี deploy, commit หรือ push
+- **QA artifacts:** .playwright-cli/console-2026-10-28T11-51-50-352Z.log และ .playwright-cli/page-2026-10-28T11-52-02-471Z.yml ยังเป็น untracked; cleanup ถูก policy block จึงคงไว้และห้ามลบ
+- **รับงานต่อ:** หากมี source changes เพิ่ม ให้รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck` และ `npm --prefix web run build:vinext`; ตรวจ PostgreSQL/D1 parity และ performance ใน runtime จริงเมื่อจำเป็น และยืนยัน browser download event. หากต้องเขียน Cloudflare ให้ทำเฉพาะขั้นที่จำเป็นและใช้ quota ให้น้อย; อย่าอ้าง SQLite/mock ว่าเป็นผล live หรือ production
+
+## บันทึกสถานะประสานงานก่อนตรวจ series รอบรวม · 28 ต.ค. 2569
+
+- **ผล Python ล่าสุดที่มีหลักฐาน:** full suite 776/776 ผ่าน ณ ก่อน patch series reader ล่าสุด; ตัวเลขนี้ไม่รวม patch series ที่กำลังแก้และต้องตรวจซ้ำหลัง owner หยุด
+- **OAE ส่งออก:** parser, shared storage writer/SQL migration, API route และ UI สร้างแล้ว; targeted SQLite และ browser fixture QA ผ่าน. ปีคงเป็น opaque source label และไม่สมมติวันที่หรือภูมิศาสตร์. ยังไม่มีข้อมูล OAE ใน Cloudflare D1 และยังไม่ deploy. API catalog ยังไม่มีรายการ OAE
+- **OAE/DLD source-year review:** แก้ manifest review แล้ว; independent SQLite targeted tests 108/108 ผ่าน รวม blocked→review→retry, stale identity และ interleaving. ผลนี้เป็น SQLite เท่านั้น ไม่ใช่การเขียน D1
+- **CPD สหกรณ์การเกษตร:** มี parser/fixture แบบ standalone; ยังไม่มี writer, API หรือ UI
+- **Series:** owner กำลังแก้ PostgreSQL precision parity และ records pagination; ตรวจซ้ำหลัง owner แจ้งหยุด โดยรวมทั้ง grain, ordering และ D1/PG parity
+- **Cloudflare:** ผู้ใช้กำหนดว่า “เขียนได้เมื่อจำเป็นแต่ประหยัด”; รอบตรวจนี้ไม่มี D1 writes และไม่มี deploy. SQLite และ browser fixtures ไม่ใช่หลักฐานว่ามีข้อมูลใน D1
+- **QA artifacts:** `.playwright-cli/console-2026-10-28T11-51-50-352Z.log` และ `.playwright-cli/page-2026-10-28T11-52-02-471Z.yml` ยังเป็น untracked; cleanup ถูก policy block จึงคงไฟล์ไว้และห้ามลองลบซ้ำ
+- **รับงานต่อ:** หลัง series owner หยุด ให้รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck` และ `npm --prefix web run build:vinext`; ตรวจ PG precision/records pagination ซ้ำและเพิ่ม OAE ใน API catalog ก่อนปิดงาน
+
+## บันทึกสถานะประสานงานก่อน OAE storage/API/UI และ series patch ล่าสุด · 28 ต.ค. 2569
+
+- **CPD สหกรณ์การเกษตร:** เพิ่ม parser/fixture เฉพาะ resource `44463650-5d2e-482b-9919-b1c5b8bc5c6b` จาก [catalog CPD](https://catalog-cpd.data.go.th/th/dataset/st_001_01). Live bounded read-only fetch ได้ 78 แถว; คงเกรนจังหวัด × สังกัดและสถานะต้นทาง 3 คอลัมน์ หน่วย “แห่ง”; resource name ให้ป้ายปี `2568` แต่ไม่ทราบว่าเป็นปีปฏิทินหรือปีงบประมาณ; 77 ป้ายจังหวัดเป็น diagnostic ไม่ใช่หลักฐาน coverage. Metadata ระบุ `Creative Commons Attributions` แต่ไม่มี canonical license URL/version และ resource-level license เป็น null. Parser tests 13/13 ผ่าน; ยังไม่มี D1 writer/API/UI สำหรับ CPD
+- **OAE การส่งออก:** parser tests 11/11 ผ่านสำหรับ resource ที่ตรึงไว้; grain คือสินค้า × ป้ายปีต้นทางสำหรับประเภท “การส่งออก”, หน่วย “ล้านบาท”. คงป้ายปีโดยไม่แปลงเป็นวันที่; แหล่งนี้ยังไม่มี storage writer หรือ API/UI
+- **DLD โคเนื้อ:** independent SQLite checks ของ annual writer ผ่าน; หน้า `/livestock` ผ่าน fixture QA. ยังไม่มีการเขียน D1 หรือยืนยันตัวเลขจาก D1/production
+- **API docs/CSV fixture QA:** แก้ mobile overflow ของ `/api-docs`; ตรวจ viewport 354/390 px และ desktop แล้วไม่พบ page overflow. CSV response จาก fixture ผ่าน แต่ browser download event ไม่ได้รับการยืนยัน จึงยังไม่รับรองไฟล์ที่ดาวน์โหลดผ่าน browser
+- **ผลรวมก่อน patch ล่าสุด:** Python 729/729 และ web 260/260 ผ่าน; typecheck และ `build:vinext` ผ่านก่อน lane series reader เริ่ม patch. ขณะนี้ series reader ยังอยู่ระหว่างแก้ ต้องรันซ้ำหลัง lane หยุด
+- **Cloudflare:** รอบนี้ไม่มี D1 writes และไม่มี deploy; คงข้อจำกัดประหยัด quota
+- **รับงานต่อ:** หลังแจ้งว่า series reader หยุดแก้ ให้รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck`, `npm --prefix web run build:vinext`. ตรวจ series grain/regressions และ browser CSV download อีกครั้งเมื่อ runtime พร้อม; ห้ามใช้ SQLite, fixture หรือ CSV response เป็นหลักฐานว่า D1 ถูกเขียนหรือ browser ดาวน์โหลดไฟล์สำเร็จ
+
+## บันทึกสถานะตรวจรอบก่อน OAE storage/API/UI และ series patch ล่าสุด · 28 ต.ค. 2569
+
+- **ผลตรวจที่รายงานรอบนี้:** Python 729/729 และ web 260/260 ผ่าน; web typecheck และ vinext build ผ่านก่อนเริ่มแก้ series reader. ต้องรัน typecheck/build และ web tests ซ้ำหลัง agent ปิดการแก้ series reader
+- **DLD beef cattle:** browser fixture ผ่าน; ยังตรวจ/แก้ CSV export และหน้า API บน mobile. DLD ยังไม่ได้เขียนข้อมูลเข้า Cloudflare D1 และยังไม่ deploy
+- **OAE:** parser tests ผ่าน 11 tests; ยังไม่มี storage writer หรือ API
+- **ค้างด้านความถูกต้อง:** series reader เดิมปนสินค้า/ตลาด/จังหวัดใน series เดียว; agent กำลังแก้ ต้องยืนยันการแยก grain ก่อนรับงาน
+- **Cloudflare:** ผู้ใช้กำหนดว่า “เขียนได้เมื่อจำเป็นแต่ประหยัด”; รอบที่บันทึกนี้ไม่มี D1 writes และไม่มี deploy. SQLite/mock/fixture ไม่ใช่หลักฐานการเขียน D1 จริง
+- **รับงานต่อ:** หลัง owner แจ้งว่า series reader หยุดแก้ ให้รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck` และ `npm --prefix web run build:vinext`; จากนั้นตรวจ CSV และหน้า DLD ที่ mobile พร้อมคงสถานะ D1 ว่ายังไม่เขียน/ไม่ deploy
+
+## ตรวจสถานะโครงการ — 28 ตุลาคม 2569 เวลา 09:28 น. ICT
+
+- ตรวจ `main` ที่ `6a54c2b`: web tests 248/248 ผ่าน; Python discover 680 tests มี failures 3/errors 11/skipped 1 โดยพบ input local และตาราง DuckDB ที่ขาด; GitHub Actions run 40482482461 ล้มใน Python tests และไม่มี web job
+- Catalog sync run 40598609522 ล้มเพราะ Actions ไม่มี `CF_D1_TOKEN` หรือ `TADIH_SYNC_DATABASE_URL`; API catalog ยังไม่ระบุฝนรายเดือนและ CSV export. บันทึกเดิมระบุว่ายังต้องตรวจหน้าจอและ CSV กับ D1 จริง รวมถึงเอกสารสถานะที่ล้าสมัย
+- ลอง `npm --prefix web run lint` แต่หยุดหลังรอนานโดยยังไม่มีผล; ไม่ได้วัดความเร็วเว็บหรือทดสอบ production. รับต่อ: แก้ fixtures/CI, ตั้งค่า secret ใน GitHub อย่างปลอดภัย, ตรวจ live flows แล้ววัด performance ก่อนปรับแต่ง
 
 ## รวมและตรวจงาน AI 1–7 — 27 ตุลาคม 2569 เวลา 16:38 น. ICT
 

@@ -7,8 +7,8 @@ name: Sync Hub numeric observations
 # numeric sync scripts once per day, one source per job: the four lane writers
 # (R1-C..R1-F) plus the already-landed CHIRPS writer.
 #
-# Schedule (UTC). The slots are 6 minutes apart so the upstream APIs and the
-# D1 writes never land in the same minute:
+# Schedule (UTC). The slots are 6 minutes apart; a shared D1 writer queue below
+# serializes them even when a sync runs longer than its slot:
 #   03:03  rid         -> scripts/sync_rid_to_d1.py
 #   03:09  tmd         -> scripts/sync_tmd_to_d1.py
 #   03:15  open_meteo  -> scripts/sync_open_meteo_to_d1.py
@@ -75,12 +75,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  # One group per cron slot so the slot sources never queue behind each other;
-  # manual dispatch runs share a group and are serialised instead of overlapping.
-  group: hub-numeric-${{ github.event.schedule || 'manual' }}
-  cancel-in-progress: false
-
+# Each writer job shares the `hub-d1-writes` queue with the catalog workflow.
+# This keeps concurrent sync runs from writing D1 at the same time.
 jobs:
   resolve-slot:
     name: Resolve the numeric sync slot
@@ -123,26 +119,8 @@ jobs:
               '21 3 * * *') gistda=true ;;
               '27 3 * * *') chirps=true ;;
               *)
-                # Fallback: the schedule payload did not identify the slot.
-                # Match the narrow UTC window of each slot instead; if even that
-                # misses (a heavily delayed cron), publish every source so the
-                # warehouse cannot go stale.
-                now=$(( 10#$(date -u +%H) * 60 + 10#$(date -u +%M) ))
-                case "${now}" in
-                  180|181|182|183|184|185|186) rid=true ;;
-                  187|188|189|190|191|192) tmd=true ;;
-                  193|194|195|196|197|198) open_meteo=true ;;
-                  199|200|201|202|203|204) gistda=true ;;
-                  205|206|207|208|209) chirps=true ;;
-                  *)
-                    rid=true
-                    tmd=true
-                    open_meteo=true
-                    gistda=true
-                    chirps=true
-                    echo "::warning::Could not resolve the numeric sync slot from the schedule payload; running every source."
-                    ;;
-                esac
+                echo "::error::Could not resolve the numeric sync slot; refusing to run any source."
+                exit 1
                 ;;
             esac
           fi
@@ -161,13 +139,14 @@ jobs:
           OPEN_METEO: ${{ steps.resolve.outputs.open_meteo }}
           GISTDA: ${{ steps.resolve.outputs.gistda }}
           CHIRPS: ${{ steps.resolve.outputs.chirps }}
+          REQUESTED_BATCH_DATE: ${{ inputs.date || 'script default' }}
         run: |
           {
             echo "### Numeric sync slot"
             echo ""
             echo "- event: \`${{ github.event_name }}\`"
             echo "- cron: \`${{ github.event.schedule || 'n/a' }}\`"
-            echo "- requested batch date: \`${{ inputs.date || 'script default' }}\`"
+            printf '%s\n' "- requested batch date: \`${REQUESTED_BATCH_DATE}\`"
             echo "- sources in this run: \`rid=${RID} tmd=${TMD} open_meteo=${OPEN_METEO} gistda=${GISTDA} chirps=${CHIRPS}\`"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
@@ -176,24 +155,27 @@ jobs:
     name: Sync RID reservoirs (numeric)
     needs: resolve-slot
     if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.rid == 'true'
+    concurrency:
+      group: hub-d1-writes
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
       run:
         working-directory: ${{ github.workspace }}
-    env:
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
-      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
     steps:
       - name: Check the Cloudflare D1 credentials
         shell: bash
+        env:
+          CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
+          CF_ACCOUNT_ID_SET: ${{ secrets.CF_ACCOUNT_ID != '' }}
+          CF_D1_DATABASE_ID_SET: ${{ secrets.CF_D1_DATABASE_ID != '' }}
         run: |
-          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+          if [[ "${CF_D1_TOKEN_SET}" != "true" ]]; then
             echo "::error::Repository secret CF_D1_TOKEN is not configured; the RID numeric sync cannot publish to D1."
             exit 1
           fi
-          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+          if [[ "${CF_ACCOUNT_ID_SET}" != "true" || "${CF_D1_DATABASE_ID_SET}" != "true" ]]; then
             echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
           fi
       - uses: actions/checkout@v4
@@ -225,6 +207,9 @@ jobs:
         env:
           SYNC_DATE: ${{ inputs.date }}
           SYNC_SCRIPT: scripts/sync_rid_to_d1.py
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
@@ -338,30 +323,34 @@ jobs:
     name: Sync TMD observations (numeric)
     needs: resolve-slot
     if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.tmd == 'true'
+    concurrency:
+      group: hub-d1-writes
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
       run:
         working-directory: ${{ github.workspace }}
-    env:
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
-      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
-      TMD_API_UID: ${{ secrets.TMD_API_UID }}
-      TMD_API_UKEY: ${{ secrets.TMD_API_UKEY }}
     steps:
       - name: Check the Cloudflare D1 credentials
         shell: bash
+        env:
+          CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
+          CF_ACCOUNT_ID_SET: ${{ secrets.CF_ACCOUNT_ID != '' }}
+          CF_D1_DATABASE_ID_SET: ${{ secrets.CF_D1_DATABASE_ID != '' }}
+          TMD_API_UID_SET: ${{ secrets.TMD_API_UID != '' }}
+          TMD_API_UKEY_SET: ${{ secrets.TMD_API_UKEY != '' }}
         run: |
-          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+          if [[ "${CF_D1_TOKEN_SET}" != "true" ]]; then
             echo "::error::Repository secret CF_D1_TOKEN is not configured; the TMD numeric sync cannot publish to D1."
             exit 1
           fi
-          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+          if [[ "${CF_ACCOUNT_ID_SET}" != "true" || "${CF_D1_DATABASE_ID_SET}" != "true" ]]; then
             echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
           fi
-          if [[ -z "${TMD_API_UID:-}" || -z "${TMD_API_UKEY:-}" ]]; then
-            echo "::warning::TMD_API_UID / TMD_API_UKEY are not configured as repository secrets; the TMD API call may be rejected upstream."
+          if [[ "${TMD_API_UID_SET}" != "true" || "${TMD_API_UKEY_SET}" != "true" ]]; then
+            echo "::error::TMD_API_UID / TMD_API_UKEY are required for the TMD numeric sync."
+            exit 1
           fi
       - uses: actions/checkout@v4
         with:
@@ -392,6 +381,11 @@ jobs:
         env:
           SYNC_DATE: ${{ inputs.date }}
           SYNC_SCRIPT: scripts/sync_tmd_to_d1.py
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+          TMD_API_UID: ${{ secrets.TMD_API_UID }}
+          TMD_API_UKEY: ${{ secrets.TMD_API_UKEY }}
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
@@ -505,24 +499,27 @@ jobs:
     name: Sync Open-Meteo observations (numeric)
     needs: resolve-slot
     if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.open_meteo == 'true'
+    concurrency:
+      group: hub-d1-writes
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
       run:
         working-directory: ${{ github.workspace }}
-    env:
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
-      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
     steps:
       - name: Check the Cloudflare D1 credentials
         shell: bash
+        env:
+          CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
+          CF_ACCOUNT_ID_SET: ${{ secrets.CF_ACCOUNT_ID != '' }}
+          CF_D1_DATABASE_ID_SET: ${{ secrets.CF_D1_DATABASE_ID != '' }}
         run: |
-          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+          if [[ "${CF_D1_TOKEN_SET}" != "true" ]]; then
             echo "::error::Repository secret CF_D1_TOKEN is not configured; the Open-Meteo numeric sync cannot publish to D1."
             exit 1
           fi
-          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+          if [[ "${CF_ACCOUNT_ID_SET}" != "true" || "${CF_D1_DATABASE_ID_SET}" != "true" ]]; then
             echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
           fi
       - uses: actions/checkout@v4
@@ -554,6 +551,9 @@ jobs:
         env:
           SYNC_DATE: ${{ inputs.date }}
           SYNC_SCRIPT: scripts/sync_open_meteo_to_d1.py
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
@@ -667,24 +667,27 @@ jobs:
     name: Sync CHIRPS numeric observations (existing writer)
     needs: resolve-slot
     if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.chirps == 'true'
+    concurrency:
+      group: hub-d1-writes
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
       run:
         working-directory: ${{ github.workspace }}
-    env:
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
-      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
     steps:
       - name: Check the Cloudflare D1 credentials
         shell: bash
+        env:
+          CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
+          CF_ACCOUNT_ID_SET: ${{ secrets.CF_ACCOUNT_ID != '' }}
+          CF_D1_DATABASE_ID_SET: ${{ secrets.CF_D1_DATABASE_ID != '' }}
         run: |
-          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+          if [[ "${CF_D1_TOKEN_SET}" != "true" ]]; then
             echo "::error::Repository secret CF_D1_TOKEN is not configured; the CHIRPS numeric sync cannot publish to D1."
             exit 1
           fi
-          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+          if [[ "${CF_ACCOUNT_ID_SET}" != "true" || "${CF_D1_DATABASE_ID_SET}" != "true" ]]; then
             echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
           fi
       - uses: actions/checkout@v4
@@ -709,6 +712,9 @@ jobs:
         env:
           SYNC_DATE: ${{ inputs.date }}
           SYNC_SCRIPT: scripts/sync_hub_numeric.py
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then
@@ -823,29 +829,33 @@ jobs:
     name: Sync GISTDA observations (numeric)
     needs: resolve-slot
     if: github.ref == 'refs/heads/main' && needs.resolve-slot.outputs.gistda == 'true'
+    concurrency:
+      group: hub-d1-writes
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
       run:
         working-directory: ${{ github.workspace }}
-    env:
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
-      CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
-      GISTDA_API_KEY: ${{ secrets.GISTDA_API_KEY }}
     steps:
       - name: Check the Cloudflare D1 credentials
         shell: bash
+        env:
+          CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
+          CF_ACCOUNT_ID_SET: ${{ secrets.CF_ACCOUNT_ID != '' }}
+          CF_D1_DATABASE_ID_SET: ${{ secrets.CF_D1_DATABASE_ID != '' }}
+          GISTDA_API_KEY_SET: ${{ secrets.GISTDA_API_KEY != '' }}
         run: |
-          if [[ -z "${CF_D1_TOKEN:-}" ]]; then
+          if [[ "${CF_D1_TOKEN_SET}" != "true" ]]; then
             echo "::error::Repository secret CF_D1_TOKEN is not configured; the GISTDA numeric sync cannot publish to D1."
             exit 1
           fi
-          if [[ -z "${CF_ACCOUNT_ID:-}" || -z "${CF_D1_DATABASE_ID:-}" ]]; then
+          if [[ "${CF_ACCOUNT_ID_SET}" != "true" || "${CF_D1_DATABASE_ID_SET}" != "true" ]]; then
             echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py."
           fi
-          if [[ -z "${GISTDA_API_KEY:-}" ]]; then
-            echo "::warning::GISTDA_API_KEY is not configured as a repository secret; the GISTDA API call may be rejected upstream."
+          if [[ "${GISTDA_API_KEY_SET}" != "true" ]]; then
+            echo "::error::GISTDA_API_KEY is required for the GISTDA numeric sync."
+            exit 1
           fi
       - uses: actions/checkout@v4
         with:
@@ -876,6 +886,10 @@ jobs:
         env:
           SYNC_DATE: ${{ inputs.date }}
           SYNC_SCRIPT: scripts/sync_gistda_to_d1.py
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
+          GISTDA_API_KEY: ${{ secrets.GISTDA_API_KEY }}
         run: |
           set -uo pipefail
           if [[ ! -f "${SYNC_SCRIPT}" ]]; then

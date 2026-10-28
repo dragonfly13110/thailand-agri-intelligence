@@ -9,8 +9,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: hub-catalog-sync
-  cancel-in-progress: false
+  # Shared with numeric writer jobs; preserve queued syncs instead of replacing them.
+  group: hub-d1-writes
+  queue: max
 
 jobs:
   sync:
@@ -22,12 +23,12 @@ jobs:
         id: config
         shell: bash
         env:
-          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
-          TADIH_SYNC_DATABASE_URL: ${{ secrets.TADIH_SYNC_DATABASE_URL }}
+          CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
+          TADIH_SYNC_DATABASE_URL_SET: ${{ secrets.TADIH_SYNC_DATABASE_URL != '' }}
         run: |
-          if [[ -n "$CF_D1_TOKEN" || -n "$TADIH_SYNC_DATABASE_URL" ]]; then
+          if [[ "$CF_D1_TOKEN_SET" == "true" || "$TADIH_SYNC_DATABASE_URL_SET" == "true" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
-            if [[ -n "$CF_D1_TOKEN" ]]; then
+            if [[ "$CF_D1_TOKEN_SET" == "true" ]]; then
               echo "sink=d1" >> "$GITHUB_OUTPUT"
             else
               echo "sink=postgresql" >> "$GITHUB_OUTPUT"
@@ -62,8 +63,8 @@ jobs:
       - name: Sync source catalogs
         if: steps.config.outputs.enabled == 'true'
         env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID || 'e00f22a8994eaa5a08e0ec523f64a14d' }}
-          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID || 'c95fd817-4a46-4303-b008-382f7e82c4dc' }}
-          CF_D1_TOKEN: ${{ secrets.CF_D1_TOKEN }}
-          TADIH_SYNC_DATABASE_URL: ${{ secrets.TADIH_SYNC_DATABASE_URL }}
+          CF_ACCOUNT_ID: ${{ steps.config.outputs.sink == 'd1' && secrets.CF_ACCOUNT_ID || '' }}
+          CF_D1_DATABASE_ID: ${{ steps.config.outputs.sink == 'd1' && secrets.CF_D1_DATABASE_ID || '' }}
+          CF_D1_TOKEN: ${{ steps.config.outputs.sink == 'd1' && secrets.CF_D1_TOKEN || '' }}
+          TADIH_SYNC_DATABASE_URL: ${{ steps.config.outputs.sink == 'postgresql' && secrets.TADIH_SYNC_DATABASE_URL || '' }}
         run: python scripts/sync_hub_catalog.py --sink ${{ steps.config.outputs.sink }}

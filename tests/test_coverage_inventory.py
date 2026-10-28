@@ -1,77 +1,98 @@
-"""Unit tests for National Agriculture Data Center Coverage Inventory."""
+"""Coverage inventory unit tests use small synthetic manifests."""
 
 import json
 from pathlib import Path
 import tempfile
 import unittest
 
-from tadih.catalog import ROOT
-from tadih.coverage_inventory import (
-    compile_doae_coverage,
-    compile_warehouse_and_staging_coverage,
-    audit_national_coverage_inventory,
-)
+from tadih.coverage_inventory import compile_doae_coverage, compile_warehouse_and_staging_coverage
+
+
+def write_manifest_fixture(local_dir):
+    def result(resource_id, dataset, schema, source, staged, quarantined=0):
+        return {
+            "resource_id": resource_id,
+            "raw": {"retrieved_at": "2026-10-28T00:00:00Z", "sha256": f"sha256-{resource_id}"},
+            "staging": {
+                "dataset": dataset,
+                "schema": schema,
+                "source_records": source,
+                "records": staged,
+                "quarantined_records": quarantined,
+            },
+        }
+
+    manifests = {
+        "doae-p0/p0-run.json": {
+            "results": [
+                result("p0-plan", "plan_dryplant", "dryplant_subdistrict", 2, 1, 1),
+                result("p0-crops", "production-rt01-04", "rt_crops", 1, 1),
+                result("p0-salt", "production-rt01-04", "rt_salt", 2, 1, 1),
+            ],
+        },
+        "doae-p1/p1-run.json": {
+            "results": [
+                result("p1-country", "herbs-spices", "national", 3, 2),
+                result("p1-online", "online-product", "province", 2, 1, 1),
+                result("p1-mixed", "province-unified-data", "mixed", 4, 4),
+            ],
+        },
+        "doae-p2/p2-run.json": {
+            "results": [result("p2-items", "crop-item-requests", "request", 2, 1, 1)],
+        },
+        "doae-archives/archive-run.json": {
+            "captures": [
+                {
+                    "resource_id": "archive-production",
+                    "dataset": "production_doae",
+                    "raw": {"retrieved_at": "2026-10-28T00:00:00Z", "sha256": "sha256-archive"},
+                    "staging": {"source_records": 3, "records": 2, "quarantined_records": 1},
+                    "extracted": {"member": "fixture.csv"},
+                },
+            ],
+        },
+    }
+    for relative_path, data in manifests.items():
+        path = local_dir / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data), encoding="utf-8")
 
 
 class CoverageInventoryTests(unittest.TestCase):
-    def test_doae_manifest_counts_reconcile_exactly_with_audit_thresholds(self):
-        result = audit_national_coverage_inventory(ROOT)
-        recon = result["reconciliation"]
-        self.assertTrue(recon["all_manifest_counts_reconciled"])
-        self.assertEqual(recon["doae_p0_source_records"], 1943298)
-        self.assertEqual(recon["doae_p1_source_records"], 202747)
-        self.assertEqual(recon["doae_p2_source_records"], 1534)
-        self.assertEqual(recon["doae_archives_source_records"], 1289200)
-        self.assertEqual(recon["total_doae_source_records"], 3436779)
-        self.assertEqual(recon["total_doae_staged_records"], 3436080)
-        self.assertEqual(recon["total_doae_quarantined_records"], 699)
+    def test_synthetic_manifests_reconcile_counts_and_keep_native_grain(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local = Path(tmpdir) / "data/local"
+            write_manifest_fixture(local)
+            result = compile_doae_coverage(local)
 
-    def test_spatial_grains_preserved_and_never_imputed(self):
-        result = audit_national_coverage_inventory(ROOT)
-        entries = result["entries"]
+        self.assertEqual(result["manifest_totals"], {
+            "p0": {"resources": 3, "source_records": 5, "staged_records": 3, "quarantined_records": 2},
+            "p1": {"resources": 3, "source_records": 9, "staged_records": 7, "quarantined_records": 1},
+            "p2": {"resources": 1, "source_records": 2, "staged_records": 1, "quarantined_records": 1},
+            "archives": {"resources": 1, "source_records": 3, "staged_records": 2, "quarantined_records": 1},
+        })
+        entries = {row["resource_id"]: row for row in result["resource_entries"]}
+        self.assertEqual(entries["p0-plan"]["data_grain"], "subdistrict")
+        self.assertEqual(entries["p1-country"]["data_grain"], "country")
+        self.assertEqual(entries["p1-mixed"]["data_grain"], "province+district_mixed")
+        self.assertEqual(entries["p1-online"]["status"], "NEEDS_REVIEW")
+        self.assertEqual(entries["p0-crops"]["status"], "NEEDS_REVIEW")
+        self.assertEqual(entries["p0-salt"]["quarantined_records"], 1)
+        self.assertEqual(entries["archive-production"]["status"], "NEEDS_REVIEW")
+        self.assertTrue(all(row["license_status"] == "pending" for row in entries.values()))
 
-        # National sources must have grain country and never province
-        national_sources = [e for e in entries if e["data_grain"] == "country"]
-        self.assertGreaterEqual(len(national_sources), 3)
-        for e in national_sources:
-            self.assertEqual(e["data_grain"], "country")
-
-        # Reservoir sources must have grain reservoir
-        rid_entries = [e for e in entries if e["source_id"] == "rid"]
-        self.assertTrue(all(e["data_grain"] == "reservoir" for e in rid_entries))
-
-        # Weather / Satellite must have grain grid_point
-        grid_entries = [e for e in entries if e["source_id"] in ("open_meteo", "planetary_computer")]
-        self.assertTrue(all(e["data_grain"] == "grid_point" for e in grid_entries))
-
-    def test_license_status_is_pending_for_all_unapproved_sources(self):
-        result = audit_national_coverage_inventory(ROOT)
-        entries = result["entries"]
-        for e in entries:
-            self.assertEqual(e["license_status"], "pending", f"Resource {e['resource_id']} license must be pending")
-
-    def test_quarantined_resources_flagged_for_review(self):
-        result = audit_national_coverage_inventory(ROOT)
-        entries = result["entries"]
-
-        # Online 2568 with 524 quarantined rows must have status NEEDS_REVIEW
-        online_shifted = [e for e in entries if e.get("dataset_id") == "online-product" and e["quarantined_records"] > 0]
-        self.assertEqual(len(online_shifted), 1)
-        self.assertEqual(online_shifted[0]["status"], "NEEDS_REVIEW")
-
-        # RT crops mock must be NEEDS_REVIEW
-        mock_crop = [e for e in entries if e.get("dataset_id") == "production-rt01-04" and e.get("schema") == "rt_crops"]
-        self.assertEqual(len(mock_crop), 1)
-        self.assertEqual(mock_crop[0]["status"], "NEEDS_REVIEW")
-
-        # Salt negative area must be NEEDS_REVIEW
-        salt_crop = [e for e in entries if e.get("dataset_id") == "production-rt01-04" and e.get("schema") == "rt_salt"]
-        self.assertEqual(len(salt_crop), 1)
-        self.assertEqual(salt_crop[0]["status"], "NEEDS_REVIEW")
+    def test_warehouse_profiles_keep_country_reservoir_and_grid_grain(self):
+        entries = compile_warehouse_and_staging_coverage(Path("unused"))
+        by_source = {row["source_id"]: row for row in entries}
+        self.assertEqual(by_source["oae"]["data_grain"], "country")
+        self.assertEqual(by_source["rid"]["data_grain"], "reservoir")
+        self.assertEqual(by_source["open_meteo"]["data_grain"], "grid_point")
+        self.assertEqual(by_source["planetary_computer"]["data_grain"], "grid_point")
+        self.assertTrue(all(row["license_status"] == "pending" for row in entries))
 
     def test_missing_manifest_raises_filenotfound(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            with self.assertRaises(FileNotFoundError):
+            with self.assertRaisesRegex(FileNotFoundError, "required DOAE manifests"):
                 compile_doae_coverage(Path(tmpdir))
 
 

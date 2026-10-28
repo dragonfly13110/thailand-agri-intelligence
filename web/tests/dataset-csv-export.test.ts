@@ -71,6 +71,7 @@ registerHooks({
 });
 
 const exportLib = await import('../lib/hub/dataset-csv-export.ts');
+const { encodeSeriesId } = await import('../lib/hub/series-id.ts');
 const exportRoute = await import('../app/api/v1/datasets/[id]/export/route.ts');
 
 const BOM = String.fromCharCode(0xfeff);
@@ -343,6 +344,58 @@ test('multiple sources are listed in one column without merging their values', a
   const fake = fakeReaders({ pages: [{ rows: [observation()], total: 1, meta: { sourceIds: ['nabc', 'doae'] } }] });
   const table = await tableOf(exportLib.buildDatasetCsvExport({ query: QUERY, exportedAt: EXPORTED_AT, readers: fake.readers }));
   assert.equal(table.rows[0].sourceIds, 'nabc; doae');
+});
+
+test('CSV export accepts a reversible series ID for the selected resource', async () => {
+  const seriesId = encodeSeriesId({
+    resourceId: RESOURCE_ID,
+    seriesKey: 'price_min:annual:province:บาท/กิโลกรัม',
+    sourceGrain: 'annual',
+    product: 'ข้าว',
+    grade: 'A',
+    market: 'บางบัวทอง',
+    unit: 'บาท/กิโลกรัม',
+    locationId: 'province:01',
+    locationCode: '01',
+    locationKind: 'province',
+    locationName: 'กรุงเทพมหานคร',
+    provinceCode: '01',
+    cropCode: null,
+    cropName: null,
+    metricId: 'price_min',
+    metricName: 'ราคาต่ำสุด',
+    dimensions: {},
+  });
+  const fake = fakeReaders({ pages: [{ rows: [observation({ seriesId })], total: 1 }] });
+  const table = await tableOf(exportLib.buildDatasetCsvExport({ query: QUERY, exportedAt: EXPORTED_AT, readers: fake.readers }));
+  assert.equal(table.rows.length, 1);
+  assert.equal(table.rows[0].seriesId, seriesId);
+});
+
+test('CSV export rejects a reversible series ID for another resource', async () => {
+  const seriesId = encodeSeriesId({
+    resourceId: 'another-resource',
+    seriesKey: 'price_min:annual:province:บาท/กิโลกรัม',
+    sourceGrain: 'annual',
+    product: 'ข้าว',
+    grade: 'A',
+    market: 'บางบัวทอง',
+    unit: 'บาท/กิโลกรัม',
+    locationId: 'province:01',
+    locationCode: '01',
+    locationKind: 'province',
+    locationName: 'กรุงเทพมหานคร',
+    provinceCode: '01',
+    cropCode: null,
+    cropName: null,
+    metricId: 'price_min',
+    metricName: 'ราคาต่ำสุด',
+    dimensions: {},
+  });
+  const fake = fakeReaders({ pages: [{ rows: [observation({ seriesId })], total: 1 }] });
+  const error = await captureError(exportLib.buildDatasetCsvExport({ query: QUERY, exportedAt: EXPORTED_AT, readers: fake.readers }));
+  assert.equal(error.status, 409);
+  assert.equal(error.code, 'EXPORT_CHANGED');
 });
 
 /* ------------------------------------------------------------------ */

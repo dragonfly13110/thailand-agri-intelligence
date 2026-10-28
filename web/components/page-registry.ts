@@ -32,7 +32,8 @@ export type PageId =
   | 'cooperatives'
   | 'crop-evidence'
   | 'land-reform'
-  | 'open-data';
+  | 'open-data'
+  | 'api-docs';
 
 export interface PageGroup {
   id: string;
@@ -373,6 +374,16 @@ export const PAGES: PageEntry[] = [
     icon: 'download',
     group: 'data',
     keywords: 'open data ดาว license',
+  },
+  {
+    key: 'api-docs',
+    active: 'api-docs',
+    href: '/api-docs',
+    label: 'API สำหรับนักพัฒนา',
+    description: 'ดูสัญญา API และทดลองเรียกข้อมูลแบบอ่านอย่างเดียว',
+    icon: 'catalog',
+    group: 'data',
+    keywords: 'API developer playground endpoint JSON CSV',
   },
   {
     key: 'areas',

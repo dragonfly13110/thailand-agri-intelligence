@@ -23,9 +23,11 @@ const EXPECTED_GROUP_IDS = [
   'water',
   'nwp',
   'crops',
+  'livestock',
   'soil',
   'areas',
   'prices',
+  'trade',
 ] as const;
 
 const EXPECTED_ENDPOINT_IDS = [
@@ -33,19 +35,23 @@ const EXPECTED_ENDPOINT_IDS = [
   'sources-status',
   'datasets-list',
   'datasets-detail',
+  'datasets-export',
   'datasets-records',
   'datasets-series',
   'series-observations',
   'weather-overview',
+  'weather-monthly-rainfall',
   'weather-observations',
   'water-reservoirs',
   'nwp-grid',
   'nwp-provinces',
   'nwp-runs',
   'crops-reference',
+  'livestock-beef-cattle',
   'soil-reference',
   'areas-evidence',
   'prices-daily',
+  'trade-oae',
 ] as const;
 
 function placeholders(path: string): string[] {
@@ -61,19 +67,19 @@ test('api catalog: version and contract constants match the v1 schema', () => {
   );
 });
 
-test('api catalog: exactly 9 groups and 17 endpoints in the documented order', () => {
-  assert.equal(API_GROUPS.length, 9);
+test('api catalog: exactly 11 groups and 21 endpoints in the documented order', () => {
+  assert.equal(API_GROUPS.length, 11);
   assert.deepEqual(
     API_GROUPS.map((group) => group.id),
     [...EXPECTED_GROUP_IDS],
   );
 
-  assert.equal(API_ENDPOINTS.length, 17);
+  assert.equal(API_ENDPOINTS.length, 21);
   assert.deepEqual(
     API_ENDPOINTS.map((endpoint) => endpoint.id),
     [...EXPECTED_ENDPOINT_IDS],
   );
-  assert.equal(new Set(API_ENDPOINTS.map((endpoint) => endpoint.id)).size, 17);
+  assert.equal(new Set(API_ENDPOINTS.map((endpoint) => endpoint.id)).size, 21);
 });
 
 test('api catalog: every endpoint is a unique GET under /api/v1', () => {
@@ -91,7 +97,7 @@ test('api catalog: every endpoint is a unique GET under /api/v1', () => {
       `${endpoint.id}: unknown access ${endpoint.access}`,
     );
     assert.ok(
-      ['hub-v1', 'domain'].includes(endpoint.contract),
+      ['hub-v1', 'domain', 'csv'].includes(endpoint.contract),
       `${endpoint.id}: unknown contract ${endpoint.contract}`,
     );
   }
@@ -215,4 +221,77 @@ test('api catalog: pagination bounds follow the shared parsePage contract', () =
       assert.equal(pageSize.minimum, 1, `${endpoint.id}/pageSize: minimum`);
     }
   }
+});
+
+test('api catalog: monthly rainfall documents the route filters and station grain', () => {
+  const endpoint = API_ENDPOINTS.find((item) => item.id === 'weather-monthly-rainfall');
+  assert.ok(endpoint);
+  assert.equal(endpoint.path, '/api/v1/weather/monthly-rainfall');
+  assert.equal(endpoint.contract, 'hub-v1');
+  assert.deepEqual(endpoint.query?.map((param) => param.name), ['provinceCode', 'stationCode', 'year', 'page', 'pageSize']);
+  assert.equal(endpoint.query?.find((param) => param.name === 'provinceCode')?.pattern, '^\\d{2}$');
+  assert.equal(endpoint.query?.find((param) => param.name === 'stationCode')?.pattern, '^[A-Za-z0-9_-]{3,20}$');
+  assert.ok(endpoint.notes?.some((note) => note.includes('สถานี × เดือน')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('unit=null')));
+});
+
+test('api catalog: CSV export documents its required resource, row limit, and provenance', () => {
+  const endpoint = API_ENDPOINTS.find((item) => item.id === 'datasets-export');
+  assert.ok(endpoint);
+  assert.equal(endpoint.path, '/api/v1/datasets/{id}/export');
+  assert.equal(endpoint.contract, 'csv');
+  assert.equal(endpoint.responseType, 'text/csv; charset=utf-8');
+  assert.equal(endpoint.pathParams?.[0].maxLength, 260);
+  assert.equal(endpoint.query?.find((param) => param.name === 'resourceId')?.required, true);
+  assert.ok(endpoint.notes?.some((note) => note.includes('1,000 แถว')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('datasetVersion')));
+});
+
+test('api catalog: beef cattle documents source-year grain and unverified dates and license', () => {
+  const endpoint = API_ENDPOINTS.find((item) => item.id === 'livestock-beef-cattle');
+  assert.ok(endpoint);
+  assert.equal(endpoint.group, 'livestock');
+  assert.equal(endpoint.path, '/api/v1/livestock/beef-cattle');
+  assert.equal(endpoint.contract, 'hub-v1');
+  assert.equal(endpoint.responseType, 'ApiResponse<DldBeefCattleData>');
+  assert.deepEqual(endpoint.query?.map((param) => param.name), ['sourceYearBe']);
+  assert.equal(endpoint.query?.[0].type, 'integer');
+  assert.equal(endpoint.query?.[0].minimum, 2400);
+  assert.equal(endpoint.query?.[0].maximum, 9999);
+  assert.equal(endpoint.query?.[0].maxLength, 4);
+  assert.equal(endpoint.query?.[0].pattern, '^\\d{4}$');
+  assert.ok(endpoint.notes?.some((note) => note.includes('จังหวัด × ป้ายปี พ.ศ.')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('ปีปฏิทินหรือปีงบประมาณ')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('sourceLicenseStatus=unverified')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('dataAsOf=null')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('null ไม่ใช่ 0')));
+  const availabilityNote = endpoint.notes?.find((note) => note.includes('meta.availability=ready'));
+  assert.ok(availabilityNote);
+  assert.ok(['empty', 'metadata_only'].every((state) => availabilityNote.includes(state)));
+  assert.ok(!availabilityNote.includes('unavailable'));
+  assert.ok(endpoint.notes?.some((note) => note.includes('HTTP 503 เป็น JSON error DLD_DATA_UNAVAILABLE โดยไม่มี meta')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('from/to ไม่รองรับ')));
+});
+
+test('api catalog: OAE trade documents opaque year labels, source grain, and availability errors', () => {
+  const endpoint = API_ENDPOINTS.find((item) => item.id === 'trade-oae');
+  assert.ok(endpoint);
+  assert.equal(endpoint.group, 'trade');
+  assert.equal(endpoint.path, '/api/v1/trade/oae');
+  assert.equal(endpoint.contract, 'hub-v1');
+  assert.equal(endpoint.responseType, 'ApiResponse<OaeTradeData>');
+  assert.deepEqual(endpoint.query?.map((param) => param.name), ['yearLabel']);
+  assert.equal(endpoint.query?.[0].type, 'string');
+  assert.equal(endpoint.query?.[0].example, '2568');
+  assert.equal(endpoint.query?.[0].maxLength, 80);
+  assert.equal(endpoint.query?.[0].pattern, undefined);
+  assert.ok(endpoint.notes?.some((note) => note.includes('product × trade type × source-year label')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('sourceYearConvention=unknown')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('spatialSupport=not_reported') && note.includes('ไม่คำนวณยอดรวม')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('unit=ล้านบาท') && note.includes('ไม่แทนด้วย 0')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('dataAsOf=null')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('attributionText') && note.includes('sourceLicenseStatus=unverified')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('ready') && note.includes('empty') && note.includes('metadata_only')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('400 INVALID_QUERY')));
+  assert.ok(endpoint.notes?.some((note) => note.includes('503 OAE_TRADE_UNAVAILABLE') && note.includes('503 OAE_TRADE_SNAPSHOT_INVALID')));
 });

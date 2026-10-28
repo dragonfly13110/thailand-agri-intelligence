@@ -1,5 +1,6 @@
 import 'server-only';
 import { HubRequestError, parseDate, parseText } from './http';
+import { decodeSeriesId } from './series-id';
 import type { AccessStatus, Completeness, HubObservation, Pagination } from './types';
 
 /** A CSV export is one snapshot of one resource; anything larger must be narrowed by the caller. */
@@ -214,6 +215,18 @@ function assertStableSnapshot(first: ExportRecordsPage, next: ExportRecordsPage,
   }
 }
 
+function seriesIdBelongsToResource(seriesId: unknown, resourceId: string): boolean {
+  if (typeof seriesId !== 'string') return false;
+  try {
+    const decoded = decodeSeriesId(seriesId);
+    return decoded.kind === 'v2'
+      ? decoded.identity.resourceId === resourceId
+      : decoded.resourceId === resourceId;
+  } catch {
+    return false;
+  }
+}
+
 export async function buildDatasetCsvExport(request: {
   query: ExportQuery;
   exportedAt: string;
@@ -263,7 +276,7 @@ export async function buildDatasetCsvExport(request: {
       throw new HubRequestError(409, 'EXPORT_CHANGED', 'พบแถวซ้ำระหว่างอ่านหลายหน้า ซึ่งเป็นสัญญาณว่ารอบข้อมูลเปลี่ยนระหว่างทาง จึงหยุดส่งออก');
     }
     seen.add(row.rowKey);
-    if (typeof row.seriesId !== 'string' || !row.seriesId.startsWith(resourceId + '|')) {
+    if (!seriesIdBelongsToResource(row.seriesId, resourceId)) {
       throw new HubRequestError(409, 'EXPORT_CHANGED', 'พบแถวที่ไม่ได้เป็นของทรัพยากรที่เลือก จึงหยุดส่งออก');
     }
   }

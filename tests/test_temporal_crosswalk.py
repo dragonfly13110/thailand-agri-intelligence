@@ -1,6 +1,10 @@
 """Unit tests for Temporal Administrative Crosswalk and Resolution Module."""
 
+import csv
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from tadih.temporal_crosswalk import (
     resolve_administrative_anomaly,
@@ -153,21 +157,57 @@ class TemporalCrosswalkTests(unittest.TestCase):
         self.assertFalse(res_subtotal.rollup_eligible)
 
     def test_audit_unified_province_data_grain_classification(self):
-        rows = [{"district_name": "", "subdistrict_name": ""}] * 1320 + [
-            {"district_name": "เมือง", "subdistrict_name": ""}
-        ] * 13504
+        rows = [
+            {"district_name": "", "subdistrict_name": ""},
+            {"district_name": "เมือง", "subdistrict_name": ""},
+            {"district_name": "เมือง", "subdistrict_name": "ตำบลทดสอบ"},
+        ]
         audit = audit_unified_province_data_grain(rows)
-        self.assertTrue(audit["is_correctly_disambiguated"])
-        self.assertEqual(audit["province_grain_rows"], 1320)
-        self.assertEqual(audit["district_grain_rows"], 13504)
-        self.assertEqual(audit["other_grain_rows"], 0)
+        self.assertFalse(audit["is_correctly_disambiguated"])
+        self.assertEqual(audit["total_rows"], 3)
+        self.assertEqual(audit["province_grain_rows"], 1)
+        self.assertEqual(audit["district_grain_rows"], 1)
+        self.assertEqual(audit["other_grain_rows"], 1)
 
 
-    def test_audit_crosswalk_resolves_all_known_anomalies(self):
+    def test_crosswalk_audit_aggregates_small_synthetic_signatures(self):
         from scripts.audit_temporal_crosswalk import audit_crosswalk
-        result = audit_crosswalk()
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            local = root / "data/local"
+            crosswalk = local / "doae-geography/subdistrict-crosswalk.csv"
+            crosswalk.parent.mkdir(parents=True)
+            (local / "probes").mkdir()
+            with crosswalk.open("w", encoding="utf-8", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=[
+                    "source_record_count", "source_province_code", "source_district_code",
+                    "source_subdistrict_code", "source_province_name", "source_district_name",
+                    "source_subdistrict_name",
+                ])
+                writer.writeheader()
+                writer.writerows([
+                    {"source_record_count": 947, "source_province_code": "50", "source_district_code": "5025",
+                     "source_subdistrict_code": "502501", "source_province_name": "เชียงใหม่",
+                     "source_district_name": "กัลยาณิวัฒนา", "source_subdistrict_name": "แจ่มหลวง"},
+                    {"source_record_count": 12, "source_province_code": "10", "source_district_code": "1050",
+                     "source_subdistrict_code": "105001", "source_province_name": "กรุงเทพมหานคร",
+                     "source_district_name": "เขตบางบอน", "source_subdistrict_name": "บางบอน"},
+                    {"source_record_count": 1, "source_province_code": "92", "source_district_code": "9204",
+                     "source_subdistrict_code": "920414", "source_province_name": "ตรัง",
+                     "source_district_name": "กันตัง", "source_subdistrict_name": "xxxxxxxx"},
+                    {"source_record_count": 1320, "source_province_code": "10", "source_province_name": "กรุงเทพมหานคร"},
+                    {"source_record_count": 13653, "source_province_code": "10", "source_district_code": "1001",
+                     "source_province_name": "กรุงเทพมหานคร", "source_district_name": "พระนคร"},
+                ])
+
+            with patch("scripts.audit_temporal_crosswalk.ROOT", root):
+                result = audit_crosswalk()
+
         self.assertTrue(result["all_known_anomalies_resolved"])
-        self.assertGreaterEqual(result["resolved_anomalies"]["galyani_vadhana_code_rotation_rows"], 947)
+        self.assertEqual(result["resolved_anomalies"]["galyani_vadhana_code_rotation_rows"], 947)
+        self.assertEqual(result["resolved_anomalies"]["bang_bon_historical_split_rows"], 12)
+        self.assertEqual(result["resolved_anomalies"]["trang_dummy_quarantined_rows"], 1)
         self.assertEqual(result["resolved_anomalies"]["unified_data_province_grain_rows"], 1320)
         self.assertEqual(result["resolved_anomalies"]["unified_data_district_grain_rows"], 13653)
 

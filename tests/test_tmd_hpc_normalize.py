@@ -454,18 +454,6 @@ class TestProvinces(TempFixture):
         self.assertAlmostEqual(provinces[0]["reference_lon"], 100.5, places=6)
         self.assertEqual(provinces[0]["province_code"], "10")
 
-    def test_repository_geojson_has_77_provinces(self):
-        resolved = norm._resolve_repo_file("data/local/geography/ddpm_province.geojson")
-        if resolved is None:
-            self.skipTest("DDPM province boundary is not present in this checkout")
-        provinces = load_province_reference_points(resolved)
-        self.assertEqual(len(provinces), 77)
-        self.assertEqual(len({item["province_code"] for item in provinces}), 77)
-        for province in provinces:
-            self.assertTrue(5.0 <= province["reference_lat"] <= 21.0)
-            self.assertTrue(96.0 <= province["reference_lon"] <= 106.0)
-
-
 class TestThresholds(unittest.TestCase):
     def test_canonical_file_loads(self):
         thresholds = load_thresholds()

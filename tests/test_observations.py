@@ -6,11 +6,15 @@ docs/assignments/2026-10-26-real-data-initiative.md section 3.2, plus the
 """
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 import sys
 import types
 import unittest
+from unittest.mock import patch
+
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from tadih.cli import main as cli_main
 from tadih.observations import (
@@ -19,6 +23,7 @@ from tadih.observations import (
     register_resource,
     assert_resource_approved,
 )
+from tadih.quality import validate_observation
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ID = "rid"
@@ -34,17 +39,95 @@ class SqliteD1Mock:
 
     instances = []
 
-    def __init__(self, *, with_extensions=False):
+    def __init__(self, *, with_extensions=False, with_source_year_snapshot=True,
+                 with_source_year_writer_token=True, omit_constraints=()):
         self.db = sqlite3.connect(":memory:")
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys=ON")
         script = (ROOT / "db/cloudflare/0001_hub.sql").read_text(encoding="utf-8")
+        omitted_constraint_ddl = {
+            "sources_pk": ("sources", "source_id TEXT PRIMARY KEY,", "source_id TEXT,"),
+            "datasets_pk": ("datasets", "dataset_id TEXT PRIMARY KEY,", "dataset_id TEXT,"),
+            "datasets_source_dataset_unique": (
+                "datasets",
+                "harvested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    UNIQUE (source_id, source_dataset_id)",
+                "harvested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            ),
+            "resources_pk": ("resources", "resource_id TEXT PRIMARY KEY,", "resource_id TEXT,"),
+            "resources_dataset_fk": (
+                "resources", "dataset_id TEXT NOT NULL REFERENCES datasets(dataset_id) ON DELETE CASCADE,",
+                "dataset_id TEXT NOT NULL,",
+            ),
+            "resources_active_run_fk": (
+                "resources",
+                "UNIQUE (dataset_id, source_resource_id),\n    FOREIGN KEY (resource_id, active_run_id)\n"
+                "        REFERENCES sync_runs(resource_id, run_id)\n        DEFERRABLE INITIALLY DEFERRED",
+                "UNIQUE (dataset_id, source_resource_id)",
+            ),
+            "sync_runs_pk": ("sync_runs", "run_id TEXT PRIMARY KEY,", "run_id TEXT,"),
+            "sync_runs_source_fk": (
+                "sync_runs", "source_id TEXT NOT NULL REFERENCES sources(source_id),", "source_id TEXT NOT NULL,",
+            ),
+            "sync_runs_resource_fk": (
+                "sync_runs", "resource_id TEXT REFERENCES resources(resource_id),", "resource_id TEXT,",
+            ),
+            "sync_runs_resource_run_unique": (
+                "sync_runs", "error_code TEXT,\n    UNIQUE (resource_id, run_id)", "error_code TEXT",
+            ),
+            "locations_pk": ("locations", "location_id TEXT PRIMARY KEY,", "location_id TEXT,"),
+            "locations_source_fk": (
+                "locations", "source_id TEXT NOT NULL REFERENCES sources(source_id),", "source_id TEXT NOT NULL,",
+            ),
+            "locations_source_kind_code_unique": (
+                "locations", "crosswalk_version TEXT,\n    UNIQUE (source_id, kind, native_code)",
+                "crosswalk_version TEXT",
+            ),
+            "observations_pk": (
+                "observations", "PRIMARY KEY (resource_id, run_id, row_key),\n", "",
+            ),
+            "observations_resource_fk": (
+                "observations", "resource_id TEXT NOT NULL REFERENCES resources(resource_id),",
+                "resource_id TEXT NOT NULL,",
+            ),
+            "observations_location_fk": (
+                "observations", "location_id TEXT REFERENCES locations(location_id),", "location_id TEXT,",
+            ),
+            "observations_run_fk": (
+                "observations",
+                "PRIMARY KEY (resource_id, run_id, row_key),\n    FOREIGN KEY (resource_id, run_id)\n"
+                "        REFERENCES sync_runs(resource_id, run_id)\n        ON DELETE CASCADE",
+                "PRIMARY KEY (resource_id, run_id, row_key)",
+            ),
+        }
+        for constraint in omit_constraints:
+            try:
+                table_name, original, replacement = omitted_constraint_ddl[constraint]
+            except KeyError as exc:
+                raise ValueError(f"unknown test schema constraint: {constraint}") from exc
+            table_start = script.index(f"CREATE TABLE {table_name} (")
+            table_end = script.index("\n);", table_start)
+            table_ddl = script[table_start:table_end]
+            if original not in table_ddl:
+                raise AssertionError(f"test schema fragment is missing: {constraint}")
+            script = script[:table_start] + table_ddl.replace(original, replacement, 1) + script[table_end:]
         if with_extensions:
             script += (ROOT / "db/cloudflare/0002_observation_extensions.sql").read_text(encoding="utf-8")
+        if with_source_year_snapshot:
+            script += (ROOT / "db/cloudflare/0004_source_year_snapshot_revision.sql").read_text(encoding="utf-8")
+        if with_source_year_writer_token:
+            script += (ROOT / "db/cloudflare/0005_source_year_writer_token.sql").read_text(encoding="utf-8")
         self.db.executescript(script)
         self.queries = 0
+        self.statements = []
         self.observation_writes = 0
         self.fail_after_observations = None
+        self.before_run_insert = None
+        self.before_run_finalize = None
+        self.before_snapshot_upsert = None
+        self.before_observation_insert = None
+        self.location_upserts = 0
+        self.before_location_upsert = None
+        self.before_location_upsert_at = 1
         SqliteD1Mock.instances.append(self)
 
     @classmethod
@@ -54,7 +137,33 @@ class SqliteD1Mock:
 
     def execute(self, sql, params=None):
         self.queries += 1
+        self.statements.append(sql)
+        if self.before_run_insert is not None and "INSERT INTO sync_runs" in sql:
+            hook = self.before_run_insert
+            self.before_run_insert = None
+            hook()
+        if (self.before_run_finalize is not None
+                and sql.startswith("UPDATE sync_runs SET status=?,completed_at=?")):
+            hook = self.before_run_finalize
+            self.before_run_finalize = None
+            hook()
+        if (self.before_snapshot_upsert is not None
+                and "snapshot.source_retrieved_at=?" in sql):
+            hook = self.before_snapshot_upsert
+            self.before_snapshot_upsert = None
+            hook()
+        if sql.lstrip().startswith("INSERT INTO locations"):
+            self.location_upserts += 1
+            if (self.before_location_upsert is not None
+                    and self.location_upserts == self.before_location_upsert_at):
+                hook = self.before_location_upsert
+                self.before_location_upsert = None
+                hook()
         if sql.lstrip().startswith("INSERT INTO observations"):
+            if self.before_observation_insert is not None:
+                hook = self.before_observation_insert
+                self.before_observation_insert = None
+                hook()
             if (self.fail_after_observations is not None
                     and self.observation_writes >= self.fail_after_observations):
                 raise RuntimeError("simulated D1 row failure")
@@ -262,6 +371,50 @@ class ObservationPublisherTests(unittest.TestCase):
         self.assertEqual(stored[1]["series_key"], "reservoir_volume:daily:reservoir:m3")
         self.assertEqual(json.loads(stored[1]["quality"])["revisionId"], REVISION)
 
+    def test_daily_writer_keeps_one_location_upsert_per_observation(self):
+        rows = [observation(observation_id="rid-daily-location-a"),
+                observation(observation_id="rid-daily-location-b")]
+        publish(self.client, resource=self.resource, rows=rows, completeness="complete",
+                coverage={"mode": "daily_full", "count": len(rows)})
+
+        self.assertEqual(self.client.location_upserts, 2)
+
+    def test_daily_and_monthly_location_upserts_reject_persisted_identity_mismatch(self):
+        for grain in ("daily", "monthly"):
+            with self.subTest(grain=grain):
+                client = SqliteD1Mock()
+                resource = registry_row()
+                register_resource(client, resource=resource, source_name="RID",
+                                  base_url="https://app.rid.go.th")
+                legacy = {
+                    "location_id": "legacy:rid:reservoir:R1",
+                    "source_id": "rid",
+                    "kind": "reservoir",
+                    "native_code": "rid:reservoir:R1",
+                    "name": "Legacy reservoir name",
+                    "province_code": None,
+                }
+                client.execute(
+                    "INSERT INTO locations (location_id,source_id,kind,native_code,name,province_code) "
+                    "VALUES (?,?,?,?,?,?)",
+                    list(legacy.values()),
+                )
+
+                with self.assertRaises(ObservationWriteError) as caught:
+                    publish(
+                        client, resource=resource,
+                        rows=[observation(observation_id=f"rid-{grain}-identity-conflict")],
+                        completeness="complete", coverage={"mode": f"{grain}_full", "count": 1},
+                        period_grain=grain,
+                    )
+
+                self.assertEqual(caught.exception.code, "LOCATION_IDENTITY_CONFLICT")
+                self.assertEqual(client.one(
+                    "SELECT location_id,source_id,kind,native_code,name,province_code FROM locations "
+                    "WHERE source_id='rid' AND kind='reservoir' AND native_code='rid:reservoir:R1'",
+                ), legacy)
+                self.assertEqual(client.one("SELECT count(*) AS n FROM observations")["n"], 0)
+
     def test_partial_completeness_stays_partial_and_activated(self):
         result = publish(self.client, resource=self.resource, rows=[observation()],
                          completeness="partial", coverage={"mode": "daily_partial", "count": 1})
@@ -431,6 +584,33 @@ class ObservationPublisherTests(unittest.TestCase):
             [result["run_id"]])
         self.assertEqual(stored, {"period_start": "2026-10-27", "period_end": "2026-10-27",
                                   "period_label": "2026-10-27"})
+
+    def test_daily_and_monthly_writers_remain_compatible_with_schema_0001_only(self):
+        for grain, observed_at, expected_period in (
+            ("daily", "2026-10-25T12:00:00Z", ("2026-10-25", "2026-10-25")),
+            ("monthly", "2026-10-25T12:00:00Z", ("2026-10-01", "2026-10-31")),
+        ):
+            with self.subTest(grain=grain):
+                client = SqliteD1Mock(
+                    with_extensions=False,
+                    with_source_year_snapshot=False,
+                    with_source_year_writer_token=False,
+                )
+                result = publish(
+                    client,
+                    resource=registry_row(),
+                    rows=[observation(observed_at=observed_at)],
+                    completeness="complete",
+                    unit="percent",
+                    retrieved_at=RETRIEVED_AT,
+                    period_grain=grain,
+                )
+                self.assertTrue(result["active_run_switched"])
+                stored = client.one(
+                    "SELECT period_start,period_end FROM observations WHERE run_id=?",
+                    [result["run_id"]],
+                )
+                self.assertEqual((stored["period_start"], stored["period_end"]), expected_period)
 
     def test_all_null_unit_batch_still_activates_for_lane_d(self):
         """TMD intentionally publishes unit=NULL: no documented unit exists."""
@@ -710,6 +890,22 @@ class ObservationPublisherTests(unittest.TestCase):
                          completeness="partial", coverage={"mode": "daily_full", "count": 1})
         self.assertEqual(result["records_written"], 1)
 
+    def test_simultaneous_identical_run_insert_is_reread_and_reused(self):
+        rows = [observation()]
+        inner_results = []
+        self.client.before_run_insert = lambda: inner_results.append(
+            publish(self.client, resource=self.resource, rows=rows,
+                    completeness="complete", coverage={"mode": "daily_full", "count": 1})
+        )
+
+        outer = publish(self.client, resource=self.resource, rows=rows,
+                         completeness="complete", coverage={"mode": "daily_full", "count": 1})
+
+        self.assertEqual(len(inner_results), 1)
+        self.assertEqual(outer["run_id"], inner_results[0]["run_id"])
+        self.assertEqual(outer["status"], "succeeded")
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations")["total"], 1)
+
 
 class IngestAdapterCliTests(unittest.TestCase):
     """``tadih ingest --adapter`` dispatches to the lane module contract."""
@@ -786,6 +982,658 @@ class AdapterPublishIntegrationTests(unittest.TestCase):
         self.assertEqual(client.one("SELECT count(*) AS total FROM observations")["total"], 2)
 
 
+class SourceYearLabelObservationTests(unittest.TestCase):
+    def test_source_year_label_contract_keeps_year_without_inventing_a_date(self):
+        row = dld_cattle_observation()
+        validated = validate_observation(row)
+        self.assertIsNone(validated["observed_at"])
+        self.assertEqual(validated["source_year_be"], 2564)
+        self.assertEqual(validated["source_row_id"], "123")
+
+    def test_source_year_label_requires_exclusive_year_and_null_observed_at(self):
+        cases = (
+            dld_cattle_observation(observed_at="2021-01-01T00:00:00Z"),
+            dld_cattle_observation(source_year_be=None),
+            dld_cattle_observation(source_year_be="2564"),
+            dld_cattle_observation(source_year_be=2399),
+            dld_cattle_observation(source_year_be=10000),
+        )
+        for row in cases:
+            with self.subTest(row=row):
+                with self.assertRaises(ValueError):
+                    validate_observation(row)
+
+    def test_json_contract_enforces_year_label_and_null_date_as_a_pair(self):
+        schema = json.loads((ROOT / "data_contracts/observation.schema.json").read_text(encoding="utf-8"))
+        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        validator.validate(dld_cattle_observation())
+        with self.assertRaises(ValidationError):
+            validator.validate(dld_cattle_observation(source_year_be=None))
+        with self.assertRaises(ValidationError):
+            validator.validate(dld_cattle_observation(observed_at="2021-01-01T00:00:00Z"))
+        with self.assertRaises(ValidationError):
+            validator.validate(dld_cattle_observation(source_year_be=10000))
+
+
+class SourceYearLabelPublisherTests(unittest.TestCase):
+    def setUp(self):
+        self.client = SqliteD1Mock()
+        self.resource = dld_registry_row()
+        register_resource(self.client, resource=self.resource, source_name="Department of Livestock Development",
+                          base_url="https://dld.gdcatalog.go.th", category="livestock",
+                          grain="province x source-year label")
+
+    def tearDown(self):
+        SqliteD1Mock.close_all()
+
+    def publish_years(self, rows, *, retrieved_at=RETRIEVED_AT, completeness="complete", **kwargs):
+        return publish(
+            self.client, resource=self.resource, rows=rows, retrieved_at=retrieved_at,
+            completeness=completeness, coverage={"mode": "source_response", "count": len(rows)},
+            unit="ตัว", period_grain="source_year_label", **kwargs,
+        )
+
+    def test_source_year_writer_requires_snapshot_revision_migration_before_writes(self):
+        client = SqliteD1Mock(with_source_year_snapshot=False)
+        with self.assertRaises(ObservationWriteError) as caught:
+            publish(client, resource=dld_registry_row(), rows=[dld_cattle_observation()],
+                    completeness="complete", coverage={"mode": "source_response", "count": 1},
+                    unit="ตัว", period_grain="source_year_label")
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_SNAPSHOT_SCHEMA_REQUIRED")
+        self.assertEqual(client.one("SELECT count(*) AS total FROM resources")["total"], 0)
+        self.assertEqual(client.one("SELECT count(*) AS total FROM sync_runs")["total"], 0)
+        self.assertEqual(client.one("SELECT count(*) AS total FROM observations")["total"], 0)
+
+    def test_source_year_writer_requires_unique_owner_token_migration_before_writes(self):
+        client = SqliteD1Mock(with_source_year_writer_token=False)
+        with self.assertRaises(ObservationWriteError) as caught:
+            publish(client, resource=dld_registry_row(), rows=[dld_cattle_observation()],
+                    completeness="complete", coverage={"mode": "source_response", "count": 1},
+                    unit="ตัว", period_grain="source_year_label")
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_WRITER_TOKEN_SCHEMA_REQUIRED")
+        self.assertEqual(client.one("SELECT count(*) AS total FROM resources")["total"], 0)
+        self.assertEqual(client.one("SELECT count(*) AS total FROM sync_runs")["total"], 0)
+        self.assertEqual(client.one("SELECT count(*) AS total FROM observations")["total"], 0)
+
+    def test_source_year_rows_store_null_dates_source_label_and_native_row_reference(self):
+        result = self.publish_years([dld_cattle_observation()])
+        row = self.client.one("SELECT period_start, period_end, period_label, source_row_ref, dimensions "
+                              "FROM observations WHERE run_id=?", [result["run_id"]])
+        self.assertIsNone(row["period_start"])
+        self.assertIsNone(row["period_end"])
+        self.assertEqual(row["period_label"], "พ.ศ. 2564")
+        self.assertEqual(row["source_row_ref"], "123")
+        self.assertEqual(json.loads(row["dimensions"])["sourceYearBe"], 2564)
+        self.assertTrue(result["active_run_switched"])
+
+    def test_conflicting_source_year_location_identity_fails_before_mutation(self):
+        first = dld_cattle_observation()
+        same_id_conflict = dld_cattle_observation(area_code="11", source_row_id="124")
+        same_id_conflict["location_id"] = first["location_id"]
+        separate_key_rows = [first, dld_cattle_observation(area_code="11", source_row_id="124")]
+        conflicting_overrides = {
+            "dld:province:10": {
+                "kind": "province", "nativeCode": "shared-code", "name": "Province 10",
+                "provinceCode": "10",
+            },
+            "dld:province:11": {
+                "kind": "province", "nativeCode": "shared-code", "name": "Province 11",
+                "provinceCode": "11",
+            },
+        }
+
+        for label, rows, locations in (
+            ("location id maps to conflicting metadata", [first, same_id_conflict], None),
+            ("natural key maps to different location ids", separate_key_rows, conflicting_overrides),
+        ):
+            with self.subTest(label=label):
+                before_queries = self.client.queries
+                before_statements = len(self.client.statements)
+                before = {
+                    table: self.client.one(f"SELECT count(*) AS n FROM {table}")["n"]
+                    for table in ("sources", "datasets", "resources", "sync_runs", "locations", "observations")
+                }
+                with self.assertRaises(ObservationWriteError) as caught:
+                    self.publish_years(rows, locations=locations)
+
+                self.assertEqual(caught.exception.code, "SOURCE_YEAR_LOCATION_CONFLICT")
+                self.assertEqual(self.client.queries, before_queries)
+                self.assertEqual(len(self.client.statements), before_statements)
+                self.assertEqual({
+                    table: self.client.one(f"SELECT count(*) AS n FROM {table}")["n"]
+                    for table in before
+                }, before)
+
+    def test_source_year_location_owner_guard_rejects_takeover_before_first_location(self):
+        def take_ownership():
+            self.client.db.execute(
+                "UPDATE sync_runs SET source_year_writer_token='new-owner' WHERE resource_id=?",
+                [self.resource["resource_id"]],
+            )
+            self.client.db.commit()
+
+        self.client.before_location_upsert = take_ownership
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years([dld_cattle_observation()])
+
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM locations")["n"], 0)
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM observations")["n"], 0)
+
+    def test_source_year_location_owner_guard_rejects_takeover_between_locations(self):
+        def take_ownership():
+            self.client.db.execute(
+                "UPDATE sync_runs SET source_year_writer_token='new-owner' WHERE resource_id=?",
+                [self.resource["resource_id"]],
+            )
+            self.client.db.commit()
+
+        self.client.before_location_upsert_at = 2
+        self.client.before_location_upsert = take_ownership
+        rows = [dld_cattle_observation(), dld_cattle_observation(area_code="11", source_row_id="124")]
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years(rows)
+
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM locations")["n"], 1)
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM observations")["n"], 1)
+        self.assertIsNone(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                          [self.resource["resource_id"]])["active_run_id"])
+
+    def test_source_year_location_identity_inserted_before_upsert_is_not_mutated(self):
+        legacy_location = {
+            "location_id": "legacy:dld:province:10",
+            "source_id": "dld",
+            "kind": "province",
+            "native_code": "10",
+            "name": "Legacy location name",
+            "province_code": "99",
+        }
+
+        def insert_legacy_location():
+            self.client.db.execute(
+                "INSERT INTO locations (location_id,source_id,kind,native_code,name,province_code) "
+                "VALUES (?,?,?,?,?,?)",
+                list(legacy_location.values()),
+            )
+            self.client.db.commit()
+
+        self.client.before_location_upsert = insert_legacy_location
+        location_override = {
+            "dld:province:10": {
+                "kind": "province", "nativeCode": "10", "name": "กรุงเทพมหานคร",
+                "provinceCode": "10",
+            },
+        }
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years([dld_cattle_observation()], locations=location_override)
+
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_LOCATION_IDENTITY_CONFLICT")
+        self.assertEqual(self.client.one(
+            "SELECT location_id,source_id,kind,native_code,name,province_code FROM locations "
+            "WHERE source_id='dld' AND kind='province' AND native_code='10'",
+        ), legacy_location)
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM observations")["n"], 0)
+        self.assertIsNone(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                          [self.resource["resource_id"]])["active_run_id"])
+
+    def test_source_year_location_id_already_bound_to_another_natural_key_fails_closed(self):
+        legacy_location = {
+            "location_id": "dld:province:10",
+            "source_id": "dld",
+            "kind": "province",
+            "native_code": "legacy-native-code",
+            "name": "Legacy location name",
+            "province_code": "99",
+        }
+        self.client.execute(
+            "INSERT INTO locations (location_id,source_id,kind,native_code,name,province_code) "
+            "VALUES (?,?,?,?,?,?)",
+            list(legacy_location.values()),
+        )
+        location_override = {
+            "dld:province:10": {
+                "kind": "province", "nativeCode": "10", "name": "กรุงเทพมหานคร",
+                "provinceCode": "10",
+            },
+        }
+
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years([dld_cattle_observation()], locations=location_override)
+
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_LOCATION_IDENTITY_CONFLICT")
+        self.assertEqual(self.client.one(
+            "SELECT location_id,source_id,kind,native_code,name,province_code FROM locations "
+            "WHERE location_id='dld:province:10'",
+        ), legacy_location)
+        self.assertEqual(self.client.one("SELECT count(*) AS n FROM observations")["n"], 0)
+
+    def test_partial_source_year_batch_is_stored_but_never_activated(self):
+        result = self.publish_years([dld_cattle_observation()], completeness="partial")
+        self.assertFalse(result["active_run_switched"])
+        self.assertEqual(result["active_run_blocked_reason"], "SOURCE_YEAR_BATCH_INCOMPLETE")
+        run = self.client.one("SELECT status, error_code FROM sync_runs WHERE run_id=?", [result["run_id"]])
+        self.assertEqual((run["status"], run["error_code"]), ("partial", "SOURCE_YEAR_BATCH_INCOMPLETE"))
+        self.assertIsNone(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                          [self.resource["resource_id"]])["active_run_id"])
+
+    def test_source_rowset_shrink_fails_closed_until_review_matches_both_snapshots(self):
+        baseline = [dld_cattle_observation(), dld_cattle_observation(area_code="11", source_row_id="124")]
+        first = self.publish_years(baseline, retrieved_at="2026-10-26T03:00:00Z")
+        prior_hash = self.client.one("SELECT payload_sha256 FROM sync_runs WHERE run_id=?", [first["run_id"]])[
+            "payload_sha256"]
+        removed = [baseline[0]]
+        blocked = self.publish_years(removed, retrieved_at="2026-10-27T03:00:00Z")
+        self.assertFalse(blocked["active_run_switched"])
+        self.assertEqual(blocked["active_run_blocked_reason"], "SOURCE_YEAR_ROWSET_REMOVALS_REQUIRE_REVIEW")
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], first["run_id"])
+        self.assertEqual(self.client.one("SELECT status, error_code FROM sync_runs WHERE run_id=?",
+                                         [blocked["run_id"]]),
+                         {"status": "partial", "error_code": "SOURCE_YEAR_ROWSET_REMOVALS_REQUIRE_REVIEW"})
+
+        review = {
+            "reviewed_by": "data-governance",
+            "reviewed_at": "2026-10-28T02:00:00Z",
+            "reason": "DLD confirmed the removed source row was withdrawn.",
+            "source_revision_id": blocked["revision_id"],
+            "active_payload_sha256": prior_hash,
+            "candidate_payload_sha256": blocked["payload_sha256"],
+        }
+        stale_review = dict(review, active_payload_sha256="0" * 64)
+        rejected_review = self.publish_years(
+            removed, retrieved_at="2026-10-27T03:00:00Z",
+            source_year_rowset_change_review=stale_review,
+        )
+        self.assertFalse(rejected_review["active_run_switched"])
+        self.assertEqual(rejected_review["active_run_blocked_reason"], "SOURCE_YEAR_ROWSET_REVIEW_STALE")
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], first["run_id"])
+        accepted = self.publish_years(removed, retrieved_at="2026-10-27T03:00:00Z",
+                                      source_year_rowset_change_review=review)
+        self.assertTrue(accepted["active_run_switched"])
+        self.assertIsNone(accepted["active_run_blocked_reason"])
+        stored_resource = self.client.one("SELECT active_run_id, metadata FROM resources WHERE resource_id=?",
+                                          [self.resource["resource_id"]])
+        self.assertEqual(stored_resource["active_run_id"], blocked["run_id"])
+        metadata = json.loads(stored_resource["metadata"])
+        self.assertEqual(metadata["sourceYearRowsetChangeReviews"][-1], review)
+
+    def test_source_year_pointer_blocks_backfill_and_stale_interleaving(self):
+        newest = self.publish_years([dld_cattle_observation(source_year_be=2568)],
+                                    retrieved_at="2026-10-27T03:00:00Z")
+        backfill = self.publish_years([dld_cattle_observation(source_year_be=2567)],
+                                      retrieved_at="2026-10-28T03:00:00Z")
+        self.assertFalse(backfill["active_run_switched"])
+        self.assertEqual(backfill["active_run_blocked_reason"], "SOURCE_YEAR_ROWSET_REMOVALS_REQUIRE_REVIEW")
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], newest["run_id"])
+
+    def test_review_can_authorize_complete_snapshot_removing_the_latest_source_year(self):
+        baseline = [
+            dld_cattle_observation(source_year_be=2567, value=15000),
+            dld_cattle_observation(source_year_be=2568, value=16000),
+        ]
+        first = self.publish_years(baseline, retrieved_at="2026-10-26T03:00:00Z")
+        active_hash = self.client.one("SELECT payload_sha256 FROM sync_runs WHERE run_id=?",
+                                      [first["run_id"]])["payload_sha256"]
+        candidate = [baseline[0]]
+        blocked = self.publish_years(candidate, retrieved_at="2026-10-27T03:00:00Z")
+        self.assertFalse(blocked["active_run_switched"])
+        self.assertEqual(blocked["active_run_blocked_reason"], "SOURCE_YEAR_ROWSET_REMOVALS_REQUIRE_REVIEW")
+        review = {
+            "reviewed_by": "data-governance",
+            "reviewed_at": "2026-10-28T02:00:00Z",
+            "reason": "DLD confirmed the latest source-year rows were withdrawn.",
+            "source_revision_id": blocked["revision_id"],
+            "active_payload_sha256": active_hash,
+            "candidate_payload_sha256": blocked["payload_sha256"],
+        }
+        accepted = self.publish_years(candidate, retrieved_at="2026-10-27T03:00:00Z",
+                                      source_year_rowset_change_review=review)
+        self.assertTrue(accepted["active_run_switched"])
+        self.assertEqual(accepted["status"], "succeeded")
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], blocked["run_id"])
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=? AND "
+                                         "json_extract(dimensions,'$.sourceYearBe')=2568",
+                                         [blocked["run_id"]])["total"], 0)
+
+    def test_source_revision_change_uses_immutable_run_and_identical_replay_preserves_provenance(self):
+        first = self.publish_years([dld_cattle_observation()],
+                                   retrieved_at="2026-10-26T03:00:00Z")
+        first_run_id = first["run_id"]
+        revised = self.publish_years(
+            [dld_cattle_observation(retrieved_at="2026-10-28T03:00:00Z",
+                                    revision_id="dld-revision-2564-v2")],
+            retrieved_at="2026-10-28T03:00:00Z",
+        )
+        self.assertNotEqual(revised["run_id"], first_run_id)
+        self.assertTrue(revised["active_run_switched"])
+        self.assertEqual(revised["payload_sha256"], first["payload_sha256"])
+        first_run = self.client.one("SELECT source_retrieved_at, source_revision_id, status FROM sync_runs "
+                                    "WHERE run_id=?", [first_run_id])
+        self.assertEqual(first_run, {"source_retrieved_at": "2026-10-26T03:00:00Z",
+                                     "source_revision_id": "dld-revision-2564-v1", "status": "succeeded"})
+        first_row = self.client.one("SELECT quality FROM observations WHERE run_id=?", [first_run_id])
+        self.assertEqual(json.loads(first_row["quality"])["revisionId"], "dld-revision-2564-v1")
+        revised_run = self.client.one("SELECT source_retrieved_at, source_revision_id, status FROM sync_runs "
+                                      "WHERE run_id=?", [revised["run_id"]])
+        self.assertEqual(revised_run, {"source_retrieved_at": "2026-10-28T03:00:00Z",
+                                       "source_revision_id": "dld-revision-2564-v2", "status": "succeeded"})
+        revised_row = self.client.one("SELECT quality FROM observations WHERE run_id=?", [revised["run_id"]])
+        self.assertEqual(json.loads(revised_row["quality"])["revisionId"], "dld-revision-2564-v2")
+
+        replay = self.publish_years(
+            [dld_cattle_observation(retrieved_at="2026-10-29T03:00:00Z",
+                                    revision_id="dld-revision-2564-v2")],
+            retrieved_at="2026-10-29T03:00:00Z",
+        )
+        self.assertEqual(replay["run_id"], revised["run_id"])
+        self.assertEqual(replay["skipped_identical"], 1)
+        self.assertFalse(replay["source_snapshot_updated"])
+        self.assertTrue(replay["source_snapshot_accepted"])
+        self.assertEqual(replay["source_snapshot_retrieved_at"], "2026-10-28T03:00:00Z")
+        self.assertIsNotNone(replay["verification_at"])
+
+        stale = self.publish_years(
+            [dld_cattle_observation(retrieved_at="2026-10-27T03:00:00Z")],
+            retrieved_at="2026-10-27T03:00:00Z",
+        )
+        self.assertEqual(stale["run_id"], first_run_id)
+        self.assertFalse(stale["source_snapshot_updated"])
+        self.assertEqual(stale["active_run_blocked_reason"], "SOURCE_YEAR_SNAPSHOT_NOT_NEWER")
+        self.assertEqual(stale["status"], "succeeded")
+        self.assertEqual(stale["source_snapshot_retrieved_at"], "2026-10-26T03:00:00Z")
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], revised["run_id"])
+        self.assertEqual(self.client.one("SELECT source_retrieved_at, source_revision_id FROM sync_runs "
+                                         "WHERE run_id=?", [first_run_id]),
+                         {"source_retrieved_at": "2026-10-26T03:00:00Z",
+                          "source_revision_id": "dld-revision-2564-v1"})
+        self.assertEqual(self.client.one("SELECT status FROM sync_runs WHERE run_id=?",
+                                         [first_run_id])["status"], "succeeded")
+
+    def test_failed_new_snapshot_stays_invisible_and_retry_activates_complete_run(self):
+        first = self.publish_years(
+            [dld_cattle_observation(value=14523),
+             dld_cattle_observation(area_code="11", source_row_id="124", value=18000)],
+            retrieved_at="2026-10-26T03:00:00Z",
+        )
+        revised_rows = [dld_cattle_observation(value=15000, revision_id="dld-revision-2564-v2"),
+                        dld_cattle_observation(area_code="11", source_row_id="124", value=19000,
+                                               revision_id="dld-revision-2564-v2")]
+        writes_before = self.client.observation_writes
+        self.client.fail_after_observations = writes_before + 1
+        with self.assertRaises(ObservationWriteError) as caught:
+            self.publish_years(revised_rows, retrieved_at="2026-10-28T03:00:00Z")
+        self.assertEqual(caught.exception.code, "NUMERIC_WRITE_FAILED")
+        active = self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                 [self.resource["resource_id"]])["active_run_id"]
+        self.assertEqual(active, first["run_id"])
+        active_rows = self.client.rows("SELECT o.value,o.quality FROM observations o "
+                                       "JOIN resources r ON r.active_run_id=o.run_id "
+                                       "WHERE r.resource_id=? ORDER BY o.row_key",
+                                       [self.resource["resource_id"]])
+        self.assertEqual([row["value"] for row in active_rows], [14523, 18000])
+        failed = self.client.one("SELECT run_id,status,source_year_writer_token FROM sync_runs WHERE run_id<>? "
+                                 "ORDER BY started_at DESC LIMIT 1", [first["run_id"]])
+        self.assertEqual(failed["status"], "failed")
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [failed["run_id"]])["total"], 1)
+
+        self.client.fail_after_observations = None
+        retry = self.publish_years(revised_rows, retrieved_at="2026-10-28T03:00:00Z")
+        self.assertEqual(retry["run_id"], failed["run_id"])
+        self.assertTrue(retry["active_run_switched"])
+        retry_run = self.client.one("SELECT source_year_writer_token FROM sync_runs WHERE run_id=?",
+                                    [retry["run_id"]])
+        self.assertNotEqual(retry_run["source_year_writer_token"], failed["source_year_writer_token"])
+        rows = self.client.rows("SELECT value,quality FROM observations WHERE run_id=? ORDER BY row_key",
+                                [retry["run_id"]])
+        self.assertEqual([row["value"] for row in rows], [15000, 19000])
+        self.assertEqual({json.loads(row["quality"])["revisionId"] for row in rows},
+                         {"dld-revision-2564-v2"})
+
+    def test_explicit_failed_source_year_run_id_cannot_be_reused_for_a_different_snapshot(self):
+        first = self.publish_years(
+            [dld_cattle_observation(value=10000),
+             dld_cattle_observation(area_code="11", source_row_id="124", value=11000)],
+            retrieved_at="2026-10-26T03:00:00Z",
+        )
+        explicit_run_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        revision_v2 = [
+            dld_cattle_observation(value=12000, revision_id="dld-revision-2564-v2"),
+            dld_cattle_observation(area_code="11", source_row_id="124", value=13000,
+                                   revision_id="dld-revision-2564-v2"),
+        ]
+        self.client.fail_after_observations = self.client.observation_writes + 1
+        with self.assertRaises(ObservationWriteError) as failed_write:
+            self.publish_years(revision_v2, retrieved_at="2026-10-27T03:00:00Z",
+                               run_id=explicit_run_id)
+        self.assertEqual(failed_write.exception.code, "NUMERIC_WRITE_FAILED")
+        self.client.fail_after_observations = None
+
+        failed_before = self.client.one(
+            "SELECT status,payload_sha256,source_revision_id,source_retrieved_at,source_year_writer_token "
+            "FROM sync_runs WHERE run_id=?", [explicit_run_id],
+        )
+        self.assertEqual(failed_before["status"], "failed")
+        self.assertEqual(failed_before["source_revision_id"], "dld-revision-2564-v2")
+        failed_rows = self.client.rows(
+            "SELECT row_key,value,quality FROM observations WHERE run_id=? ORDER BY row_key",
+            [explicit_run_id],
+        )
+        self.assertEqual(len(failed_rows), 1)
+        self.assertEqual(failed_rows[0]["value"], 12000)
+        self.assertEqual(json.loads(failed_rows[0]["quality"])["revisionId"], "dld-revision-2564-v2")
+
+        revision_v3 = [dld_cattle_observation(
+            area_code="11", source_row_id="124", value=15000,
+            revision_id="dld-revision-2564-v3",
+        )]
+        with self.assertRaises(ObservationWriteError) as identity_conflict:
+            self.publish_years(revision_v3, retrieved_at="2026-10-28T03:00:00Z",
+                               run_id=explicit_run_id)
+        self.assertEqual(identity_conflict.exception.code, "SOURCE_YEAR_RUN_IDENTITY_CONFLICT")
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], first["run_id"])
+        self.assertEqual(self.client.one(
+            "SELECT status,payload_sha256,source_revision_id,source_retrieved_at,source_year_writer_token "
+            "FROM sync_runs WHERE run_id=?", [explicit_run_id],
+        ), failed_before)
+        self.assertEqual(self.client.rows(
+            "SELECT row_key,value,quality FROM observations WHERE run_id=? ORDER BY row_key",
+            [explicit_run_id],
+        ), failed_rows)
+
+        retry = self.publish_years(revision_v2, retrieved_at="2026-10-27T03:00:00Z",
+                                   run_id=explicit_run_id)
+        self.assertEqual(retry["run_id"], explicit_run_id)
+        self.assertTrue(retry["active_run_switched"])
+        completed_rows = self.client.rows(
+            "SELECT value,quality FROM observations WHERE run_id=? ORDER BY row_key",
+            [explicit_run_id],
+        )
+        self.assertEqual([row["value"] for row in completed_rows], [12000, 13000])
+        self.assertEqual({json.loads(row["quality"])["revisionId"] for row in completed_rows},
+                         {"dld-revision-2564-v2"})
+        self.assertEqual(self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                         [self.resource["resource_id"]])["active_run_id"], explicit_run_id)
+
+    def test_concurrent_source_year_attempts_with_same_clock_time_have_distinct_owner(self):
+        rows = [dld_cattle_observation(),
+                dld_cattle_observation(area_code="11", source_row_id="124", value=18000)]
+        fixed_now = datetime(2026, 10, 28, 3, 0, tzinfo=timezone.utc)
+        second_attempt_errors = []
+
+        def concurrent_attempt():
+            try:
+                self.publish_years(rows, retrieved_at="2026-10-28T03:00:00Z")
+            except ObservationWriteError as exc:
+                second_attempt_errors.append(exc.code)
+
+        self.client.before_observation_insert = concurrent_attempt
+        with patch("tadih.observations._now", return_value=fixed_now):
+            winner = self.publish_years(rows, retrieved_at="2026-10-28T03:00:00Z")
+
+        self.assertEqual(second_attempt_errors, ["SOURCE_YEAR_RUN_IN_PROGRESS"])
+        self.assertTrue(winner["active_run_switched"])
+        stored = self.client.one("SELECT status,started_at,source_year_writer_token,source_retrieved_at "
+                                 "FROM sync_runs WHERE run_id=?", [winner["run_id"]])
+        self.assertEqual(stored["status"], "succeeded")
+        self.assertEqual(stored["started_at"], "2026-10-28T03:00:00Z")
+        self.assertEqual(stored["source_retrieved_at"], "2026-10-28T03:00:00Z")
+        self.assertTrue(stored["source_year_writer_token"])
+        self.assertNotEqual(stored["source_year_writer_token"], stored["started_at"])
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [winner["run_id"]])["total"], 2)
+
+    def test_stale_source_year_writer_cannot_upsert_or_fail_after_reclaim(self):
+        rows = [dld_cattle_observation(),
+                dld_cattle_observation(area_code="11", source_row_id="124", value=18000)]
+        fixed_now = datetime(2026, 10, 28, 3, 0, tzinfo=timezone.utc)
+        retry_results = []
+        original_tokens = []
+
+        def reclaim_and_finish():
+            candidate = self.client.one(
+                "SELECT run_id,source_year_writer_token FROM sync_runs WHERE resource_id=?",
+                [self.resource["resource_id"]],
+            )
+            original_tokens.append(candidate["source_year_writer_token"])
+            self.client.execute("UPDATE sync_runs SET status='failed' WHERE run_id=? AND status='running'",
+                                [candidate["run_id"]])
+            retry_results.append(self.publish_years(rows, retrieved_at="2026-10-28T03:00:00Z"))
+
+        self.client.before_observation_insert = reclaim_and_finish
+        with patch("tadih.observations._now", return_value=fixed_now):
+            with self.assertRaises(ObservationWriteError) as caught:
+                self.publish_years(rows, retrieved_at="2026-10-28T03:00:00Z")
+
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+        self.assertEqual(len(retry_results), 1)
+        retry = retry_results[0]
+        self.assertTrue(retry["active_run_switched"])
+        stored = self.client.one("SELECT status,source_year_writer_token FROM sync_runs WHERE run_id=?",
+                                 [retry["run_id"]])
+        self.assertEqual(stored["status"], "succeeded")
+        self.assertNotEqual(stored["source_year_writer_token"], original_tokens[0])
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [retry["run_id"]])["total"], 2)
+
+    def test_stale_source_year_writer_cannot_finalize_or_fail_reclaimed_run(self):
+        rows = [dld_cattle_observation(),
+                dld_cattle_observation(area_code="11", source_row_id="124", value=18000)]
+        fixed_now = datetime(2026, 10, 28, 3, 0, tzinfo=timezone.utc)
+        retry_results = []
+        original_tokens = []
+
+        def reclaim_and_finish():
+            candidate = self.client.one(
+                "SELECT run_id,source_year_writer_token FROM sync_runs WHERE resource_id=?",
+                [self.resource["resource_id"]],
+            )
+            original_tokens.append(candidate["source_year_writer_token"])
+            self.client.execute("UPDATE sync_runs SET status='failed' WHERE run_id=? AND status='running'",
+                                [candidate["run_id"]])
+            retry_results.append(self.publish_years(rows, retrieved_at="2026-10-28T03:00:00Z"))
+
+        self.client.before_run_finalize = reclaim_and_finish
+        with patch("tadih.observations._now", return_value=fixed_now):
+            with self.assertRaises(ObservationWriteError) as caught:
+                self.publish_years(rows, retrieved_at="2026-10-28T03:00:00Z")
+
+        self.assertEqual(caught.exception.code, "SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+        retry = retry_results[0]
+        self.assertTrue(retry["active_run_switched"])
+        stored = self.client.one("SELECT status,source_year_writer_token,records_written FROM sync_runs "
+                                 "WHERE run_id=?", [retry["run_id"]])
+        self.assertEqual(stored["status"], "succeeded")
+        self.assertEqual(stored["records_written"], 2)
+        self.assertNotEqual(stored["source_year_writer_token"], original_tokens[0])
+        self.assertEqual(self.client.one("SELECT count(*) AS total FROM observations WHERE run_id=?",
+                                         [retry["run_id"]])["total"], 2)
+
+    def test_source_year_order_compares_fractional_timezone_timestamps_as_instants(self):
+        first = self.publish_years([dld_cattle_observation()],
+                                   retrieved_at="2026-10-26T03:00:00Z")
+        active_timestamp = "2026-10-28T10:00:00.100000+07:00"
+        self.client.execute("UPDATE sync_runs SET source_retrieved_at=? WHERE run_id=?",
+                            [active_timestamp, first["run_id"]])
+
+        older = self.publish_years(
+            [dld_cattle_observation(value=14524, revision_id="dld-revision-2564-v2")],
+            retrieved_at="2026-10-28T03:00:00Z",
+        )
+
+        self.assertFalse(older["active_run_switched"])
+        self.assertEqual(older["active_run_blocked_reason"], "SOURCE_YEAR_SNAPSHOT_NOT_NEWER")
+        state = self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                [self.resource["resource_id"]])
+        self.assertEqual(state["active_run_id"], first["run_id"])
+        self.assertEqual(self.client.one("SELECT source_retrieved_at FROM sync_runs WHERE run_id=?",
+                                         [first["run_id"]])["source_retrieved_at"], active_timestamp)
+
+    def test_source_year_order_fails_closed_on_unparseable_active_timestamp(self):
+        first = self.publish_years([dld_cattle_observation()],
+                                   retrieved_at="2026-10-26T03:00:00Z")
+        self.client.execute("UPDATE sync_runs SET source_retrieved_at='broken-time' WHERE run_id=?",
+                            [first["run_id"]])
+
+        candidate = self.publish_years(
+            [dld_cattle_observation(value=14524, revision_id="dld-revision-2564-v2")],
+            retrieved_at="2026-10-28T03:00:00Z",
+        )
+
+        self.assertFalse(candidate["active_run_switched"])
+        self.assertEqual(candidate["active_run_blocked_reason"], "SOURCE_YEAR_ACTIVE_RETRIEVAL_TIME_INVALID")
+        active_id = self.client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                                    [self.resource["resource_id"]])["active_run_id"]
+        self.assertEqual(active_id, first["run_id"])
+
+    def test_source_year_atomic_activation_blocks_an_interleaved_older_snapshot(self):
+        client = ActivationHookClient()
+        resource = dld_registry_row()
+        register_resource(client, resource=resource, source_name="DLD", base_url="https://dld.gdcatalog.go.th")
+
+        def write(rows, retrieved_at):
+            return publish(
+                client, resource=resource, rows=rows, retrieved_at=retrieved_at,
+                completeness="complete", coverage={"mode": "source_response", "count": len(rows)},
+                unit="ตัว", period_grain="source_year_label",
+            )
+
+        write([dld_cattle_observation(source_year_be=2568)], "2026-10-26T03:00:00Z")
+        historical = dld_cattle_observation(source_year_be=2568)
+        client.before_activation = lambda: write(
+            [historical, dld_cattle_observation(source_year_be=2569, value=17000)],
+            "2026-10-28T03:00:00Z",
+        )
+        delayed = write(
+            [historical, dld_cattle_observation(source_year_be=2569, value=16000)],
+            "2026-10-27T03:00:00Z",
+        )
+        self.assertFalse(delayed["active_run_switched"])
+        self.assertEqual(delayed["active_run_blocked_reason"], "SOURCE_YEAR_POINTER_CHANGED_DURING_ACTIVATION")
+        active_id = client.one("SELECT active_run_id FROM resources WHERE resource_id=?",
+                               [resource["resource_id"]])["active_run_id"]
+        self.assertNotEqual(active_id, delayed["run_id"])
+        active_value = client.one("SELECT value FROM observations WHERE run_id=? AND row_key=?",
+                                  [active_id, "dld-beef-cattle:2569:10"])["value"]
+        self.assertEqual(active_value, 17000)
+        client.db.close()
+
+    def test_registry_authorization_does_not_claim_source_license_is_verified(self):
+        approved = dld_registry_row()
+        self.assertIs(assert_resource_approved(approved), approved)
+        self.assertFalse(approved["publication_authorization"]["source_license_verified"])
+        without_basis = dict(approved, publication_authorization=None)
+        with self.assertRaises(ObservationWriteError) as caught:
+            assert_resource_approved(without_basis)
+        self.assertEqual(caught.exception.code, "RESOURCE_NOT_APPROVED")
+
+
 def publish(client, *, resource, rows, completeness="partial", coverage=None, unit=None,
             adapter_version="test-adapter/1", retrieved_at=RETRIEVED_AT, run_id=None, **kwargs):
     """Call the writer with the shared contract's required keyword arguments."""
@@ -827,6 +1675,74 @@ def registry_row(**change):
         "evidence": [{"url": RESOURCE_ID, "checked_at": "2026-10-26", "finding": "public endpoint"}],
     }
     row.update(change)
+    return row
+
+
+def dld_registry_row(**change):
+    row = {
+        "resource_key": "dld_livestock_cattle_province",
+        "source_id": "dld",
+        "resource_id": "d3667ca5-5982-4c9e-9b0d-04e729dbe31b",
+        "dataset_id": "1bef9bc7-2f81-45c2-a21e-baba3743b456",
+        "name": "จำนวนโคเนื้อ รายจังหวัด กรมปศุสัตว์",
+        "resource_url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=d3667ca5-5982-4c9e-9b0d-04e729dbe31b&limit=500",
+        "license_status": "approved_public",
+        "project_publication_approved": True,
+        "commercial_use_confirmed": False,
+        "declared_license": {"license_id": "Open Data Common", "license_url": None, "version": None},
+        "unresolved": ["Exact ODC license variant and redistribution terms", "Reference year convention"],
+        "publication_authorization": {
+            "basis": "project_owner_instruction",
+            "document": "AGENTS.md",
+            "section": 3,
+            "scope": ["fetch", "process", "store_in_D1", "public_numeric_display"],
+            "source_license_verified": False,
+        },
+        "attribution_text": None,
+        "attribution_url": "https://dld.gdcatalog.go.th",
+        "evidence": [{
+            "url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=d3667ca5-5982-4c9e-9b0d-04e729dbe31b",
+            "checked_at": "2026-10-28",
+            "finding": "fixed resource endpoint; project publication authorization is separate from source license verification",
+        }],
+    }
+    row.update(change)
+    return row
+
+
+def dld_cattle_observation(**change):
+    row = {
+        "observation_id": "dld-beef-cattle:2564:10",
+        "source_id": "dld",
+        "area_code": "10",
+        "spatial_support": "province",
+        "location_id": "dld:province:10",
+        "commodity_id": "beef_cattle",
+        "observed_at": None,
+        "source_year_be": 2564,
+        "source_row_id": "123",
+        "release_at": None,
+        "retrieved_at": RETRIEVED_AT,
+        "measure": "beef_cattle_count",
+        "value": 14523,
+        "unit": "ตัว",
+        "data_kind": "official",
+        "revision_id": "dld-revision-2564-v1",
+        "quality_flag": "good",
+        "source_url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=d3667ca5-5982-4c9e-9b0d-04e729dbe31b",
+        "license_status": "approved_public",
+        "market_id": None,
+        "price_type": None,
+        "grade": None,
+        "season": None,
+    }
+    row.update(change)
+    if "area_code" in change and "observation_id" not in change:
+        row["observation_id"] = f"dld-beef-cattle:{row['source_year_be']}:{row['area_code']}"
+    if "source_year_be" in change and "observation_id" not in change:
+        row["observation_id"] = f"dld-beef-cattle:{row['source_year_be']}:{row['area_code']}"
+    if "area_code" in change and "location_id" not in change:
+        row["location_id"] = f"dld:province:{row['area_code']}"
     return row
 
 

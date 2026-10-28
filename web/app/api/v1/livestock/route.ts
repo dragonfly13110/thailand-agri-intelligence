@@ -4,9 +4,10 @@ import { buildLivestockDashboard } from '../../../../lib/hub/livestock-data';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/v1/livestock
+ * GET /api/v1/livestock (legacy)
  *
- * ข้อมูลอ้างอิงปศุสัตว์ (กรมปศุสัตว์) และสัตว์น้ำเศรษฐกิจ (กรมประมง) สำหรับหน้า /livestock
+ * Legacy sample reference endpoint for livestock and aquaculture. The /livestock
+ * page now uses /api/v1/livestock/beef-cattle for approved DLD observations.
  *
  * พารามิเตอร์:
  * - sector = livestock | aquaculture เลือกเซกเตอร์เดียว

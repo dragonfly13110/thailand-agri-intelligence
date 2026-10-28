@@ -104,11 +104,15 @@
         "grid_point",
         "grid_cell",
         "national",
-        "reservoir"
+        "reservoir",
+        "not_reported"
       ]
     },
     "location_id": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "minLength": 1
     },
     "commodity_id": {
@@ -119,8 +123,34 @@
       "minLength": 1
     },
     "observed_at": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time"
+    },
+    "source_year_be": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 2400,
+      "maximum": 9999
+    },
+    "source_year_label": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "source_row_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
     },
     "release_at": {
       "type": [
@@ -205,6 +235,49 @@
       "minLength": 1
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "source_year_be": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "source_year_be"
+            ]
+          },
+          {
+            "properties": {
+              "source_year_label": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source_year_label"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "observed_at": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  ],
   "required": [
     "observation_id",
     "source_id",
@@ -225,5 +298,5 @@
     "license_status"
   ],
   "additionalProperties": false,
-  "description": "Core validated observations only. Forecasts and scenarios use separate contracts. Runtime quality.py additionally enforces finite values, known source IDs, code grain, chronology, price keys and no credentials in provenance URLs."
+  "description": "Core validated observations only. Forecasts and scenarios use separate contracts. Dated records use observed_at; source-year records keep observed_at null. source_year_be is reserved for explicitly Buddhist-year labels; source_year_label retains an opaque source token without asserting calendar or fiscal semantics. not_reported spatial support and a null location_id mean the source did not report geographic scope. Runtime quality.py additionally enforces finite values, known source IDs, code grain, chronology, price keys and no credentials in provenance URLs."
 }

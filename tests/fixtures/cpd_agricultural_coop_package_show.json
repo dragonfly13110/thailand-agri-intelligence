@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "result": {
+    "id": "7e7e236d-790d-489d-a723-e0b1359530a4",
+    "title": "จำนวนสหกรณ์การเกษตร",
+    "notes": "จำนวนสหกรณ์การเกษตรที่จดทะเบียนโดยกรมส่งเสริมสหกรณ์ ที่มีสถานะ Active (สถานะยังไม่เริ่มดำเนินการ และสถานะดำเนินการ) และสถานะ Non-Active (สถานะเลิกสหกรณ์) แยกรายจังหวัด",
+    "metadata_modified": "2026-09-24T04:54:20.029517",
+    "license_id": "Creative Commons Attributions",
+    "license_title": "Creative Commons Attributions",
+    "license_url": null,
+    "resources": [
+      {
+        "id": "44463650-5d2e-482b-9919-b1c5b8bc5c6b",
+        "name": "จำนวนสหกรณ์การเกษตร 2568",
+        "format": "CSV",
+        "url": "https://catalog-cpd.data.go.th/dataset/7e7e236d-790d-489d-a723-e0b1359530a4/resource/44463650-5d2e-482b-9919-b1c5b8bc5c6b/download/st_001_01.csv",
+        "hash": "48d5acaf91f8d078051e6f21b32968a8",
+        "last_modified": "2026-09-24T04:53:48.05985",
+        "size": 9554,
+        "datastore_active": false,
+        "license_id": null,
+        "license_url": null
+      }
+    ]
+  }
+}

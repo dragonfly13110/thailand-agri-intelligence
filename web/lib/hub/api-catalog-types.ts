@@ -13,9 +13,11 @@ export type ApiGroupId =
   | 'water'
   | 'nwp'
   | 'crops'
+  | 'livestock'
   | 'soil'
   | 'areas'
-  | 'prices';
+  | 'prices'
+  | 'trade';
 
 /**
  * `approved_public` — ตัวเลขที่ส่งออกได้เฉพาะ active batch ที่อนุมัติแล้ว
@@ -28,8 +30,9 @@ export type ApiAccess = 'approved_public' | 'metadata_only' | 'pending';
  * `hub-v1` — ใช้ envelope { data, meta, pagination } ตาม
  *            data_contracts/hub-api.schema.json
  * `domain`  — endpoint เฉพาะแดชบอร์ดที่คืน shape ของโดเมนเอง (ไม่มี meta ตามสัญญา)
+ * `csv`     — success เป็นไฟล์ text/csv; error ยังใช้ JSON envelope ของ Hub
  */
-export type ApiContract = 'hub-v1' | 'domain';
+export type ApiContract = 'hub-v1' | 'domain' | 'csv';
 
 export type ApiParamType = 'string' | 'integer' | 'date' | 'enum';
 
@@ -37,8 +40,11 @@ export interface ApiQueryParam {
   name: string;
   type: ApiParamType;
   description: string;
+  required?: boolean;
   /** Prefilled value in the playground; omit for an empty field. */
   example?: string;
+  maxLength?: number;
+  pattern?: string;
   /** Allowed values when `type` is `enum`. */
   values?: string[];
   minimum?: number;
@@ -49,6 +55,7 @@ export interface ApiPathParam {
   name: string;
   description: string;
   example: string;
+  maxLength?: number;
   /** Optional live lookup the playground can use to fill a real id. */
   suggest?: 'dataset' | 'series' | 'source';
   pattern?: string;

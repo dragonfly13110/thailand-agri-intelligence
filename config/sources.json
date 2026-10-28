@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "scope": "Thailand First",
-  "updated_at": "2026-10-24",
+  "updated_at": "2026-10-28",
   "metadata_note": "Registry documents candidate access paths; runtime success and redistribution rights must be verified separately per resource.",
   "sources": [
     {
@@ -74,6 +74,31 @@
         "price",
         "cost"
       ],
+      "freshness_days": null
+    },
+    {
+      "id": "cpd",
+      "source_id": "cpd",
+      "owner": "ศูนย์เทคโนโลยีสารสนเทศและการสื่อสาร/กลุ่มฐานข้อมูลสารสนเทศ",
+      "name": "CPD Cooperative Data Catalog",
+      "category": "cooperative",
+      "domains": ["AG01"],
+      "priority": "P1",
+      "url": "https://catalog-cpd.data.go.th",
+      "base_url": "https://catalog-cpd.data.go.th",
+      "type": "ckan",
+      "status": "documented_not_runtime_verified",
+      "geographic_scope": "Thailand",
+      "data_grain": ["province", "reporting_unit", "source_status", "source_year_label"],
+      "license_status": "pending",
+      "auth_status": "resource_specific",
+      "runtime_verified": false,
+      "deferred": false,
+      "source_definition": "Exact CPD resource reports source province labels, reporting-unit labels, and three source status columns. Its source-year convention and reuse terms are unverified; observed province labels do not assert coverage.",
+      "reference": "config/resource_licenses.json#cpd_agricultural_coop_counts; docs/source-license-register.md",
+      "license_review_required": true,
+      "endpoint": "/api/3/action/package_show?id=7e7e236d-790d-489d-a723-e0b1359530a4",
+      "topics": ["cooperatives", "agricultural_structure"],
       "freshness_days": null
     },
     {

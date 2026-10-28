@@ -19,9 +19,9 @@ import unittest
 import duckdb
 
 
-_V13_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v13/Data"
-_V12_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v12/Data"
-_V11_DIR = Path(__file__).resolve().parents[1] / "data/local/powerbi/offline-v11/Data"
+_V13_DIR = Path(__file__).resolve().parents[2] / "data/local/powerbi/offline-v13/Data"
+_V12_DIR = Path(__file__).resolve().parents[2] / "data/local/powerbi/offline-v12/Data"
+_V11_DIR = Path(__file__).resolve().parents[2] / "data/local/powerbi/offline-v11/Data"
 DATA_DIR = _V13_DIR if _V13_DIR.exists() else (_V12_DIR if _V12_DIR.exists() else _V11_DIR)
 
 

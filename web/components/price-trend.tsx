@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { ApiMeta, DatasetDetail, DatasetSummary, HubObservation, HubSeries } from '@/lib/hub/types';
 import { Icon } from './icon';
+import {
+  buildPriceTrendPageHref,
+  fetchPriceSeriesPage,
+  parsePriceSeriesPage,
+  priceSeriesPager,
+  resolvePriceSeriesSelection,
+  type SeriesPagination,
+} from './price-trend-pagination';
 
 type Payload =
   | { kind: 'loading' }
@@ -11,8 +19,8 @@ type Payload =
   | { kind: 'choose_dataset'; datasets: DatasetSummary[]; meta: ApiMeta }
   | { kind: 'metadata_only'; detail: DatasetDetail; meta: ApiMeta }
   | { kind: 'choose_resource'; detail: DatasetDetail; meta: ApiMeta }
-  | { kind: 'choose_series'; detail: DatasetDetail; meta: ApiMeta; resourceId: string; series: HubSeries[] }
-  | { kind: 'ready'; detail: DatasetDetail; meta: ApiMeta; resourceId: string; series: HubSeries[]; selected: HubSeries; observations: HubObservation[]; observationMeta: ApiMeta };
+  | { kind: 'choose_series'; detail: DatasetDetail; meta: ApiMeta; resourceId: string; series: HubSeries[]; pagination: SeriesPagination; requestedSeriesMissing: boolean }
+  | { kind: 'ready'; detail: DatasetDetail; meta: ApiMeta; resourceId: string; series: HubSeries[]; pagination: SeriesPagination; selected: HubSeries; observations: HubObservation[]; observationMeta: ApiMeta };
 
 async function readJson<T>(response: Response): Promise<T> {
   const body: unknown = await response.json();
@@ -61,13 +69,22 @@ export function PriceTrend({ dataset = '', series = '', resourceId = '', from = 
 }) {
   const [retry, setRetry] = useState(0);
   const [payload, setPayload] = useState<Payload>({ kind: 'loading' });
+  const [seriesPage, setSeriesPage] = useState<number | null>(null);
+  const [invalidSeriesPage, setInvalidSeriesPage] = useState(false);
   const fromDate = monthStart(from);
   const toDate = monthEnd(to);
+
+  useEffect(() => {
+    const parsed = parsePriceSeriesPage(new URL(window.location.href).searchParams.get('seriesPage'));
+    setSeriesPage(parsed.page);
+    setInvalidSeriesPage(!parsed.valid);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
       try {
+        if (seriesPage === null) return;
         if (!dataset) {
           const params = new URLSearchParams({ category: 'prices', page: '1', pageSize: '25' });
           const listResponse = await fetch('/api/v1/datasets?' + params.toString(), {
@@ -99,22 +116,22 @@ export function PriceTrend({ dataset = '', series = '', resourceId = '', from = 
           setPayload({ kind: 'choose_resource', detail: detail.data, meta: detail.meta });
           return;
         }
-        const params = new URLSearchParams({ resourceId: resource.id, page: '1', pageSize: '50' });
-        const seriesResponse = await fetch('/api/v1/datasets/' + encodeURIComponent(dataset) + '/series?' + params.toString(), {
+        const seriesResult = await fetchPriceSeriesPage<HubSeries>({
+          dataset,
+          resourceId: resource.id,
+          page: seriesPage,
           signal: controller.signal,
-          headers: { accept: 'application/json' },
         });
-        const seriesResult = await readJson<{ data: HubSeries[]; meta: ApiMeta }>(seriesResponse);
-        if (!Array.isArray(seriesResult.data)) throw new Error('รูปแบบรายการอนุกรมไม่ถูกต้อง');
-        if (!seriesResult.data.length) {
-          setPayload({ kind: 'choose_series', detail: detail.data, meta: detail.meta, resourceId: resource.id, series: [] });
+        const selection = resolvePriceSeriesSelection(seriesResult.data, series, seriesResult.pagination.total);
+        if (selection.kind !== 'selected') {
+          setPayload({
+            kind: 'choose_series', detail: detail.data, meta: detail.meta, resourceId: resource.id,
+            series: seriesResult.data, pagination: seriesResult.pagination,
+            requestedSeriesMissing: selection.kind === 'not_on_page',
+          });
           return;
         }
-        const selected = seriesResult.data.find((item) => item.id === series) ?? (seriesResult.data.length === 1 ? seriesResult.data[0] : null);
-        if (!selected) {
-          setPayload({ kind: 'choose_series', detail: detail.data, meta: detail.meta, resourceId: resource.id, series: seriesResult.data });
-          return;
-        }
+        const selected = selection.series;
         const observationParams = new URLSearchParams({ page: '1', pageSize: '100' });
         if (fromDate) observationParams.set('from', fromDate);
         if (toDate) observationParams.set('to', toDate);
@@ -130,6 +147,7 @@ export function PriceTrend({ dataset = '', series = '', resourceId = '', from = 
           meta: detail.meta,
           resourceId: resource.id,
           series: seriesResult.data,
+          pagination: seriesResult.pagination,
           selected,
           observations: observationResult.data,
           observationMeta: observationResult.meta,
@@ -142,7 +160,7 @@ export function PriceTrend({ dataset = '', series = '', resourceId = '', from = 
     }
     void load();
     return () => controller.abort();
-  }, [dataset, resourceId, series, fromDate, toDate, retry]);
+  }, [dataset, resourceId, series, fromDate, toDate, retry, seriesPage]);
 
   const detail = payload.kind === 'metadata_only' || payload.kind === 'choose_resource' || payload.kind === 'choose_series' || payload.kind === 'ready'
     ? payload.detail
@@ -154,6 +172,37 @@ export function PriceTrend({ dataset = '', series = '', resourceId = '', from = 
   ) ?? [];
   const visibleSeries = payload.kind === 'choose_series' || payload.kind === 'ready' ? payload.series : [];
   const selectedResource = payload.kind === 'choose_series' || payload.kind === 'ready' ? payload.resourceId : resourceId;
+  const currentPageData = payload.kind === 'choose_series' || payload.kind === 'ready' ? payload : null;
+  const pager = currentPageData ? priceSeriesPager(currentPageData.pagination) : null;
+  const pageHref = (page: number) => buildPriceTrendPageHref({
+    dataset, resourceId: selectedResource, series, from, to,
+  }, page);
+
+  function renderSeriesPager() {
+    if (!currentPageData || !pager || (currentPageData.pagination.total === 0 && !pager.outOfRange)) return null;
+    const { page, total } = currentPageData.pagination;
+    const pageCount = pager.pageCount;
+    const label = pager.outOfRange
+      ? pageCount === 0
+        ? `หน้า ${page} อยู่นอกช่วง · ยังไม่มีรายการอนุกรม`
+        : `หน้า ${page} อยู่นอกช่วง · มี ${total.toLocaleString('th-TH')} รายการใน ${pageCount} หน้า`
+      : `รายการ ${pager.rangeStart.toLocaleString('th-TH')}–${pager.rangeEnd.toLocaleString('th-TH')} จาก ${total.toLocaleString('th-TH')} · หน้า ${page} จาก ${pageCount}`;
+    return <nav className="pagination" aria-label="หน้ารายการอนุกรม">
+      <span aria-live="polite">{label}</span>
+      <div>
+        {pager.outOfRange
+          ? <a href={pageHref(pager.recoveryPage)} aria-label={`กลับไปหน้า ${pager.recoveryPage}`}>{pageCount > 0 ? 'ไปหน้าสุดท้าย' : 'กลับหน้า 1'}</a>
+          : <>
+            {page > 1
+              ? <a href={pageHref(page - 1)} rel="prev">ก่อนหน้า</a>
+              : <span aria-disabled="true">ก่อนหน้า</span>}
+            {page < pageCount
+              ? <a href={pageHref(page + 1)} rel="next">ถัดไป</a>
+              : <span aria-disabled="true">ถัดไป</span>}
+          </>}
+      </div>
+    </nav>;
+  }
 
   return <section className="local-data price-trend" aria-labelledby="price-heading">
     <div className="real-data-heading">
@@ -189,17 +238,22 @@ export function PriceTrend({ dataset = '', series = '', resourceId = '', from = 
       {approvedResources.length > 0 && <form className="data-filters" action="/explore" method="get">
         <input type="hidden" name="dataset" value={dataset}/>
         <input type="hidden" name="view" value="price_trend"/>
+        <input type="hidden" name="seriesPage" value={seriesPage ?? 1}/>
         <div><label htmlFor="price-resource">ทรัพยากรที่อนุมัติ</label><select id="price-resource" name="resourceId" defaultValue={selectedResource}><option value="">เลือกทรัพยากร</option>{approvedResources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
-        <div><label htmlFor="price-series">สินค้า / ตัวชี้วัด / หน่วย</label><select id="price-series" name="series" defaultValue={series}>{visibleSeries.map((item) => <option key={item.id} value={item.id}>{[item.product, item.grade, item.metricName, item.unit].filter(Boolean).join(' · ') || item.id}</option>)}</select></div>
+        <div><label htmlFor="price-series">สินค้า / ตลาด / พื้นที่ / ตัวชี้วัด / หน่วย</label><select id="price-series" name="series" defaultValue={series}>{!series && <option value="">เลือกอนุกรม</option>}{series && !visibleSeries.some((item) => item.id === series) && <option value={series}>ลิงก์อนุกรมที่ยังไม่อยู่ในหน้านี้</option>}{visibleSeries.map((item) => <option key={item.id} value={item.id}>{[item.product, item.grade, item.market, item.locationName, item.locationCode, item.cropName, item.metricName, item.unit, item.sourceGrain].filter(Boolean).join(' · ') || item.id}</option>)}</select></div>
         <div><label htmlFor="price-from">ตั้งแต่เดือน</label><input id="price-from" name="from" type="month" defaultValue={from}/></div>
         <div><label htmlFor="price-to">ถึงเดือน</label><input id="price-to" name="to" type="month" defaultValue={to}/></div>
         <button className="button" type="submit">ดูข้อมูลตามช่วง<Icon name="arrow" size={16}/></button>
       </form>}
+      {invalidSeriesPage && <p className="area-note" role="status">ค่า seriesPage ในลิงก์ไม่ถูกต้อง จึงเริ่มแสดงหน้า 1</p>}
+      {renderSeriesPager()}
       {payload.kind === 'metadata_only' && <div className="empty-state" role="status"><h3>ยังไม่มีชุดราคาที่อนุมัติให้แสดงตัวเลข</h3><p>ใบอนุญาตที่ต้นทางระบุไม่ได้แทนการอนุมัติของ Hub ตัวเลขจะเปิดเมื่อมีทรัพยากรสาธารณะที่ผ่านการอนุมัติและรอบดึงข้อมูลสำเร็จ</p></div>}
       {payload.kind === 'choose_resource' && <div className="empty-state" role="status"><h3>เลือกทรัพยากรที่ต้องการอ่าน</h3><p>มีทรัพยากรมากกว่าหนึ่งรายการที่ Hub อนุมัติให้เปิดผ่าน API</p></div>}
-      {payload.kind === 'choose_series' && (payload.series.length === 0
-        ? <div className="empty-state" role="status"><h3>ยังไม่มีอนุกรมราคาที่เผยแพร่</h3><p>API ยังไม่มีอนุกรมที่เปิดเผยได้สำหรับทรัพยากรนี้</p></div>
-        : <div className="empty-state" role="status"><h3>เลือกสินค้าและตัวชี้วัด</h3><p>เลือกอนุกรมจากรายการแล้วกำหนดช่วงเวลาเพื่ออ่าน observations</p></div>)}
+      {payload.kind === 'choose_series' && (payload.requestedSeriesMissing
+        ? <div className="empty-state" role="status"><h3>ลิงก์อนุกรมไม่อยู่ในหน้านี้</h3><p>{payload.pagination.total === 0 ? 'API ยังไม่คืนรายการอนุกรมสำหรับทรัพยากรนี้' : `กำลังแสดงหน้า ${payload.pagination.page} จาก ${pager?.pageCount ?? 0}`}. ใช้ปุ่มก่อนหน้า/ถัดไปเพื่อค้นหาหน้า หรือเปิดลิงก์ด้วย seriesPage ที่ทราบ ระบบอ่านเฉพาะหน้าที่เลือกเพื่อจำกัดคำขอและไม่เลือกอนุกรมอื่นแทน</p></div>
+        : payload.series.length === 0
+          ? <div className="empty-state" role="status"><h3>ยังไม่มีอนุกรมราคาที่เผยแพร่ในหน้านี้</h3><p>{pager?.outOfRange ? 'หน้าที่ระบุอยู่นอกช่วงรายการ เลือกหน้าสุดท้ายจากตัวควบคุมด้านบน' : 'API ยังไม่มีอนุกรมที่เปิดเผยได้สำหรับทรัพยากรนี้'}</p></div>
+          : <div className="empty-state" role="status"><h3>เลือกสินค้าและตัวชี้วัด</h3><p>เลือกอนุกรมจากหน้าปัจจุบัน แล้วกำหนดช่วงเวลาเพื่ออ่าน observations</p></div>)}
       {payload.kind === 'ready' && <>
         {payload.observationMeta.freshness === 'stale' && <p className="area-note" role="status">อนุกรมจากรอบดึงล่าสุดอาจเก่า</p>}
         {payload.observations.length === 0

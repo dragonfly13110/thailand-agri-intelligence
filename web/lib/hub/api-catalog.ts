@@ -45,6 +45,11 @@ export const API_GROUPS: ApiGroup[] = [
     description: 'ปฏิทินการผลิต สถิติระดับประเทศ และพันธุ์พืชจากเอกสารราชการ',
   },
   {
+    id: 'livestock',
+    label: 'ปศุสัตว์',
+    description: 'ตัวเลขปศุสัตว์ตามเกรนและป้ายปีที่ระบุจากต้นทาง โดยแสดงข้อจำกัดด้านวันอ้างอิงและสิทธิ์ข้อมูล',
+  },
+  {
     id: 'soil',
     label: 'ดินและปุ๋ย',
     description: 'ชุดดินที่ตรวจสอบแล้วจาก LDD พร้อมคำแนะนำปุ๋ยและคู่มือปัญหาดิน',
@@ -58,6 +63,11 @@ export const API_GROUPS: ApiGroup[] = [
     id: 'prices',
     label: 'ราคาสินค้าเกษตร',
     description: 'ราคาสินค้าเกษตรรายวันจาก snapshot คงที่ของ OAE และ DIT',
+  },
+  {
+    id: 'trade',
+    label: 'การค้าสินค้าเกษตร',
+    description: 'มูลค่าการส่งออกสินค้าเกษตรจาก OAE ตามสินค้าและป้ายปีต้นทาง โดยไม่อนุมานพื้นที่หรือยอดรวม',
   },
 ];
 
@@ -204,6 +214,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
         name: 'id',
         description: 'รหัสชุดข้อมูลจาก /api/v1/datasets (รูปแบบ source:package)',
         example: 'doae:production_doae',
+        maxLength: 260,
         suggest: 'dataset',
       },
     ],
@@ -211,6 +222,55 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'resources[].accessStatus และ projectPublicationApproved ใช้ตัดสินว่าตัวเลขของ resource เปิดเผยได้หรือยัง',
       'activeRunId, lastSuccessAt และ dataAsOf ของ resource จะเป็น null เมื่อยังไม่มี batch ที่อนุมัติให้เผยแพร่',
       'ไม่พบชุดข้อมูลหรือชุดนั้นไม่เปิดเผย metadata → 404 DATASET_NOT_FOUND',
+    ],
+  },
+  {
+    id: 'datasets-export',
+    group: 'datasets',
+    method: 'GET',
+    path: '/api/v1/datasets/{id}/export',
+    title: 'ส่งออกชุดข้อมูลเป็น CSV',
+    description:
+      'ดาวน์โหลดแถวที่เผยแพร่ได้จาก resource เดียวของชุดข้อมูล พร้อมคอลัมน์ที่มาและเวอร์ชันของรอบข้อมูล',
+    access: 'approved_public',
+    contract: 'csv',
+    responseType: 'text/csv; charset=utf-8',
+    pathParams: [
+      {
+        name: 'id',
+        description: 'รหัสชุดข้อมูลจาก /api/v1/datasets (รูปแบบ source:package)',
+        example: 'doae:production_doae',
+        maxLength: 260,
+        suggest: 'dataset',
+      },
+    ],
+    query: [
+      {
+        name: 'resourceId',
+        type: 'string',
+        description: 'รหัส resource ที่ต้องการส่งออกภายในชุดข้อมูลนี้; ต้องระบุ',
+        required: true,
+        maxLength: 260,
+      },
+      {
+        name: 'from',
+        type: 'date',
+        description: 'กรอง period_start/period_end ตั้งแต่วันที่ YYYY-MM-DD',
+        example: '2026-10-01',
+      },
+      {
+        name: 'to',
+        type: 'date',
+        description: 'กรอง period_start/period_end ถึงวันที่ YYYY-MM-DD',
+        example: '2026-10-24',
+      },
+    ],
+    notes: [
+      'สำเร็จแล้วได้ไฟล์แนบ CSV UTF-8 พร้อม BOM; response ผิดพลาดยังเป็น JSON ตามสัญญา Hub v1',
+      'ต้องระบุ resourceId ที่ได้รับอนุมัติให้เผยแพร่และมี active run; ชุดข้อมูลหรือ resource ที่ยัง pending จะส่งออกไม่ได้',
+      'ส่งออกได้ resource เดียวไม่เกิน 1,000 แถวต่อคำขอ; หากเกินให้ระบุ from/to ให้แคบลง',
+      'ไฟล์มี sourceIds, sourceUrl, resourceGrain, datasetVersion, sourceRetrievedAt, sourceUpdatedAt, dataAsOf, completeness และ warnings เป็น provenance; ข้อความที่อาจเป็นสูตร spreadsheet ถูกทำให้ปลอดภัย',
+      'id ยาวเกิน 260 ตัวอักษร → 400 INVALID_ID; resourceId ไม่อยู่ในชุดข้อมูล → 404; ยังไม่ได้รับอนุมัติ → 403; เกิน 1,000 แถว → 413; from/to ผิดรูปแบบหรือ from มากกว่า to → 400 INVALID_QUERY',
     ],
   },
   {
@@ -277,7 +337,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/v1/datasets/{id}/series',
     title: 'อนุกรมของชุดข้อมูล',
     description:
-      'คืน series ที่จัดกลุ่มจาก observation ตาม resource และชุดมิติ เพื่อเลือกก่อนดึงค่าย้อนหลังโดยไม่ปนสินค้า เกรด หน่วย หรือตลาดที่ต่างกัน',
+      'คืน series ที่จัดกลุ่มตาม resource สินค้า เกรด ตลาด หน่วย พื้นที่ crop ตัวชี้วัด source grain และมิติที่มีความหมาย เพื่อเลือกก่อนดึงค่าย้อนหลัง',
     access: 'approved_public',
     contract: 'hub-v1',
     responseType: 'ApiResponse<HubSeries[]>',
@@ -308,8 +368,9 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       ...pageParams(),
     ],
     notes: [
-      'id ของ series อยู่ในรูปแบบ resourceId|seriesKey และใช้ต่อกับ /api/v1/series/{id}/observations',
-      'series ที่สินค้า เกรด หน่วย ตลาด หรือวิธีวัดต่างกันจะไม่ถูกยุบรวมเป็นแถวเดียว',
+      'นำ id จากผลลัพธ์ไปใช้กับ /api/v1/series/{id}/observations โดยตรง; กลุ่มที่แยกจาก legacy key ใช้รหัส v2 แบบ URL-safe',
+      'รหัสเดิม resourceId|seriesKey ยังอ่านได้เมื่อชี้ชุดมิติเดียว; ถ้ากำกวมจะตอบ 409 AMBIGUOUS_SERIES_ID',
+      'ID จำกัด 600 ตัวอักษร; identity ที่ยาวเกินตอบ 422 SERIES_ID_TOO_LONG โดยไม่ตัดรายการให้ดูเหมือนครบ',
       'D1 ปัจจุบันมี 0 observations จึงมักได้ data: [] พร้อม availability empty หรือ metadata_only',
     ],
   },
@@ -327,7 +388,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     pathParams: [
       {
         name: 'id',
-        description: 'รหัส series จาก /api/v1/datasets/{id}/series ในรูปแบบ resourceId|seriesKey',
+        description: 'รหัส series จาก /api/v1/datasets/{id}/series; รองรับ legacy เฉพาะเมื่อไม่กำกวมและรหัส v2 แบบ URL-safe',
         example: 'resource-id|series-key',
         suggest: 'series',
       },
@@ -348,7 +409,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       ...pageParams(),
     ],
     notes: [
-      'id ต้องมาจาก endpoint series ของชุดข้อมูลนั้น และต้องมีเครื่องหมาย | คั่นระหว่าง resourceId กับ seriesKey',
+      'ใช้ ID ที่ endpoint series ส่งกลับ; ID legacy กำกวมจะตอบ 409 AMBIGUOUS_SERIES_ID',
+      'ID ยาวเกิน 600 ตัวอักษรหรือรูปแบบไม่ถูกต้อง → 400 INVALID_ID',
       'อ่านเฉพาะแถวที่ resource อนุมัติให้เผยแพร่; series ที่ไม่มีแถวเผยแพร่ได้ → 404 SERIES_NOT_FOUND',
       'D1 ปัจจุบันมี 0 observations จึงมักได้ data: [] พร้อม availability empty หรือ metadata_only',
       'from/to ผิดรูปแบบหรือ from มากกว่า to → 400 INVALID_QUERY',
@@ -388,6 +450,52 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'ยังไม่มีระเบียนพยากรณ์ที่อนุมัติ: data.days=[] และ cumulative=null; ระบบไม่ส่งตัวเลขตัวอย่าง',
       'meta.availability=empty และ meta.access=metadata_only พร้อมคำเตือนทุก response; พยากรณ์ TMD HPC อยู่ที่ /api/v1/nwp และค่าตรวจวัดอยู่ที่ /api/v1/weather/observations',
       'ไม่ระบุทั้งสองตัวเลือกหรือรหัสไม่ถูกต้อง → 400 INVALID_QUERY',
+    ],
+  },
+  {
+    id: 'weather-monthly-rainfall',
+    group: 'weather',
+    method: 'GET',
+    path: '/api/v1/weather/monthly-rainfall',
+    title: 'ฝนรายเดือนจากสถานีตรวจวัด',
+    description:
+      'คืนยอดฝนและจำนวนวันฝนตกรายเดือนตามเกรนสถานี × เดือน จาก active batch ที่อนุมัติ พร้อมตัวกรองและ provenance ของรอบข้อมูล',
+    access: 'approved_public',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<MonthlyRainfallBody>',
+    query: [
+      {
+        name: 'provinceCode',
+        type: 'string',
+        description: 'รหัสจังหวัด 2 หลักในทะเบียน 77 จังหวัด; เป็นตัวกรองสถานี ไม่ใช่หลักฐาน coverage',
+        example: '10',
+        maxLength: 2,
+        pattern: '^\\d{2}$',
+      },
+      {
+        name: 'stationCode',
+        type: 'string',
+        description: 'รหัสสถานี 3–20 ตัวอักษร/ตัวเลข หรือขีดกลางและขีดล่าง',
+        example: '48300',
+        maxLength: 20,
+        pattern: '^[A-Za-z0-9_-]{3,20}$',
+      },
+      {
+        name: 'year',
+        type: 'integer',
+        description: 'ปี ค.ศ. 4 หลักตามปีที่ต้นทางเผยแพร่',
+        example: '2026',
+        minimum: 1000,
+        maximum: 9999,
+      },
+      ...pageParams(),
+    ],
+    notes: [
+      'ตอบเป็น Hub v1 envelope; data มี stations, summary, filters และ directory; meta ระบุ availability, completeness, access, sourceIds, dataAsOf, datasetVersion และ warnings',
+      'เมื่ออ่านคลังไม่สำเร็จหรือยังไม่มี active batch จะคืน metadata_only โดยไม่มีตัวเลข; batch ที่อ่านได้แต่ไม่ตรงตัวกรองเป็น empty ไม่ได้แปลว่าไม่มีฝน',
+      'เกรนคือสถานี × เดือน ไม่มีค่าเฉลี่ยจังหวัดหรือผลรวมรายปี; ช่องที่ไม่มีค่าคงเป็น null และหน่วยยังรอการยืนยัน (unit=null, unit_status=pending_official_confirmation)',
+      'provinceCode ต้องเป็นรหัส 2 หลักที่อยู่ในทะเบียน 77 จังหวัด; stationCode ต้องตรงรูปแบบ 3–20 ตัวอักษร/ตัวเลข/ขีด; year ต้องเป็นปี ค.ศ. 4 หลัก; ค่าที่ไม่ผ่านตรวจ → 400 INVALID_QUERY',
+      'page เริ่มที่ 1 และ pageSize ไม่เกิน 100; การอ่าน batch มีเพดาน 20,000 แถวและรายงาน partial เมื่อถึงเพดาน',
     ],
   },
   {
@@ -644,6 +752,41 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
   },
 
   /* ------------------------------------------------------------------ */
+  /* livestock                                                           */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'livestock-beef-cattle',
+    group: 'livestock',
+    method: 'GET',
+    path: '/api/v1/livestock/beef-cattle',
+    title: 'จำนวนโคเนื้อรายจังหวัด',
+    description:
+      'คืนจำนวนโคเนื้อรายจังหวัดตามป้ายปี พ.ศ. ที่บันทึกจากต้นทาง พร้อมสถานะและที่มาของ snapshot โดยไม่ตีความป้ายปีแทนวันที่',
+    access: 'approved_public',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<DldBeefCattleData>',
+    query: [
+      {
+        name: 'sourceYearBe',
+        type: 'integer',
+        description: 'ป้ายปี พ.ศ. 4 หลักตามต้นทาง ใช้กรองแถวตามป้ายปีนั้น ไม่แปลงเป็นปี ค.ศ.',
+        example: '2565',
+        maxLength: 4,
+        pattern: '^\\d{4}$',
+        minimum: 2400,
+        maximum: 9999,
+      },
+    ],
+    notes: [
+      'เกรนจังหวัด × ป้ายปี พ.ศ. จากต้นทาง; ยังไม่ยืนยันว่าป้ายปีเป็นปีปฏิทินหรือปีงบประมาณ และ meta.dataAsOf=null เพราะแถวไม่มีวันที่ปฏิทิน',
+      'sourceLicenseStatus=unverified; publicationAuthorization=project_owner_instruction. คำสั่งเจ้าของโครงการไม่ยืนยันเงื่อนไขสัญญาอนุญาตของต้นทาง',
+      'value ที่ต้นทางไม่มีคงเป็น null ไม่ใช่ 0; unit เป็น null เมื่อไม่มีแถวหรือหน่วยในแถวที่เลือกไม่เป็นค่าเดียว',
+      'meta.availability=ready เมื่อมีแถว; empty เมื่ออ่านชุดข้อมูลได้แต่ไม่มีแถวตรงตัวกรอง; metadata_only เมื่อมีเพียง metadata. ถ้าอ่าน D1 ไม่สำเร็จ route ตอบ HTTP 503 เป็น JSON error DLD_DATA_UNAVAILABLE โดยไม่มี meta',
+      'sourceYearBe กรองป้ายปี พ.ศ. 4 หลักตั้งแต่ 2400; ส่ง from/to ไม่รองรับและจะได้ 400 INVALID_QUERY',
+    ],
+  },
+
+  /* ------------------------------------------------------------------ */
   /* soil                                                                */
   /* ------------------------------------------------------------------ */
   {
@@ -767,6 +910,36 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       'meta.availability=ready พร้อม dataAsOf ของวันที่ในแถว, empty เมื่อไม่มีแถวที่ publish ได้, metadata_only เมื่อการเผยแพร่ของโครงการถูกปิด; สินค้าที่ต้นทางล้มเหลวรายงานเป็น failure code ใน warnings ไม่ถูกแทนด้วยตัวเลขอื่น',
       'date ผิดรูปแบบหรือค่าไม่ใช่วันจริง → 400 INVALID_QUERY; ระบบต้นทางไม่พร้อม → 500 INTERNAL_ERROR ตามตัวห่อ handleApi',
       'ตัวเลขที่เผยแพร่เป็นราคาจริงจาก OAE/NABC ตามนโยบาย Full Production Unlocked (AGENTS.md ข้อ 3) ต้องคงการอ้างอิงต้นทางและตรวจเงื่อนไขการใช้งานล่าสุดก่อนใช้เชิงพาณิชย์; resource ราคารายเดือนของ OAE ยัง pending และคนละ endpoint',
+    ],
+  },
+  {
+    id: 'trade-oae',
+    group: 'trade',
+    method: 'GET',
+    path: '/api/v1/trade/oae',
+    title: 'มูลค่าการส่งออกสินค้าเกษตรของ OAE',
+    description:
+      'คืนมูลค่าการส่งออกแยกตามสินค้าและป้ายปีต้นทางจาก snapshot ที่เผยแพร่ได้ พร้อมสถานะและที่มาของข้อมูล',
+    access: 'approved_public',
+    contract: 'hub-v1',
+    responseType: 'ApiResponse<OaeTradeData>',
+    query: [
+      {
+        name: 'yearLabel',
+        type: 'string',
+        description: 'ป้ายปีตามต้นทาง ใช้จับคู่ข้อความตรงตัวโดยไม่แปลงเป็นปีหรือวันที่',
+        example: '2568',
+        maxLength: 80,
+      },
+    ],
+    notes: [
+      'sourceGrain=product × trade type × source-year label (สินค้า × ประเภทการค้า (การส่งออก) × ป้ายปีต้นทาง); yearLabel เป็นข้อความป้ายปี และ sourceYearConvention=unknown ยังไม่ยืนยันว่าเป็นปีปฏิทินหรือปีงบประมาณ',
+      'spatialSupport=not_reported; ไม่มีจังหวัดหรือขอบเขตพื้นที่ และแสดงค่ารายสินค้าโดยไม่คำนวณยอดรวม สัดส่วน หรือ coverage',
+      'measure=agricultural_export_value, unit=ล้านบาท; value ที่ต้นทางไม่มีคงเป็น null และ qualityStatus=missing ไม่แทนด้วย 0; meta.dataAsOf=null เพราะไม่มีวันอ้างอิงในแถว',
+      'data.attributionText และ attributionUrl ใช้ระบุที่มาตาม response; sourceLicenseStatus=unverified และ publicationAuthorization=project_owner_instruction ไม่ใช่การยืนยันเงื่อนไขอนุญาตใช้ซ้ำ',
+      'meta.availability=ready เมื่อมีแถว; empty เมื่อไม่มีแถวตรงป้ายปีหรือ active run ไม่มีระเบียน; metadata_only เมื่อไม่มีระเบียนตัวเลขที่ผ่านเงื่อนไขเผยแพร่. run สถานะ partial จะระบุ meta.completeness=partial',
+      'ไม่ระบุ yearLabel = คืนข้อมูลของ active run; yearLabel ที่ส่งมาต้องไม่ว่าง ยาวไม่เกิน 80 ตัวอักษร และไม่มี control characters. ค่าซ้ำหรือพารามิเตอร์อื่นรวม from/to → 400 INVALID_QUERY',
+      'อ่าน D1 ไม่สำเร็จ → 503 OAE_TRADE_UNAVAILABLE; active snapshot หรือระเบียนไม่ตรงสัญญา → 503 OAE_TRADE_SNAPSHOT_INVALID',
     ],
   },
 ];

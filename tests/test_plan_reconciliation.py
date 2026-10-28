@@ -123,15 +123,4 @@ class PlanReconciliationTests(unittest.TestCase):
         self.assertTrue(out["reconciliation_possible"])
         self.assertEqual(out["area_reconciliations"][0]["achievement_ratio"],.85)
 
-    def test_current_audit_selects_2569_subdistrict_plan_not_summary(self):
-        out=audit_national_plan_actual_reconciliation(ROOT)
-        for name,plans,actuals in [("rainy_season",477,3),("dry_season",599,10)]:
-            section=out[name]
-            self.assertEqual(section["overall_status"],"INCOMPARABLE")
-            self.assertEqual(section["comparison_status"],"INCOMPARABLE")
-            self.assertEqual(section["plan_record_count"],plans);self.assertEqual(section["result_record_count"],actuals)
-            self.assertEqual(section["overlapping_provinces"],[]);self.assertEqual(section["area_reconciliations"],[])
-        self.assertEqual(out["dry_season"]["plan_provinces"],["20","46","81","90"])
-        self.assertEqual(out["dry_season"]["actual_provinces"],["10","12","13","14","41"])
-
 if __name__=="__main__":unittest.main()

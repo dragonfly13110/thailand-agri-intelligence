@@ -1,24 +1,24 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type {
   ApiAccess,
   ApiContract,
   ApiEndpoint,
   ApiGroup,
   ApiPathParam,
-  ApiQueryParam,
 } from '@/lib/hub/api-catalog-types';
+import {
+  apiAcceptHeader,
+  csvDownloadFilename,
+  parseApiResponseBody,
+  validateApiRequest,
+  type ParsedApiBody,
+} from '@/lib/hub/api-playground-contract';
 import { ApiSnippets } from './api-snippets';
 import styles from './api-playground.module.css';
 
 type SuggestKind = NonNullable<ApiPathParam['suggest']>;
-
-type ParsedBody =
-  | { kind: 'empty'; text: string }
-  | { kind: 'text'; text: string }
-  | { kind: 'json'; text: string; value: unknown };
 
 interface ApiResult {
   requestPath: string;
@@ -28,7 +28,9 @@ interface ApiResult {
   contentType: string;
   durationMs: number;
   byteLength: number;
-  body: ParsedBody;
+  body: ParsedApiBody;
+  downloadBlob?: Blob;
+  downloadFilename?: string;
 }
 
 type ResultState =
@@ -67,6 +69,7 @@ const ACCESS_CLASSES: Record<ApiAccess, string> = {
 const CONTRACT_LABELS: Record<ApiContract, string> = {
   'hub-v1': 'สัญญา Hub v1',
   domain: 'domain shape เฉพาะแดชบอร์ด',
+  csv: 'ไฟล์ CSV',
 };
 
 const SUGGEST_LABELS: Record<SuggestKind, string> = {
@@ -126,17 +129,6 @@ function buildRequestUrl(
   return suffix ? `${path}?${suffix}` : path;
 }
 
-function parseResponseBody(text: string, contentType: string): ParsedBody {
-  if (!text.trim()) return { kind: 'empty', text };
-  try {
-    const value: unknown = JSON.parse(text);
-    return { kind: 'json', text, value };
-  } catch {
-    // Non-JSON responses are rendered verbatim.
-  }
-  return { kind: 'text', text };
-}
-
 function prettyJson(value: unknown): string {
   try {
     const rendered = JSON.stringify(value, null, 2);
@@ -164,6 +156,18 @@ function formatDuration(milliseconds: number): string {
 
 function formatBytes(bytes: number): string {
   return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function subscribeToOrigin() {
+  return () => {};
+}
+
+function getOrigin() {
+  return window.location.origin;
+}
+
+function getServerOrigin() {
+  return undefined;
 }
 
 function statusToneClass(status: number): string {
@@ -301,12 +305,11 @@ export function ApiPlayground({
     status: 'idle',
     message: '',
   });
-  const [origin, setOrigin] = useState<string | undefined>(undefined);
+  const origin = useSyncExternalStore(subscribeToOrigin, getOrigin, getServerOrigin);
 
   const activeRequest = useRef<AbortController | null>(null);
   const activeSuggest = useRef<AbortController | null>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bootstrapped = useRef(false);
 
   const selectedEndpoint = useMemo(
     () => endpoints.find((endpoint) => endpoint.id === selectedId) ?? endpoints[0],
@@ -318,9 +321,9 @@ export function ApiPlayground({
     () => (selectedEndpoint ? buildRequestUrl(selectedEndpoint, pathValues, queryValues) : ''),
     [selectedEndpoint, pathValues, queryValues],
   );
-  const missingPathNames = useMemo(
-    () => pathParams.filter((param) => !(pathValues[param.name] ?? '').trim()).map((param) => param.name),
-    [pathParams, pathValues],
+  const requestIssues = useMemo(
+    () => selectedEndpoint ? validateApiRequest(selectedEndpoint, pathValues, queryValues) : [],
+    [selectedEndpoint, pathValues, queryValues],
   );
   const groupedOptions = useMemo(() => {
     const listed = new Set<string>();
@@ -334,24 +337,6 @@ export function ApiPlayground({
     const leftover = endpoints.filter((endpoint) => !listed.has(endpoint.id));
     return { entries, leftover };
   }, [endpoints, groups]);
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  // The catalog is server-rendered and static. Read ?endpoint= once after mount so
-  // hydration stays deterministic while deep links still select the right endpoint.
-  useEffect(() => {
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
-    const endpointParam = new URLSearchParams(window.location.search).get('endpoint');
-    const linked = endpointParam ? endpoints.find((endpoint) => endpoint.id === endpointParam) : undefined;
-    if (!linked) return;
-    setSelectedId(linked.id);
-    setPathValues(initialPathValues(linked));
-    setQueryValues(initialQueryValues(linked));
-    setResult({ phase: 'idle' });
-  }, [endpoints]);
 
   useEffect(() => {
     return () => {
@@ -415,6 +400,10 @@ export function ApiPlayground({
     if (suggestStatus.status !== 'idle' && suggestStatus.status !== 'loading') {
       setSuggestStatus({ status: 'idle', message: '' });
     }
+  }
+
+  function handleQueryChange(name: string, value: string) {
+    setQueryValues((current) => ({ ...current, [name]: value }));
   }
 
   function handleReset() {
@@ -574,7 +563,7 @@ export function ApiPlayground({
   }
 
   async function handleSubmit() {
-    if (!selectedEndpoint || missingPathNames.length > 0 || result.phase === 'loading') return;
+    if (!selectedEndpoint || requestIssues.length > 0 || result.phase === 'loading') return;
 
     abortActiveRequest();
     const controller = new AbortController();
@@ -586,13 +575,15 @@ export function ApiPlayground({
     const startedAt = performance.now();
     try {
       const response = await fetch(requestPathWithQuery, {
-        headers: { Accept: 'application/json' },
+        headers: { Accept: apiAcceptHeader(selectedEndpoint.contract) },
         signal: controller.signal,
       });
-      const text = await response.text();
-      const durationMs = performance.now() - startedAt;
       const contentType = response.headers.get('content-type') ?? '';
-      const body = parseResponseBody(text, contentType);
+      const csvResponse = response.ok && /^text\/csv(?:\s*;|$)/i.test(contentType.trim());
+      const downloadBlob = csvResponse ? await response.blob() : undefined;
+      const text = downloadBlob ? await downloadBlob.text() : await response.text();
+      const durationMs = performance.now() - startedAt;
+      const body = parseApiResponseBody(text, contentType);
       if (controller.signal.aborted || activeRequest.current !== controller) return;
       activeRequest.current = null;
 
@@ -605,8 +596,12 @@ export function ApiPlayground({
           ok: response.ok,
           contentType,
           durationMs,
-          byteLength: new TextEncoder().encode(text).length,
+          byteLength: downloadBlob?.size ?? new TextEncoder().encode(text).length,
           body,
+          downloadBlob,
+          downloadFilename: downloadBlob
+            ? csvDownloadFilename(response.headers.get('content-disposition') ?? '')
+            : undefined,
         },
       });
       setLiveMessage(
@@ -633,13 +628,230 @@ export function ApiPlayground({
     const copied = await copyToClipboard(text);
     if (copyTimer.current !== null) clearTimeout(copyTimer.current);
     setCopyStatus(copied ? 'copied' : 'failed');
-    setLiveMessage(copied ? 'คัดลอก JSON แล้ว' : 'คัดลอกไม่สำเร็จ');
+    setLiveMessage(copied ? 'คัดลอกคำตอบแล้ว' : 'คัดลอกไม่สำเร็จ');
     copyTimer.current = setTimeout(() => {
       setCopyStatus('idle');
       copyTimer.current = null;
     }, 2000);
   }
 
-  /* COMPONENT_JSX */
+  function handleDownloadCsv() {
+    if (result.phase !== 'done' || !result.result.downloadBlob) return;
+    const url = URL.createObjectURL(result.result.downloadBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = result.result.downloadFilename ?? 'export.csv';
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  if (!selectedEndpoint) return null;
+  const hasSuggestions = pathParams.some((param) => param.suggest);
+
+  return (
+    <section className={styles.root} id="playground" aria-labelledby={`${idPrefix}-title`}>
+      <div className={styles.sectionHeader}>
+        <p className={styles.eyebrow}>ทดลองเรียก API</p>
+        <h2 id={`${idPrefix}-title`}>API Playground</h2>
+        <p>ส่งคำขอ GET แบบอ่านอย่างเดียว แล้วดู response จริงจาก runtime ที่กำลังเปิดอยู่</p>
+      </div>
+
+      <div className={styles.playgroundGrid}>
+        <div className={styles.requestPanel}>
+          <label className={styles.field} htmlFor={`${idPrefix}-endpoint`}>
+            <span className={styles.label}>เลือก endpoint</span>
+            <select
+              id={`${idPrefix}-endpoint`}
+              className={styles.control}
+              value={selectedEndpoint.id}
+              onChange={handleEndpointChange}
+            >
+              {groupedOptions.entries.map(({ group, items }) => (
+                <optgroup key={group.id} label={group.label}>
+                  {items.map((endpoint) => (
+                    <option key={endpoint.id} value={endpoint.id}>{endpoint.method} {endpoint.path}</option>
+                  ))}
+                </optgroup>
+              ))}
+              {groupedOptions.leftover.map((endpoint) => (
+                <option key={endpoint.id} value={endpoint.id}>{endpoint.method} {endpoint.path}</option>
+              ))}
+            </select>
+          </label>
+
+          <EndpointSummary endpoint={selectedEndpoint} />
+
+          {pathParams.length > 0 && (
+            <fieldset className={styles.fieldset}>
+              <legend>Path parameters</legend>
+              {pathParams.map((param) => {
+                const value = pathValues[param.name] ?? '';
+                const invalid = requestIssues.some((issue) => issue.startsWith(`${param.name}:`));
+                const descriptionId = `${idPrefix}-path-${param.name}-description`;
+                return (
+                  <label className={styles.field} key={param.name} htmlFor={`${idPrefix}-path-${param.name}`}>
+                    <span className={styles.label}>{param.name} <span className={styles.optional}>{param.description}</span></span>
+                    <input
+                      id={`${idPrefix}-path-${param.name}`}
+                      className={styles.control}
+                      type="text"
+                      value={value}
+                      required
+                      maxLength={param.maxLength}
+                      pattern={param.pattern}
+                      aria-invalid={invalid}
+                      aria-describedby={descriptionId}
+                      onChange={(event) => handlePathChange(param.name, event.target.value)}
+                    />
+                    <span className={styles.help} id={descriptionId}>ตัวอย่าง: {param.example}</span>
+                  </label>
+                );
+              })}
+              {hasSuggestions && (
+                <div className={styles.suggestRow}>
+                  <button
+                    className={styles.secondaryButton}
+                    type="button"
+                    onClick={() => void handleSuggest()}
+                    disabled={suggestStatus.status === 'loading'}
+                  >
+                    {suggestStatus.status === 'loading' ? 'กำลังค้นหา…' : 'เติม id จาก API จริง'}
+                  </button>
+                  <p className={styles.statusMessage} role="status" aria-live="polite">{suggestStatus.message}</p>
+                </div>
+              )}
+            </fieldset>
+          )}
+
+          {queryParams.length > 0 && (
+            <fieldset className={styles.fieldset}>
+              <legend>Query parameters</legend>
+              <div className={styles.queryGrid}>
+                {queryParams.map((param) => {
+                  const value = queryValues[param.name] ?? '';
+                  const invalid = requestIssues.some((issue) => issue.startsWith(`${param.name}:`));
+                  const descriptionId = `${idPrefix}-query-${param.name}-description`;
+                  const controlId = `${idPrefix}-query-${param.name}`;
+                  return (
+                    <label className={styles.field} key={param.name} htmlFor={controlId}>
+                      <span className={styles.label}>
+                        {param.name} {param.required && <span className={styles.required}>ต้องระบุ</span>}
+                      </span>
+                      {param.type === 'enum' ? (
+                        <select
+                          id={controlId}
+                          className={styles.control}
+                          value={value}
+                          required={param.required}
+                          aria-invalid={invalid}
+                          aria-describedby={descriptionId}
+                          onChange={(event) => handleQueryChange(param.name, event.target.value)}
+                        >
+                          <option value="">ไม่ระบุ</option>
+                          {(param.values ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          id={controlId}
+                          className={styles.control}
+                          type={param.type === 'integer' ? 'number' : param.type === 'date' ? 'date' : 'text'}
+                          inputMode={param.type === 'integer' ? 'numeric' : undefined}
+                          step={param.type === 'integer' ? 1 : undefined}
+                          min={param.minimum}
+                          max={param.maximum}
+                          maxLength={param.maxLength}
+                          pattern={param.pattern}
+                          required={param.required}
+                          value={value}
+                          aria-invalid={invalid}
+                          aria-describedby={descriptionId}
+                          onChange={(event) => handleQueryChange(param.name, event.target.value)}
+                        />
+                      )}
+                      <span className={styles.help} id={descriptionId}>
+                        {param.description}{param.example ? ` ตัวอย่าง: ${param.example}` : ''}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+
+          {requestIssues.length > 0 && (
+            <ul className={styles.validation} role="status" aria-live="polite">
+              {requestIssues.map((issue) => <li key={issue}>{issue}</li>)}
+            </ul>
+          )}
+
+          <div className={styles.requestPreview}>
+            <span className={styles.label}>Request URL</span>
+            <code>{requestPathWithQuery}</code>
+          </div>
+          <div className={styles.actions}>
+            <button className={styles.secondaryButton} type="button" onClick={handleReset}>ล้างค่า</button>
+            <button
+              className={styles.primaryButton}
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={requestIssues.length > 0 || result.phase === 'loading'}
+            >
+              {result.phase === 'loading' ? 'กำลังเรียก API…' : selectedEndpoint.contract === 'csv' ? 'เรียกและเตรียม CSV' : 'เรียก API'}
+            </button>
+          </div>
+          <p className={styles.statusMessage} role="status" aria-live="polite">{liveMessage}</p>
+        </div>
+
+        <div className={styles.responsePanel} aria-busy={result.phase === 'loading'}>
+          <h3>Response</h3>
+          {result.phase === 'idle' && <p className={styles.emptyResponse}>เลือก endpoint แล้วกด “เรียก API” เพื่อดูคำตอบ</p>}
+          {result.phase === 'loading' && <p className={styles.emptyResponse}>กำลังรอคำตอบจาก API…</p>}
+          {result.phase === 'error' && <p className={styles.errorMessage} role="alert">{result.message}</p>}
+          {result.phase === 'done' && (() => {
+            const response = result.result;
+            const summary = response.body.kind === 'json' ? summarizeEnvelope(response.body.value) : null;
+            return (
+              <>
+                <div className={styles.responseMeta}>
+                  <span className={`${styles.statusBadge} ${statusToneClass(response.status)}`}>HTTP {response.status} {response.statusText}</span>
+                  <span>{formatDuration(response.durationMs)}</span>
+                  <span>{formatBytes(response.byteLength)}</span>
+                  <span>{response.contentType || 'ไม่ระบุ content type'}</span>
+                </div>
+                {summary && (summary.availability || summary.datasetVersion || summary.total !== undefined || summary.warnings.length > 0 || summary.error) && (
+                  <dl className={styles.envelopeSummary}>
+                    {summary.availability && <><dt>availability</dt><dd>{summary.availability}</dd></>}
+                    {summary.completeness && <><dt>completeness</dt><dd>{summary.completeness}</dd></>}
+                    {summary.access && <><dt>access</dt><dd>{summary.access}</dd></>}
+                    {summary.runtimeMode && <><dt>runtimeMode</dt><dd>{summary.runtimeMode}</dd></>}
+                    {summary.total !== undefined && <><dt>pagination.total</dt><dd>{summary.total}</dd></>}
+                    {summary.datasetVersion && <><dt>datasetVersion</dt><dd>{summary.datasetVersion}</dd></>}
+                    {summary.error?.code && <><dt>error.code</dt><dd>{summary.error.code}</dd></>}
+                    {summary.error?.message && <><dt>error.message</dt><dd>{summary.error.message}</dd></>}
+                    {summary.warnings.length > 0 && <><dt>warnings</dt><dd><ul>{summary.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></dd></>}
+                  </dl>
+                )}
+                <pre className={styles.responseBody}><code>{response.body.kind === 'json' ? prettyJson(response.body.value) : response.body.text}</code></pre>
+                <div className={styles.responseActions}>
+                  {response.downloadBlob && (
+                    <button className={styles.primaryButton} type="button" onClick={handleDownloadCsv}>
+                      ดาวน์โหลด CSV {response.downloadFilename ? `(${response.downloadFilename})` : ''}
+                    </button>
+                  )}
+                  {response.body.kind !== 'empty' && (
+                    <button className={styles.secondaryButton} type="button" onClick={() => void handleCopy()}>
+                      {copyStatus === 'copied' ? 'คัดลอกแล้ว' : copyStatus === 'failed' ? 'คัดลอกไม่สำเร็จ' : 'คัดลอกคำตอบ'}
+                    </button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>
+
+      <ApiSnippets url={requestPathWithQuery} origin={origin} contract={selectedEndpoint.contract} />
+    </section>
+  );
 }
 

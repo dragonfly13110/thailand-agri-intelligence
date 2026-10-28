@@ -15,24 +15,20 @@ from tadih.quality import validate_observation
 
 class SatelliteTests(unittest.TestCase):
     def setUp(self):
-        self.sample_point_path = Path(__file__).resolve().parents[1] / "data/local/satellite/pc_point_20240929.json"
-        if self.sample_point_path.exists():
-            self.sample_envelope = json.loads(self.sample_point_path.read_text(encoding="utf-8"))
-        else:
-            self.sample_envelope = {
-                "request_url": "https://planetarycomputer.microsoft.com/api/data/v1/item/point/100.25,13.8?collection=modis-13A1-061&item=MOD13A1.A2024273.h27v07.061.2024290023005&assets=500m_16_days_NDVI&assets=500m_16_days_pixel_reliability&assets=500m_16_days_VI_Quality",
-                "retrieved_at": "2026-10-22T09:32:33.617203+00:00",
-                "item_id": "MOD13A1.A2024273.h27v07.061.2024290023005",
-                "payload": {
-                    "coordinates": [100.25, 13.8],
-                    "values": [5700.0, 3.0, 36070.0],
-                    "band_names": [
-                        "500m_16_days_NDVI_b1",
-                        "500m_16_days_pixel_reliability_b1",
-                        "500m_16_days_VI_Quality_b1"
-                    ]
-                }
+        self.sample_envelope = {
+            "request_url": "https://planetarycomputer.microsoft.com/api/data/v1/item/point/100.25,13.8?collection=modis-13A1-061&item=MOD13A1.A2024273.h27v07.061.2024290023005&assets=500m_16_days_NDVI&assets=500m_16_days_pixel_reliability&assets=500m_16_days_VI_Quality",
+            "retrieved_at": "2026-10-22T09:32:33.617203+00:00",
+            "item_id": "MOD13A1.A2024273.h27v07.061.2024290023005",
+            "payload": {
+                "coordinates": [100.25, 13.8],
+                "values": [5700.0, 3.0, 36070.0],
+                "band_names": [
+                    "500m_16_days_NDVI_b1",
+                    "500m_16_days_pixel_reliability_b1",
+                    "500m_16_days_VI_Quality_b1"
+                ]
             }
+        }
 
     def test_parse_modis_item_dates(self):
         start, end = _parse_modis_item_dates("MOD13A1.A2024273.h27v07.061.2024290023005")

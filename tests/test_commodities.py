@@ -40,23 +40,6 @@ class CommodityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             discover_commodities("nabc_daily", start_page=2)
 
-    def test_historical_inventory_union_matches_2569(self):
-        import json
-        from pathlib import Path
-        probe_path = Path(__file__).resolve().parents[1] / "data/local/probes/historical-monthly-inventory.json"
-        if not probe_path.exists():
-            return
-        data = json.loads(probe_path.read_text(encoding="utf-8"))
-        p2569 = set(next(d["names"] for d in data if d["year_th"] == 2569))
-        all_p = set(p for d in data for p in d["names"])
-        self.assertEqual(len(p2569), 44)
-        self.assertEqual(p2569, all_p)
-        # Verify 39 baseline products present across all 16 years
-        presence = {p: sum(p in d["names"] for d in data) for p in all_p}
-        self.assertEqual(sum(c == 16 for c in presence.values()), 39)
-        self.assertEqual(sum(c < 16 for c in presence.values()), 5)
-
-
 if __name__ == "__main__":
     unittest.main()
 

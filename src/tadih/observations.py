@@ -8,10 +8,12 @@ lifecycle and the ``resources.active_run_id`` switch.
 
 Rules enforced here (never relaxed by CLI flags or caller arguments):
 
-1. License gate first. The registry row handed in must be
+1. Publication gate first. The registry row handed in must be
    ``license_status == "approved_public"`` with ``project_publication_approved
-   is True`` and an empty ``unresolved`` list, otherwise ``RESOURCE_NOT_APPROVED``
-   is raised before the client is touched at all.
+   is True``. Unresolved source-license questions remain blocked unless the
+   registry also carries the project owner's explicit numeric-publication
+   authorization; that authorization is recorded separately and never means
+   the source license itself was verified.
 2. Every row must pass ``validate_observation`` from :mod:`tadih.quality`
    (JSON-schema contract plus runtime rules: finite values, known sources,
    province grain, chronology, no credentials in provenance URLs).
@@ -73,6 +75,14 @@ Rules enforced here (never relaxed by CLI flags or caller arguments):
    ``active_run_blocked_reason = ACTIVE_RUN_OLDER_THAN_ACTIVE``. Data periods
    decide, never ``retrieved_at``.
 
+10. Source-year labels: annual source records carry ``source_year_be`` as a
+    label and keep ``observed_at``, ``period_start`` and ``period_end`` NULL.
+    Their ``period_label`` is the source's Buddhist-year label. Complete
+    source-year snapshots activate atomically only when the maximum source
+    year does not regress, the retrieval snapshot is newer, and every active
+    row key remains present. Row removals require an explicit review tied to
+    the exact active and candidate payload hashes and source revision.
+
 Adapter contract for the ingest commands (``tadih ingest --adapter <name>``):
 the module ``tadih.ingest_<name>_d1`` exposes ``main(argv: list[str], *,
 client=None) -> int`` (or ``run_adapter``/``run``) and honours ``--dry-run``
@@ -85,6 +95,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 import uuid
 from typing import Any, Callable, Mapping, Sequence
 
@@ -110,6 +121,15 @@ MIXED_UNIT_ACTIVATION_REASON = "UNIT_MIXED_NULL_BATCH"
 #: the current active run's newest period is written but never activated; this
 #: is the envelope ``active_run_blocked_reason``.
 OLDER_THAN_ACTIVE_RUN_REASON = "ACTIVE_RUN_OLDER_THAN_ACTIVE"
+SOURCE_YEAR_INCOMPLETE_REASON = "SOURCE_YEAR_BATCH_INCOMPLETE"
+SOURCE_YEAR_QUARANTINED_REASON = "SOURCE_YEAR_BATCH_QUARANTINED"
+SOURCE_YEAR_REGRESSION_REASON = "SOURCE_YEAR_LABEL_REGRESSION"
+SOURCE_YEAR_STALE_SNAPSHOT_REASON = "SOURCE_YEAR_SNAPSHOT_NOT_NEWER"
+SOURCE_YEAR_ROWSET_REVIEW_REASON = "SOURCE_YEAR_ROWSET_REMOVALS_REQUIRE_REVIEW"
+SOURCE_YEAR_STALE_REVIEW_REASON = "SOURCE_YEAR_ROWSET_REVIEW_STALE"
+SOURCE_YEAR_REVIEW_FUTURE_SKEW = timedelta(minutes=5)
+SOURCE_VERSION_NOT_NEWER_REASON = "SOURCE_VERSION_NOT_NEWER"
+SOURCE_VERSION_INCOMPARABLE_REASON = "SOURCE_VERSION_INCOMPARABLE"
 
 #: Dimension keys that carry request/retrieval/release stamps or ETags rather
 #: than published content. Providers that re-stamp the same product on every
@@ -192,7 +212,7 @@ def assert_resource_approved(resource: Any) -> dict[str, Any]:
     if resource.get("project_publication_approved") is not True:
         raise ObservationWriteError("RESOURCE_NOT_APPROVED", "project publication is not approved")
     unresolved = resource.get("unresolved")
-    if unresolved is None or unresolved != []:
+    if unresolved != [] and not _has_explicit_publication_authorization(resource):
         raise ObservationWriteError("RESOURCE_NOT_APPROVED", "resource review still has unresolved items")
     resource_id = resource.get("resource_id")
     if not isinstance(resource_id, str) or not resource_id.strip():
@@ -201,6 +221,23 @@ def assert_resource_approved(resource: Any) -> dict[str, Any]:
     if not isinstance(source_id, str) or not source_id.strip():
         raise ObservationWriteError("SOURCE_ID_MISSING", "registry row requires a non-empty source_id")
     return resource
+
+
+def _has_explicit_publication_authorization(resource: Mapping[str, Any]) -> bool:
+    """Check the repository-owner grant without treating it as license evidence."""
+    authorization = resource.get("publication_authorization")
+    if not isinstance(authorization, dict):
+        return False
+    required_scope = {"fetch", "process", "store_in_D1", "public_numeric_display"}
+    scope = authorization.get("scope")
+    return (
+        authorization.get("basis") == "project_owner_instruction"
+        and authorization.get("document") == "AGENTS.md"
+        and authorization.get("section") == 3
+        and authorization.get("source_license_verified") is False
+        and isinstance(scope, list)
+        and required_scope.issubset(set(scope))
+    )
 
 
 def load_approved_resource(resource_key: str, *, registry_path: Path | str | None = None) -> dict[str, Any]:
@@ -228,13 +265,16 @@ def publish_observations(
     completeness: str,
     unit: str | None,
     retrieved_at: str,
+    source_version: str | None = None,
+    source_hash: str | None = None,
     run_id: str | None = None,
     catalog: Mapping[str, Any] | None = None,
-    product: str | None = None,
+    product: str | Mapping[str, str] | None = None,
     metric_name: str | None = None,
     period_grain: str | None = None,
     dimensions_for: Callable[[dict], dict] | None = None,
     locations: Mapping[str, Mapping[str, Any]] | None = None,
+    source_year_rowset_change_review: Mapping[str, Any] | None = None,
     require_d1_approval: bool = True,
 ) -> dict:
     """Stage ``rows`` as one numeric run and activate it only when approved.
@@ -254,6 +294,11 @@ def publish_observations(
     ``require_d1_approval``
         keeps the second gate against the D1 ``resources`` row (the published
         state readers actually serve from).
+    ``source_year_rowset_change_review``
+        is a one-time review manifest for an annual/source-year batch that
+        removes row keys from the active snapshot. The candidate hash, active
+        hash and source revision are checked before publication; the active
+        hash is checked again inside the atomic pointer update.
 
     Returns the run envelope: ``run_id``, ``status``, ``resource_id``,
     ``source_id``, ``completeness``, ``coverage``, ``records_read``,
@@ -281,9 +326,66 @@ def publish_observations(
             f"no row passed the observation contract: {_reason_counts(quarantined)}",
         )
     payload_sha256 = _logical_payload_sha256(resource_id, plan)
-    derived_run_id = run_id or str(uuid.uuid5(
-        RUN_ID_NAMESPACE, f"{resource_id}|{adapter_version}|{payload_sha256}",
-    ))
+    source_year_mode = period_grain == "source_year_label"
+    source_year_token_mode = period_grain == "source_year_token"
+    source_snapshot_mode = source_year_mode or source_year_token_mode
+    source_year_location_ids = (
+        _validate_source_year_location_mappings(plan) if source_snapshot_mode else None
+    )
+    source_year_token_label = None
+    if source_year_token_mode:
+        labels = {entry["observation"].get("source_year_label") for entry in plan}
+        if len(labels) != 1 or not isinstance(next(iter(labels)), str):
+            raise ObservationWriteError("SOURCE_YEAR_TOKEN_LABEL_MIXED")
+        source_year_token_label = next(iter(labels))
+        _source_version_order_key(source_version)
+        if not isinstance(source_hash, str) or not re.fullmatch(r"[0-9a-f]{32}", source_hash, re.ASCII):
+            raise ObservationWriteError("SOURCE_HASH_INVALID")
+    if source_year_rowset_change_review is not None and not source_snapshot_mode:
+        raise ObservationWriteError("SOURCE_YEAR_REVIEW_NOT_APPLICABLE")
+    source_year_revision = None
+    if source_snapshot_mode:
+        revisions = {entry["observation"]["revision_id"] for entry in plan}
+        if len(revisions) != 1:
+            raise ObservationWriteError("SOURCE_YEAR_REVISION_MIXED")
+        source_year_revision = next(iter(revisions))
+    source_year_review = _validate_source_year_review(
+        source_year_rowset_change_review,
+        payload_sha256=payload_sha256,
+        source_revision_id=source_year_revision,
+        retrieved_at=retrieved_at,
+        allow_source_year_token_fields=source_year_token_mode,
+    ) if source_snapshot_mode else None
+    run_identity = f"{resource_id}|{adapter_version}|{payload_sha256}"
+    if source_year_mode:
+        # A source revision is part of an annual snapshot's identity. Equal
+        # logical values from a new DLD revision get a fresh immutable run so
+        # all row provenance is written together before the active pointer moves.
+        run_identity += f"|source_revision_id|{source_year_revision!r}"
+    elif source_year_token_mode:
+        # The opaque year token is not ordered or interpreted as a date. A
+        # complete source metadata version is the run version; the exact label
+        # and source hash remain separate provenance fields.
+        run_identity += (
+            f"|source_revision_id|{source_year_revision!r}"
+            f"|source_year_label|{source_year_token_label!r}"
+            f"|source_version|{source_version!r}|source_hash|{source_hash!r}"
+        )
+    derived_run_id = run_id or str(uuid.uuid5(RUN_ID_NAMESPACE, run_identity))
+    if source_snapshot_mode:
+        # One read-only schema query checks the complete annual writer contract
+        # before resource registration can mutate catalog rows. Migration 0002
+        # extensions are optional: provenance is retained in quality JSON.
+        _preflight_source_year_schema(
+            client,
+            source_year_token_mode=source_year_token_mode,
+            include_locations=any(entry["location"] is not None for entry in plan),
+        )
+        has_run_source_revision = True
+    else:
+        # Daily/monthly writers still inspect this optional column so their
+        # existing-run query remains compatible with pre- and post-0004 D1.
+        has_run_source_revision = _has_run_source_revision_column(client)
     # Activation guard (D-9): rows are still written, but a run that mixes
     # NULL and non-NULL units for one measure never becomes the active run.
     activation_guard = _activation_unit_guard(plan)
@@ -296,6 +398,12 @@ def publish_observations(
     )
     revision_id = plan[0]["observation"]["revision_id"] if plan else None
     quarantine_reasons = _reason_counts(quarantined)
+    source_year_preblock = None
+    if source_snapshot_mode and activation_guard is None:
+        if completeness != "complete":
+            source_year_preblock = SOURCE_YEAR_INCOMPLETE_REASON
+        elif quarantined:
+            source_year_preblock = SOURCE_YEAR_QUARANTINED_REASON
 
     # The resource row (and its source/dataset rows) must exist before the
     # resource can be approved in D1.
@@ -310,71 +418,325 @@ def publish_observations(
         if not _returned(approval, "resource_id", resource_id):
             raise ObservationWriteError("RESOURCE_PUBLICATION_NOT_APPROVED")
 
-    existing = client.execute(
-        "SELECT run_id, status, payload_sha256 FROM sync_runs WHERE run_id=? AND resource_id=?",
-        [derived_run_id, resource_id],
-    )
-    existing_row = _first_row(existing)
-    if existing_row is not None and existing_row.get("payload_sha256") == payload_sha256 \
-            and existing_row.get("status") in FINAL_STATUSES:
-        stored = _row_count(client, derived_run_id, resource_id)
-        if stored >= len(plan):
+    source_year_writer_token = None
+    source_year_retrieved_at = None
+    if source_snapshot_mode:
+        source_year_writer_token = str(uuid.uuid4())
+        source_year_retrieved_at = _iso(_utc(retrieved_at))
+
+        def reuse_completed_source_year(existing_row):
+            if existing_row is None:
+                raise ObservationWriteError("RUN_CREATION_FAILED")
+            status = existing_row.get("status")
+            # run_id owns one immutable source snapshot, including while its
+            # first attempt is failed and eligible for retry.  Check identity
+            # before reclaiming a failed row so an explicit run_id cannot make
+            # old staged rows bleed into a different revision or rowset.
+            if (existing_row.get("payload_sha256") != payload_sha256
+                    or existing_row.get("source_revision_id") != source_year_revision):
+                raise ObservationWriteError("SOURCE_YEAR_RUN_IDENTITY_CONFLICT")
+            if source_year_token_mode and (
+                existing_row.get("source_year_label") != source_year_token_label
+                or existing_row.get("source_version") != source_version
+                or existing_row.get("source_hash") != source_hash
+            ):
+                raise ObservationWriteError("SOURCE_YEAR_RUN_IDENTITY_CONFLICT")
+            if status == "running":
+                raise ObservationWriteError("SOURCE_YEAR_RUN_IN_PROGRESS")
+            if status == "failed":
+                return None
+            if status not in FINAL_STATUSES:
+                raise ObservationWriteError("SOURCE_YEAR_RUN_STATE_INVALID")
+            stored = _row_count(client, derived_run_id, resource_id)
+            if stored < len(plan):
+                raise ObservationWriteError("SOURCE_YEAR_FINAL_RUN_INCOMPLETE")
             return _finish_existing_run(
-                client, resource_id=resource_id, run_id=derived_run_id, status=existing_row["status"],
+                client, resource_id=resource_id, run_id=derived_run_id, status=status,
                 plan=plan, payload_sha256=payload_sha256, coverage=coverage, completeness=completeness,
                 adapter_version=adapter_version, retrieved_at=retrieved_at, revision_id=revision_id,
                 skipped_identical=len(plan), records_written=stored,
                 records_quarantined=len(quarantined), quarantine_reasons=quarantine_reasons,
                 require_d1_approval=require_d1_approval, activation_guard=activation_guard,
+                period_grain=period_grain, source_year_preblock=source_year_preblock,
+                source_year_review=source_year_review,
+                source_year_label=source_year_token_label,
+                source_version=source_version if source_year_token_mode else None,
+                source_hash=source_hash if source_year_token_mode else None,
             )
-    if existing_row is not None:
-        # Resuming a run that failed or never completed: the identical rows are
-        # re-upserted, existing rows are never deleted.
-        client.execute(
-            "UPDATE sync_runs SET status='running', error_code=NULL, started_at=?, adapter_version=? "
-            "WHERE run_id=? AND resource_id=?",
-            [_iso(started_at), adapter_version, derived_run_id, resource_id],
+
+        snapshot_extra_select = ",source_year_label,source_version,source_hash" if source_year_token_mode else ""
+        existing = client.execute(
+            "SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,"
+            "source_year_writer_token" + snapshot_extra_select
+            + " FROM sync_runs WHERE run_id=? AND resource_id=?",
+            [derived_run_id, resource_id],
         )
+        existing_row = _first_row(existing)
+        claimed = False
+        if existing_row is None:
+            if source_year_token_mode:
+                created = client.execute(
+                    "INSERT INTO sync_runs (run_id,source_id,resource_id,kind,status,started_at,adapter_version,"
+                    "source_retrieved_at,source_revision_id,payload_sha256,source_year_writer_token,"
+                    "source_year_label,source_version,source_hash) "
+                    "VALUES (?,?,?,?,'running',?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING run_id",
+                    [derived_run_id, source_id, resource_id, RUN_KIND, _iso(started_at), adapter_version,
+                     source_year_retrieved_at, source_year_revision, payload_sha256, source_year_writer_token,
+                     source_year_token_label, source_version, source_hash],
+                )
+            else:
+                created = client.execute(
+                    "INSERT INTO sync_runs (run_id,source_id,resource_id,kind,status,started_at,adapter_version,"
+                    "source_retrieved_at,source_revision_id,payload_sha256,source_year_writer_token) "
+                    "VALUES (?,?,?,?,'running',?,?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING run_id",
+                    [derived_run_id, source_id, resource_id, RUN_KIND, _iso(started_at), adapter_version,
+                     source_year_retrieved_at, source_year_revision, payload_sha256, source_year_writer_token],
+                )
+            claimed = _returned(created, "run_id", derived_run_id)
+            if not claimed:
+                # Unique run ids make simultaneous create attempts converge on
+                # one row. Only its token owner can continue writing rows.
+                existing = client.execute(
+                    "SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,"
+                    "source_year_writer_token" + snapshot_extra_select
+                    + " FROM sync_runs WHERE run_id=? AND resource_id=?",
+                    [derived_run_id, resource_id],
+                )
+                existing_row = _first_row(existing)
+
+        if not claimed:
+            reused = reuse_completed_source_year(existing_row)
+            if reused is not None:
+                return reused
+            # A failed attempt can be reclaimed by one writer using an atomic
+            # status transition and a fresh UUID, independent of started_at.
+            if source_year_token_mode:
+                claimed_result = client.execute(
+                    "UPDATE sync_runs SET status='running',started_at=?,adapter_version=?,"
+                    "source_retrieved_at=?,source_revision_id=?,payload_sha256=?,source_year_writer_token=?,"
+                    "source_year_label=?,source_version=?,source_hash=?,completed_at=NULL,error_code=NULL,"
+                    "records_read=0,records_written=0,records_quarantined=0 "
+                    "WHERE run_id=? AND resource_id=? AND status='failed' "
+                    "AND payload_sha256 IS ? AND source_revision_id IS ? "
+                    "AND source_year_label IS ? AND source_version IS ? AND source_hash IS ? RETURNING run_id",
+                    [_iso(started_at), adapter_version, source_year_retrieved_at, source_year_revision,
+                     payload_sha256, source_year_writer_token, source_year_token_label, source_version,
+                     source_hash, derived_run_id, resource_id, payload_sha256, source_year_revision,
+                     source_year_token_label, source_version, source_hash],
+                )
+            else:
+                claimed_result = client.execute(
+                    "UPDATE sync_runs SET status='running',started_at=?,adapter_version=?,"
+                    "source_retrieved_at=?,source_revision_id=?,payload_sha256=?,source_year_writer_token=?,"
+                    "completed_at=NULL,error_code=NULL,records_read=0,records_written=0,records_quarantined=0 "
+                    "WHERE run_id=? AND resource_id=? AND status='failed' RETURNING run_id",
+                    [_iso(started_at), adapter_version, source_year_retrieved_at, source_year_revision,
+                     payload_sha256, source_year_writer_token, derived_run_id, resource_id],
+                )
+            claimed = _returned(claimed_result, "run_id", derived_run_id)
+            if not claimed:
+                latest = _first_row(client.execute(
+                    "SELECT run_id,status,payload_sha256,source_revision_id,source_retrieved_at,"
+                    "source_year_writer_token" + snapshot_extra_select
+                    + " FROM sync_runs WHERE run_id=? AND resource_id=?",
+                    [derived_run_id, resource_id],
+                ))
+                reused = reuse_completed_source_year(latest)
+                if reused is not None:
+                    return reused
+                if latest is not None and latest.get("status") == "running":
+                    raise ObservationWriteError("SOURCE_YEAR_RUN_IN_PROGRESS")
+                raise ObservationWriteError("SOURCE_YEAR_RUN_CLAIM_LOST")
     else:
-        client.execute(
-            "INSERT INTO sync_runs (run_id, source_id, resource_id, kind, status, started_at, adapter_version) "
-            "VALUES (?, ?, ?, ?, 'running', ?, ?)",
-            [derived_run_id, source_id, resource_id, RUN_KIND, _iso(started_at), adapter_version],
+        existing_columns = "run_id, status, payload_sha256"
+        if has_run_source_revision:
+            existing_columns += ", source_revision_id"
+        existing = client.execute(
+            f"SELECT {existing_columns} FROM sync_runs WHERE run_id=? AND resource_id=?",
+            [derived_run_id, resource_id],
         )
+        existing_row = _first_row(existing)
+        if existing_row is not None and existing_row.get("payload_sha256") == payload_sha256 \
+                and existing_row.get("status") in FINAL_STATUSES:
+            stored = _row_count(client, derived_run_id, resource_id)
+            if stored >= len(plan):
+                return _finish_existing_run(
+                    client, resource_id=resource_id, run_id=derived_run_id, status=existing_row["status"],
+                    plan=plan, payload_sha256=payload_sha256, coverage=coverage, completeness=completeness,
+                    adapter_version=adapter_version, retrieved_at=retrieved_at, revision_id=revision_id,
+                    skipped_identical=len(plan), records_written=stored,
+                    records_quarantined=len(quarantined), quarantine_reasons=quarantine_reasons,
+                    require_d1_approval=require_d1_approval, activation_guard=activation_guard,
+                    period_grain=period_grain, source_year_preblock=source_year_preblock,
+                    source_year_review=source_year_review,
+                )
+        if existing_row is not None:
+            # Daily/monthly behavior remains backward compatible with old schemas.
+            client.execute(
+                "UPDATE sync_runs SET status='running', error_code=NULL, started_at=?, adapter_version=? "
+                "WHERE run_id=? AND resource_id=?",
+                [_iso(started_at), adapter_version, derived_run_id, resource_id],
+            )
+        else:
+            client.execute(
+                "INSERT INTO sync_runs (run_id, source_id, resource_id, kind, status, started_at, adapter_version) "
+                "VALUES (?, ?, ?, ?, 'running', ?, ?) ON CONFLICT DO NOTHING",
+                [derived_run_id, source_id, resource_id, RUN_KIND, _iso(started_at), adapter_version],
+            )
+            existing = client.execute(
+                "SELECT run_id, status, payload_sha256 FROM sync_runs WHERE run_id=? AND resource_id=?",
+                [derived_run_id, resource_id],
+            )
+            existing_row = _first_row(existing)
+            if existing_row is None:
+                raise ObservationWriteError("RUN_CREATION_FAILED")
+            if (existing_row.get("payload_sha256") == payload_sha256
+                    and existing_row.get("status") in FINAL_STATUSES
+                    and _row_count(client, derived_run_id, resource_id) >= len(plan)):
+                return _finish_existing_run(
+                    client, resource_id=resource_id, run_id=derived_run_id, status=existing_row["status"],
+                    plan=plan, payload_sha256=payload_sha256, coverage=coverage, completeness=completeness,
+                    adapter_version=adapter_version, retrieved_at=retrieved_at, revision_id=revision_id,
+                    skipped_identical=len(plan), records_written=_row_count(client, derived_run_id, resource_id),
+                    records_quarantined=len(quarantined), quarantine_reasons=quarantine_reasons,
+                    require_d1_approval=require_d1_approval, activation_guard=activation_guard,
+                    period_grain=period_grain, source_year_preblock=source_year_preblock,
+                    source_year_review=source_year_review,
+                )
+            if existing_row.get("status") in FINAL_STATUSES:
+                client.execute(
+                    "UPDATE sync_runs SET status='running', error_code=NULL, started_at=?, adapter_version=? "
+                    "WHERE run_id=? AND resource_id=? AND status IN ('succeeded','partial','failed')",
+                    [_iso(started_at), adapter_version, derived_run_id, resource_id],
+                )
 
     extended = _extended_columns(client)
+    if source_year_mode:
+        source_year_owner_guard = (
+            resource_id, derived_run_id, source_year_writer_token, source_year_retrieved_at,
+            source_year_revision, payload_sha256,
+        )
+    elif source_year_token_mode:
+        source_year_owner_guard = (
+            resource_id, derived_run_id, source_year_writer_token, source_year_retrieved_at,
+            source_year_revision, payload_sha256, source_year_token_label, source_version, source_hash,
+        )
+    else:
+        source_year_owner_guard = None
     inserted = 0
     skipped = 0
+    source_year_locations_upserted = set()
     try:
         for entry in plan:
-            _upsert_location(client, entry)
+            if source_snapshot_mode:
+                location = entry["location"]
+                if (location is not None
+                        and location["location_id"] in source_year_location_ids
+                        and location["location_id"] not in source_year_locations_upserted):
+                    _upsert_location(client, entry, source_year_guard=source_year_owner_guard)
+                    source_year_locations_upserted.add(location["location_id"])
+            else:
+                _upsert_location(client, entry)
             if _row_matches(client, resource_id, derived_run_id, entry):
                 skipped += 1
                 continue
-            client.execute(*_observation_statement(derived_run_id, resource_id, entry, extended))
+            if source_snapshot_mode:
+                statement, parameters = _observation_statement(
+                    derived_run_id, resource_id, entry, extended,
+                    source_snapshot_guard=source_year_owner_guard,
+                )
+                row_result = client.execute(statement, parameters)
+                if not _returned(row_result, "row_key", entry["observation"]["observation_id"]):
+                    raise ObservationWriteError("SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+            else:
+                client.execute(*_observation_statement(derived_run_id, resource_id, entry, extended))
             inserted += 1
         records_written = _row_count(client, derived_run_id, resource_id)
         completed_at = _now()
-        result = client.execute(
-            "UPDATE sync_runs SET status=?, completed_at=?, source_retrieved_at=?, "
-            "records_read=?, records_written=?, records_quarantined=?, payload_sha256=?, error_code=? "
-            "WHERE run_id=? AND resource_id=? AND status='running' RETURNING run_id",
-            [final_status, _iso(completed_at), _iso(_utc(retrieved_at)), len(rows), records_written,
-             len(quarantined), payload_sha256, activation_guard, derived_run_id, resource_id],
-        )
+        if source_year_mode:
+            result = client.execute(
+                "UPDATE sync_runs SET status=?,completed_at=?,records_read=?,records_written=?,"
+                "records_quarantined=?,error_code=? WHERE run_id=? AND resource_id=? AND status='running' "
+                "AND source_year_writer_token IS ? AND source_retrieved_at IS ? "
+                "AND source_revision_id IS ? AND payload_sha256 IS ? RETURNING run_id",
+                [final_status, _iso(completed_at), len(rows), records_written, len(quarantined),
+                 activation_guard, derived_run_id, resource_id, source_year_writer_token,
+                 source_year_retrieved_at, source_year_revision, payload_sha256],
+            )
+        elif source_year_token_mode:
+            result = client.execute(
+                "UPDATE sync_runs SET status=?,completed_at=?,records_read=?,records_written=?,"
+                "records_quarantined=?,error_code=? WHERE run_id=? AND resource_id=? AND status='running' "
+                "AND source_year_writer_token IS ? AND source_retrieved_at IS ? "
+                "AND source_revision_id IS ? AND payload_sha256 IS ? "
+                "AND source_year_label IS ? AND source_version IS ? AND source_hash IS ? RETURNING run_id",
+                [final_status, _iso(completed_at), len(rows), records_written, len(quarantined),
+                 activation_guard, derived_run_id, resource_id, source_year_writer_token,
+                 source_year_retrieved_at, source_year_revision, payload_sha256,
+                 source_year_token_label, source_version, source_hash],
+            )
+        else:
+            result = client.execute(
+                "UPDATE sync_runs SET status=?, completed_at=?, source_retrieved_at=?, "
+                "records_read=?, records_written=?, records_quarantined=?, payload_sha256=?, error_code=? "
+                "WHERE run_id=? AND resource_id=? AND status='running' RETURNING run_id",
+                [final_status, _iso(completed_at), _iso(_utc(retrieved_at)), len(rows), records_written,
+                 len(quarantined), payload_sha256, activation_guard, derived_run_id, resource_id],
+            )
         if not _returned(result, "run_id", derived_run_id):
-            raise ObservationWriteError("RUN_COMPLETION_FAILED")
+            if source_snapshot_mode:
+                # Annual rows and finalization are guarded by the same unique
+                # owner token. A lost CAS must never turn into a successful
+                # response assembled from another writer's run.
+                raise ObservationWriteError("SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+            # A competing publisher may have completed the same deterministic
+            # run after our row writes. Reuse that completed run when its
+            # logical payload is identical; other completion failures remain
+            # errors.
+            completed = _first_row(client.execute(
+                "SELECT status, payload_sha256 FROM sync_runs WHERE run_id=? AND resource_id=?",
+                [derived_run_id, resource_id],
+            ))
+            if (completed is None or completed.get("status") not in FINAL_STATUSES
+                    or completed.get("payload_sha256") != payload_sha256
+                    or _row_count(client, derived_run_id, resource_id) < len(plan)):
+                raise ObservationWriteError("RUN_COMPLETION_FAILED")
+            return _finish_existing_run(
+                client, resource_id=resource_id, run_id=derived_run_id, status=completed["status"],
+                plan=plan, payload_sha256=payload_sha256, coverage=coverage, completeness=completeness,
+                adapter_version=adapter_version, retrieved_at=retrieved_at, revision_id=revision_id,
+                skipped_identical=len(plan), records_written=_row_count(client, derived_run_id, resource_id),
+                records_quarantined=len(quarantined), quarantine_reasons=quarantine_reasons,
+                require_d1_approval=require_d1_approval, activation_guard=activation_guard,
+                period_grain=period_grain, source_year_preblock=source_year_preblock,
+                source_year_review=source_year_review,
+                source_year_label=source_year_token_label,
+                source_version=source_version if source_year_token_mode else None,
+                source_hash=source_hash if source_year_token_mode else None,
+            )
     except ObservationWriteError:
-        _mark_failed(client, derived_run_id, "RUN_COMPLETION_FAILED")
+        _mark_failed(client, derived_run_id, "RUN_COMPLETION_FAILED",
+                     source_year_writer_token=source_year_writer_token)
         raise
     except Exception as exc:
-        _mark_failed(client, derived_run_id, "NUMERIC_WRITE_FAILED")
+        _mark_failed(client, derived_run_id, "NUMERIC_WRITE_FAILED",
+                     source_year_writer_token=source_year_writer_token)
         raise ObservationWriteError("NUMERIC_WRITE_FAILED") from exc
 
-    active_run_switched, active_run_blocked_reason = _switch_active_run(
-        client, resource_id=resource_id, run_id=derived_run_id, status=final_status,
-        enabled=require_d1_approval and records_written > 0 and activation_guard is None,
-    )
+    if source_year_preblock is not None:
+        active_run_switched = False
+        active_run_blocked_reason = source_year_preblock
+        _mark_source_year_blocked(client, resource_id, derived_run_id, source_year_preblock)
+        final_status = "partial"
+    else:
+        active_run_switched, active_run_blocked_reason = _switch_active_run(
+            client, resource_id=resource_id, run_id=derived_run_id, status=final_status,
+            enabled=require_d1_approval and records_written > 0 and activation_guard is None,
+            period_grain=period_grain, source_year_rowset_change_review=source_year_review,
+        )
+        if source_snapshot_mode and not active_run_switched and active_run_blocked_reason:
+            _mark_source_year_blocked(client, resource_id, derived_run_id, active_run_blocked_reason)
+            final_status = "partial"
     return {
         "resource_id": resource_id,
         "source_id": source_id,
@@ -389,11 +751,19 @@ def publish_observations(
         "records_quarantined": len(quarantined),
         "quarantine_reasons": quarantine_reasons,
         "skipped_identical": skipped,
-        "locations_written": len({entry["location"]["location_id"] for entry in plan}),
+        "locations_written": len({
+            entry["location"]["location_id"] for entry in plan if entry["location"] is not None
+        }),
         "active_run_switched": active_run_switched,
         "activation_blocked_reason": activation_guard,
         "active_run_blocked_reason": active_run_blocked_reason,
         "revision_id": revision_id,
+        "source_snapshot_updated": source_snapshot_mode,
+        "source_snapshot_blocked_reason": None,
+        "source_snapshot_retrieved_at": _iso(_utc(retrieved_at)) if source_snapshot_mode else None,
+        "source_year_label": source_year_token_label,
+        "source_version": source_version if source_year_token_mode else None,
+        "source_hash": source_hash if source_year_token_mode else None,
         "payload_sha256": payload_sha256,
         "adapter_version": adapter_version,
         "retrieved_at": _iso(_utc(retrieved_at)),
@@ -406,12 +776,80 @@ def _finish_existing_run(
     client, *, resource_id, run_id, status, plan, payload_sha256, coverage, completeness,
     adapter_version, retrieved_at, revision_id, skipped_identical, records_written,
     records_quarantined, quarantine_reasons, require_d1_approval, activation_guard=None,
+    period_grain=None, source_year_preblock=None, source_year_review=None,
+    source_year_label=None, source_version=None, source_hash=None,
 ) -> dict:
     """Reuse an identical published run instead of writing the same rows twice."""
-    active_run_switched, active_run_blocked_reason = _switch_active_run(
-        client, resource_id=resource_id, run_id=run_id, status=status,
-        enabled=require_d1_approval and records_written > 0 and activation_guard is None,
-    )
+    source_snapshot_updated = False
+    source_snapshot_accepted = False
+    source_snapshot_blocked_reason = None
+    verification_at = None
+    if (period_grain == "source_year_label" and source_year_preblock is None
+            and not records_quarantined):
+        # A replay of the same payload and source revision is fully immutable.
+        # Do not refresh observations or their source_retrieved_at: those rows
+        # still represent the original retrieval. Report this verification in
+        # the response only. A changed revision has a different run id and is
+        # staged/activated as a complete run by the normal write path.
+        stored_snapshot = _first_row(client.execute(
+            "SELECT source_retrieved_at, source_revision_id FROM sync_runs "
+            "WHERE run_id=? AND resource_id=?",
+            [run_id, resource_id],
+        )) or {}
+        if stored_snapshot.get("source_revision_id") != revision_id:
+            source_snapshot_blocked_reason = "SOURCE_YEAR_RUN_REVISION_CONFLICT"
+        else:
+            source_snapshot_accepted = True
+            verification_at = _iso(_now())
+    elif (period_grain == "source_year_token" and source_year_preblock is None
+            and not records_quarantined):
+        stored_snapshot = _first_row(client.execute(
+            "SELECT source_retrieved_at,source_revision_id,source_year_label,source_version,source_hash "
+            "FROM sync_runs WHERE run_id=? AND resource_id=?",
+            [run_id, resource_id],
+        )) or {}
+        if (stored_snapshot.get("source_revision_id") != revision_id
+                or stored_snapshot.get("source_year_label") != source_year_label
+                or stored_snapshot.get("source_version") != source_version
+                or stored_snapshot.get("source_hash") != source_hash):
+            source_snapshot_blocked_reason = "SOURCE_YEAR_RUN_IDENTITY_CONFLICT"
+        else:
+            source_snapshot_accepted = True
+            verification_at = _iso(_now())
+    source_snapshot_retrieved_at = None
+    if period_grain in ("source_year_label", "source_year_token"):
+        stored_snapshot = _first_row(client.execute(
+            "SELECT source_retrieved_at FROM sync_runs WHERE run_id=? AND resource_id=?",
+            [run_id, resource_id],
+        )) or {}
+        source_snapshot_retrieved_at = stored_snapshot.get("source_retrieved_at")
+    if source_snapshot_blocked_reason is not None:
+        active_run_switched = False
+        active_run_blocked_reason = source_snapshot_blocked_reason
+        _mark_source_year_blocked(client, resource_id, run_id, source_snapshot_blocked_reason)
+        status = "partial"
+    elif source_year_preblock is not None:
+        active_run_switched = False
+        active_run_blocked_reason = source_year_preblock
+        _mark_source_year_blocked(client, resource_id, run_id, source_year_preblock)
+        status = "partial"
+    else:
+        active_run_switched, active_run_blocked_reason = _switch_active_run(
+            client, resource_id=resource_id, run_id=run_id, status=status,
+            enabled=require_d1_approval and records_written > 0 and activation_guard is None,
+            period_grain=period_grain, source_year_rowset_change_review=source_year_review,
+        )
+        # A replay of a finalized snapshot is read-only. The activation result
+        # describes this attempt and does not rewrite that snapshot's status.
+    if period_grain in ("source_year_label", "source_year_token") and active_run_switched:
+        # A previously blocked, complete snapshot may activate after its
+        # explicit row-removal review is supplied on an identical replay.
+        client.execute(
+            "UPDATE sync_runs SET status='succeeded', error_code=NULL "
+            "WHERE run_id=? AND resource_id=? AND status='partial'",
+            [run_id, resource_id],
+        )
+        status = "succeeded"
     return {
         "resource_id": resource_id,
         "source_id": plan[0]["observation"]["source_id"] if plan else None,
@@ -431,6 +869,14 @@ def _finish_existing_run(
         "activation_blocked_reason": activation_guard,
         "active_run_blocked_reason": active_run_blocked_reason,
         "revision_id": revision_id,
+        "source_snapshot_updated": source_snapshot_updated,
+        "source_snapshot_accepted": source_snapshot_accepted,
+        "source_snapshot_blocked_reason": source_snapshot_blocked_reason,
+        "source_snapshot_retrieved_at": source_snapshot_retrieved_at,
+        "source_year_label": source_year_label,
+        "source_version": source_version,
+        "source_hash": source_hash,
+        "verification_at": verification_at,
         "payload_sha256": payload_sha256,
         "adapter_version": adapter_version,
         "retrieved_at": _iso(_utc(retrieved_at)),
@@ -439,7 +885,10 @@ def _finish_existing_run(
     }
 
 
-def _switch_active_run(client, *, resource_id, run_id, status, enabled) -> tuple[bool, str | None]:
+def _switch_active_run(
+    client, *, resource_id, run_id, status, enabled, period_grain=None,
+    source_year_rowset_change_review=None,
+) -> tuple[bool, str | None]:
     """Point the resource at this run unless a newer run is already active.
 
     The candidate's newest ``period_start`` and the current ``active_run_id``
@@ -456,6 +905,16 @@ def _switch_active_run(client, *, resource_id, run_id, status, enabled) -> tuple
     """
     if not enabled:
         return False, None
+    if period_grain == "source_year_label":
+        return _switch_source_year_run(
+            client, resource_id=resource_id, run_id=run_id, status=status,
+            review=source_year_rowset_change_review,
+        )
+    if period_grain == "source_year_token":
+        return _switch_source_year_token_run(
+            client, resource_id=resource_id, run_id=run_id, status=status,
+            review=source_year_rowset_change_review,
+        )
     try:
         result = client.execute(
             "UPDATE resources SET active_run_id = CASE "
@@ -481,6 +940,484 @@ def _switch_active_run(client, *, resource_id, run_id, status, enabled) -> tuple
     if row["active_run_id"] == run_id:
         return True, None
     return False, OLDER_THAN_ACTIVE_RUN_REASON
+
+
+def _switch_source_year_run(client, *, resource_id, run_id, status, review):
+    """Atomically activate a complete source-year snapshot against its active one."""
+    state = _first_row(client.execute(
+        "SELECT active_run_id FROM resources WHERE resource_id=?", [resource_id],
+    ))
+    if state is None:
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED")
+    active_id = state.get("active_run_id")
+    candidate_run = _first_row(client.execute(
+        "SELECT source_retrieved_at,payload_sha256,source_revision_id FROM sync_runs "
+        "WHERE resource_id=? AND run_id=?",
+        [resource_id, run_id],
+    ))
+    if candidate_run is None:
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED")
+    candidate_retrieved_at = candidate_run.get("source_retrieved_at")
+    candidate_payload_sha256 = candidate_run.get("payload_sha256")
+    candidate_revision_id = candidate_run.get("source_revision_id")
+    try:
+        candidate_datetime = _utc(candidate_retrieved_at)
+    except ObservationWriteError:
+        return False, "SOURCE_YEAR_CANDIDATE_RETRIEVAL_TIME_INVALID"
+    if review is not None:
+        try:
+            reviewed_datetime = _utc(review["reviewed_at"])
+        except (KeyError, ObservationWriteError):
+            return False, "SOURCE_YEAR_REVIEW_INVALID"
+        if reviewed_datetime < candidate_datetime:
+            return False, SOURCE_YEAR_STALE_REVIEW_REASON
+
+    active_retrieved_at = None
+    active_payload_sha256 = None
+    active_revision_id = None
+    retrieval_is_newer = False
+    if active_id is not None:
+        active_run = _first_row(client.execute(
+            "SELECT source_retrieved_at,payload_sha256,source_revision_id FROM sync_runs "
+            "WHERE resource_id=? AND run_id=?",
+            [resource_id, active_id],
+        ))
+        if active_run is None:
+            return False, "SOURCE_YEAR_ACTIVE_RUN_MISSING"
+        active_retrieved_at = active_run.get("source_retrieved_at")
+        active_payload_sha256 = active_run.get("payload_sha256")
+        active_revision_id = active_run.get("source_revision_id")
+        try:
+            active_datetime = _utc(active_retrieved_at)
+        except ObservationWriteError:
+            return False, "SOURCE_YEAR_ACTIVE_RETRIEVAL_TIME_INVALID"
+        retrieval_is_newer = candidate_datetime > active_datetime
+        if active_id != run_id and not retrieval_is_newer:
+            return False, SOURCE_YEAR_STALE_SNAPSHOT_REASON
+
+    candidate_year = (
+        "(SELECT MAX(CAST(json_extract(dimensions, '$.sourceYearBe') AS INTEGER)) "
+        "FROM observations WHERE resource_id=resources.resource_id AND run_id=?)"
+    )
+    active_year = (
+        "(SELECT MAX(CAST(json_extract(dimensions, '$.sourceYearBe') AS INTEGER)) "
+        "FROM observations WHERE resource_id=resources.resource_id AND run_id=resources.active_run_id)"
+    )
+    candidate_retrieved_expr = (
+        "(SELECT source_retrieved_at FROM sync_runs "
+        "WHERE resource_id=resources.resource_id AND run_id=?)"
+    )
+    active_retrieved_expr = (
+        "(SELECT source_retrieved_at FROM sync_runs "
+        "WHERE resource_id=resources.resource_id AND run_id=resources.active_run_id)"
+    )
+    rowset_shrunk = (
+        "EXISTS (SELECT 1 FROM observations old_row "
+        "WHERE old_row.resource_id=resources.resource_id AND old_row.run_id=resources.active_run_id "
+        "AND NOT EXISTS (SELECT 1 FROM observations new_row "
+        "WHERE new_row.resource_id=resources.resource_id AND new_row.run_id=? "
+        "AND new_row.row_key=old_row.row_key))"
+    )
+    review_matches_active = (
+        "(?=1 AND (SELECT payload_sha256 FROM sync_runs "
+        "WHERE resource_id=resources.resource_id AND run_id=resources.active_run_id)=?)"
+    )
+    eligible_over_active = (
+        f"{candidate_year} IS NOT NULL AND {active_year} IS NOT NULL "
+        f"AND ({candidate_year}>={active_year} OR {rowset_shrunk}) "
+        f"AND {candidate_retrieved_expr} IS NOT NULL AND {active_retrieved_expr} IS NOT NULL "
+        f"AND ?=1 AND {candidate_retrieved_expr} IS ? AND {active_retrieved_expr} IS ? "
+        f"AND (NOT {rowset_shrunk} OR {review_matches_active})"
+    )
+    has_review = review is not None
+    review_active_hash = review.get("active_payload_sha256") if has_review else None
+    review_json = _json(review) if has_review else None
+    # The timestamp strings are opaque compare-and-swap tokens in SQL. Their
+    # chronological order is evaluated as aware datetimes in Python above,
+    # which supports fractional seconds and timezone offsets without SQLite
+    # date-function precision loss. These exact tokens and active_run_id are
+    # checked inside the pointer UPDATE before it can commit.
+    eligibility_params = [
+        run_id, run_id, run_id, run_id, int(retrieval_is_newer), run_id,
+        candidate_retrieved_at, active_retrieved_at, run_id, int(has_review), review_active_hash,
+    ]
+    # Pointer selection and the one-time removal review audit share a single
+    # UPDATE. The active payload hash is checked against the pointer's current
+    # run inside the SQL statement, so an interleaved publisher invalidates a
+    # stale review instead of applying it to a different snapshot.
+    sql = (
+        "UPDATE resources SET active_run_id=CASE "
+        "WHEN active_run_id=? THEN ? "
+        "WHEN active_run_id IS NULL OR NOT EXISTS (SELECT 1 FROM observations "
+        "WHERE resource_id=resources.resource_id AND run_id=resources.active_run_id) THEN ? "
+        f"WHEN {eligible_over_active} THEN ? ELSE active_run_id END, "
+        "metadata=CASE WHEN active_run_id IS NOT NULL AND active_run_id<>? "
+        f"AND {rowset_shrunk} AND {review_matches_active} AND {eligible_over_active} "
+        "THEN json_set(COALESCE(metadata, '{}'), '$.sourceYearRowsetChangeReviews', "
+        "json_insert(json(COALESCE(json_extract(metadata, '$.sourceYearRowsetChangeReviews'), '[]')), "
+        "'$[#]', json(?))) ELSE metadata END "
+        "WHERE resource_id=? AND access_status='approved_public' "
+        "AND project_publication_approved=1 "
+        "AND active_run_id IS ? "
+        "AND EXISTS (SELECT 1 FROM sync_runs WHERE run_id=? AND resource_id=? "
+        "AND status=? AND source_retrieved_at IS ? AND payload_sha256 IS ? "
+        "AND source_revision_id IS ?) "
+        "AND (active_run_id IS NULL OR EXISTS (SELECT 1 FROM sync_runs active_snapshot "
+        "WHERE active_snapshot.run_id=resources.active_run_id "
+        "AND active_snapshot.resource_id=resources.resource_id "
+        "AND active_snapshot.source_retrieved_at IS ? "
+        "AND active_snapshot.payload_sha256 IS ? AND active_snapshot.source_revision_id IS ?)) "
+        "RETURNING active_run_id"
+    )
+    params = [
+        # Pointer CASE.
+        run_id, run_id, run_id, *eligibility_params, run_id,
+        # Metadata CASE. Record review only when rows are actually removed.
+        run_id, run_id, int(has_review), review_active_hash,
+        *eligibility_params, review_json,
+        # Resource and final-run gate.
+        resource_id, active_id, run_id, resource_id, status, candidate_retrieved_at,
+        candidate_payload_sha256, candidate_revision_id, active_retrieved_at,
+        active_payload_sha256, active_revision_id,
+    ]
+    try:
+        result = client.execute(sql, params)
+    except Exception as exc:
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED") from exc
+    row = _first_row(result)
+    if row is None or row.get("active_run_id") is None:
+        latest_state = _first_row(client.execute(
+            "SELECT active_run_id FROM resources WHERE resource_id=?", [resource_id],
+        )) or {}
+        if latest_state.get("active_run_id") != active_id:
+            return False, "SOURCE_YEAR_POINTER_CHANGED_DURING_ACTIVATION"
+        latest_candidate = _first_row(client.execute(
+            "SELECT source_retrieved_at,payload_sha256,source_revision_id FROM sync_runs "
+            "WHERE resource_id=? AND run_id=?",
+            [resource_id, run_id],
+        )) or {}
+        if (latest_candidate.get("source_retrieved_at") != candidate_retrieved_at
+                or latest_candidate.get("payload_sha256") != candidate_payload_sha256
+                or latest_candidate.get("source_revision_id") != candidate_revision_id):
+            return False, "SOURCE_YEAR_CANDIDATE_CHANGED_DURING_ACTIVATION"
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED")
+    if row["active_run_id"] == run_id:
+        return True, None
+    reason = _source_year_block_reason(client, resource_id=resource_id, run_id=run_id, review=review)
+    return False, reason
+
+
+def _switch_source_year_token_run(client, *, resource_id, run_id, status, review):
+    """Activate an opaque year-label snapshot by source revision metadata only.
+
+    The source label is never sorted or converted to a date. A later source
+    snapshot must carry a strictly newer, comparable source ``last_modified``
+    token and retrieval timestamp. Row removals still require the reviewed
+    manifest, and the active/candidate identities are checked atomically.
+    """
+    state = _first_row(client.execute(
+        "SELECT active_run_id FROM resources WHERE resource_id=?", [resource_id],
+    ))
+    if state is None:
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED")
+    active_id = state.get("active_run_id")
+    candidate = _first_row(client.execute(
+        "SELECT source_retrieved_at,payload_sha256,source_revision_id,source_year_label,"
+        "source_version,source_hash FROM sync_runs WHERE resource_id=? AND run_id=?",
+        [resource_id, run_id],
+    ))
+    if candidate is None:
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED")
+    candidate_retrieved_at = candidate.get("source_retrieved_at")
+    candidate_payload = candidate.get("payload_sha256")
+    candidate_revision = candidate.get("source_revision_id")
+    candidate_label = candidate.get("source_year_label")
+    candidate_version = candidate.get("source_version")
+    candidate_hash = candidate.get("source_hash")
+    try:
+        candidate_retrieved = _utc(candidate_retrieved_at)
+        candidate_version_key = _source_version_order_key(candidate_version)
+    except ObservationWriteError:
+        return False, "SOURCE_YEAR_CANDIDATE_VERSION_INVALID"
+    if review is not None:
+        try:
+            reviewed_datetime = _utc(review["reviewed_at"])
+        except (KeyError, ObservationWriteError):
+            return False, "SOURCE_YEAR_REVIEW_INVALID"
+        if reviewed_datetime < candidate_retrieved:
+            return False, SOURCE_YEAR_STALE_REVIEW_REASON
+
+    active_retrieved_at = None
+    active_payload = None
+    active_revision = None
+    active_label = None
+    active_version = None
+    active_hash = None
+    rowset_shrunk = False
+    review_matches = False
+    if active_id is not None:
+        active = _first_row(client.execute(
+            "SELECT source_retrieved_at,payload_sha256,source_revision_id,source_year_label,"
+            "source_version,source_hash FROM sync_runs WHERE resource_id=? AND run_id=?",
+            [resource_id, active_id],
+        ))
+        if active is None:
+            return False, "SOURCE_YEAR_ACTIVE_RUN_MISSING"
+        active_retrieved_at = active.get("source_retrieved_at")
+        active_payload = active.get("payload_sha256")
+        active_revision = active.get("source_revision_id")
+        active_label = active.get("source_year_label")
+        active_version = active.get("source_version")
+        active_hash = active.get("source_hash")
+        try:
+            active_retrieved = _utc(active_retrieved_at)
+            active_version_key = _source_version_order_key(active_version)
+        except ObservationWriteError:
+            return False, "SOURCE_YEAR_ACTIVE_VERSION_INVALID"
+        if active_id != run_id:
+            if candidate_version_key[0] != active_version_key[0]:
+                return False, SOURCE_VERSION_INCOMPARABLE_REASON
+            if candidate_version_key[1] <= active_version_key[1]:
+                return False, SOURCE_VERSION_NOT_NEWER_REASON
+            if candidate_retrieved <= active_retrieved:
+                return False, SOURCE_YEAR_STALE_SNAPSHOT_REASON
+
+        shrink_result = _first_row(client.execute(
+            "SELECT EXISTS (SELECT 1 FROM observations old_row "
+            "WHERE old_row.resource_id=? AND old_row.run_id=? "
+            "AND NOT EXISTS (SELECT 1 FROM observations new_row "
+            "WHERE new_row.resource_id=? AND new_row.run_id=? AND new_row.row_key=old_row.row_key)) "
+            "AS rowset_shrunk",
+            [resource_id, active_id, resource_id, run_id],
+        )) or {}
+        rowset_shrunk = bool(shrink_result.get("rowset_shrunk"))
+        review_matches = (
+            review is not None
+            and review.get("active_payload_sha256") == active_payload
+            and review.get("candidate_payload_sha256") == candidate_payload
+            and review.get("source_revision_id") == candidate_revision
+            and review.get("resource_id") == resource_id
+            and review.get("active_run_id") == active_id
+            and review.get("active_source_year_label") == active_label
+            and review.get("active_source_version") == active_version
+            and review.get("active_source_hash") == active_hash
+            and review.get("active_source_revision_id") == active_revision
+            and review.get("candidate_run_id") == run_id
+            and review.get("source_year_label") == candidate_label
+            and review.get("source_version") == candidate_version
+            and review.get("source_hash") == candidate_hash
+        )
+        if rowset_shrunk and review is None:
+            return False, SOURCE_YEAR_ROWSET_REVIEW_REASON
+        if rowset_shrunk and not review_matches:
+            return False, SOURCE_YEAR_STALE_REVIEW_REASON
+
+    has_review = review is not None and review_matches
+    review_active_hash = review.get("active_payload_sha256") if has_review else None
+    review_json = _json(review) if has_review else None
+    rowset_shrunk_expr = (
+        "EXISTS (SELECT 1 FROM observations old_row "
+        "WHERE old_row.resource_id=resources.resource_id AND old_row.run_id=resources.active_run_id "
+        "AND NOT EXISTS (SELECT 1 FROM observations new_row "
+        "WHERE new_row.resource_id=resources.resource_id AND new_row.run_id=? "
+        "AND new_row.row_key=old_row.row_key))"
+    )
+    review_matches_expr = (
+        "(?=1 AND (SELECT payload_sha256 FROM sync_runs "
+        "WHERE resource_id=resources.resource_id AND run_id=resources.active_run_id)=? "
+        "AND (SELECT payload_sha256 FROM sync_runs WHERE resource_id=resources.resource_id AND run_id=?)=? "
+        "AND (SELECT source_revision_id FROM sync_runs WHERE resource_id=resources.resource_id AND run_id=?)=?)"
+    )
+    sql = (
+        "UPDATE resources SET active_run_id=?, "
+        "metadata=CASE WHEN active_run_id IS NOT NULL AND active_run_id<>? "
+        f"AND {rowset_shrunk_expr} AND {review_matches_expr} "
+        "THEN json_set(COALESCE(metadata, '{}'), '$.sourceYearRowsetChangeReviews', "
+        "json_insert(json(COALESCE(json_extract(metadata, '$.sourceYearRowsetChangeReviews'), '[]')), "
+        "'$[#]', json(?))) ELSE metadata END "
+        "WHERE resource_id=? AND access_status='approved_public' AND project_publication_approved=1 "
+        "AND active_run_id IS ? "
+        "AND EXISTS (SELECT 1 FROM sync_runs candidate WHERE candidate.run_id=? "
+        "AND candidate.resource_id=? AND candidate.status=? "
+        "AND candidate.source_retrieved_at IS ? AND candidate.payload_sha256 IS ? "
+        "AND candidate.source_revision_id IS ? AND candidate.source_year_label IS ? "
+        "AND candidate.source_version IS ? AND candidate.source_hash IS ?) "
+        "AND (active_run_id IS NULL OR EXISTS (SELECT 1 FROM sync_runs active_snapshot "
+        "WHERE active_snapshot.run_id=resources.active_run_id "
+        "AND active_snapshot.resource_id=resources.resource_id "
+        "AND active_snapshot.source_retrieved_at IS ? AND active_snapshot.payload_sha256 IS ? "
+        "AND active_snapshot.source_revision_id IS ? AND active_snapshot.source_year_label IS ? "
+        "AND active_snapshot.source_version IS ? AND active_snapshot.source_hash IS ?)) "
+        "AND (NOT " + rowset_shrunk_expr + " OR " + review_matches_expr + ") "
+        "RETURNING active_run_id"
+    )
+    params = [
+        run_id,
+        run_id,  # metadata active_run_id<>?
+        run_id,  # rowset comparison in metadata audit
+        int(has_review), review_active_hash, run_id, candidate_payload, run_id, candidate_revision,
+        review_json,
+        resource_id, active_id,
+        run_id, resource_id, status, candidate_retrieved_at, candidate_payload,
+        candidate_revision, candidate_label, candidate_version, candidate_hash,
+        active_retrieved_at, active_payload, active_revision, active_label, active_version, active_hash,
+        # The final predicate rechecks rowset shrink and the reviewed payloads.
+        run_id, int(has_review), review_active_hash, run_id, candidate_payload, run_id, candidate_revision,
+    ]
+    try:
+        result = client.execute(sql, params)
+    except Exception as exc:
+        raise ObservationWriteError("ACTIVE_RUN_SWITCH_FAILED") from exc
+    row = _first_row(result)
+    if row is None or row.get("active_run_id") != run_id:
+        latest_state = _first_row(client.execute(
+            "SELECT active_run_id FROM resources WHERE resource_id=?", [resource_id],
+        )) or {}
+        if latest_state.get("active_run_id") != active_id:
+            return False, "SOURCE_YEAR_POINTER_CHANGED_DURING_ACTIVATION"
+        latest_candidate = _first_row(client.execute(
+            "SELECT source_retrieved_at,payload_sha256,source_revision_id,source_year_label,"
+            "source_version,source_hash FROM sync_runs WHERE resource_id=? AND run_id=?",
+            [resource_id, run_id],
+        )) or {}
+        if latest_candidate != candidate:
+            return False, "SOURCE_YEAR_CANDIDATE_CHANGED_DURING_ACTIVATION"
+        if rowset_shrunk and not review_matches:
+            return False, SOURCE_YEAR_ROWSET_REVIEW_REASON
+        return False, "SOURCE_YEAR_POINTER_SWITCH_FAILED"
+    return True, None
+
+
+def _source_year_block_reason(client, *, resource_id, run_id, review):
+    state = client.execute(
+        "SELECT active_run_id FROM resources WHERE resource_id=?", [resource_id],
+    )
+    active_id = (_first_row(state) or {}).get("active_run_id")
+    if active_id == run_id:
+        return None
+    if not active_id:
+        return "SOURCE_YEAR_POINTER_SWITCH_FAILED"
+    candidate = client.execute(
+        "SELECT MAX(CAST(json_extract(dimensions, '$.sourceYearBe') AS INTEGER)) AS year_be, "
+        "(SELECT source_retrieved_at FROM sync_runs WHERE resource_id=? AND run_id=?) AS retrieved_at "
+        "FROM observations WHERE resource_id=? AND run_id=?",
+        [resource_id, run_id, resource_id, run_id],
+    )
+    active = client.execute(
+        "SELECT MAX(CAST(json_extract(dimensions, '$.sourceYearBe') AS INTEGER)) AS year_be, "
+        "(SELECT source_retrieved_at FROM sync_runs WHERE resource_id=? AND run_id=?) AS retrieved_at, "
+        "(SELECT payload_sha256 FROM sync_runs WHERE resource_id=? AND run_id=?) AS payload_sha256 "
+        "FROM observations WHERE resource_id=? AND run_id=?",
+        [resource_id, active_id, resource_id, active_id, resource_id, active_id],
+    )
+    candidate_row = _first_row(candidate) or {}
+    active_row = _first_row(active) or {}
+    if candidate_row.get("year_be") is None or active_row.get("year_be") is None:
+        return "SOURCE_YEAR_ACTIVE_GRAIN_MISMATCH"
+    try:
+        candidate_datetime = _utc(candidate_row.get("retrieved_at"))
+    except ObservationWriteError:
+        return "SOURCE_YEAR_CANDIDATE_RETRIEVAL_TIME_INVALID"
+    try:
+        active_datetime = _utc(active_row.get("retrieved_at"))
+    except ObservationWriteError:
+        return "SOURCE_YEAR_ACTIVE_RETRIEVAL_TIME_INVALID"
+    shrink = client.execute(
+        "SELECT EXISTS (SELECT 1 FROM observations old_row "
+        "WHERE old_row.resource_id=? AND old_row.run_id=? "
+        "AND NOT EXISTS (SELECT 1 FROM observations new_row WHERE new_row.resource_id=? "
+        "AND new_row.run_id=? AND new_row.row_key=old_row.row_key)) AS rowset_shrunk",
+        [resource_id, active_id, resource_id, run_id],
+    )
+    rowset_shrunk = bool((_first_row(shrink) or {}).get("rowset_shrunk"))
+    review_matches = (review is not None
+                      and active_row.get("payload_sha256") == review.get("active_payload_sha256"))
+    if candidate_row["year_be"] < active_row["year_be"] and not (rowset_shrunk and review_matches):
+        if rowset_shrunk and review is None:
+            return SOURCE_YEAR_ROWSET_REVIEW_REASON
+        if rowset_shrunk and review is not None:
+            return SOURCE_YEAR_STALE_REVIEW_REASON
+        return SOURCE_YEAR_REGRESSION_REASON
+    if candidate_datetime <= active_datetime:
+        return SOURCE_YEAR_STALE_SNAPSHOT_REASON
+    if rowset_shrunk:
+        if review is None:
+            return SOURCE_YEAR_ROWSET_REVIEW_REASON
+        if active_row.get("payload_sha256") != review.get("active_payload_sha256"):
+            return SOURCE_YEAR_STALE_REVIEW_REASON
+    return "SOURCE_YEAR_POINTER_SWITCH_FAILED"
+
+
+def _mark_source_year_blocked(client, resource_id, run_id, reason):
+    client.execute(
+        "UPDATE sync_runs SET status='partial', error_code=? "
+        "WHERE run_id=? AND resource_id=? AND status IN ('succeeded','partial') "
+        "AND NOT EXISTS (SELECT 1 FROM resources WHERE resource_id=? AND active_run_id=?)",
+        [reason, run_id, resource_id, resource_id, run_id],
+    )
+
+
+def _validate_source_year_review(
+    review, *, payload_sha256, source_revision_id, retrieved_at,
+    allow_source_year_token_fields=False,
+):
+    if review is None:
+        return None
+    base_fields = {
+        "reviewed_by", "reviewed_at", "reason", "source_revision_id",
+        "active_payload_sha256", "candidate_payload_sha256",
+    }
+    token_fields = {
+        "resource_id", "active_run_id", "active_source_year_label", "active_source_version",
+        "active_source_hash", "active_source_revision_id", "candidate_run_id", "source_year_label",
+        "source_version", "source_hash",
+    }
+    keys = set(review) if isinstance(review, Mapping) else set()
+    if (keys != base_fields
+            and not (allow_source_year_token_fields and keys == base_fields | token_fields)):
+        raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+    for key in ("reviewed_by", "reason"):
+        value = review.get(key)
+        if not isinstance(value, str) or not value.strip() or len(value) > 500:
+            raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+        if "://" in value or any(marker in value.lower() for marker in ("api_key", "apikey", "token=")):
+            raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+    try:
+        reviewed_at = _utc(review["reviewed_at"])
+        _utc(retrieved_at)
+    except (KeyError, ObservationWriteError) as exc:
+        raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID") from exc
+    # The source timestamp belongs to the candidate snapshot, not to a later
+    # verification fetch that reuses the same immutable run. A small future
+    # allowance accommodates ordinary clock skew without accepting arbitrary
+    # future-dated approvals.
+    if reviewed_at > _now() + SOURCE_YEAR_REVIEW_FUTURE_SKEW:
+        raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+    for key in ("active_payload_sha256", "candidate_payload_sha256"):
+        if (not isinstance(review[key], str) or len(review[key]) != 64
+                or any(character not in "0123456789abcdef" for character in review[key].lower())):
+            raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+    if (review["candidate_payload_sha256"] != payload_sha256
+            or review["source_revision_id"] != source_revision_id):
+        raise ObservationWriteError("SOURCE_YEAR_REVIEW_STALE")
+    if keys == base_fields | token_fields:
+        for key in token_fields:
+            value = review.get(key)
+            if not isinstance(value, str) or not value.strip() or len(value) > 500:
+                raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+        for key in ("active_payload_sha256", "candidate_payload_sha256"):
+            if re.fullmatch(r"[0-9a-f]{64}", review[key]) is None:
+                raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+        for key in ("active_source_hash", "source_hash"):
+            if re.fullmatch(r"[0-9a-f]{32}", review[key]) is None:
+                raise ObservationWriteError("SOURCE_YEAR_REVIEW_INVALID")
+        if review["source_revision_id"] != f"{review['source_version']}|md5:{review['source_hash']}":
+            raise ObservationWriteError("SOURCE_YEAR_REVIEW_STALE")
+        if review["active_source_revision_id"] != (
+            f"{review['active_source_version']}|md5:{review['active_source_hash']}"
+        ):
+            raise ObservationWriteError("SOURCE_YEAR_REVIEW_STALE")
+    return dict(review)
 
 
 # ---------------------------------------------------------------------------
@@ -595,10 +1532,30 @@ def _plan_row(
             "QUALITY_FLAG_MISMATCH",
             "quality_flag must be 'good' or 'missing' and must match the missing value")
 
-    grain = period_grain or _infer_grain(observation["observed_at"])
-    if grain not in ("daily", "monthly", "point"):
+    try:
+        grain = period_grain or _infer_grain(observation["observed_at"])
+    except (TypeError, ObservationWriteError) as exc:
+        raise ObservationWriteError("PERIOD_GRAIN_INVALID") from exc
+    if grain == "source_year_label":
+        source_year_be = observation.get("source_year_be")
+        if source_year_be is None or observation["observed_at"] is not None:
+            raise ObservationWriteError("PERIOD_GRAIN_INVALID")
+        period_start, period_end, period_label = None, None, f"พ.ศ. {source_year_be}"
+    elif grain == "source_year_token":
+        source_year_label = observation.get("source_year_label")
+        if not isinstance(source_year_label, str) or observation["observed_at"] is not None:
+            raise ObservationWriteError("PERIOD_GRAIN_INVALID")
+        if observation.get("source_year_be") is not None:
+            raise ObservationWriteError("PERIOD_GRAIN_INVALID")
+        period_start, period_end, period_label = None, None, source_year_label
+    elif grain in ("daily", "monthly", "point"):
+        if (observation.get("source_year_be") is not None
+                or observation.get("source_year_label") is not None
+                or observation["observed_at"] is None):
+            raise ObservationWriteError("PERIOD_GRAIN_INVALID")
+        period_start, period_end, period_label = _period(observation["observed_at"], grain)
+    else:
         raise ObservationWriteError("PERIOD_GRAIN_INVALID")
-    period_start, period_end, period_label = _period(observation["observed_at"], grain)
     series_key = ":".join([
         measure, grain, observation["spatial_support"], effective_unit or _UNIT_VALIDATION_TOKEN,
     ])
@@ -610,7 +1567,8 @@ def _plan_row(
         "location": location,
         "series_key": series_key,
         "period": (period_start, period_end, period_label),
-        "product": product if product is not None else resource.get("name"),
+        "source_row_ref": observation.get("source_row_id") or observation["observation_id"],
+        "product": _row_product(product, observation, resource),
         "metric_name": metric_name or _default_metric_name(measure),
         "unit": effective_unit,
         "dimensions": _json(dimensions),
@@ -620,6 +1578,17 @@ def _plan_row(
             observation["source_url"], observation["release_at"], observation["revision_id"],
         ),
     }
+
+
+def _row_product(product: str | Mapping[str, str] | None, observation: Mapping[str, Any],
+                 resource: Mapping[str, Any]) -> str | None:
+    """Resolve a fixed product label or an exact per-observation label map."""
+    if isinstance(product, Mapping):
+        value = product.get(observation["observation_id"])
+        if not isinstance(value, str) or not value.strip():
+            raise ObservationWriteError("PRODUCT_MAPPING_MISSING")
+        return value
+    return product if product is not None else resource.get("name")
 
 
 def _has_forecast_marker(row: Mapping[str, Any]) -> bool:
@@ -655,17 +1624,38 @@ _EXTENSION_PROBE_SQL = (
 _OBSERVATION_SQL_CACHE: dict[tuple, str] = {}
 
 
-def _observation_sql(columns: tuple) -> str:
-    cached = _OBSERVATION_SQL_CACHE.get(columns)
+def _observation_sql(columns: tuple, *, source_snapshot_guard_fields: int = 0) -> str:
+    cache_key = (columns, source_snapshot_guard_fields)
+    cached = _OBSERVATION_SQL_CACHE.get(cache_key)
     if cached is not None:
         return cached
     updates = ", ".join(f"{column}=excluded.{column}" for column in columns if column not in _KEY_COLUMNS)
-    sql = (
-        "INSERT INTO observations (" + ", ".join(columns) + ") "
-        + "VALUES (" + ", ".join("?" for _ in columns) + ") "
-        + "ON CONFLICT(" + ", ".join(_KEY_COLUMNS) + ") DO UPDATE SET " + updates
-    )
-    _OBSERVATION_SQL_CACHE[columns] = sql
+    if source_snapshot_guard_fields:
+        owner_predicate = (
+            "snapshot.resource_id=? AND snapshot.run_id=? AND snapshot.status='running' "
+            "AND snapshot.source_year_writer_token IS ? AND snapshot.source_retrieved_at IS ? "
+            "AND snapshot.source_revision_id IS ? AND snapshot.payload_sha256 IS ?"
+        )
+        if source_snapshot_guard_fields == 9:
+            owner_predicate += (
+                " AND snapshot.source_year_label IS ? AND snapshot.source_version IS ? "
+                "AND snapshot.source_hash IS ?"
+            )
+        sql = (
+            "INSERT INTO observations (" + ", ".join(columns) + ") "
+            + "SELECT " + ", ".join("?" for _ in columns) + " FROM sync_runs snapshot WHERE "
+            + owner_predicate
+            + " ON CONFLICT(" + ", ".join(_KEY_COLUMNS) + ") DO UPDATE SET " + updates
+            + " WHERE EXISTS (SELECT 1 FROM sync_runs snapshot WHERE " + owner_predicate + ")"
+            + " RETURNING row_key"
+        )
+    else:
+        sql = (
+            "INSERT INTO observations (" + ", ".join(columns) + ") "
+            + "VALUES (" + ", ".join("?" for _ in columns) + ") "
+            + "ON CONFLICT(" + ", ".join(_KEY_COLUMNS) + ") DO UPDATE SET " + updates
+        )
+    _OBSERVATION_SQL_CACHE[cache_key] = sql
     return sql
 
 
@@ -678,24 +1668,274 @@ def _extended_columns(client) -> tuple:
     return _EXTENSION_OBSERVATION_COLUMNS
 
 
+def _has_run_source_revision_column(client) -> bool:
+    """Check for the additive annual snapshot revision migration."""
+    try:
+        client.execute("SELECT source_revision_id FROM sync_runs WHERE 0=1", [])
+    except Exception as exc:
+        if "no such column" in str(exc).lower():
+            return False
+        raise ObservationWriteError("SYNC_RUN_SCHEMA_PROBE_FAILED") from exc
+    return True
+
+
+def _preflight_source_year_schema(
+    client, *, source_year_token_mode: bool, include_locations: bool,
+) -> None:
+    """Check annual columns, unique targets, and foreign keys in one read-only query.
+
+    SQLite's table-valued PRAGMA functions expose index and foreign-key metadata
+    inside one SELECT. This runs before catalog/run/location/observation writes.
+    """
+    required_columns = {
+        "sources": (
+            "source_id", "source_name", "base_url", "connector_kind", "status", "metadata_access_status",
+        ),
+        "datasets": (
+            "dataset_id", "source_id", "source_dataset_id", "title", "description", "category", "owner",
+            "source_url", "metadata_access_status", "metadata",
+        ),
+        "resources": (
+            "resource_id", "dataset_id", "source_resource_id", "name", "format", "resource_url",
+            "access_status", "declared_license", "license_url", "project_publication_approved", "grain",
+            "source_updated_at", "metadata", "active_run_id",
+        ),
+        "sync_runs": (
+            "run_id", "source_id", "resource_id", "kind", "status", "started_at", "completed_at",
+            "source_retrieved_at", "records_read", "records_written", "records_quarantined",
+            "payload_sha256", "adapter_version", "error_code", "source_revision_id",
+            "source_year_writer_token",
+        ),
+        "observations": (
+            "resource_id", "run_id", "row_key", "series_key", "period_start", "period_end", "period_label",
+            "location_id", "location_code", "location_kind", "location_name", "province_code", "crop_code",
+            "crop_name", "metric_id", "metric_name", "product", "grade", "market", "unit", "value",
+            "dimensions", "source_row_ref", "quality_status", "quality",
+        ),
+    }
+    if source_year_token_mode:
+        required_columns["sync_runs"] += ("source_year_label", "source_version", "source_hash")
+    if include_locations:
+        required_columns["locations"] = (
+            "location_id", "source_id", "kind", "native_code", "name", "province_code",
+        )
+
+    value_rows = [
+        f"('{table}','{column}')"
+        for table, columns in required_columns.items()
+        for column in columns
+    ]
+    values_sql = ", ".join(value_rows)
+    sql = f"""
+        WITH required_columns(table_name,column_name) AS (VALUES {values_sql}),
+        selected_tables(table_name) AS (
+            SELECT DISTINCT table_name FROM required_columns
+        ),
+        column_metadata AS (
+            SELECT required.table_name,required.column_name,actual.name AS matched_column
+            FROM required_columns required
+            LEFT JOIN pragma_table_info(required.table_name) actual
+              ON lower(actual.name)=lower(required.column_name)
+        ),
+        index_metadata AS (
+            SELECT selected.table_name,indexes.name AS index_name,indexes."unique" AS is_unique,
+                   indexes.partial AS is_partial,columns.seqno,columns.name AS column_name
+            FROM selected_tables selected
+            JOIN pragma_index_list(selected.table_name) indexes
+            JOIN pragma_index_info(indexes.name) columns
+        ),
+        foreign_key_metadata AS (
+            SELECT selected.table_name,foreign_keys.id AS fk_id,foreign_keys.seq AS fk_seq,
+                   foreign_keys."table" AS parent_table,foreign_keys."from" AS from_column,
+                   foreign_keys."to" AS to_column
+            FROM selected_tables selected
+            JOIN pragma_foreign_key_list(selected.table_name) foreign_keys
+        )
+        SELECT 'missing_column' AS kind,table_name,column_name,NULL AS index_name,
+               NULL AS is_unique,NULL AS is_partial,NULL AS seqno,NULL AS fk_id,NULL AS fk_seq,
+               NULL AS parent_table,NULL AS from_column,NULL AS to_column
+        FROM column_metadata WHERE matched_column IS NULL
+        UNION ALL
+        SELECT 'index' AS kind,table_name,column_name,index_name,is_unique,is_partial,seqno,
+               NULL AS fk_id,NULL AS fk_seq,NULL AS parent_table,NULL AS from_column,NULL AS to_column
+        FROM index_metadata
+        UNION ALL
+        SELECT 'foreign_key' AS kind,table_name,NULL AS column_name,NULL AS index_name,
+               NULL AS is_unique,NULL AS is_partial,NULL AS seqno,fk_id,fk_seq,parent_table,
+               from_column,to_column
+        FROM foreign_key_metadata
+    """
+    try:
+        result = client.execute(sql, [])
+    except Exception as exc:
+        raise ObservationWriteError("SOURCE_YEAR_SCHEMA_PROBE_FAILED") from exc
+    rows = result.get("results") if isinstance(result, dict) else None
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ObservationWriteError("SOURCE_YEAR_SCHEMA_PROBE_FAILED")
+
+    base_columns = {
+        (table, column)
+        for table, columns in required_columns.items()
+        for column in columns
+    } - {
+        ("sync_runs", "source_revision_id"),
+        ("sync_runs", "source_year_writer_token"),
+        ("sync_runs", "source_year_label"),
+        ("sync_runs", "source_version"),
+        ("sync_runs", "source_hash"),
+    }
+    missing_columns = {
+        (str(row.get("table_name")), str(row.get("column_name")))
+        for row in rows if row.get("kind") == "missing_column"
+    }
+    if missing_columns & base_columns:
+        raise ObservationWriteError("SOURCE_YEAR_BASE_SCHEMA_REQUIRED")
+    if ("sync_runs", "source_revision_id") in missing_columns:
+        raise ObservationWriteError("SOURCE_YEAR_SNAPSHOT_SCHEMA_REQUIRED")
+    if ("sync_runs", "source_year_writer_token") in missing_columns:
+        raise ObservationWriteError("SOURCE_YEAR_WRITER_TOKEN_SCHEMA_REQUIRED")
+    if source_year_token_mode and missing_columns & {
+        ("sync_runs", "source_year_label"), ("sync_runs", "source_version"), ("sync_runs", "source_hash"),
+    }:
+        raise ObservationWriteError("SOURCE_YEAR_TOKEN_SCHEMA_REQUIRED")
+
+    unique_keys = set()
+    index_groups = {}
+    for row in rows:
+        if row.get("kind") != "index" or row.get("index_name") is None:
+            continue
+        group_key = (str(row.get("table_name")).casefold(), str(row["index_name"]))
+        group = index_groups.setdefault(group_key, {
+            "unique": row.get("is_unique") == 1 or row.get("is_unique") is True,
+            "partial": row.get("is_partial") == 1 or row.get("is_partial") is True,
+            "columns": [],
+        })
+        group["columns"].append((int(row.get("seqno", -1)), row.get("column_name")))
+    for (table, _index_name), group in index_groups.items():
+        if not group["unique"] or group["partial"]:
+            continue
+        ordered = sorted(group["columns"], key=lambda item: item[0])
+        if any(not isinstance(column, str) for _seq, column in ordered):
+            continue
+        unique_keys.add((table, tuple(column.casefold() for _seq, column in ordered)))
+
+    required_unique_keys = {
+        ("sources", ("source_id",)),
+        ("datasets", ("dataset_id",)),
+        ("datasets", ("source_id", "source_dataset_id")),
+        ("resources", ("resource_id",)),
+        ("sync_runs", ("run_id",)),
+        ("sync_runs", ("resource_id", "run_id")),
+        ("observations", ("resource_id", "run_id", "row_key")),
+    }
+    if include_locations:
+        required_unique_keys.update({
+            ("locations", ("location_id",)),
+            ("locations", ("source_id", "kind", "native_code")),
+        })
+    if not required_unique_keys.issubset(unique_keys):
+        missing_key = sorted(required_unique_keys - unique_keys)[0]
+        raise ObservationWriteError(
+            "SOURCE_YEAR_SCHEMA_CONSTRAINT_REQUIRED",
+            f"missing unique key {missing_key[0]}({','.join(missing_key[1])})",
+        )
+
+    foreign_key_groups = {}
+    for row in rows:
+        if row.get("kind") != "foreign_key":
+            continue
+        group_key = (str(row.get("table_name")).casefold(), str(row.get("fk_id")))
+        foreign_key_groups.setdefault(group_key, []).append((
+            int(row.get("fk_seq", -1)),
+            row.get("parent_table"),
+            row.get("from_column"),
+            row.get("to_column"),
+        ))
+    foreign_keys = set()
+    for (table, _fk_id), entries in foreign_key_groups.items():
+        ordered = sorted(entries, key=lambda item: item[0])
+        parent_tables = {str(parent).casefold() for _seq, parent, _from, _to in ordered}
+        if len(parent_tables) != 1:
+            continue
+        from_columns = tuple(str(source).casefold() for _seq, _parent, source, _to in ordered)
+        to_columns = tuple(str(target).casefold() for _seq, _parent, _from, target in ordered)
+        foreign_keys.add((table, next(iter(parent_tables)), from_columns, to_columns))
+    required_foreign_keys = {
+        ("datasets", "sources", ("source_id",), ("source_id",)),
+        ("resources", "datasets", ("dataset_id",), ("dataset_id",)),
+        ("resources", "sync_runs", ("resource_id", "active_run_id"), ("resource_id", "run_id")),
+        ("sync_runs", "sources", ("source_id",), ("source_id",)),
+        ("sync_runs", "resources", ("resource_id",), ("resource_id",)),
+        ("observations", "resources", ("resource_id",), ("resource_id",)),
+        ("observations", "sync_runs", ("resource_id", "run_id"), ("resource_id", "run_id")),
+    }
+    if include_locations:
+        required_foreign_keys.update({
+            ("locations", "sources", ("source_id",), ("source_id",)),
+            ("observations", "locations", ("location_id",), ("location_id",)),
+        })
+    if not required_foreign_keys.issubset(foreign_keys):
+        missing_fk = sorted(required_foreign_keys - foreign_keys)[0]
+        raise ObservationWriteError(
+            "SOURCE_YEAR_SCHEMA_CONSTRAINT_REQUIRED",
+            f"missing foreign key {missing_fk[0]}({','.join(missing_fk[2])}) "
+            f"to {missing_fk[1]}({','.join(missing_fk[3])})",
+        )
+
+
+def _has_source_year_writer_token_column(client) -> bool:
+    """Check the additive CAS-token migration used only by annual snapshots."""
+    try:
+        client.execute("SELECT source_year_writer_token FROM sync_runs WHERE 0=1", [])
+    except Exception as exc:
+        if "no such column" in str(exc).lower():
+            return False
+        raise ObservationWriteError("SYNC_RUN_SCHEMA_PROBE_FAILED") from exc
+    return True
+
+
+def _has_source_year_token_columns(client) -> bool:
+    """Check additive metadata columns required for opaque source-year snapshots."""
+    try:
+        client.execute(
+            "SELECT source_year_label,source_version,source_hash FROM sync_runs WHERE 0=1", []
+        )
+    except Exception as exc:
+        if "no such column" in str(exc).lower():
+            return False
+        raise ObservationWriteError("SYNC_RUN_SCHEMA_PROBE_FAILED") from exc
+    return True
+
+
 def _observation_statement(run_id: str, resource_id: str, entry: dict,
-                           extended: tuple = ()) -> tuple[str, list]:
+                           extended: tuple = (),
+                           source_snapshot_guard: tuple | None = None
+                           ) -> tuple[str, list]:
     observation = entry["observation"]
     location = entry["location"]
     period_start, period_end, period_label = entry["period"]
     values = [
         resource_id, run_id, observation["observation_id"], entry["series_key"],
         period_start, period_end, period_label,
-        location["location_id"], location["location_id"], location["kind"], location["name"],
+        location["location_id"] if location else None,
+        location["location_id"] if location else None,
+        location["kind"] if location else None,
+        location["name"] if location else None,
         observation["area_code"], None,
         observation["measure"], entry["metric_name"], entry["product"],
         observation["grade"], observation["market_id"],
         entry["unit"], observation["value"],
-        entry["dimensions"], observation["observation_id"], observation["quality_flag"], entry["quality"],
+        entry["dimensions"], entry["source_row_ref"], observation["quality_flag"], entry["quality"],
     ]
     if extended:
         values.extend(entry["provenance"])
-    return _observation_sql(_BASE_OBSERVATION_COLUMNS + extended), values
+    if source_snapshot_guard is not None:
+        values.extend(source_snapshot_guard)
+        values.extend(source_snapshot_guard)
+    return _observation_sql(
+        _BASE_OBSERVATION_COLUMNS + extended,
+        source_snapshot_guard_fields=(len(source_snapshot_guard) if source_snapshot_guard is not None else 0),
+    ), values
 
 
 def _validate_row(raw: dict, effective_unit: str | None) -> dict:
@@ -718,8 +1958,10 @@ def _effective_unit(row: dict, batch_unit: str | None) -> str | None:
     return own or batch_unit
 
 
-def _location(source_id: str, observation: dict, override: Mapping[str, Any] | None) -> dict:
+def _location(source_id: str, observation: dict, override: Mapping[str, Any] | None) -> dict | None:
     spatial = observation["spatial_support"]
+    if spatial == "not_reported":
+        return None
     kind = SPATIAL_LOCATION_KIND.get(spatial)
     if kind is None:
         raise ObservationWriteError("SPATIAL_SUPPORT_UNSUPPORTED")
@@ -734,13 +1976,61 @@ def _location(source_id: str, observation: dict, override: Mapping[str, Any] | N
     }
 
 
+def _validate_source_year_location_mappings(plan: Sequence[Mapping[str, Any]]) -> set[str]:
+    """Require each source-year location ID and natural key to map one-to-one.
+
+    The shared ``locations`` table is global across snapshots. Conflicting
+    duplicate metadata must be rejected before catalog or run writes, since
+    ``(source_id, kind, native_code)`` is the upsert key while ``location_id``
+    is the primary key.
+    """
+    metadata_by_id = {}
+    metadata_by_natural_key = {}
+    for entry in plan:
+        location = entry["location"]
+        if location is None:
+            continue
+        location_id = location.get("location_id")
+        source_id = location.get("source_id")
+        kind = location.get("kind")
+        native_code = location.get("native_code")
+        name = location.get("name")
+        province_code = location.get("province_code")
+        if (not isinstance(location_id, str) or not location_id.strip()
+                or not isinstance(source_id, str) or not source_id.strip()
+                or not isinstance(kind, str) or not kind.strip()
+                or not isinstance(native_code, str) or not native_code.strip()
+                or not isinstance(name, str) or not name.strip()
+                or (province_code is not None and not isinstance(province_code, str))):
+            raise ObservationWriteError("SOURCE_YEAR_LOCATION_CONFLICT")
+
+        metadata = (location_id, source_id, kind, native_code, name, province_code)
+        natural_key = (source_id, kind, native_code)
+        prior_by_id = metadata_by_id.get(location_id)
+        prior_by_natural_key = metadata_by_natural_key.get(natural_key)
+        if ((prior_by_id is not None and prior_by_id != metadata)
+                or (prior_by_natural_key is not None and prior_by_natural_key != metadata)):
+            raise ObservationWriteError(
+                "SOURCE_YEAR_LOCATION_CONFLICT",
+                "location_id and (source_id, kind, native_code) must identify one matching metadata record",
+            )
+        metadata_by_id[location_id] = metadata
+        metadata_by_natural_key[natural_key] = metadata
+    return set(metadata_by_id)
+
+
 def _dimensions(observation: dict, effective_unit: str | None,
                 dimensions_for: Callable[[dict], dict] | None) -> dict:
     if dimensions_for is not None:
         custom = dimensions_for(observation)
         if not isinstance(custom, dict):
             raise ObservationWriteError("DIMENSIONS_INVALID")
-        return custom
+        dimensions = dict(custom)
+        if observation.get("source_year_be") is not None:
+            dimensions.setdefault("sourceYearBe", observation["source_year_be"])
+        if observation.get("source_year_label") is not None:
+            dimensions.setdefault("sourceYearLabel", observation["source_year_label"])
+        return dimensions
     dimensions = {
         "spatialSupport": observation["spatial_support"],
         "dataKind": observation["data_kind"],
@@ -756,6 +2046,10 @@ def _dimensions(observation: dict, effective_unit: str | None,
         dimensions["priceType"] = observation["price_type"]
     if observation["season"] is not None:
         dimensions["season"] = observation["season"]
+    if observation.get("source_year_be") is not None:
+        dimensions["sourceYearBe"] = observation["source_year_be"]
+    if observation.get("source_year_label") is not None:
+        dimensions["sourceYearLabel"] = observation["source_year_label"]
     if effective_unit is None:
         dimensions["unitStatus"] = UNIT_PENDING_STATUS
     return dimensions
@@ -867,6 +2161,14 @@ def register_resource(
         "attributionUrl": attribution_url or resource.get("attribution_url"),
         "completeness": metadata.get("completeness", "unknown"),
     }
+    if resource.get("publication_authorization") is not None:
+        metadata["publicationAuthorization"] = resource["publication_authorization"]
+    if resource.get("unresolved"):
+        metadata["sourceLicenseReview"] = {
+            "status": "unverified",
+            "unresolved": list(resource["unresolved"]),
+            "declaredLicense": license_info,
+        }
     dataset_metadata = dataset_metadata if isinstance(dataset_metadata, dict) else {}
 
     client.execute(
@@ -956,7 +2258,7 @@ def _logical_payload_sha256(resource_id: str, plan: Sequence[Mapping[str, Any]])
 def _logical_row(resource_id: str, entry: Mapping[str, Any]) -> list:
     """Durable identity and publication semantics of one planned observation."""
     observation = entry["observation"]
-    location = entry["location"]
+    location = entry["location"] or {}
     return [
         resource_id,
         observation["observation_id"],
@@ -973,11 +2275,11 @@ def _logical_row(resource_id: str, entry: Mapping[str, Any]) -> list:
         observation["grade"],
         observation["price_type"],
         observation["season"],
-        location["location_id"],
-        location["kind"],
-        location["native_code"],
-        location["province_code"],
-        location["name"],
+        location.get("location_id"),
+        location.get("kind"),
+        location.get("native_code"),
+        location.get("province_code"),
+        location.get("name"),
         entry["product"],
         entry["metric_name"],
         _semantic_dimensions(entry["dimensions"]),
@@ -1017,21 +2319,116 @@ def _activation_unit_guard(plan: Sequence[Mapping[str, Any]]) -> str | None:
     return None
 
 
-def _upsert_location(client, entry: dict) -> None:
+def _upsert_location(
+    client, entry: dict, *,
+    source_year_guard: tuple | None = None,
+) -> None:
     location = entry["location"]
-    client.execute(
+    if location is None:
+        return
+    values = [location["location_id"], location["source_id"], location["kind"],
+              location["native_code"], location["name"], location["province_code"]]
+    if source_year_guard is None:
+        sql = (
+            "INSERT INTO locations (location_id, source_id, kind, native_code, name, province_code) "
+            "SELECT ?, ?, ?, ?, ?, ? WHERE NOT EXISTS ("
+            "SELECT 1 FROM locations existing_id WHERE existing_id.location_id=? AND ("
+            "existing_id.source_id IS NOT ? OR existing_id.kind IS NOT ? OR "
+            "existing_id.native_code IS NOT ?)) "
+            "ON CONFLICT(source_id, kind, native_code) DO UPDATE SET "
+            "name=excluded.name, province_code=COALESCE(excluded.province_code, locations.province_code) "
+            "WHERE locations.location_id=excluded.location_id RETURNING location_id"
+        )
+        result = client.execute(sql, values + values[:1] + values[1:4])
+        if _returned(result, "location_id", location["location_id"]):
+            return
+        if _daily_location_identity_conflicts(client, location):
+            raise ObservationWriteError("LOCATION_IDENTITY_CONFLICT")
+        raise ObservationWriteError("LOCATION_UPSERT_FAILED")
+
+    owner_predicate = (
+        "snapshot.resource_id=? AND snapshot.run_id=? AND snapshot.status='running' "
+        "AND snapshot.source_year_writer_token IS ? AND snapshot.source_retrieved_at IS ? "
+        "AND snapshot.source_revision_id IS ? AND snapshot.payload_sha256 IS ?"
+    )
+    if len(source_year_guard) == 9:
+        owner_predicate += (
+            " AND snapshot.source_year_label IS ? AND snapshot.source_version IS ? "
+            "AND snapshot.source_hash IS ?"
+        )
+    sql = (
         "INSERT INTO locations (location_id, source_id, kind, native_code, name, province_code) "
-        "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(source_id, kind, native_code) DO UPDATE SET "
-        "name=excluded.name, province_code=COALESCE(excluded.province_code, locations.province_code)",
-        [location["location_id"], location["source_id"], location["kind"],
-         location["native_code"], location["name"], location["province_code"]],
+        "SELECT ?, ?, ?, ?, ?, ? FROM sync_runs snapshot WHERE " + owner_predicate
+        + " AND NOT EXISTS (SELECT 1 FROM locations existing_id WHERE "
+        "existing_id.location_id=? AND (existing_id.source_id IS NOT ? OR "
+        "existing_id.kind IS NOT ? OR existing_id.native_code IS NOT ?)) "
+        + " ON CONFLICT(source_id, kind, native_code) DO UPDATE SET "
+        "name=excluded.name, province_code=COALESCE(excluded.province_code, locations.province_code) "
+        "WHERE locations.location_id=excluded.location_id AND "
+        "EXISTS (SELECT 1 FROM sync_runs snapshot WHERE " + owner_predicate + ") "
+        "RETURNING location_id"
+    )
+    result = client.execute(
+        sql,
+        values + list(source_year_guard) + values[:1] + values[1:4] + list(source_year_guard),
+    )
+    if not _returned(result, "location_id", location["location_id"]):
+        diagnosis = client.execute(
+            "SELECT EXISTS(SELECT 1 FROM sync_runs snapshot WHERE " + owner_predicate + ") AS is_owner, "
+            "(SELECT location_id FROM locations WHERE source_id=? AND kind=? AND native_code=?) "
+            "AS natural_location_id, "
+            "(SELECT source_id FROM locations WHERE location_id=?) AS stored_id_source, "
+            "(SELECT kind FROM locations WHERE location_id=?) AS stored_id_kind, "
+            "(SELECT native_code FROM locations WHERE location_id=?) AS stored_id_native_code",
+            list(source_year_guard) + [location["source_id"], location["kind"], location["native_code"]]
+            + [location["location_id"]] * 3,
+        )
+        diagnostic = _first_row(diagnosis)
+        if diagnostic is None or diagnostic.get("is_owner") not in (1, True, "1"):
+            raise ObservationWriteError("SOURCE_YEAR_RUN_OWNERSHIP_LOST")
+        natural_location_id = diagnostic.get("natural_location_id")
+        stored_id_natural_key = (
+            diagnostic.get("stored_id_source"),
+            diagnostic.get("stored_id_kind"),
+            diagnostic.get("stored_id_native_code"),
+        )
+        if (natural_location_id not in (None, location["location_id"])
+                or (stored_id_natural_key[0] is not None and stored_id_natural_key != (
+                    location["source_id"], location["kind"], location["native_code"],
+                ))):
+            raise ObservationWriteError("SOURCE_YEAR_LOCATION_IDENTITY_CONFLICT")
+        raise ObservationWriteError("SOURCE_YEAR_LOCATION_WRITE_FAILED")
+
+
+def _daily_location_identity_conflicts(client, location: Mapping[str, Any]) -> bool:
+    result = client.execute(
+        "SELECT "
+        "(SELECT location_id FROM locations WHERE source_id=? AND kind=? AND native_code=?) "
+        "AS natural_location_id, "
+        "(SELECT source_id FROM locations WHERE location_id=?) AS stored_id_source, "
+        "(SELECT kind FROM locations WHERE location_id=?) AS stored_id_kind, "
+        "(SELECT native_code FROM locations WHERE location_id=?) AS stored_id_native_code",
+        [location["source_id"], location["kind"], location["native_code"]]
+        + [location["location_id"]] * 3,
+    )
+    row = _first_row(result)
+    if row is None:
+        return False
+    natural_location_id = row.get("natural_location_id")
+    stored_id_natural_key = (
+        row.get("stored_id_source"), row.get("stored_id_kind"), row.get("stored_id_native_code"),
+    )
+    return (
+        natural_location_id not in (None, location["location_id"])
+        or (stored_id_natural_key[0] is not None
+            and stored_id_natural_key != (location["source_id"], location["kind"], location["native_code"]))
     )
 
 
 def _row_matches(client, resource_id: str, run_id: str, entry: dict) -> bool:
     """True when the run already stores exactly this row (idempotent re-run)."""
     result = client.execute(
-        "SELECT value, unit, dimensions, quality FROM observations "
+        "SELECT value, unit, dimensions, quality, source_row_ref FROM observations "
         "WHERE resource_id=? AND run_id=? AND row_key=?",
         [resource_id, run_id, entry["observation"]["observation_id"]],
     )
@@ -1043,6 +2440,7 @@ def _row_matches(client, resource_id: str, run_id: str, entry: dict) -> bool:
         and row.get("unit") == entry["unit"]
         and row.get("dimensions") == entry["dimensions"]
         and row.get("quality") == entry["quality"]
+        and row.get("source_row_ref") == entry["source_row_ref"]
     )
 
 
@@ -1058,13 +2456,21 @@ def _row_count(client, run_id: str, resource_id: str) -> int:
         return 0
 
 
-def _mark_failed(client, run_id: str, error_code: str = "NUMERIC_WRITE_FAILED") -> None:
+def _mark_failed(client, run_id: str, error_code: str = "NUMERIC_WRITE_FAILED", *,
+                 source_year_writer_token: str | None = None) -> None:
     try:
-        client.execute(
-            "UPDATE sync_runs SET status='failed', completed_at=?, error_code=? "
-            "WHERE run_id=? AND status='running'",
-            [_iso(_now()), error_code, run_id],
-        )
+        if source_year_writer_token is None:
+            client.execute(
+                "UPDATE sync_runs SET status='failed', completed_at=?, error_code=? "
+                "WHERE run_id=? AND status='running'",
+                [_iso(_now()), error_code, run_id],
+            )
+        else:
+            client.execute(
+                "UPDATE sync_runs SET status='failed',completed_at=?,error_code=? "
+                "WHERE run_id=? AND status='running' AND source_year_writer_token IS ?",
+                [_iso(_now()), error_code, run_id, source_year_writer_token],
+            )
     except Exception:
         # The original write failure matters most; the old active run is untouched.
         pass
@@ -1108,6 +2514,32 @@ def _utc(value: str) -> datetime:
         return timestamp(value)
     except (TypeError, ValueError) as exc:
         raise ObservationWriteError("INVALID_TIMESTAMP", str(exc)) from exc
+
+
+_SOURCE_VERSION_FORMAT = re.compile(
+    r"\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+    r"(?:\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})?\Z",
+    re.ASCII,
+)
+
+
+def _source_version_order_key(value: str) -> tuple[str, datetime]:
+    """Parse a source-owned ISO token without assigning a timezone to naive values.
+
+    Comparable only within the same explicit-timezone class. Offset-aware
+    tokens compare as instants; naive values compare as source wall-clock
+    fields and are never normalized to UTC. Callers must fail closed when the
+    active and candidate classes differ.
+    """
+    if not isinstance(value, str) or not _SOURCE_VERSION_FORMAT.fullmatch(value):
+        raise ObservationWriteError("SOURCE_VERSION_INVALID")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ObservationWriteError("SOURCE_VERSION_INVALID") from exc
+    if parsed.tzinfo is None:
+        return "naive", parsed
+    return "aware", parsed.astimezone(timezone.utc)
 
 
 def _now() -> datetime:

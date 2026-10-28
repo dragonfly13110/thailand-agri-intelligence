@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import type { ApiContract } from '@/lib/hub/api-catalog-types';
 import styles from './api-snippets.module.css';
 
 const PLACEHOLDER_ORIGIN = 'https://<โดเมนของคุณ>';
@@ -33,10 +34,53 @@ function pythonLiteral(value: string): string {
     .replace(/\n/g, () => '\\n');
 }
 
-function buildSnippets(target: string): Record<TabId, string> {
+function buildSnippets(target: string, contract: ApiContract): Record<TabId, string> {
   const shellTarget = shellLiteral(target);
   const pythonTarget = pythonLiteral(target);
   const javascriptTarget = JSON.stringify(target);
+  if (contract === 'csv') {
+    return {
+      curl: [
+        'curl -sS -f -OJ -H "Accept: text/csv" \\',
+        `  "${shellTarget}"`,
+      ].join('\n'),
+      javascript: [
+        `const response = await fetch(${javascriptTarget}, {`,
+        '  headers: { Accept: "text/csv" },',
+        '});',
+        'if (!response.ok) throw new Error(`HTTP ${response.status}`);',
+        '',
+        'const file = await response.blob();',
+        'const url = URL.createObjectURL(file);',
+        'const link = document.createElement("a");',
+        'link.href = url;',
+        'link.download = response.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "export.csv";',
+        'link.click();',
+        'setTimeout(() => URL.revokeObjectURL(url), 1000);',
+      ].join('\n'),
+      requests: [
+        'import requests',
+        '',
+        'response = requests.get(',
+        `    "${pythonTarget}",`,
+        '    headers={"Accept": "text/csv"},',
+        '    timeout=30,',
+        ')',
+        'response.raise_for_status()',
+        'with open("export.csv", "wb") as file:',
+        '    file.write(response.content)',
+      ].join('\n'),
+      urllib: [
+        'import urllib.request',
+        '',
+        `request = urllib.request.Request("${pythonTarget}", headers={"Accept": "text/csv"})`,
+        'with urllib.request.urlopen(request, timeout=30) as response:',
+        '    csv_bytes = response.read()',
+        'with open("export.csv", "wb") as file:',
+        '    file.write(csv_bytes)',
+      ].join('\n'),
+    };
+  }
 
   return {
     curl: [
@@ -121,7 +165,7 @@ async function copyText(value: string): Promise<boolean> {
   return copyWithTextarea(value);
 }
 
-export function ApiSnippets({ url, origin }: { url: string; origin?: string }) {
+export function ApiSnippets({ url, origin, contract }: { url: string; origin?: string; contract: ApiContract }) {
   const [activeTabId, setActiveTabId] = useState<TabId>('curl');
   const [feedback, setFeedback] = useState<{ state: 'copied' | 'failed'; key: string } | null>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -136,7 +180,7 @@ export function ApiSnippets({ url, origin }: { url: string; origin?: string }) {
 
   const path = url.trim() || '/api/v1';
   const target = (origin ?? PLACEHOLDER_ORIGIN) + path;
-  const snippets = buildSnippets(target);
+  const snippets = buildSnippets(target, contract);
   const activeTab = TABS.find((tab) => tab.id === activeTabId) ?? TABS[0];
   const snippet = snippets[activeTab.id];
   const feedbackKey = `${activeTab.id}:${target}`;
@@ -226,6 +270,7 @@ export function ApiSnippets({ url, origin }: { url: string; origin?: string }) {
 
     <div className={styles.notes}>
       <p>ไม่ต้องใช้ API key · ทุก endpoint เป็น GET และอ่านอย่างเดียว</p>
+      {contract === 'csv' && <p>คำตอบสำเร็จเป็นไฟล์ CSV; ตัวอย่างจะบันทึกไบต์ของไฟล์โดยไม่เรียก JSON parser</p>}
       <p>เรียกจากเบราว์เซอร์ต่างโดเมนอาจติด CORS — ใช้ server-side proxy หากต้องเรียกข้าม origin</p>
     </div>
   </section>;

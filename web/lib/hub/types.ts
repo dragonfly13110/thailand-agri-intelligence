@@ -92,6 +92,13 @@ export type HubObservation = {
 export type HubSeries = {
   id: string;
   resourceId: string;
+  sourceGrain: string | null;
+  locationId: string | null;
+  locationCode: string | null;
+  locationKind: string | null;
+  locationName: string | null;
+  provinceCode: string | null;
+  cropCode: string | null;
   product: string | null;
   grade: string | null;
   market: string | null;

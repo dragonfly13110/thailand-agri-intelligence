@@ -1,4 +1,63 @@
+## จุดพักงาน 28 ต.ค. 2026
+
+- หยุดตามคำขอและเก็บงานบน branch พักงาน: การแก้ location identity conflict เพิ่งเพิ่ม ยังต้องให้ผู้ตรวจอิสระทดสอบซ้ำก่อน merge หรือใช้งานจริง
+- หลังแก้ล่าสุด ชุด Python เฉพาะ observations/CPD/DLD/OAE ผ่าน 121 tests; ชุดใหญ่ 806 tests และเว็บ 296 tests, typecheck, build ผ่านก่อนแก้ล่าสุด ต้องรัน Python ชุดใหญ่อีกครั้งหลังตรวจแก้
+- ยังไม่ได้เขียน migrations หรือข้อมูลชุดใหม่ลง Cloudflare; เขียนได้เมื่อจำเป็นโดยประหยัดโควต้ารายวัน
+- ทำต่อ: ตรวจ SQLite repro กรณี location เดิมใช้ natural key เดียวกันแต่ location_id ต่าง, owner race, daily/monthly; จากนั้นรัน full suite และตรวจสถานะก่อนเผยแพร่
+
 # ความคืบหน้า
+
+## สถานะประสานงานล่าสุด · 28 ต.ค. 2569 · CPD/preflight ก่อนปิด location dedupe
+
+- **CPD:** targeted SQLite 15/15 ผ่าน; bounded source evidence มี 78 rows และ adapter สร้าง 234 observation rows ใน SQLite
+- **Shared writer preflight:** observations + OAE/DLD targeted tests 97/97 ผ่าน; SQLite schema ที่ไม่ครบหรือ constraint เสียถูกปฏิเสธก่อน mutation
+- **Cloudflare:** probe อ่าน 54, เขียน 0. ผู้ใช้อนุญาตให้เขียนเมื่อจำเป็นและให้ประหยัด quota; รอบนี้ไม่มี production writes
+- **Production:** ยังไม่ apply production migrations หรือเขียนข้อมูลใน D1; ยังไม่ deploy
+- **Location calls:** กำลังลด location upsert ซ้ำ ต้องทวน identity metadata, owner-token race และ daily/monthly regressions หลัง owner หยุด
+- **ค้าง:** Python/web full suites ยังรันหลัง location dedupe และ lane ปัจจุบันเสร็จ; อย่าอ้างผล targeted เป็นผล full suite
+- **รับต่อ:** หลัง owner แจ้งหยุด รันชุดใหญ่ที่เกี่ยวข้อง ตรวจจำนวน location upserts เทียบกับ observation rows และยืนยันว่าไม่มี D1 writes โดยไม่จำเป็น
+
+## สถานะประสานงานล่าสุด · 28 ต.ค. 2569 · หลังตรวจรวม series patch
+
+- **ผลตรวจ working-tree:** Python 776/776 ผ่าน (มี ResourceWarning จาก SQLite test); web 295/295 ผ่าน; typecheck และ build:vinext ผ่านหลัง series patch
+- **DLD/OAE:** local writer, migration, API/UI และ SQLite/mock QA พร้อม; OAE API catalog มี /api/v1/trade/oae?yearLabel=. ยังไม่มี Cloudflare D1 write หรือ deploy
+- **CPD:** parser/fixture standalone; ยังไม่มี writer/API/UI. OAE source-year เป็น opaque label และ source license ยัง unverified
+- **Series:** independent review ผ่าน SQLite และ PostgreSQL stub; PostgreSQL/D1 live parity กับ performance ยังไม่ยืนยัน
+- **UI/CSV:** viewport price-trend และ OAE mock ผ่าน; browser CSV file-download event ยังไม่ยืนยัน
+- **Cloudflare:** อนุญาต write เมื่อจำเป็นโดยประหยัด quota; รอบนี้ไม่มี write, deploy, commit หรือ push. SQLite/mock ไม่ยืนยันข้อมูล live ใน D1
+- **QA artifacts:** .playwright-cli/console-2026-10-28T11-51-50-352Z.log และ .playwright-cli/page-2026-10-28T11-52-02-471Z.yml คงเป็น untracked เพราะ cleanup ถูก policy block; ห้ามลบ
+- **รับต่อ:** หากมี source change เพิ่ม ให้รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck` และ `npm --prefix web run build:vinext`; ตรวจ PostgreSQL/D1 live parity/performance เมื่อจำเป็น และยืนยัน CSV browser download. หากต้องเขียน Cloudflare ให้ทำเฉพาะงานจำเป็นและประหยัด quota
+
+## บันทึกสถานะประสานงานก่อนตรวจ series รอบรวม · 28 ต.ค. 2569
+
+- **ผล Python ล่าสุดที่มีหลักฐาน:** full suite 776/776 ผ่าน ณ ก่อน patch series reader ล่าสุด; ผลนี้ยังไม่รวม series patch และต้องตรวจซ้ำหลัง owner หยุด
+- **OAE ส่งออก:** parser, shared storage writer/SQL migration, API route และ UI สร้างแล้ว; SQLite checks และ browser fixture QA ผ่าน. คงปีเป็น opaque label ไม่สร้างวันที่หรือภูมิศาสตร์. ยังไม่มีข้อมูล OAE ใน Cloudflare D1 และไม่มี deploy. API catalog ยังไม่มี OAE
+- **OAE/DLD source-year review:** manifest review fix ผ่าน independent SQLite targeted tests 108/108 รวม blocked→review→retry, stale binding และ CAS/interleaving; ไม่ใช่หลักฐานการเขียน D1
+- **CPD:** parser/fixture เป็น standalone; ยังไม่มี writer, API หรือ UI
+- **Series:** owner กำลังแก้ PostgreSQL precision parity กับ records pagination; ต้องตรวจซ้ำหลัง owner แจ้งหยุด รวม ordering และ D1/PG parity
+- **Cloudflare:** ข้อกำหนดผู้ใช้คือ “เขียนได้เมื่อจำเป็นแต่ประหยัด”; รอบตรวจนี้ไม่มี D1 writes และไม่มี deploy. SQLite/fixture ไม่ยืนยันสถานะข้อมูลใน D1
+- **QA artifacts:** `.playwright-cli/console-2026-10-28T11-51-50-352Z.log` และ `.playwright-cli/page-2026-10-28T11-52-02-471Z.yml` เป็น untracked; cleanup ถูก policy block จึงคงไว้และห้ามลองลบซ้ำ
+- **รับต่อ:** หลัง series หยุด รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck`, `npm --prefix web run build:vinext`; ตรวจ PG precision/records pagination ซ้ำและเพิ่ม OAE ลง API catalog
+
+## บันทึกสถานะประสานงานก่อน OAE storage/API/UI และ series patch ล่าสุด · 28 ต.ค. 2569
+
+- **CPD สหกรณ์การเกษตร:** parser/fixture ใหม่สำหรับ resource `44463650-5d2e-482b-9919-b1c5b8bc5c6b`; bounded read-only fetch ได้ 78 แถว (77 ป้ายจังหวัด/78 สังกัดเป็น diagnostic เท่านั้น). คงเกรนจังหวัด × สังกัด, สถานะต้นทาง 3 ค่า, หน่วย “แห่ง”, และป้ายปี `2568` จากชื่อ resource โดยไม่ทราบชนิดปี. Catalog ระบุ `Creative Commons Attributions`; canonical URL/version และ resource-level license ไม่ระบุ. Tests 13/13; ยังไม่มี D1/API/UI
+- **OAE ส่งออก:** parser tests 11/11; ประเภทส่งออก สินค้า × ป้ายปีต้นทาง หน่วยล้านบาท; ไม่แปลงปีเป็นวันที่. ยังไม่มี storage/API/UI
+- **DLD โคเนื้อ:** SQLite independent writer checks และหน้า fixture ผ่าน; ไม่ได้เขียน D1 และยังไม่มีการตรวจข้อมูลจาก D1/production
+- **`/api-docs`/CSV:** mobile CSS ตรวจ 354/390 px และ desktop ไม่พบ page overflow; CSV fixture response ผ่าน แต่ browser download event ไม่ยืนยันไฟล์ที่บันทึก
+- **การตรวจรวม:** Python 729/729, web 260/260, typecheck และ `build:vinext` ผ่านก่อน patch series reader; lane series ยังแก้อยู่และต้องตรวจซ้ำหลังหยุด. รอบนี้ไม่มี Cloudflare D1 writes หรือ deploy เพื่อประหยัด quota
+- **รับต่อ:** รอ series reader หยุดแก้ แล้วรัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck`, `npm --prefix web run build:vinext`; ตรวจ grain/regression ของ series และทดสอบ browser CSV download ใน local runtime ที่เหมาะสม. ไม่อ้าง SQLite/fixture/response ว่าเป็น D1 write หรือ download สำเร็จ
+
+## บันทึกสถานะตรวจรอบก่อน OAE storage/API/UI และ series patch ล่าสุด · 28 ต.ค. 2569
+
+- **ผ่านตามผลที่รายงาน:** Python 729/729 และ web 260/260. `typecheck` และ `build:vinext` ผ่านก่อนเริ่มแก้ series reader; ผลสองรายการนี้ยังต้องรันซ้ำหลัง patch ล่าสุดหยุดเปลี่ยน
+- **DLD beef cattle:** browser fixture ผ่าน. CSV export และหน้า API บน mobile ยังอยู่ระหว่างตรวจ/แก้; ไม่มีการเขียน DLD ลง Cloudflare D1 และยังไม่ deploy
+- **OAE:** parser tests 11/11 ผ่าน แต่ยังไม่มี storage หรือ API
+- **ประเด็น series:** reader เดิมรวมข้อมูลคนละสินค้า/ตลาด/จังหวัดเป็น series เดียว; agent กำลังแก้และต้องตรวจ regression แยก grain ก่อนรับ
+- **Cloudflare:** ผู้ใช้กำหนดว่า “เขียนได้เมื่อจำเป็นแต่ประหยัด”; รอบที่บันทึกนี้ไม่มี D1 write จริง. SQLite/mock/fixture ไม่ใช่หลักฐานว่าเขียน D1 จริง
+- **รับต่อ:** หลัง series reader หยุดแก้ รัน `.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`, `npm --prefix web run test`, `npm --prefix web run typecheck`, `npm --prefix web run build:vinext`; ตรวจ CSV/API DLD ที่ viewport mobile. คงสถานะว่า D1 ยังไม่เขียนและยังไม่ deploy
+
+อัปเดต 28 ตุลาคม 2569 เวลา 09:28 น. ICT — ตรวจ `main` 6a54c2b: web tests 248/248 ผ่าน; Python discover 680 tests มี failures 3/errors 11/skipped 1. GitHub CI ล้มใน Python tests, catalog sync ขาด secret; API catalog ยังขาดฝนรายเดือนและ CSV. Lint หยุดก่อนมีผล; ยังไม่ตรวจ live UI หรือวัด performance. รับต่อแก้ fixtures/CI และตรวจระบบด้วยข้อมูลจริง
 
 อัปเดต 27 ตุลาคม 2569 เวลา 16:38 น. ICT — รวมและตรวจงาน AI 1–7; แยกสถานะรอบล่าสุดจากเวลา/ข้อผิดพลาดของรอบล่าสุดที่เปิดเผยได้ในหน้าสถานะแหล่งข้อมูล. Web tests 248/248 และ typecheck ผ่าน; vinext build ผ่านหลังแก้. Python 680 tests มี failures 3/errors 11/skipped 1 โดย 14 รายการตรง baseline เดิม. Local preview คลิกลิงก์ไปหน้า status และฝนรายเดือนได้ แต่ไม่มีคลังข้อมูลกลาง จึงยังไม่ยืนยัน flow ข้อมูลจริง/mobile/CSV. API catalog ยังไม่รวม endpoint ใหม่ทั้งสอง; ไม่ deploy หรือเขียน D1
 
@@ -24,7 +83,7 @@
 
 อัปเดต 26 ตุลาคม 2569 เวลา 19:55 น. ICT — **Real Data รอบ 3 · Lane C ปิดช่อง `/weather` แล้ว**: endpoint ใหม่ `GET /api/v1/weather/observations` ตอบ `availability=ready` + `access=approved_public` ด้วยค่าตรวจวัดจริง **37 สถานี** (agro 272 · synop 24 · WeatherToday V2 24 แถว) และ ERA5 reanalysis **10 จุดกริด × 30 วัน** จาก D1 เท่านั้น · หน้า `/weather` แสดงบล็อกข้อมูลจริง (server component) แยกจากพยากรณ์ 7 วันที่ยังคง `sample:true` · พบและแก้ข้อบกพร่องข้อมูลจริง 3 ตัว (สถานี "ต่ำที่สุด" ผิด, หัวคอลัมน์อ้างหน่วยที่ต้นทางไม่ได้ระบุ, นับแถวซ้ำเป็นค่าขาดหาย `8/16`) · หลักฐานเต็ม: web test **120/120**, typecheck 0 error, `build:vinext` Build complete (`ƒ /weather`), API matrix 9 เคส, browser 1440×900 + 390×844 console 0 error → [docs/real-data-qa-round3-lane-c.md](real-data-qa-round3-lane-c.md) · **ไม่ commit / ไม่ push / ไม่ deploy**
 
-อัปเดต 26 ตุลาคม 2569 เวลา 19:10 น. ICT — **Real Data รอบ 1 ปิดครบทุกช่อง + จัดกลุ่มผล Python ทั้ง repo แล้ว**: D1 มี numeric observations จริง 1,239 แถวที่ reader มองเห็น (RID 922 · TMD 272 · ERA5 42 · GISTDA 3) และ `/api/v1/satellite` กับ `/api/v1/water/reservoirs` + หน้า `/water` แสดงตัวเลขจริงเทียบต้นทางแล้ว · `unittest discover` 648 tests มี failures=3 errors=11 ซึ่ง **ทั้ง 14 มาจากไฟล์ input ที่ gitignore ใน `data/local/**` หายไป ไม่ใช่ regression**; `/weather` ยังติดป้าย sample (งานรอบ 3); [AGENTS.md](AGENTS.md) อนุญาตให้เผยแพร่ข้อมูลจริงเต็มรูปแบบ คงห้าม commit/push/deploy โดยไม่มีคำสั่งเป็นลายลักษณ์อักษร
+อัปเดต 26 ตุลาคม 2569 เวลา 19:10 น. ICT — **Real Data รอบ 1 ปิดครบทุกช่อง + จัดกลุ่มผล Python ทั้ง repo แล้ว**: D1 มี numeric observations จริง 1,239 แถวที่ reader มองเห็น (RID 922 · TMD 272 · ERA5 42 · GISTDA 3) และ `/api/v1/satellite` กับ `/api/v1/water/reservoirs` + หน้า `/water` แสดงตัวเลขจริงเทียบต้นทางแล้ว · `unittest discover` 648 tests มี failures=3 errors=11 ซึ่ง **ทั้ง 14 มาจากไฟล์ input ที่ gitignore ใน `data/local/**` หายไป ไม่ใช่ regression**; `/weather` ยังติดป้าย sample (งานรอบ 3); [AGENTS.md](../AGENTS.md) อนุญาตให้เผยแพร่ข้อมูลจริงเต็มรูปแบบ คงห้าม commit/push/deploy โดยไม่มีคำสั่งเป็นลายลักษณ์อักษร
 
 ## 26 ต.ค. 2569 — R3-D: สัญญาณเตือนภัยจริง (RID + GISTDA + TMD) ขึ้น API และหน้า `/early-warning`
 
@@ -46,7 +105,7 @@
 - **ตรวจสอบที่รันจริง:** `npm --prefix web run test` → **120/120** (`weather-observations` 13 tests, `api-catalog` 8/8 · endpoints 17) · `npm --prefix web run typecheck` → 0 error · `npm --prefix web run build:vinext` → Build complete, `ƒ /weather` dynamic · API matrix 9 เคส (200 ready/metadata_only + 400 `INVALID_QUERY` สำหรับ `provinceCode=99`, `date=bad`, `page=0`, `pageSize=101`) · cross-check province code↔ชื่อ 45 คู่กับทะเบียน 77 จังหวัด → **0 คลาดเคลื่อน** · Playwright 1440×900: 47 แถว (สถานี 37 + ERA5 10), unit note + provenance 4 ก้อน + ป้าย "ข้อมูลตัวอย่างเพื่อสาธิตหน้าจอ" อยู่ครบ, ไม่มี horizontal overflow, **console 0 errors** / 1 warning (CSS preload ของ `Shell` มีอยู่ก่อนแล้ว) · 390×844: scrollWidth 375 ≤ 390, ตารางไหลใน `.data-table-scroll` ของตัวเอง, ไม่มี cell `x/16`, และ `?province=51` แสดง badge "ยังไม่เผยแพร่ตัวเลข" + แถว 0 โดยไม่ลากค่าจังหวัดอื่นมาปน
 - **คงสัญญาเดิม:** `/api/v1/weather` (พยากรณ์ 7 วัน) ยัง `sample:true` เพราะไม่มีทรัพยากร forecast ที่ `approved_public` — ค่าพยากรณ์ไม่เข้า payload ของ observations และ forecast row ถูกทิ้งโดย test "unknown metrics are dropped…"
 - **ค้างที่ต้องรายงาน lane อื่น:** ฝั่งเขียนของ R1-D ควรกันการเผยแพร่สถานีซ้ำคนละทรัพยากร (ปัจจุบัน 1 สถานี 2 แถวต่อ metric) · `sources.freshness_days` ของกลุ่มอากาศยัง NULL/ไม่ตรงกัน → `freshness=unknown` · `/api/v1/weather-engine` ข้อความ 503 ยังอ้างว่ารอ ERA5 ทั้งที่ ERA5 เผยแพร่แล้ว · defect #7 `filterId()` ปฏิเสธ `_` (lane C อ้อมด้วยการกรองใน JavaScript)
-- **หลักฐานเต็ม + คำสั่งรับต่อ:** [docs/real-data-qa-round3-lane-c.md](real-data-qa-round3-lane-c.md) · **ไม่ commit / ไม่ push / ไม่ deploy** (รอคำสั่งเจ้าของงานเป็นลายลักษณ์อักษร): D1 มี numeric observations จริง 1,239 แถวที่ reader มองเห็น (RID 922 · TMD 272 · ERA5 42 · GISTDA 3) และ `/api/v1/satellite` กับ `/api/v1/water/reservoirs` + หน้า `/water` แสดงตัวเลขจริงเทียบต้นทางแล้ว · `unittest discover` 648 tests มี failures=3 errors=11 ซึ่ง **ทั้ง 14 มาจากไฟล์ input ที่ gitignore ใน `data/local/**` หายไป ไม่ใช่ regression**; `/weather` ยังติดป้าย sample (งานรอบ 3); [AGENTS.md](AGENTS.md) อนุญาตให้เผยแพร่ข้อมูลจริงเต็มรูปแบบ คงห้าม commit/push/deploy โดยไม่มีคำสั่งเป็นลายลักษณ์อักษร
+- **หลักฐานเต็ม + คำสั่งรับต่อ:** [docs/real-data-qa-round3-lane-c.md](real-data-qa-round3-lane-c.md) · **ไม่ commit / ไม่ push / ไม่ deploy** (รอคำสั่งเจ้าของงานเป็นลายลักษณ์อักษร): D1 มี numeric observations จริง 1,239 แถวที่ reader มองเห็น (RID 922 · TMD 272 · ERA5 42 · GISTDA 3) และ `/api/v1/satellite` กับ `/api/v1/water/reservoirs` + หน้า `/water` แสดงตัวเลขจริงเทียบต้นทางแล้ว · `unittest discover` 648 tests มี failures=3 errors=11 ซึ่ง **ทั้ง 14 มาจากไฟล์ input ที่ gitignore ใน `data/local/**` หายไป ไม่ใช่ regression**; `/weather` ยังติดป้าย sample (งานรอบ 3); [AGENTS.md](../AGENTS.md) อนุญาตให้เผยแพร่ข้อมูลจริงเต็มรูปแบบ คงห้าม commit/push/deploy โดยไม่มีคำสั่งเป็นลายลักษณ์อักษร
 
 ## 26 ต.ค. 2569 — R1-H ปิดท้าย: จัดกลุ่ม 14 รายการที่แดงใน Python suite
 
@@ -100,7 +159,7 @@
 
 ## 26 ต.ค. 2569 — ปลดล็อก Full Production & เชื่อมต่อ GISTDA Satellite Live Data
 
-- **ปลดล็อกกฎธรรมาภิบาลใน [AGENTS.md](AGENTS.md)**:
+- **ปลดล็อกกฎธรรมาภิบาลใน [AGENTS.md](../AGENTS.md)**:
   - แก้ไขข้อ 3 อนุญาตให้ Authorized APIs ที่มีสิทธิ์และ API Key ใน `.env` สามารถดึง ประมวลผล และเผยแพร่ตัวเลขจริงขึ้นหน้าเว็บและ API ได้
 - **เชื่อมต่อ GISTDA Live Satellite Pipeline**:
   - สร้าง `scripts/sync_gistda_satellite.py` ดึงข้อมูลน้ำท่วมและแปลงข้าว 7 วันจาก `https://api-gateway.gistda.or.th/api/2.0/resources/features/flood/7days`

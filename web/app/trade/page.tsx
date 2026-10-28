@@ -1,26 +1,34 @@
 import { Shell } from '@/components/shell';
-import { TradeDashboard } from '@/components/trade-dashboard';
-import { buildTradeDashboard } from '@/lib/hub/trade-data';
+import { OaeTradeDashboard } from '@/components/trade-oae-dashboard';
+import { loadOaeTradeEnvelope, unavailableOaeTradeEnvelope } from '@/lib/hub/oae-trade-data';
+import type { OaeTradeEnvelope } from '@/lib/hub/oae-trade-data';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'สถิติการค้าสินค้าเกษตร นำเข้า-ส่งออก',
-  description: 'ข้อมูลสถิติการค้าจะแสดงเมื่อมีระเบียนจริงที่ได้รับอนุมัติให้เผยแพร่',
+  title: 'มูลค่าการส่งออกสินค้าเกษตร | Thailand Agricultural Data Hub',
+  description: 'ข้อมูลการส่งออกสินค้าเกษตรจากสำนักงานเศรษฐกิจการเกษตร โดยคงป้ายปีและเกรนตามต้นทาง',
 };
 
 export default async function TradePage() {
-  const payload = buildTradeDashboard();
+  let envelope: OaeTradeEnvelope;
+  try {
+    envelope = await loadOaeTradeEnvelope();
+  } catch {
+    envelope = unavailableOaeTradeEnvelope();
+  }
 
   return (
     <Shell active="trade">
       <div className="page-heading">
         <div>
-          <h1>สถิติการค้าสินค้าเกษตร นำเข้า-ส่งออก</h1>
+          <h1>มูลค่าการส่งออกสินค้าเกษตร</h1>
           <p>
-            ข้อมูลนำเข้า-ส่งออกจะแสดงเมื่อมีชุดข้อมูลจากแหล่งทางการ พร้อมหน่วย ช่วงเวลา และสิทธิ์เผยแพร่ที่ตรวจสอบได้
+            ข้อมูลจากสำนักงานเศรษฐกิจการเกษตร แสดงตามสินค้าและป้ายปีต้นทาง โดยไม่แปลงปีเป็นช่วงวันที่
           </p>
         </div>
       </div>
-      <TradeDashboard initialPayload={payload} />
+      <OaeTradeDashboard envelope={envelope} />
     </Shell>
   );
 }

@@ -39,6 +39,15 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(r["license_status"] == "pending" for r in rows))
         self.assertTrue(all(r["domains"] for r in rows))
 
+        cpd = [r for r in rows if r["source_id"] == "cpd"]
+        self.assertEqual(len(cpd), 1)
+        self.assertEqual(cpd[0]["owner"], "ศูนย์เทคโนโลยีสารสนเทศและการสื่อสาร/กลุ่มฐานข้อมูลสารสนเทศ")
+        self.assertEqual(cpd[0]["url"], "https://catalog-cpd.data.go.th")
+        self.assertEqual(cpd[0]["status"], "documented_not_runtime_verified")
+        self.assertEqual(cpd[0]["license_status"], "pending")
+        self.assertFalse(cpd[0]["runtime_verified"])
+        self.assertIn("province labels do not assert coverage", cpd[0]["source_definition"])
+
     def test_invalid_catalogs_rejected(self):
         source = load_sources()[0]
         cases = [
@@ -87,12 +96,21 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(r["project_publication_approved"] is False for r in pending))
         self.assertTrue(all(r["commercial_use_confirmed"] is False for r in pending))
         self.assertTrue(all(len(r["unresolved"]) >= 1 for r in pending))
-        # Governance invariant: an approved_public row is only valid when it is
-        # fully released for publication - approved flag set, no unresolved
-        # items, and attribution plus at least one evidence entry.
+        # Governance invariant: approved rows either have a complete resource
+        # license review or an explicit project-owner numeric publication
+        # grant that remains distinct from source-license verification.
         for row in approved:
             self.assertTrue(row["project_publication_approved"] is True, row["resource_key"])
-            self.assertEqual(row["unresolved"], [], row["resource_key"])
+            if row["unresolved"]:
+                authorization = row.get("publication_authorization") or {}
+                self.assertEqual(authorization.get("basis"), "project_owner_instruction", row["resource_key"])
+                self.assertEqual(authorization.get("document"), "AGENTS.md", row["resource_key"])
+                self.assertEqual(authorization.get("section"), 3, row["resource_key"])
+                self.assertIs(authorization.get("source_license_verified"), False, row["resource_key"])
+                self.assertFalse(row["commercial_use_confirmed"], row["resource_key"])
+                self.assertTrue(row.get("next_action"), row["resource_key"])
+            else:
+                self.assertIsNone(row.get("publication_authorization"), row["resource_key"])
             self.assertTrue(row["attribution_text"].strip(), row["resource_key"])
             self.assertTrue(len(row["evidence"]) >= 1, row["resource_key"])
             self.assertTrue(row["resource_id"].strip() and row["source_id"].strip(), row["resource_key"])
@@ -108,6 +126,43 @@ class CatalogTests(unittest.TestCase):
             path.write_text(json.dumps({"automatic_approval": False, "resources": [resources[0], resources[0]]}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_resource_licenses(path)
+
+    def test_cpd_cooperative_counts_have_exact_resource_owner_authorization_and_unverified_terms(self):
+        resources = load_resource_licenses()
+        matches = [r for r in resources if r["resource_key"] == "cpd_agricultural_coop_counts"]
+        self.assertEqual(len(matches), 1)
+        resource = matches[0]
+
+        self.assertEqual(resource["source_id"], "cpd")
+        self.assertEqual(resource["resource_id"], "44463650-5d2e-482b-9919-b1c5b8bc5c6b")
+        self.assertEqual(resource["dataset_id"], "7e7e236d-790d-489d-a723-e0b1359530a4")
+        self.assertEqual(
+            resource["resource_url"],
+            "https://catalog-cpd.data.go.th/dataset/7e7e236d-790d-489d-a723-e0b1359530a4/"
+            "resource/44463650-5d2e-482b-9919-b1c5b8bc5c6b/download/st_001_01.csv",
+        )
+        self.assertEqual(resource["license_status"], "approved_public")
+        self.assertTrue(resource["project_publication_approved"])
+        self.assertFalse(resource["commercial_use_confirmed"])
+        self.assertEqual(resource["declared_license"]["license_id"], "Creative Commons Attributions")
+        self.assertEqual(resource["declared_license"]["license_title"], "Creative Commons Attributions")
+        self.assertIsNone(resource["declared_license"]["license_url"])
+        self.assertIsNone(resource["declared_license"]["version"])
+        self.assertFalse(resource["publication_authorization"]["source_license_verified"])
+        self.assertEqual(resource["publication_authorization"]["document"], "AGENTS.md")
+        self.assertEqual(resource["publication_authorization"]["section"], 3)
+        self.assertEqual(
+            resource["attribution_text"],
+            "ศูนย์เทคโนโลยีสารสนเทศและการสื่อสาร/กลุ่มฐานข้อมูลสารสนเทศ",
+        )
+        self.assertEqual(
+            resource["attribution_url"],
+            "https://catalog-cpd.data.go.th/api/3/action/package_show?id=7e7e236d-790d-489d-a723-e0b1359530a4",
+        )
+        self.assertTrue(resource["unresolved"])
+        self.assertTrue(any("commercial-use" in item for item in resource["unresolved"]))
+        register = json.loads((ROOT / "config/resource_licenses.json").read_text(encoding="utf-8"))
+        self.assertIn("cpd_agricultural_coop_counts", register["owner_authorisation"]["approved_resource_keys"])
 
 
 if __name__ == "__main__":
