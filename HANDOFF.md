@@ -1,3 +1,9 @@
+## ปิดงาน local merge — 28 ต.ค. 2026
+
+- Commit งานแก้ `2dc527c`; รวม `codex/checkpoint-2026-10-28` เข้า local `main` ด้วย `git merge --ff-only` สำเร็จ (จาก `6a54c2b` → `2dc527c`). เก็บกิ่ง checkpoint และประวัติ `4d7df75`/`b013584` ครบ
+- ผ่านตรวจผู้คุมและ AI 3: Python 836, web 315, typecheck/build; หลักฐานและขอบเขตอยู่ด้านล่างและรายงาน AI 1–3. หลัง merge ตรวจ manifest: 509 ไฟล์ตรงทุก byte; `tests/test_location_identity.py` ต่างเฉพาะ Git แปลง LF→CRLF (แปลงกลับแล้ว SHA256 ตรง); ไม่มีเนื้อหา source/test/config เปลี่ยนจากชุดที่ผ่าน gate
+- ไม่ push/deploy/apply migrations/เขียน D1 รอบนี้; งานต่อคือวาง production rollout และตรวจข้อมูลจริงหลังได้รับอนุญาตแยก ไม่ใช่งานค้างของ local merge
+
 ## ตรวจรับ AI 1–3 ก่อนรวม main — 28 ต.ค. 2026 (ผ่าน local merge gate)
 
 - แก้ location dedupe, claim exception recovery, own-token reconciliation หลัง commit+HTTP500→retry200 และ readback cleanup ครบแล้ว. ผู้คุมเพิ่ม 5 regressions พิสูจน์ fail ก่อน/pass หลัง. AI 3 พบ DLD test ใช้เวลาซ้ำใน Windows; ผู้คุมแก้เฉพาะเทสต์ให้ retrieved_at เรียงกัน: 14 tests ผ่าน 20 รอบ และ full Python 836 ผ่าน 32.341s. AI 1–2 หยุดแล้ว; source freeze 510 files อัปเดตเฉพาะ DLD test เวลา 16:48 UTC; AI 3 ตรวจอิสระ full Python 836 ผ่าน 25.398s พร้อม web315/typecheck/build และยืนยัน manifest 510/510: local merge GO

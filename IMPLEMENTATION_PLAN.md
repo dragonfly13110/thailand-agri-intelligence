@@ -1,6 +1,6 @@
 # Thailand Agricultural Data Hub: Implementation Plan
 
-อัปเดต 28 ตุลาคม 2569: ตรวจรับกิ่ง `codex/checkpoint-2026-10-28` ก่อนรวม local main; สถานะรวมและผล final gates ให้ยึด [HANDOFF](HANDOFF.md)/[progress](docs/progress.md). การตรวจโค้ดและ local merge แยกจากการอนุญาต push, remote CI, apply migrations, ingest และ deploy. แผน M1–M6 ด้านล่างเก็บประวัติช่วง 25 ต.ค.
+อัปเดต 28 ตุลาคม 2569: ตรวจรับและรวมกิ่ง `codex/checkpoint-2026-10-28` เข้า local main แล้วที่ repairs commit `2dc527c`; สถานะรวมและผล final gates ให้ยึด [HANDOFF](HANDOFF.md)/[progress](docs/progress.md). การตรวจโค้ดและ local merge แยกจากการอนุญาต push, remote CI, apply migrations, ingest และ deploy. แผน M1–M6 ด้านล่างเก็บประวัติช่วง 25 ต.ค.
 
 ## ผลลัพธ์ที่ต้องได้
 
@@ -15,7 +15,7 @@
 
 | ส่วน | สถานะที่บันทึกล่าสุด | หลักฐาน/ขอบเขต |
 |---|---|---|
-| Runtime และ API | Next.js App Router + vinext/Cloudflare Workers; D1 catalog/numeric store; Python ingest | งาน checkpoint และ repairs รอ final local merge gate; ดู HEAD ล่าสุดใน HANDOFF |
+| Runtime และ API | Next.js App Router + vinext/Cloudflare Workers; D1 catalog/numeric store; Python ingest | งาน checkpoint และ repairs ผ่าน gate และรวม local main แล้ว (`2dc527c`); ดู HANDOFF |
 | Source registry/catalog | Checkout มี 24 sources; D1 catalog audit เก่า 12 CKAN sources/1,237 datasets/3,777 resources | Registry ไม่เท่ากับผล sync หรือ coverage |
 | Numeric data | D1 read-only probe 28 ต.ค.: 9,926 observations/607 locations; CHIRPS partial sample 3 cells | ไม่ใช่ coverage ทั้ง raster; DLD/OAE/CPD ยังไม่มี numeric rows ใหม่ |
 | NWP | Audit 27 ต.ค.: `tmd_hpc_d02_2026102606`, 220 snapshots/16,940 province rows; แยกจาก observations | ไม่ query NWP ซ้ำรอบนี้ |

@@ -1,3 +1,9 @@
+## ปิดงาน local merge — 28 ต.ค. 2026
+
+- Commit repairs `2dc527c`; fast-forward local `main` จาก `6a54c2b` เป็น `2dc527c` สำเร็จ พร้อมเก็บกิ่ง checkpoint และประวัติงานเดิมครบ
+- ผู้คุม/AI 3 ผ่าน Python 836, web 315, typecheck/build และ manifest 510 รายการ; เก็บรายงานตรวจอิสระพร้อมหลักฐานจริง
+- ไม่ push/deploy/apply migrations/เขียน D1; production rollout ต้องรับอนุญาตและตรวจแยก
+
 ## ตรวจรับ AI 1–3 ก่อนรวม main — 28 ต.ค. 2026 (ผ่าน local merge gate)
 
 - ปิด own-token reconciliation และ post-claim readback cleanup แล้ว; 5 regressions fail ก่อน/pass หลัง. AI 3 พบ DLD test เวลา Windows ซ้ำ; ผู้คุมแก้เฉพาะเทสต์ให้เวลาเรียงกัน: 14 tests ผ่าน 20 รอบ และ full Python 836 ผ่าน32.341s. Independent retry/competitor reproผ่าน. Source freeze510 files อัปเดต DLD test เวลา16:48 UTC; AI 3 ตรวจอิสระ full Python836 ผ่าน25.398s พร้อม web315/typecheck/build และ manifest510/510: local merge GO; AI 1–2หยุดแล้ว
