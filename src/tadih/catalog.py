@@ -70,10 +70,27 @@ def load_sources(path=None):
 
 def load_resource_licenses(path=None):
     """Load exact resource license register with explicit approved and pending entries."""
-    with Path(path or ROOT / "config/resource_licenses.json").open(encoding="utf-8-sig") as stream:
+    source_path = Path(path or ROOT / "config/resource_licenses.json")
+    with source_path.open(encoding="utf-8-sig") as stream:
         payload = json.load(stream)
-    if not isinstance(payload, dict) or payload.get("automatic_approval") is not False:
-        raise ValueError("Resource license register requires explicit non-automatic approval")
+    if not isinstance(payload, dict):
+        raise ValueError("Resource license register must be an object")
+    automatic = payload.get("automatic_approval")
+    if not isinstance(automatic, bool):
+        raise ValueError("Resource license register requires an explicit automatic_approval boolean")
+    policy_ref = payload.get("automatic_approval_policy")
+    if automatic:
+        if not isinstance(policy_ref, str) or not policy_ref.strip():
+            raise ValueError("Automatic publication approval requires automatic_approval_policy")
+        policy_path = Path(policy_ref)
+        if not policy_path.is_absolute():
+            policy_path = source_path.parent / policy_path
+            if not policy_path.is_file():
+                policy_path = ROOT / policy_ref
+        if not policy_path.is_file():
+            raise ValueError("automatic_approval_policy must point to an existing policy file")
+    elif policy_ref is not None:
+        raise ValueError("automatic_approval_policy is only valid when automatic_approval is true")
     resources = payload.get("resources")
     if not isinstance(resources, list) or not resources:
         raise ValueError("Resource license register must contain a nonempty resources list")
@@ -90,6 +107,17 @@ def load_resource_licenses(path=None):
             raise ValueError("Resource license status must be explicit")
         if not isinstance(row["project_publication_approved"], bool) or not isinstance(row["commercial_use_confirmed"], bool):
             raise ValueError("Approval and commercial confirmation must be booleans")
+        authorization = row.get("publication_authorization")
+        if authorization is not None:
+            if not isinstance(authorization, dict) or authorization.get("basis") not in {
+                "project_owner_instruction",
+                "open_license_policy",
+            }:
+                raise ValueError("Publication authorization must name a supported basis")
+            if authorization["basis"] == "open_license_policy":
+                for field in ("document", "policy_id", "license_class"):
+                    if not isinstance(authorization.get(field), str) or not authorization[field].strip():
+                        raise ValueError("Open-licence authorization requires document/policy_id/license_class")
         if not isinstance(row["evidence"], list) or not row["evidence"]:
             raise ValueError("Resource entry requires verifiable evidence items")
         seen.add(key)

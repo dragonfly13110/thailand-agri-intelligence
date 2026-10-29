@@ -15,7 +15,15 @@ class WebCatalogTests(unittest.TestCase):
             payload = build_web_catalog(output=output)
             self.assertEqual(len(payload['records']), 17)
             approved_ids = {r['id'] for r in payload['records'] if r['data_license_status'] == 'approved_public'}
-            self.assertEqual(approved_ids, {'rainfall-reanalysis', 'reservoir-situation'})
+            self.assertEqual(
+                approved_ids,
+                {
+                    'crop-production-2567', 'farmgate-jasmine-rice', 'livestock-value',
+                    'perennial-production', 'perennial-production-2567', 'pgs-program-progress',
+                    'rainfall-reanalysis', 'reported-disaster-impact', 'reservoir-situation',
+                    'short-crop-production', 'vegetation-modis', 'weather-forecast',
+                },
+            )
             self.assertTrue(all(r['data_license_status'] in {'pending', 'approved_public'} for r in payload['records']))
             self.assertTrue(all(r['metadata_review'] == 'project_authored_public' for r in payload['records']))
             self.assertNotIn('data_records', json.dumps(payload))
@@ -44,7 +52,7 @@ class WebCatalogTests(unittest.TestCase):
                 self.assertFalse((Path(folder) / 'out/catalog.json').exists())
         with tempfile.TemporaryDirectory() as folder:
             licenses = json.loads((ROOT / 'config/resource_licenses.json').read_text(encoding='utf-8'))
-            licenses['resources'][0]['license_status'] = 'approved_public'
+            licenses['resources'][0]['license_status'] = 'restricted'
             path = Path(folder) / 'licenses.json'
             path.write_text(json.dumps(licenses), encoding='utf-8')
             with self.assertRaises(ValueError):

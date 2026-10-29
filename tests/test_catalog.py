@@ -97,20 +97,43 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(r["commercial_use_confirmed"] is False for r in pending))
         self.assertTrue(all(len(r["unresolved"]) >= 1 for r in pending))
         # Governance invariant: approved rows either have a complete resource
-        # license review or an explicit project-owner numeric publication
-        # grant that remains distinct from source-license verification.
+        # license review, an explicit project-owner numeric publication grant,
+        # or an open-licence policy decision, each with its own evidence trail.
         for row in approved:
             self.assertTrue(row["project_publication_approved"] is True, row["resource_key"])
-            if row["unresolved"]:
-                authorization = row.get("publication_authorization") or {}
-                self.assertEqual(authorization.get("basis"), "project_owner_instruction", row["resource_key"])
-                self.assertEqual(authorization.get("document"), "AGENTS.md", row["resource_key"])
-                self.assertEqual(authorization.get("section"), 3, row["resource_key"])
-                self.assertIs(authorization.get("source_license_verified"), False, row["resource_key"])
-                self.assertFalse(row["commercial_use_confirmed"], row["resource_key"])
-                self.assertTrue(row.get("next_action"), row["resource_key"])
-            else:
-                self.assertIsNone(row.get("publication_authorization"), row["resource_key"])
+            authorization = row.get("publication_authorization")
+            if authorization is not None:
+                self.assertIn(
+                    authorization.get("basis"),
+                    {"project_owner_instruction", "open_license_policy"},
+                    row["resource_key"],
+                )
+                if authorization["basis"] == "project_owner_instruction":
+                    self.assertEqual(authorization.get("document"), "AGENTS.md", row["resource_key"])
+                    self.assertEqual(authorization.get("section"), 3, row["resource_key"])
+                    self.assertIs(authorization.get("source_license_verified"), False, row["resource_key"])
+                    self.assertFalse(row["commercial_use_confirmed"], row["resource_key"])
+                    self.assertTrue(row.get("next_action"), row["resource_key"])
+                else:
+                    self.assertEqual(
+                        authorization.get("document"),
+                        "config/publication_policy.json",
+                        row["resource_key"],
+                    )
+                    self.assertTrue(authorization.get("policy_id"), row["resource_key"])
+                    self.assertIn(
+                        authorization.get("license_class"),
+                        {
+                            "open",
+                            "open_noncommercial",
+                            "open_no_derivatives",
+                            "open_noncommercial_no_derivatives",
+                        },
+                        row["resource_key"],
+                    )
+                    self.assertTrue(row.get("next_action"), row["resource_key"])
+            elif row["unresolved"]:
+                self.fail(f"{row['resource_key']} has unresolved items but no publication authorization")
             self.assertTrue(row["attribution_text"].strip(), row["resource_key"])
             self.assertTrue(len(row["evidence"]) >= 1, row["resource_key"])
             self.assertTrue(row["resource_id"].strip() and row["source_id"].strip(), row["resource_key"])
@@ -123,6 +146,17 @@ class CatalogTests(unittest.TestCase):
             path.write_text(json.dumps({"automatic_approval": True, "resources": resources}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_resource_licenses(path)
+            path.write_text(
+                json.dumps(
+                    {
+                        "automatic_approval": True,
+                        "automatic_approval_policy": str(ROOT / "config" / "publication_policy.json"),
+                        "resources": resources,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(len(load_resource_licenses(path)), len(resources))
             path.write_text(json.dumps({"automatic_approval": False, "resources": [resources[0], resources[0]]}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_resource_licenses(path)

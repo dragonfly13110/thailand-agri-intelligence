@@ -405,9 +405,9 @@ test('licence register counts match the checked registry', () => {
   }
 
   assert.equal(registry.resources.length, 91, 'registry: total');
-  assert.equal(counts.pending, 78, 'registry: pending');
-  assert.equal(counts.approved_public, 13, 'registry: approved_public');
-  assert.equal(registry.reviewed_at, '2026-10-28', 'registry: reviewed_at');
+  assert.equal(counts.pending, 29, 'registry: pending');
+  assert.equal(counts.approved_public, 62, 'registry: approved_public');
+  assert.equal(registry.reviewed_at, '2026-10-29', 'registry: reviewed_at');
 
   // The register doc must restate the registry counts, so the pins are derived
   // from the registry itself: a new round that flips a resource to
@@ -455,6 +455,7 @@ test('NABC daily prices have exact owner authorization separate from monthly pri
       commercial_use_confirmed: boolean;
       attribution_text: string | null;
       rights_facts: string[];
+      publication_authorization?: { basis: string };
     }>;
     owner_authorisation: { approved_resource_keys: string[] };
   };
@@ -469,7 +470,13 @@ test('NABC daily prices have exact owner authorization separate from monthly pri
   assert.match(daily.attribution_text ?? '', /NABC.*OAE/);
   assert.match(daily.rights_facts.join(' '), /AGENTS\.md rule 3/);
   assert.ok(registry.owner_authorisation.approved_resource_keys.includes(daily.resource_key));
-  assert.equal(monthly?.license_status, 'pending', 'monthly resource remains separately reviewed');
+  assert.equal(monthly?.license_status, 'approved_public', 'monthly resource approves under its own non-commercial licence');
+  assert.equal(monthly?.commercial_use_confirmed, false, 'monthly licence is non-commercial');
+  assert.equal(monthly?.publication_authorization?.basis, 'open_license_policy', 'monthly approval is separate from the owner authorisation');
+  assert.ok(
+    !registry.owner_authorisation.approved_resource_keys.includes('oae_nabc_monthly_jasmine_paddy_price'),
+    'monthly resource is not covered by the owner authorisation list',
+  );
 });
 
 test('OAE agricultural exports retain exact resource authorization and unverified source terms', () => {

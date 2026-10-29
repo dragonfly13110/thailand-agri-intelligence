@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0.0",
-  "reviewed_at": "2026-10-28",
+  "reviewed_at": "2026-10-29",
   "scope": "Exact resources currently investigated for Thailand Core",
   "review_kind": "read_only_official_metadata_and_terms",
-  "automatic_approval": false,
-  "status_note": "Each approval is scoped to its exact resource; pending means project-specific licence review remains open. This register does not change warehouse/source flags or grant rights. Public access, a generic licence list, or another dataset licence cannot approve an exact resource.",
+  "automatic_approval": true,
+  "status_note": "Each approval is scoped to its exact resource. Open-licence rows are approved by config/publication_policy.json with recorded attribution and licence caveats; unknown, unspecified or manually restricted licences stay pending.",
   "resources": [
     {
       "resource_key": "doae_production_subdistrict_2023",
@@ -14,8 +14,8 @@
       "name": "ภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2566",
       "resource_url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/f9ab6055-6364-4f78-812e-15989e300979/download/1.-01-open01-2023-new.csv",
       "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "license_variant_and_redistribution_terms_unresolved",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": "",
@@ -33,15 +33,11 @@
         "Dataset and resource are publicly accessible.",
         "The declared label does not select ODC-PDDL, ODC-By or ODbL. The provider licence list contains multiple ODC licences, but no exact entry for the label assigned to this dataset."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
-      "unresolved": [
-        "Exact licence variant and version or equivalent express reuse terms",
-        "Attribution and any database share-alike requirements",
-        "Permission covering republication of this exact resource and derived tables"
-      ],
-      "next_action": "Obtain an exact licence URL or written clarification from the DOAE dataset maintainer; retain the resource ID and review its metadata again before export.",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมส่งเสริมการเกษตร — ภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2566 (Open Data Common)",
+      "unresolved": [],
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
       "evidence": [
         {
           "url": "https://ckan.doae.go.th/api/3/action/resource_show?id=f9ab6055-6364-4f78-812e-15989e300979",
@@ -67,7 +63,28 @@
           "reviewed_at": "2026-10-22",
           "sha256": "f844f5a0711b47693647f5048cd8dbd3c21147ac301112d481854a35534aed2e"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "oae_nabc_monthly_jasmine_paddy_price",
@@ -77,8 +94,8 @@
       "name": "ราคาที่เกษตรกรขายได้รายเดือน ข้าวเปลือกเจ้าหอมมะลิ เฉลี่ยประเทศ",
       "resource_url": "https://agriapi.nabc.go.th/api/monthly-prices/product?product_name=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%80%E0%B8%9B%E0%B8%A5%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%AB%E0%B8%AD%E0%B8%A1%E0%B8%A1%E0%B8%B0%E0%B8%A5%E0%B8%B4%20%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%8A%E0%B8%B7%E0%B9%89%E0%B8%99%2015&page=1",
       "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "noncommercial_label_documented_exact_version_and_project_use_unresolved",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open_noncommercial",
       "declared_license": {
         "license_id": "อื่นๆ",
         "license_id_other": "Creative Commons Attributions Non-Commercial",
@@ -97,15 +114,11 @@
         "The generic CKAN cc-nc list entry links to version 2.0, but this dataset uses the different ID อื่นๆ; that list entry does not establish this resource licence version.",
         "The rice dataset declaration does not establish rights for every NABC product or endpoint."
       ],
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "commercial_use_confirmed": false,
-      "attribution_text": null,
-      "unresolved": [
-        "Exact Creative Commons licence version and URL",
-        "Whether the intended project use satisfies the declared non-commercial condition",
-        "Required attribution and separate terms of linked NABC endpoints"
-      ],
-      "next_action": "Confirm the exact licence and permitted project use with the OAE/NABC dataset maintainer. Review other monthly-price resources individually before importing their rights decision.",
+      "attribution_text": "สำนักงานเศรษฐกิจการเกษตร — ราคาที่เกษตรกรขายได้รายเดือน ข้าวเปลือกเจ้าหอมมะลิ เฉลี่ยประเทศ (Creative Commons Attributions Non-Commercial)",
+      "unresolved": [],
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
       "evidence": [
         {
           "url": "https://catalog.oae.go.th/api/3/action/resource_show?id=4570daca-e727-4036-bde9-35fd84d0ffd4",
@@ -137,7 +150,27 @@
           "reviewed_at": "2026-10-22",
           "sha256": "3acc0486b66503eca4e81b2f796cf3e3ec2f8f6bc3598c363ed69d630dc873cd"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open_noncommercial",
+        "declared_license_id": "Creative Commons Attributions Non-Commercial",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "Project use is a non-commercial public-service dashboard; commercial reuse is not approved."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dopa_ccaatt_hierarchy",
@@ -340,8 +373,8 @@
       "name": "Open-Meteo Thailand provider forecast",
       "resource_url": "https://api.open-meteo.com/v1/forecast",
       "reviewed_at": "2026-10-26",
-      "license_status": "pending",
-      "review_outcome": "same_cc_by_4_0_data_terms_as_the_era5_archive_but_forecast_values_must_live_in_a_separate_forecast_nwp_table_and_are_not_publishable_as_observations",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "CC-BY-4.0",
         "license_id_other": null,
@@ -363,14 +396,14 @@
         "The blocking issue is data type, not licence: provider forecast values are model predictions, and AGENTS.md rule 4 plus the canonical observation contract forbid publishing a forecast as an observation.",
         "Decision recorded 2026-10-26: this resource stays pending for the observation pipeline; forecast values must be written to a separate forecast/NWP table (not fact_satellite_flood_7days, not observations) with the credit \"Weather data by Open-Meteo.com (CC BY 4.0)\"."
       ],
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "commercial_use_confirmed": false,
       "attribution_text": "Weather data by Open-Meteo.com (CC BY 4.0)",
       "attribution_url": "https://open-meteo.com/",
       "unresolved": [
         "No forecast/NWP table is defined yet, so provider forecast values have nowhere approved to be published; they must not be written into the observation contract"
       ],
-      "next_action": "Decide the dedicated forecast/NWP table with the project owner (Round 2 lanes own the NWP tables), then publish provider forecast values only there with the credit \"Weather data by Open-Meteo.com (CC BY 4.0)\"; keep this resource pending for the observation pipeline.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Decide the dedicated forecast/NWP table with the project owner (Round 2 lanes own the NWP tables), then publish provider forecast values only there with the credit \"Weather data by Open-Meteo.com (CC BY 4.0)\"; keep this resource pending for the observation pipeline.",
       "evidence": [
         {
           "url": "https://open-meteo.com/en/licence",
@@ -401,7 +434,29 @@
           "finding": "Official Forecast API documentation fetched 2026-10-26; confirms the forecast product family is kept separate from the Historical Weather (ERA5) archive."
         }
       ],
-      "shared_terms_resource_key": "open_meteo_thailand_era5_archive"
+      "shared_terms_resource_key": "open_meteo_thailand_era5_archive",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "CC-BY-4.0",
+        "source_license_verified": true,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication.",
+          "Provider service terms restrict the free API to non-commercial use; commercial_use_confirmed=false."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "rid_medium_reservoirs",
@@ -490,8 +545,8 @@
       "name": "MODIS 16-Day 500m Vegetation Indices at Thailand Grid Points (Planetary Computer)",
       "resource_url": "https://planetarycomputer.microsoft.com/api/data/v1/item/point/100.25,13.8?collection=modis-13A1-061&item=MOD13A1.A2024273.h27v07.061.2024290023005&assets=500m_16_days_NDVI&assets=500m_16_days_pixel_reliability&assets=500m_16_days_VI_Quality",
       "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "us_gov_work_and_planetary_computer_terms_pending_project_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "NASA Open Data Policy / US Government Work",
         "license_id_other": null,
@@ -510,15 +565,14 @@
         "Microsoft Planetary Computer provides hosted STAC metadata and raster tile extraction APIs.",
         "Redistribution of extracted point observations and area summaries is compliant with data citations; project-specific publication review remains pending before public export."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "attribution_text": "NASA LP DAAC / USGS MODIS data accessed via Microsoft Planetary Computer",
       "attribution_url": "https://doi.org/10.5067/MODIS/MOD13A1.061",
       "unresolved": [
-        "Project-specific approval for public dataset release and external dashboard redistribution",
         "Validation of cloud masking vs field survey references across Thai agricultural regions"
       ],
-      "next_action": "Stage point observations and composite series locally with pending status; evaluate cloud-mask reliability against local agricultural seasons.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Stage point observations and composite series locally with pending status; evaluate cloud-mask reliability against local agricultural seasons.",
       "evidence": [
         {
           "url": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/modis-13A1-061",
@@ -532,7 +586,28 @@
           "reviewed_at": "2026-10-22",
           "sha256": null
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "NASA Open Data Policy / US Government Work",
+        "source_license_verified": true,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "ldd_rice_zoning_provincial",
@@ -658,8 +733,8 @@
       "name": "มูลค่าผลผลิตปศุสัตว์ระดับประเทศ กรมปศุสัตว์",
       "resource_url": "https://catalog.dld.go.th/api/3/action/datastore_search?resource_id=a512df83-39d0-420b-979e-942666863b00",
       "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -678,15 +753,14 @@
         "35 rows represent 5 livestock categories across Buddhist years 2562–2568 in million THB.",
         "Spatial grain is national (spatial_support: national)."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมปศุสัตว์ — มูลค่าผลผลิตปศุสัตว์ระดับประเทศ กรมปศุสัตว์ (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention",
         "Historical release timestamps"
       ],
-      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://catalog.dld.go.th/api/3/action/datastore_search?resource_id=a512df83-39d0-420b-979e-942666863b00",
@@ -694,7 +768,28 @@
           "reviewed_at": "2026-10-22",
           "sha256": "e43f8d358baf49f281f76d7ae073ae2544bdc77347cc7e08c2eb965d2f89f5fd"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dld_livestock_cattle_province",
@@ -789,8 +884,8 @@
       "name": "จำนวนโคนม รายจังหวัด กรมปศุสัตว์",
       "resource_url": "https://dld.gdcatalog.go.th/api/3/action/datastore_search?resource_id=34dc17e6-7619-4194-89e7-99f4ece84b89&limit=500",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -813,15 +908,14 @@
         "Spatial grain is province; the region column uses DLD's own 4-region grouping, not the standard 5-region scheme.",
         "Dairy cattle are concentrated in the Central and Northeastern regions; the resource carries no sub-breed or grade dimension."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมปศุสัตว์ — จำนวนโคนม รายจังหวัด กรมปศุสัตว์ (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention (DLD livestock reference year)",
         "Meaning of the `year` column relative to the DLD livestock production cycle"
       ],
-      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=eed9283e-51b2-4384-a9b6-245b0c8c7262",
@@ -835,7 +929,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "697b38625c6b486f0297fc80cf812a47e455196be2e71042a15a9f250f7f1f09"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dld_livestock_swine_province",
@@ -845,8 +960,8 @@
       "name": "จำนวนสุกร รายจังหวัด กรมปศุสัตว์",
       "resource_url": "https://dld.gdcatalog.go.th/dataset/161c766e-3ab4-475f-9976-60cfa1b7ada4/resource/47bbe7c0-fcd3-4eb6-b06b-c7ef3b51970a/download/dld_01_0501.csv",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -870,15 +985,14 @@
         "Resource is distributed as a CSV download and is not loaded into the CKAN datastore, so aggregation must parse the file.",
         "Spatial grain is province; the region column uses DLD's own 4-region grouping."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมปศุสัตว์ — จำนวนสุกร รายจังหวัด กรมปศุสัตว์ (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention (DLD livestock reference year)",
         "Meaning of the `year` column relative to the DLD livestock production cycle"
       ],
-      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=161c766e-3ab4-475f-9976-60cfa1b7ada4",
@@ -892,7 +1006,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "88ca43e604d1723783926db38c417eba575a0953295501e10a5c6d7e36247853"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dld_livestock_poultry_province",
@@ -902,8 +1037,8 @@
       "name": "จำนวนไก่ รายจังหวัด กรมปศุสัตว์",
       "resource_url": "https://dld.gdcatalog.go.th/dataset/ae4d2bdf-5cff-482f-86f4-aea93a51c018/resource/64366e81-13d2-485a-82a1-3ddc2d89869b/download/dld_01_0601.csv",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -927,16 +1062,15 @@
         "The catalog publishes only a combined poultry count (จำนวนไก่); no separate broiler (ไก่เนื้อ) or layer (ไก่ไข่) dataset exists, so a meat/egg split cannot be sourced.",
         "Resource is distributed as a CSV download and is not loaded into the CKAN datastore."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมปศุสัตว์ — จำนวนไก่ รายจังหวัด กรมปศุสัตว์ (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention (DLD livestock reference year)",
         "Broiler/layer split is not published by DLD and must not be derived",
         "Meaning of the `year` column relative to the DLD livestock production cycle"
       ],
-      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion; ask whether a broiler/layer breakdown exists outside the CKAN catalogue.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion; ask whether a broiler/layer breakdown exists outside the CKAN catalogue.",
       "evidence": [
         {
           "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=ae4d2bdf-5cff-482f-86f4-aea93a51c018",
@@ -950,7 +1084,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "5e42956fbcda35111758db4e858bb5908077d3e9e0c7b6d238f78fe8f327358f"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dld_livestock_duck_province",
@@ -960,8 +1115,8 @@
       "name": "จำนวนเป็ด รายจังหวัด กรมปศุสัตว์",
       "resource_url": "https://dld.gdcatalog.go.th/dataset/58d2c7a6-14eb-4703-a113-403c0fc86f4b/resource/c97081bc-e59d-47e1-aac9-0905b8983e08/download/dld_01_0701.csv",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -985,15 +1140,14 @@
         "Ducks are reported as a single combined count; no layer/meat or breed dimension is published.",
         "Resource is distributed as a CSV download and is not loaded into the CKAN datastore."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมปศุสัตว์ — จำนวนเป็ด รายจังหวัด กรมปศุสัตว์ (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention (DLD livestock reference year)",
         "Meaning of the `year` column relative to the DLD livestock production cycle"
       ],
-      "next_action": "Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and reference year convention with DLD maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://dld.gdcatalog.go.th/api/3/action/package_show?id=58d2c7a6-14eb-4703-a113-403c0fc86f4b",
@@ -1007,7 +1161,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "ce7c92b2fd62f7d309990f1af42d95679687ccd3cce9f28cbb5bf62be612bdb0"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dof_shrimp_production_2567",
@@ -1017,8 +1192,8 @@
       "name": "ผลผลิตกุ้งทะเล ปี 2567 กรมประมง",
       "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=15267952-1a27-451b-bac2-1b5de7cdedc2&limit=1000",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -1042,15 +1217,14 @@
         "The ภาค column uses DOF's own 6-region scheme, which splits the South into three regions and differs from DLD's 4-region scheme.",
         "Catalog geo_coverage is declared as ไม่มี even though a province column is present."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมประมง — ผลผลิตกุ้งทะเล ปี 2567 กรมประมง (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention for the DOF production year",
         "Whether monthly จำนวน values are cumulative or period totals"
       ],
-      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
@@ -1064,7 +1238,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "8caf2245312ebdf4d859e8d9578b27aaab0322fd4a45f7091cf8ed842466499a"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dof_shrimp_production_2568",
@@ -1074,8 +1269,8 @@
       "name": "ผลผลิตกุ้งทะเล ปี 2568 กรมประมง",
       "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=5936ac73-5902-41f5-984d-0b472555ae65&limit=1000",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -1099,16 +1294,15 @@
         "Row count is far lower than the 770 rows of the 2567 resource for the same province and month coverage, so the two releases are not directly comparable without clarification.",
         "The ภาค column uses DOF's own 6-region scheme."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมประมง — ผลผลิตกุ้งทะเล ปี 2568 กรมประมง (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention for the DOF production year",
         "Why the 2568 release has far fewer rows than the 2567 release for the same province and month coverage",
         "Whether monthly จำนวน values are cumulative or period totals"
       ],
-      "next_action": "Confirm licence terms, year convention and release completeness with DOF maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms, year convention and release completeness with DOF maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
@@ -1122,7 +1316,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "9c50be5c8bc3459c5ce49cc1e69bb74e8a73b2c831b9d866675684f708ac7dd4"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dof_shrimp_production_2569",
@@ -1132,8 +1347,8 @@
       "name": "ผลผลิตกุ้งทะเล ปี 2569 กรมประมง",
       "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=890c72ed-8e35-4b82-9f8a-898dbfc26de9&limit=1000",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -1157,16 +1372,15 @@
         "This release renames the species and value columns to Attribute and Value and drops the ปี column, so the year is implied by the resource rather than stated per row.",
         "The ภาค column uses DOF's own 6-region scheme."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมประมง — ผลผลิตกุ้งทะเล ปี 2569 กรมประมง (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention for the DOF production year",
         "The ปี column is absent; the reference year is implied by the resource only",
         "Whether monthly Value figures are cumulative or period totals"
       ],
-      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=4aa7387e-a3e5-4adb-b24b-cbcdac0e3399",
@@ -1180,7 +1394,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "ac056e6d0e5b9706027ef1e04d35f6a818eec04d4eb780445b219c363ba2db63"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dof_aquaculture_freshwater",
@@ -1190,8 +1425,8 @@
       "name": "ปริมาณและมูลค่าผลผลิตสัตว์น้ำจืดจากการเพาะเลี้ยง กรมประมง",
       "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=5ef25e0e-eef0-4a6a-af5f-5303410c7f5f&limit=1000",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -1217,16 +1452,15 @@
         "Raw species labels contain trailing-whitespace duplicates, so a naive distinct returns 38 instead of 20; consumers must trim before comparing.",
         "ปริมาณ and มูลค่า carry different units and must never be summed together."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมประมง — ปริมาณและมูลค่าผลผลิตสัตว์น้ำจืดจากการเพาะเลี้ยง กรมประมง (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention for the DOF production year",
         "Whether monthly and annual rows overlap or must be de-duplicated before summing",
         "Whether the ปริมาณ totals cover all production or only the surveyed provinces"
       ],
-      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=c02de756-f5d6-475f-9d52-971f98a2b9c1",
@@ -1240,7 +1474,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "b9ae7640876d1db56a5562b8cb8c755b78156f22093b038660cf3c4664823632"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "dof_aquaculture_marine_fish",
@@ -1250,8 +1505,8 @@
       "name": "ปริมาณและมูลค่าผลผลิตปลาน้ำกร่อยจากการเพาะเลี้ยง กรมประมง",
       "resource_url": "https://catalog.fisheries.go.th/api/3/action/datastore_search?resource_id=9936f81a-f5ec-457b-a5cf-7401d874b504&limit=1000",
       "reviewed_at": "2026-10-25",
-      "license_status": "pending",
-      "review_outcome": "open_data_common_label_pending_redistribution_review",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": null,
@@ -1275,15 +1530,14 @@
         "The resource has no ภาค column, so any regional rollup needs an external province-to-region crosswalk.",
         "Same species-label trailing-whitespace issue as the freshwater resource."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมประมง — ปริมาณและมูลค่าผลผลิตปลาน้ำกร่อยจากการเพาะเลี้ยง กรมประมง (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and redistribution permission",
         "Calendar vs fiscal year convention for the DOF production year",
         "Whether the ปริมาณ totals cover all production or only the surveyed provinces"
       ],
-      "next_action": "Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Confirm licence terms and year convention with DOF maintainer before warehouse ingestion.",
       "evidence": [
         {
           "url": "https://catalog.fisheries.go.th/api/3/action/package_show?id=c02de756-f5d6-475f-9d52-971f98a2b9c1",
@@ -1297,7 +1551,28 @@
           "reviewed_at": "2026-10-25",
           "sha256": "f021261032b14a99f688d35927f283e318c3114ca8be51a37f03ba3b50f10d77"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae_perennial_subdistrict_2023",
@@ -1307,8 +1582,8 @@
       "name": "ภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2566",
       "resource_url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/61f3f241-92c7-4cdc-9918-41ce73545268/download/open02-2023.csv",
       "reviewed_at": "2026-10-22",
-      "license_status": "pending",
-      "review_outcome": "license_variant_and_redistribution_terms_unresolved",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open",
       "declared_license": {
         "license_id": "Open Data Common",
         "license_id_other": "",
@@ -1327,15 +1602,13 @@
         "The declared label Open Data Common does not select an exact ODC variant.",
         "Separate annual grain resource from short-lived crops."
       ],
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
-      "attribution_text": null,
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
+      "attribution_text": "กรมส่งเสริมการเกษตร — ภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2566 (Open Data Common)",
       "unresolved": [
-        "Exact ODC licence variant and version or express reuse terms",
-        "Attribution and database share-alike conditions",
         "Resolution of 5 conflicting repeated identities and 3 negative area rows"
       ],
-      "next_action": "Obtain exact licence URL and resolution of conflicting identities before warehouse aggregation.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Previously recorded non-licence action: Obtain exact licence URL and resolution of conflicting identities before warehouse aggregation.",
       "evidence": [
         {
           "url": "https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/61f3f241-92c7-4cdc-9918-41ce73545268/download/open02-2023.csv",
@@ -1343,7 +1616,28 @@
           "reviewed_at": "2026-10-22",
           "sha256": "996e6e16e866d7720fedf860afafd77cec62f8bf3dd19ede426efe3c1ed33f9d"
         }
-      ]
+      ],
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:a7ce04a9-3535-4e88-98f5-7bc50fa63b2e",
@@ -1757,9 +2051,9 @@
       "name": "ข้อมูลภาวะการผลิตพืช (รต.01-02)",
       "resource_id": "708bd8c5-c85a-40d0-ac12-43113e88104f",
       "dataset": "production-rt01-04",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -1767,7 +2061,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -1790,7 +2083,31 @@
           "sha256": "89b658048efe38df372a8ec782e66802c6d98ffba582678ad3872e75529816ec",
           "bytes": 1117
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลภาวะการผลิตพืช (รต.01-02) (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:7e4758b0-5945-42ed-b75d-4196f07199b5",
@@ -1798,9 +2115,9 @@
       "name": "ข้อมูลภาวะการผลิตแมลงเศรษฐกิจ (รต.03)",
       "resource_id": "7e4758b0-5945-42ed-b75d-4196f07199b5",
       "dataset": "production-rt01-04",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -1808,7 +2125,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -1831,7 +2147,31 @@
           "sha256": "dd5d3d3ef17921eda72f8efb428300457950bc38b25878ece74b3ba591de2836",
           "bytes": 30091255
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลภาวะการผลิตแมลงเศรษฐกิจ (รต.03) (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:c4b0f207-5c19-4736-a607-a036bec721ab",
@@ -1839,9 +2179,9 @@
       "name": "ข้อมูลภาวะการผลิตนาเกลือทะเล (รต.04)",
       "resource_id": "c4b0f207-5c19-4736-a607-a036bec721ab",
       "dataset": "production-rt01-04",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -1849,7 +2189,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -1872,7 +2211,31 @@
           "sha256": "16b9aa13923d5861ee828f1758fdb2ee44a9e05a16d630980ae7e0513ddccb76",
           "bytes": 164677
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลภาวะการผลิตนาเกลือทะเล (รต.04) (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:8cc3c8e7-3206-4411-b33a-c62c5d3554d7",
@@ -1880,9 +2243,9 @@
       "name": "พื้นที่เฝ้าระวังเสี่ยงขาดแคลนน้ำ",
       "resource_id": "8cc3c8e7-3206-4411-b33a-c62c5d3554d7",
       "dataset": "water-shortage-risk-area",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -1890,7 +2253,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -1913,7 +2275,31 @@
           "sha256": "db18cfe98bb7fbe7f834a39f36381eb3a07203f26d243cf52ad81d03ec1be004",
           "bytes": 13561
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — พื้นที่เฝ้าระวังเสี่ยงขาดแคลนน้ำ (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:ab68661c-52d7-4cdc-86b6-efdaf92a785e",
@@ -1921,9 +2307,9 @@
       "name": "พื้นที่เพาะปลูกในเขตชลประทานที่ได้รับผลกระทบจากภัยน้ำท่วมเเละภัยแล้ง",
       "resource_id": "ab68661c-52d7-4cdc-86b6-efdaf92a785e",
       "dataset": "disaster_inthearea",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -1931,7 +2317,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -1954,7 +2339,31 @@
           "sha256": "9822798cfa03fd43f26eb887f31e55df3c9d8f366450c5af740ef39a62a42819",
           "bytes": 361936
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — พื้นที่เพาะปลูกในเขตชลประทานที่ได้รับผลกระทบจากภัยน้ำท่วมเเละภัยแล้ง (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:9e118afd-62fc-47ce-95b0-f47dcaee5721",
@@ -1962,9 +2371,9 @@
       "name": "พื้นที่เพาะปลูกนอกเขตชลประทานที่ได้รับผลกระทบจากภัยน้ำท่วมเเละภัยแล้ง.csv",
       "resource_id": "9e118afd-62fc-47ce-95b0-f47dcaee5721",
       "dataset": "disaster_outsidethearea",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -1972,7 +2381,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -1995,7 +2403,31 @@
           "sha256": "e4833bb6d69c5b4cf08e7c2b0636b261489b01845cadfd5aed9d89b9f1e5206d",
           "bytes": 377842
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — พื้นที่เพาะปลูกนอกเขตชลประทานที่ได้รับผลกระทบจากภัยน้ำท่วมเเละภัยแล้ง.csv (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:bfdbb893-65a7-4e89-8588-146836185d56",
@@ -2003,9 +2435,9 @@
       "name": "แผนการเพาะปลูกพืชฤดูฝน",
       "resource_id": "bfdbb893-65a7-4e89-8588-146836185d56",
       "dataset": "rainy-season-crop-plan",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -2013,7 +2445,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -2036,7 +2467,31 @@
           "sha256": "4f9628c371e11506b55a1aed348dbd281751d1297557d95eb43e5bb93f963f62",
           "bytes": 132305
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — แผนการเพาะปลูกพืชฤดูฝน (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:2c912a86-9bf3-4b5f-b69a-aec1d5e449d9",
@@ -2044,9 +2499,9 @@
       "name": "รายงานผลการเพาะปลูกพืชฤดูฝน",
       "resource_id": "2c912a86-9bf3-4b5f-b69a-aec1d5e449d9",
       "dataset": "rainy-season-crop-result",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -2054,7 +2509,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -2077,7 +2531,31 @@
           "sha256": "f4d1a57269560c6c75f6ab13e1ef98e2b042111148a3af3c3a2b1b810ea1181b",
           "bytes": 716
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — รายงานผลการเพาะปลูกพืชฤดูฝน (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:bc327a6a-a85d-40ac-a195-a5a6d76875ff",
@@ -2085,9 +2563,9 @@
       "name": "สรุปรายงานผลการเพาะปลูกพืชฤดูฝน",
       "resource_id": "bc327a6a-a85d-40ac-a195-a5a6d76875ff",
       "dataset": "rainy-season-crop-summary-moa",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -2095,7 +2573,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -2118,7 +2595,31 @@
           "sha256": "fb661d88ee13549bc629d185a8545d970f889ea52ad2d001cc0b5f17839cf610",
           "bytes": 14834
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — สรุปรายงานผลการเพาะปลูกพืชฤดูฝน (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:923bd35e-ff7d-4958-80df-54871063544d",
@@ -2126,9 +2627,9 @@
       "name": "รายงานผลการเพาะปลูกพืชฤดูแล้ง",
       "resource_id": "923bd35e-ff7d-4958-80df-54871063544d",
       "dataset": "dry-season-crop-result",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -2136,7 +2637,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -2159,7 +2659,31 @@
           "sha256": "b047b1521f4b8433b498f68c2f0e1000a3403e9de3c3da2159b7bf7cf2a489e6",
           "bytes": 1862
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — รายงานผลการเพาะปลูกพืชฤดูแล้ง (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:2c282c8b-c1cd-415c-8be5-d7cecafe90a4",
@@ -2167,9 +2691,9 @@
       "name": "สรุปรายงานผลการเพาะปลูกพืชฤดูแล้ง",
       "resource_id": "2c282c8b-c1cd-415c-8be5-d7cecafe90a4",
       "dataset": "dry-season-crop-summary-moa",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -2177,7 +2701,6 @@
         "license_id_other": null
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Native period, units, administrative mapping and completeness before model use"
       ],
       "evidence": [
@@ -2200,7 +2723,31 @@
           "sha256": "ce91f1bb3e8dc4070825a3f419267b5f64b076980388416e1b5097d0bec2f58a",
           "bytes": 14070
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — สรุปรายงานผลการเพาะปลูกพืชฤดูแล้ง (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:42adcacf-d007-45da-b14d-9694d385fb24",
@@ -2319,9 +2866,9 @@
       "resource_id": "f96294fb-00b1-48fd-8993-b0f5cc2c3757",
       "dataset": "smce",
       "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2566",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2329,7 +2876,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2348,7 +2894,31 @@
           "sha256": "1af398b7ffc7ba0f4a46431bbdc8b81ddac75a76b8cf504552cd7d1818f9c081",
           "bytes": 15907
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2566 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:4de8ab09-7807-44fb-a80d-b08e032f89f9",
@@ -2356,9 +2926,9 @@
       "resource_id": "4de8ab09-7807-44fb-a80d-b08e032f89f9",
       "dataset": "smce",
       "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2567",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2366,7 +2936,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2385,7 +2954,31 @@
           "sha256": "35ef654e0a7d2be84ec65ab4f749f2addb97f913ecbf7b70bb984035eb71fef4",
           "bytes": 15794
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2567 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:31643387-6cd0-4b07-bb09-62af2e5710b4",
@@ -2393,9 +2986,9 @@
       "resource_id": "31643387-6cd0-4b07-bb09-62af2e5710b4",
       "dataset": "smce",
       "name": "สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2568",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2403,7 +2996,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2422,7 +3014,31 @@
           "sha256": "cfd09ce5a6b417387aafdfbe671772862e0038d3814100fa08c1cfe2f385f623",
           "bytes": 17102
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — สัดส่วนวิสาหกิจชุมชนที่มีศักยภาพในระดับดี ปี 2568 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:c280820d-e70a-4269-b728-4698b086e85f",
@@ -2467,9 +3083,9 @@
       "resource_id": "fec755b5-dc56-416b-9f21-ddee5e07521e",
       "dataset": "herbs-spices",
       "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2566",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2477,7 +3093,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2496,7 +3111,31 @@
           "sha256": "d877fd6ff8d94cce54437d8ecdf751ed5b6cf2e081dba48f3c88e78275c415c8",
           "bytes": 2202
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — มูลค่าสมุนไพรและเครื่องเทศ ปี 2566 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:fe66f521-d947-4fac-b20d-8b36faf90572",
@@ -2504,9 +3143,9 @@
       "resource_id": "fe66f521-d947-4fac-b20d-8b36faf90572",
       "dataset": "herbs-spices",
       "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2567",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2514,7 +3153,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2533,7 +3171,31 @@
           "sha256": "83c904e45076b53c815ab7423b6d18e06b6d9704f3df5b82fc1ccfff06f4f730",
           "bytes": 2468
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — มูลค่าสมุนไพรและเครื่องเทศ ปี 2567 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:3833567f-f2a8-4847-99c6-661bbdaa5ebc",
@@ -2541,9 +3203,9 @@
       "resource_id": "3833567f-f2a8-4847-99c6-661bbdaa5ebc",
       "dataset": "herbs-spices",
       "name": "มูลค่าสมุนไพรและเครื่องเทศ ปี 2568",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2551,7 +3213,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2570,7 +3231,31 @@
           "sha256": "6d078cc6099b8c40ccc65dd726f6343e7cc7f202cac24e4ac322b7eff938eec4",
           "bytes": 2405
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — มูลค่าสมุนไพรและเครื่องเทศ ปี 2568 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:1d5c0d26-c4d7-4933-987e-c2360e51d977",
@@ -2615,9 +3300,9 @@
       "resource_id": "27e3ee2c-53bb-4867-adfe-5e84a242fc08",
       "dataset": "province-unified-data",
       "name": "ข้อมูลเอกภาพระดับจังหวัด",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Creative Commons Attributions",
         "license_title": "Creative Commons Attributions",
@@ -2625,7 +3310,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2644,7 +3328,31 @@
           "sha256": "fa4c743ecd1eb8d5e97fa68806bf55eeeb15979da085dc7bb0b590d20d34d747",
           "bytes": 2795894
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลเอกภาพระดับจังหวัด (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:d5ea0233-8fd4-4995-97b5-3a1357fe774b",
@@ -2689,9 +3397,9 @@
       "resource_id": "c3af447b-16ba-4328-8d8a-6639f4abd559",
       "dataset": "online-product",
       "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2566",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2699,7 +3407,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2718,7 +3425,31 @@
           "sha256": "da2e29be929d0d4a1f0bf37e736a3dc18beb9161a7cbef24b93d9188614baad6",
           "bytes": 46320
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2566 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:76ad613f-c13c-4112-b85c-791112d6d2d9",
@@ -2726,9 +3457,9 @@
       "resource_id": "76ad613f-c13c-4112-b85c-791112d6d2d9",
       "dataset": "online-product",
       "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2567",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2736,7 +3467,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2755,7 +3485,31 @@
           "sha256": "2906f13e7e5c35508f436d17a0b4ca25fb7e3ef3ca08b5630330b8cbf03d2320",
           "bytes": 21461
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2567 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:85623373-b59c-4fa5-8208-f0566b586a68",
@@ -2763,9 +3517,9 @@
       "resource_id": "85623373-b59c-4fa5-8208-f0566b586a68",
       "dataset": "online-product",
       "name": "มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2568",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2773,7 +3527,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2792,7 +3545,31 @@
           "sha256": "2a8289bcb40b4c6a2a6940cd57becd60d0e2902521a4d7a2b400f3586e3ecf7a",
           "bytes": 44695
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — มูลค่าการซื้อขายสินค้าเกษตรและผลิตภัณฑ์ที่จำหน่ายบนแพลตฟอร์มออนไลน์ ปี 2568 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:4f3e12e2-fc5b-4978-aa4c-13b7367aa8fe",
@@ -2911,9 +3688,9 @@
       "resource_id": "9a84a3f0-4f84-4eca-9204-6ee180be04ba",
       "dataset": "doae-office-location",
       "name": "ข้อมูลที่ตั้งสำนักงานเกษตรจังหวัดและสำนักงานเกษตรพื้นที่",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2921,7 +3698,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2940,7 +3716,31 @@
           "sha256": "b5dd3bfe5a90c3c556a5856df457d3f7fb339bfbbd2b141514ffd415f05ee63d",
           "bytes": 560224
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลที่ตั้งสำนักงานเกษตรจังหวัดและสำนักงานเกษตรพื้นที่ (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:007e60a1-5269-4d15-bd53-b8d0f3f2ea76",
@@ -2948,9 +3748,9 @@
       "resource_id": "007e60a1-5269-4d15-bd53-b8d0f3f2ea76",
       "dataset": "agricultural-households-disaster-affected-area-province",
       "name": "ข้อมูลครัวเรือนเกษตรและพื้นที่ได้รับผลกระทบจากภัยธรรมชาติ รายจังหวัด",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -2958,7 +3758,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -2977,7 +3776,31 @@
           "sha256": "ca4f28cdf32a98de1b73548a4c40eb8f2c01e20b0b7b79eeeafddb6d56190e07",
           "bytes": 4805266
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลครัวเรือนเกษตรและพื้นที่ได้รับผลกระทบจากภัยธรรมชาติ รายจังหวัด (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:9a0342f0-d126-490a-b3ed-236ebec467c9",
@@ -3059,9 +3882,9 @@
       "resource_id": "0719c5ce-108c-4373-93e8-6b27a9176c5e",
       "dataset": "production_doae",
       "name": "ข้อมูลภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2567",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -3069,7 +3892,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -3088,7 +3910,31 @@
           "sha256": "e8533193015de26e01187af9c074700f67a182bc31115babbc836618f41909e9",
           "bytes": 2130557
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2567 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "doae:a130f9e0-0795-4ac8-8daf-008c686c484d",
@@ -3096,9 +3942,9 @@
       "resource_id": "a130f9e0-0795-4ac8-8daf-008c686c484d",
       "dataset": "production_doae",
       "name": "ข้อมูลภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2567",
-      "license_status": "pending",
-      "project_publication_approved": false,
-      "commercial_use_confirmed": false,
+      "license_status": "approved_public",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": true,
       "declared_license": {
         "license_id": "Open Data Common",
         "license_title": "Open Data Common",
@@ -3106,7 +3952,6 @@
         "license_id_other": ""
       },
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Source semantics, units, period and temporal geography before model use",
         "Privacy review before sharing group records or free text"
       ],
@@ -3125,10 +3970,34 @@
           "sha256": "b7261d860577a277e0ea79ed73d7fdd31866d0c407ce4e74093aa99fbac55ebf",
           "bytes": 1498326
         }
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2567 (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o7",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3153,17 +4022,40 @@
           "url": "https://ckan.doae.go.th/dataset/07a2d4c7-6e75-4977-bd63-d357f919aea7/resource/31a17875-6d7a-4b70-abf3-c56d68635937/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "รายงานผลการดำเนินงานประจำปี",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "31a17875-6d7a-4b70-abf3-c56d68635937",
       "resource_key": "doae:31a17875-6d7a-4b70-abf3-c56d68635937",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — รายงานผลการดำเนินงานประจำปี (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "commercial_use_confirmed": false,
@@ -3242,7 +4134,7 @@
       ]
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o18",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3267,20 +4159,43 @@
           "url": "https://ckan.doae.go.th/dataset/299e6d18-984b-45ba-9d01-a370c2403bb7/resource/9bda9d5f-4bb9-4060-a43f-fb6438ba09e4/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "ข้อมูลสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "9bda9d5f-4bb9-4060-a43f-fb6438ba09e4",
       "resource_key": "doae:9bda9d5f-4bb9-4060-a43f-fb6438ba09e4",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "new-agri-item-request",
       "declared_license": {
         "license_id": "Creative Commons Attributions",
@@ -3305,17 +4220,40 @@
           "url": "https://ckan.doae.go.th/dataset/2e2aba1f-3413-4a8e-aafc-38daba9d60cc/resource/1e4c3d1e-8159-4999-88f9-4e2f77fe3856/download/open_crop_request_province.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "คำขอเพิ่มพืช แมลงเศรษฐกิจ และนากลือทะเลที่ไม่มีในระบบ",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "1e4c3d1e-8159-4999-88f9-4e2f77fe3856",
       "resource_key": "doae:1e4c3d1e-8159-4999-88f9-4e2f77fe3856",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — คำขอเพิ่มพืช แมลงเศรษฐกิจ และนากลือทะเลที่ไม่มีในระบบ (Creative Commons Attributions)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Creative Commons Attributions",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "commercial_use_confirmed": false,
@@ -3394,7 +4332,7 @@
       ]
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o22",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3419,20 +4357,43 @@
           "url": "https://ckan.doae.go.th/dataset/44fd67aa-02d4-43b5-88a8-15f22e4f1684/resource/78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "รายงานผลการดำเนินการตามแผนบริหารจัดการความเสี่ยงการทุจริตของหน่วยงาน ",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2",
       "resource_key": "doae:78ed4822-e8d7-4a7a-9f70-ee4245aa9ab2",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — รายงานผลการดำเนินการตามแผนบริหารจัดการความเสี่ยงการทุจริตของหน่วยงาน (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o2",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3457,20 +4418,43 @@
           "url": "https://ckan.doae.go.th/dataset/4c111e5e-d239-4f05-9151-6c15edcbb183/resource/ddf72077-a1e7-4477-a08c-5dc6e783b221/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "ข้อมูลผู้บริหาร",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "ddf72077-a1e7-4477-a08c-5dc6e783b221",
       "resource_key": "doae:ddf72077-a1e7-4477-a08c-5dc6e783b221",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — ข้อมูลผู้บริหาร (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o16",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3495,20 +4479,43 @@
           "url": "https://ckan.doae.go.th/dataset/c97fd969-8907-4e8d-bafb-33cf99af5e78/resource/e780973b-9e4b-4962-897b-80b6f147de58/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "แนวปฏิบัติการจัดการเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "e780973b-9e4b-4962-897b-80b6f147de58",
       "resource_key": "doae:e780973b-9e4b-4962-897b-80b6f147de58",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — แนวปฏิบัติการจัดการเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o5",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3533,20 +4540,43 @@
           "url": "https://ckan.doae.go.th/dataset/f11bff10-1c9b-4baa-81bf-d3615b778538/resource/c45d065e-c369-440b-bbbc-f65ef8bbb80a/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "แผนยุทธศาสตร์หรือแผนพัฒนาหน่วยงาน",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "c45d065e-c369-440b-bbbc-f65ef8bbb80a",
       "resource_key": "doae:c45d065e-c369-440b-bbbc-f65ef8bbb80a",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — แผนยุทธศาสตร์หรือแผนพัฒนาหน่วยงาน (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
-      "commercial_use_confirmed": false,
+      "commercial_use_confirmed": true,
       "dataset": "dataset_o9",
       "declared_license": {
         "license_id": "Open Data Common",
@@ -3571,17 +4601,40 @@
           "url": "https://ckan.doae.go.th/dataset/f773f186-477b-47f9-b597-ca1b48ef7834/resource/92e59366-d941-441b-b5fd-b64d0dad578e/download/untitled.csv"
         }
       ],
-      "license_status": "pending",
+      "license_status": "approved_public",
       "name": "คู่มือหรือแนวทางการขอรับบริการสำหรับผู้รับบริการ หรือผู้มาติดต่อ",
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "resource_id": "92e59366-d941-441b-b5fd-b64d0dad578e",
       "resource_key": "doae:92e59366-d941-441b-b5fd-b64d0dad578e",
       "source_id": "doae",
       "unresolved": [
-        "Exact resource reuse and redistribution terms",
         "Privacy review of identifiers, contacts, names and free text before any sharing",
         "Source semantics and time/geography before model use"
-      ]
+      ],
+      "attribution_text": "กรมส่งเสริมการเกษตร — คู่มือหรือแนวทางการขอรับบริการสำหรับผู้รับบริการ หรือผู้มาติดต่อ (Open Data Common)",
+      "review_outcome": "auto_approved_open",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change.",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open",
+        "declared_license_id": "Open Data Common",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+          "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+        ],
+        "derivation_allowed": true
+      }
     },
     {
       "resource_key": "ldd_pgs_program_progress",
@@ -3591,22 +4644,21 @@
       "name": "สถิติแผนและผลโครงการ PGS จำแนกตามหน่วยงาน",
       "resource_url": "https://lddcatalog.ldd.go.th/dataset/ord02",
       "reviewed_at": "2026-10-24",
-      "license_status": "pending",
-      "review_outcome": "source_dictionary_reviewed_reporting_units_are_not_target_provinces_rights_unresolved",
+      "license_status": "approved_public",
+      "review_outcome": "auto_approved_open_noncommercial_no_derivatives",
       "declared_license": {
         "license_id": "Creative Commons Attribution Non-Commercial No-Derivs",
         "license_url": null,
         "version": null,
         "scope": "Package ord02; dictionary describes open data; no project publication approval"
       },
-      "project_publication_approved": false,
+      "project_publication_approved": true,
       "commercial_use_confirmed": false,
       "unresolved": [
-        "Confirm reuse, derivation and redistribution terms for this exact statistical resource",
         "Confirm reporting cutoff and differences between source group-stage labels and dictionary",
         "Reporting-unit names do not establish beneficiary or project target areas"
       ],
-      "next_action": "Keep statistics in local workstation mode; review exact reuse terms and stage semantics before any public numeric output.",
+      "next_action": "Use with the recorded attribution; re-review if the provider publishes an exact licence variant or terms change. Display verbatim values only; derived metrics are not approved. Previously recorded non-licence action: Keep statistics in local workstation mode; review exact reuse terms and stage semantics before any public numeric output.",
       "evidence": [
         {
           "url": "https://lddcatalog.ldd.go.th/dataset/ord02",
@@ -3618,7 +4670,28 @@
           "kind": "official_data_dictionary",
           "reviewed_at": "2026-10-24"
         }
-      ]
+      ],
+      "attribution_text": "กรมพัฒนาที่ดิน — สถิติแผนและผลโครงการ PGS จำแนกตามหน่วยงาน (Creative Commons Attribution Non-Commercial No-Derivs)",
+      "publication_authorization": {
+        "basis": "open_license_policy",
+        "document": "config/publication_policy.json",
+        "section": 3,
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
+        "policy_id": "publication-policy-2026-10-29",
+        "license_class": "open_noncommercial_no_derivatives",
+        "declared_license_id": "Creative Commons Attribution Non-Commercial No-Derivs",
+        "source_license_verified": false,
+        "decided_at": "2026-10-29",
+        "assumptions": [
+          "Project use is non-commercial and only verbatim source values may be displayed."
+        ],
+        "derivation_allowed": false
+      }
     },
     {
       "resource_key": "chirps_v3_daily_rnl_2026_09_30",
@@ -4158,7 +5231,12 @@
         "basis": "project_owner_instruction",
         "document": "AGENTS.md",
         "section": 3,
-        "scope": ["fetch", "process", "store_in_D1", "public_numeric_display"],
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
         "source_license_verified": false
       },
       "attribution_text": "ข้อมูลมูลค่าการส่งออกสินค้าเกษตร โดยสำนักงานเศรษฐกิจการเกษตร (OAE)",
@@ -4213,7 +5291,12 @@
         "basis": "project_owner_instruction",
         "document": "AGENTS.md",
         "section": 3,
-        "scope": ["fetch", "process", "store_in_D1", "public_numeric_display"],
+        "scope": [
+          "fetch",
+          "process",
+          "store_in_D1",
+          "public_numeric_display"
+        ],
         "source_license_verified": false
       },
       "attribution_text": "ศูนย์เทคโนโลยีสารสนเทศและการสื่อสาร/กลุ่มฐานข้อมูลสารสนเทศ",
@@ -4252,5 +5335,6 @@
       "cpd_agricultural_coop_counts"
     ],
     "note": "Approval is per exact resource with attribution. Licence-text caveats stay recorded in rights_facts; units remain null until officially documented; forecast values stay out of the observation contract."
-  }
+  },
+  "automatic_approval_policy": "config/publication_policy.json"
 }

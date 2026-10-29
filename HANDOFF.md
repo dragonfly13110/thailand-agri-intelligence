@@ -1,3 +1,12 @@
+## นโยบายอนุมัติสิทธิ์ตามสัญญาอนุญาตเปิด — 29 ต.ค. 2026
+
+- เจ้าของงานสั่งผ่อนกฎ `approved_public` ราย resource: เพิ่ม [config/publication_policy.json](config/publication_policy.json), `src/tadih/publication_policy.py` และ `scripts/apply_publication_policy.py` (dry-run โดยปริยาย, `--write` จึงบันทึกทะเบียน)
+- กติกา: ป้าย CC0/CC BY/ODC/OGL/NASA/public domain อนุมัติอัตโนมัติพร้อม attribution; NC → `commercial_use_confirmed=false`; ND/NC-ND → `derivation_allowed=false`; หลักฐานขัด (`isopen=false`, ระหว่างหน่วยงาน) หรือป้าย `อื่นๆ`/ไม่ระบุ คง `pending`; ถ้า terms บริการห้ามเชิงพาณิชย์จะลด commercial flag
+- ผลกับทะเบียน 91 รายการ: approved 13→62, pending 78→29 (DOPA, DDPM, LDD zoning, DOF, DOAE 25); อนุมัติเพิ่ม 49 (open 47, NC 1, NC-ND 1); เปิด `automatic_approval: true` ชี้ไฟล์นโยบาย และ loader ตรวจว่าไฟล์มีจริง
+- อัปเดต `config/web_catalog_review.json` 10 แถวให้ตรงทะเบียน; [docs/source-license-register.md](docs/source-license-register.md) และ `AGENTS.md` ข้อ 3 อธิบายกติกาใหม่
+- ตรวจรับ: Python 854/854 · web 320/320 · typecheck 0 error · build:vinext complete; ไม่มี D1 read/write, ไม่เรียก upstream, ไม่ commit/push/deploy
+- ต่อเนื่อง: ใช้ `scripts/apply_publication_policy.py` เมื่อเพิ่ม resource ใหม่; รายการที่ยัง pending ต้องหาหลักฐานเพิ่ม; การอนุมัติสิทธิ์ไม่แทนที่ gate คุณภาพข้อมูล/หน่วย/ปี
+
 ## Group C UI sweep 12 หน้า (sample/compute, 0 D1 writes) — 29 ต.ค. 2026
 
 - แบ่ง 10 subagent ตาม lane ไฟล์ไม่ทับกัน (หน้าละ 1 lane, food-safety/logistics แยก component/หน้า) ทำ UI ให้จบโดยไม่แตะ `web/lib/hub/*`, `web/app/api/*`, `data/local`, `.env`: เพิ่มแบ่งหน้า (การ์ด ≤12, ตาราง ≤20 แถว), ตัวกรอง/search ที่ reset หน้า, ปุ่มก่อนหน้า/ถัดไป, `aria-live` จำนวนผล, `role=region`+`tabIndex` ให้ตารางเลื่อนได้, ยุบข้อความ governance ยาวไว้ใน `<details>` — แก้ 8 หน้า + 24 ไฟล์ component (4,520+/1,250−)

@@ -1,10 +1,26 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
-อัปเดต 28 ต.ค. 2569 หลังได้รับการยืนยันจากเจ้าของโปรเจกต์: ทะเบียนมี **91 รายการ**: `approved_public` **13 รายการ** และ `pending` **78 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — `dld_livestock_cattle_province`, `oae_agricultural_exports` และ `cpd_agricultural_coop_counts` บันทึกขอบเขตสิทธิ์จาก `AGENTS.md` ข้อ 3 สำหรับ exact resources โดยแยกจากข้อความสัญญาอนุญาตต้นทางที่ยังไม่ยืนยัน. `oae_nabc_daily_market_prices` เป็นคนละ endpoint กับรายการ OAE export นี้; `oae_nabc_monthly_jasmine_paddy_price` ยังคง `pending`. รายการที่อนุมัติแล้วมีหลักฐานเป็น URL ต้นทางหรือการยืนยันจากเจ้าของโปรเจกต์ พร้อมวันที่และสิ่งที่ยืนยัน
+อัปเดต 29 ต.ค. 2569 หลังเจ้าของโปรเจกต์อนุญาตให้ใช้ [นโยบายอนุมัติตามสัญญาอนุญาตเปิด](../config/publication_policy.json): ทะเบียนมี **91 รายการ**: `approved_public` **62 รายการ** และ `pending` **29 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — `dld_livestock_cattle_province`, `oae_agricultural_exports` และ `cpd_agricultural_coop_counts` บันทึกขอบเขตสิทธิ์จาก `AGENTS.md` ข้อ 3 สำหรับ exact resources; RID/TMD และ NABC daily อีก 7 รายการอยู่ภายใต้คำสั่งเจ้าของโปรเจกต์ชุดเดียวกันตาม `AGENTS.md` ข้อ 3. แถวที่อนุมัติด้วยนโยบายใหม่ใช้ `publication_authorization.basis=open_license_policy` พร้อม attribution, สมมติฐานราย resource และวันที่ตัดสิน. `oae_nabc_daily_market_prices` เป็นคนละ endpoint กับรายการ OAE export นี้.
 
-รายการที่ `approved_public` ปัจจุบัน: `chirps_v3_daily_rnl_2026_09_30`, `open_meteo_thailand_era5_archive` (attribution `Weather data by Open-Meteo.com (CC BY 4.0)`), `gistda_flood_7days_daily`, `rid_medium_reservoirs`, `tmd_weather_today_by_agro_daily`, `tmd_weather_today_station_daily`, `tmd_weather_today_by_synop_daily`, `tmd_monthly_rainfall_monthly`, `tmd_hpc_nwp_d02_grid`, `oae_nabc_daily_market_prices`, `dld_livestock_cattle_province`, `oae_agricultural_exports` และ `cpd_agricultural_coop_counts`. RID/TMD, NABC daily, DLD โคเนื้อ, OAE export และ CPD co-op counts ใช้คำยืนยันสิทธิ์เผยแพร่ของเจ้าของโปรเจกต์ตาม `AGENTS.md` ข้อ 3 โดยบันทึกแยกจากเงื่อนไขสัญญาอนุญาตต้นทาง ส่วน NWP เป็น forecast grid จึงไม่เก็บเป็น observation; `commercial_use_confirmed` ยังคง `false` สำหรับทรัพยากรที่ไม่มีการยืนยันการใช้เชิงพาณิชย์แยกต่างหาก ส่วน `open_meteo_thailand_forecast` และ NABC monthly rice ยังคง `pending` เป็นคนละ resource
+รายการที่ `approved_public` 62 รายการมาจาก 3 ทาง: ตรวจสัญญาอนุญาตครบแล้ว (เช่น CHIRPS, Open-Meteo ERA5, GISTDA flood), คำสั่งเจ้าของโปรเจกต์ตาม `AGENTS.md` ข้อ 3 (RID/TMD, NABC daily, DLD โคเนื้อ, OAE export, CPD co-op counts) และนโยบายสัญญาอนุญาตเปิด 49 รายการ. สองรายการล่าสุดมีข้อจำกัดพิเศษ: `oae_nabc_monthly_jasmine_paddy_price` เป็น Non-Commercial จึง `commercial_use_confirmed=false`; `ldd_pgs_program_progress` เป็น Non-Commercial No-Derivs จึง `commercial_use_confirmed=false` และ `derivation_allowed=false` แสดงได้เฉพาะค่าเดิม. NWP ยังเป็น forecast grid จึงไม่เก็บเป็น observation. `open_meteo_thailand_forecast` ยังคง `pending`.
 
-ประวัติรอบก่อนหน้า: 25 ต.ค. 2569 ทะเบียนมี 82 รายการ โดยเปิดเฉพาะ CHIRPS รายการเดียว
+ประวัติรอบก่อนหน้า: 28 ต.ค. 2569 มี 91 รายการ (approved 13, pending 78); 25 ต.ค. 2569 มี 82 รายการ โดยเปิดเฉพาะ CHIRPS รายการเดียว
+
+## นโยบายอนุมัติตามสัญญาอนุญาตเปิด (publication policy 2026-10-29)
+
+เจ้าของโปรเจกต์สั่งให้ลดขั้นตอนตรวจทีละ resource สำหรับข้อมูลที่ต้นทางประกาศสัญญาอนุญาตเปิดอยู่แล้ว จึงเพิ่ม [config/publication_policy.json](../config/publication_policy.json) และตัวประเมิน [src/tadih/publication_policy.py](../src/tadih/publication_policy.py)
+
+หลักการ:
+
+- อนุมัติเฉพาะ resource ที่ `license_id` หรือ `license_id_other` ตรงกับรายการในนโยบาย (CC0, CC BY, Open Data Common, OGL, NASA/public domain) และต้องมี `attribution_text` ทุกแถว
+- CC BY-NC → อนุมัติ แต่ `commercial_use_confirmed=false`
+- CC BY-ND หรือ NC-ND → อนุมัติ แต่ `derivation_allowed=false` แสดงได้เฉพาะค่าเดิม ห้ามคำนวณดัชนีหรือยอดรวมใหม่
+- หลักฐานใน `rights_facts` ที่ขัดกับป้ายเปิด เช่น `isopen=false` หรือ "ระหว่างหน่วยงาน" ทำให้คง `pending` แม้ป้ายจะดูเปิด
+- ป้ายกำกวม (`อื่นๆ`, `License not specified`, ว่าง) คง `pending` เสมอ
+- ทุกแถวที่อนุมัติอัตโนมัติเก็บ `publication_authorization` (basis `open_license_policy`, policy_id, license_class, assumptions, decided_at) และตรวจ `automatic_approval_policy` ว่าชี้ไฟล์นโยบายที่มีจริงตอนโหลดทะเบียน
+- สคริปต์ `python scripts/apply_publication_policy.py` เป็น dry-run โดยปริยาย; `--write` บันทึกทะเบียน แต่ไม่แตะแถวที่เจ้าของอนุมัติแล้วหรือแถว `restricted` และไม่เขียน D1
+
+ผลรอบนี้: อนุมัติเพิ่ม 49 รายการ (open 47, non-commercial 1, non-commercial + no-derivs 1) คง `pending` 29 รายการ ได้แก่ DOPA 1, DDPM 1, LDD zoning 1, DOF 1 และ DOAE ที่ระบุ `อื่นๆ`/`License not specified` 25 รายการ. การอนุมัติสิทธิ์เผยแพร่ไม่ได้แปลว่าหน่วย ปี หรือนิยามตัวเลขได้รับการยืนยัน; ข้อจำกัดเหล่านั้นยังอยู่ใน `unresolved` และ gate ของ API/UI แยกต่างหาก
 
 ตรวจวันที่ 22–25 ตุลาคม 2569 จาก metadata และเงื่อนไขของผู้ให้บริการโดยตรง ผลแบบอ่านด้วยโปรแกรมอยู่ใน [resource_licenses.json](../config/resource_licenses.json) พร้อม URL หลักฐาน วันที่ตรวจ และ SHA-256 ของคำตอบที่ตรวจผ่านคำขอจริงเมื่อมี
 
@@ -35,13 +51,13 @@
 
 ช่อง `license_id` เป็น `Open Data Common` ส่วน `license_id_other` ว่าง ไม่มี `license_url` ให้ผูกกับ resource นี้ รายการ [license_list ของ DOAE](https://ckan.doae.go.th/api/3/action/license_list) มี ODC หลายแบบ ได้แก่ PDDL, ODbL และ Attribution แต่ชื่อที่ dataset ใช้ไม่ได้ชี้ไปยังแบบใดแบบหนึ่ง
 
-งานที่ยังต้องทำคือให้เจ้าของชุดระบุสัญญาอนุญาตและรุ่นที่แน่นอน รวมถึงเครดิตและเงื่อนไขของตารางที่นำไปแปลงต่อ ระหว่างนี้ยังไม่นำ raw CSV หรือตารางที่แปลงแล้วออกสาธารณะ
+ตั้งแต่วันที่ 29 ต.ค. 2569 นโยบายเปิดอนุมัติ resource นี้ในคลาส `open` พร้อม attribution ข้างต้น โดยบันทึกสมมติฐานเรื่อง ODC variant ไว้ใน `publication_authorization`. ยังไม่นำ raw CSV ออกสาธารณะเพราะขอบเขตที่อนุมัติคือ fetch/process/store/display ตัวเลข ไม่ใช่การแจกไฟล์ต้นฉบับ; ตารางที่แปลงแล้วต้องแสดงเครดิตและไม่สร้างยอดรวมผิด grain
 
 ## OAE/NABC ราคาข้าวเปลือกเจ้าหอมมะลิรายเดือน
 
 [ชุด monthly_prices_rice](https://catalog.oae.go.th/api/3/action/package_show?id=monthly_prices_rice) มี resource เดียว โดย [resource metadata](https://catalog.oae.go.th/api/3/action/resource_show?id=4570daca-e727-4036-bde9-35fd84d0ffd4) ชี้ไปยัง NABC API รายเดือนสำหรับสินค้าข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15
 
-ข้อมูลกำหนด `license_id="อื่นๆ"` และ `license_id_other="Creative Commons Attributions Non-Commercial"` จึงมีหลักฐานเรื่องเงื่อนไขไม่เชิงพาณิชย์ แต่ยังขาดรุ่นและ URL ของสัญญาอนุญาตที่ใช้จริง [หน้าชุดข้อมูล](https://catalog.oae.go.th/dataset/monthly_prices_rice) แสดงข้อความเดียวกัน รายการนี้ยัง `pending`; การอนุมัติ NABC daily prices ด้านบนเป็นคนละ endpoint และไม่ได้ใช้สิทธิ์จาก resource รายเดือนนี้
+ข้อมูลกำหนด `license_id="อื่นๆ"` และ `license_id_other="Creative Commons Attributions Non-Commercial"` จึงมีหลักฐานเรื่องเงื่อนไขไม่เชิงพาณิชย์ แต่ยังขาดรุ่นและ URL ของสัญญาอนุญาตที่ใช้จริง [หน้าชุดข้อมูล](https://catalog.oae.go.th/dataset/monthly_prices_rice) แสดงข้อความเดียวกัน ตั้งแต่วันที่ 29 ต.ค. 2569 รายการนี้อยู่ในคลาส `open_noncommercial` จึงอนุมัติเผยแพร่ได้โดย `commercial_use_confirmed=false` และบันทึกสมมติฐานเรื่องรุ่น/URL ไว้ใน `publication_authorization`; การอนุมัติ NABC daily prices ด้านบนเป็นคนละ endpoint
 
 [license_list ของ OAE](https://catalog.oae.go.th/api/3/action/license_list) มีรายการ `cc-nc` ซึ่งลิงก์ไปยังรุ่น 2.0 แต่ dataset นี้ใช้ ID `อื่นๆ` จึงยังนำรุ่น 2.0 มาใช้เป็นข้อสรุปของ resource นี้ไม่ได้ ต้องยืนยันรุ่น เงื่อนไข API และลักษณะการใช้ในโครงการก่อนเผยแพร่ คำประกาศสิทธิ์ของชุดข้าวนี้ยังไม่ครอบคลุมทุกสินค้าหรือทุก endpoint ของ NABC
 
@@ -69,7 +85,7 @@
 
 [หน้า licence ของ Open-Meteo](https://open-meteo.com/en/licence) ระบุข้อมูล API เป็น [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) อนุญาตการแบ่งปันและดัดแปลง พร้อมเครดิตที่คลิกกลับไปยังผู้ให้บริการ ลิงก์สัญญาอนุญาต และแจ้งการเปลี่ยนแปลง ต้องวางเครดิตใกล้ส่วนที่แสดงข้อมูล
 
-[Terms](https://open-meteo.com/en/terms) จำกัดบริการ API ฟรีไว้สำหรับงานไม่เชิงพาณิชย์ งานเชิงพาณิชย์ต้องใช้ช่องทางบริการที่รองรับ จึงคงสถานะโครงการเป็น pending จนบันทึกลักษณะการใช้บริการและจัด attribution ครบ ความถูกต้องของพื้นที่ยังยึดเฉพาะพิกัดไทยที่ผ่านการตรวจ ไม่ขยายเป็นสิทธิ์เก็บข้อมูลทั่วโลก
+[Terms](https://open-meteo.com/en/terms) จำกัดบริการ API ฟรีไว้สำหรับงานไม่เชิงพาณิชย์ งานเชิงพาณิชย์ต้องใช้ช่องทางบริการที่รองรับ. ตั้งแต่วันที่ 29 ต.ค. 2569 นโยบายเปิดอนุมัติทั้ง ERA5 และ forecast โดย ERA5 ยังคง `commercial_use_confirmed=false` ตาม terms ของ free API; forecast อนุมัติสิทธิ์แล้วแต่ต้องแยกตาราง forecast ไม่ปน observation และต้องวาง attribution ครบ. ความถูกต้องของพื้นที่ยังยึดเฉพาะพิกัดไทยที่ผ่านการตรวจ ไม่ขยายเป็นสิทธิ์เก็บข้อมูลทั่วโลก
 
 เอกสารผลิตภัณฑ์ที่ตรวจคือ [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) และ [Forecast API](https://open-meteo.com/en/docs) โดย ERA5 คงชนิด reanalysis ส่วนผลพยากรณ์คงชนิด forecast ตามสัญญาข้อมูลเดิม
 
@@ -83,25 +99,25 @@
 
 ตรวจ [นโยบายข้อมูล NASA LP DAAC](https://lpdaac.usgs.gov/data/data-citation-and-policies/) และ [เงื่อนไข Planetary Computer](https://planetarycomputer.microsoft.com/terms) แล้ว ข้อมูล MODIS เป็นงานของรัฐบาลสหรัฐฯ เปิดเผยสาธารณะโดยไม่มีข้อจำกัด และ Microsoft ให้บริการ STAC API และ raster point extraction แบบสาธารณะ
 
-การดึงค่าดัชนีพืชพรรณ (NDVI), Pixel Reliability (Cloud mask) และ VI Quality เฉพาะจุดพิกัดในประเทศไทยต้องรักษา grain เป็น grid_point พร้อมบันทึก scale factor (0.0001) และ fill value (-3000 เป็น null) สถานะสิทธิ์ในโครงการคงเป็น pending สำหรับการตรวจทานเงื่อนไขเผยแพร่ซ้ำและยืนยัน cloud mask กับฤดูกาลจริงในพื้นที่ก่อนเปิดสาธารณะ
+การดึงค่าดัชนีพืชพรรณ (NDVI), Pixel Reliability (Cloud mask) และ VI Quality เฉพาะจุดพิกัดในประเทศไทยต้องรักษา grain เป็น grid_point พร้อมบันทึก scale factor (0.0001) และ fill value (-3000 เป็น null) ตั้งแต่วันที่ 29 ต.ค. 2569 นโยบายเปิดอนุมัติสิทธิ์ในคลาส `open` พร้อมเครดิต `NASA LP DAAC / USGS MODIS data accessed via Microsoft Planetary Computer`; งานที่ยังเหลือคือคุณภาพ raster และการยืนยัน cloud mask กับฤดูกาลจริง ไม่ใช่สิทธิ์เผยแพร่
 
 ## LDD ความเหมาะสมของดินสำหรับการปลูกข้าว
 
 ตรวจชุดข้อมูล `lpd` บน [LDD Catalog](https://lddcatalog.ldd.go.th/dataset/lpd) และ datastore รายจังหวัด `7f508d88-3c31-4cad-b95a-68ca0ce89356` ชุดข้อมูลระบุสัญญาอนุญาต `Creative Commons Attribution No-Derivs` และ `isopen=false` พจนานุกรมข้อมูลระบุขอบเขตการเผยแพร่เป็น "ระหว่างหน่วยงาน"
 
-ตารางสถิติรายจังหวัด 77 แถวไม่ระบุหน่วยตัวเลข (ไร่ หรือ ตารางเมตร) และไม่ระบุปีสำรวจหรือปีอ้างอิง จึงคงสถานะเป็น `pending` และ `unit_and_survey_year_unverified` โดยไม่นำเข้า DuckDB warehouse หรือเผยแพร่สาธารณะจนกว่าจะยืนยันหน่วย ปีสำรวจ และเงื่อนไขการดัดแปลง
+ตารางสถิติรายจังหวัด 77 แถวไม่ระบุหน่วยตัวเลข (ไร่ หรือ ตารางเมตร) และไม่ระบุปีสำรวจหรือปีอ้างอิง. ป้าย ND จะเข้าเงื่อนไขแสดงค่าเดิมได้ แต่ `rights_facts` ระบุ `isopen=false` และขอบเขต "ระหว่างหน่วยงาน" ซึ่งขัดกับป้ายเปิด จึงคงสถานะเป็น `pending` ตามกฎ blocking evidence โดยไม่นำเข้า DuckDB warehouse หรือเผยแพร่สาธารณะจนกว่าจะยืนยันสิทธิ์ หน่วย และปีสำรวจ
 
 ## DOF ผลผลิตสัตว์น้ำปริมาณและมูลค่า
 
 ตรวจชุดข้อมูล `dofd07_05_0101_02` บน [Fisheries Catalog](https://catalog.fisheries.go.th/dataset/dofd07_05_0101_02) ทรัพยากรปริมาณ `42c751e0-0569-4df6-9580-a0f80c123b0f` (พันตัน) และมูลค่า `87357769-f93c-482d-adb2-2c83c49bf3c6` (ล้านบาท) รวม 27 ปี (2541–2567)
 
-ชุดข้อมูลระบุ `Open Data Common` และ `data_category=ข้อมูลสาธารณะ` แต่ระบุ `isopen=false` และยังไม่ระบุนิยามปี (ปีปฏิทินหรือปีงบประมาณ) รวมถึงวันเผยแพร่ย้อนหลังรายปี จึงคงสถานะเป็น `pending` และแยกยอดรวมระดับประเทศออกจากกลุ่มสัตว์น้ำ 9 ชนิด ไม่บวกซ้ำ
+ชุดข้อมูลระบุ `Open Data Common` และ `data_category=ข้อมูลสาธารณะ` แต่ระบุ `isopen=false` จึงถูกกฎ blocking evidence คงสถานะเป็น `pending` แม้ป้ายจะดูเปิด และยังไม่ระบุนิยามปี (ปีปฏิทินหรือปีงบประมาณ) รวมถึงวันเผยแพร่ย้อนหลังรายปี จึงแยกยอดรวมระดับประเทศออกจากกลุ่มสัตว์น้ำ 9 ชนิด ไม่บวกซ้ำ
 
 ## DLD มูลค่าผลผลิตปศุสัตว์ระดับประเทศ
 
 ตรวจทรัพยากร `a512df83-39d0-420b-979e-942666863b00` บน [DLD Catalog](https://catalog.dld.go.th/) มี 35 แถว 5 กลุ่มสินค้า ปี 2562–2568 หน่วยล้านบาท
 
-ระบบระบุสัญญาอนุญาต `Open Data Common` โดยไม่มี URL รุ่นของสัญญาอนุญาตหรือเงื่อนไขการเผยแพร่ต่อที่ระบุชัดเจน และยังไม่ทราบนิยามปีปฏิทิน/ปีงบประมาณ จึงคงสถานะเป็น `pending` และรักษา spatial grain เป็นระดับประเทศ (national)
+ระบบระบุสัญญาอนุญาต `Open Data Common` โดยไม่มี URL รุ่นของสัญญาอนุญาตหรือเงื่อนไขการเผยแพร่ต่อที่ระบุชัดเจน ตั้งแต่วันที่ 29 ต.ค. 2569 รายการนี้อยู่ในคลาส `open` จึงอนุมัติเผยแพร่พร้อม attribution และสมมติฐานเรื่องรุ่นสัญญาอนุญาต; ยังไม่ทราบนิยามปีปฏิทิน/ปีงบประมาณ จึงคงปีเป็นป้ายตามต้นทางและรักษา spatial grain เป็นระดับประเทศ (national)
 
 ## DLD จำนวนโคเนื้อรายจังหวัด
 
@@ -131,13 +147,13 @@ Package metadata ระบุชื่อสัญญาอนุญาตระ
 
 ตรวจทรัพยากร `61f3f241-92c7-4cdc-9918-41ce73545268` บน [DOAE CKAN](https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3) จำนวน 54,195 แถว
 
-ชุดข้อมูลระบุ `Open Data Common` แบบไม่มีรุ่นกำกับเช่นเดียวกับพืชอายุสั้น และจากการตรวจสอบพบประเด็นข้อมูลค้าง: 5 กลุ่ม repeated identities ที่มีค่าขัดแย้ง และ 3 แถวที่ค่าพื้นที่ติดลบ จึงต้องคงสถานะเป็น `pending` และเก็บใน staging/quarantine ไม่นำเข้า warehouse จนกว่าจะได้ข้อยุติ
+ชุดข้อมูลระบุ `Open Data Common` แบบไม่มีรุ่นกำกับเช่นเดียวกับพืชอายุสั้น จึงอนุมัติสิทธิ์เผยแพร่ด้วยนโยบายเปิดเมื่อ 29 ต.ค. 2569 แต่จากการตรวจสอบพบประเด็นคุณภาพข้อมูลค้าง: 5 กลุ่ม repeated identities ที่มีค่าขัดแย้ง และ 3 แถวที่ค่าพื้นที่ติดลบ ข้อมูลจึงยังเก็บใน staging/quarantine ไม่นำเข้า warehouse หรือแสดงตัวเลขสาธารณะจนกว่าจะได้ข้อยุติ; การอนุมัติสิทธิ์ไม่ใช่การยืนยันคุณภาพข้อมูล
 
 ## LDD สถิติแผนและผลโครงการ PGS
 
 ตรวจทรัพยากร `2feb3230-cf86-4560-95f5-93e58270a7d8` (202 แถว) และพจนานุกรมข้อมูล `186d7cee-2443-4fc7-8a77-c7b7d574ea77` (11 แถว) บน [LDD Catalog](https://lddcatalog.ldd.go.th/dataset/ord02)
 
-ชุดข้อมูลระบุสัญญาอนุญาต `Creative Commons Attribution Non-Commercial No-Derivs` พจนานุกรมระบุขอบเขตเปิดเผยเป็น Open Data แต่ยังไม่ได้รับการอนุมัติการเผยแพร่ต่อในระดับโครงการ จึงคงสถานะเป็น `pending` ข้อมูลถูกจัดเก็บในเครื่องเพื่อแสดงใน Workstation Session และหน้า `/projects` โดยรักษา Native Reporting Unit (หน่วยงานผู้รายงาน) ไม่เทียบเท่ากับพื้นที่เป้าหมายหรือจังหวัดที่ได้รับประโยชน์ และคงตัวตรวจกรองความปลอดภัยไม่คำนวณร้อยละเมื่อเป้าหมายเป็นศูนย์หรือขาดค่า
+ชุดข้อมูลระบุสัญญาอนุญาต `Creative Commons Attribution Non-Commercial No-Derivs` พจนานุกรมระบุขอบเขตเปิดเผยเป็น Open Data ตั้งแต่วันที่ 29 ต.ค. 2569 รายการนี้อยู่ในคลาส `open_noncommercial_no_derivatives` จึงอนุมัติเผยแพร่โดย `commercial_use_confirmed=false` และ `derivation_allowed=false`; แสดงได้เฉพาะค่าเดิมของหน่วยผู้รายงาน ห้ามคำนวณร้อยละหรือยอดรวมใหม่ ข้อมูลถูกจัดเก็บในเครื่องเพื่อแสดงใน Workstation Session และหน้า `/projects` โดยรักษา Native Reporting Unit (หน่วยงานผู้รายงาน) ไม่เทียบเท่ากับพื้นที่เป้าหมายหรือจังหวัดที่ได้รับประโยชน์ และคงตัวตรวจกรองความปลอดภัยไม่คำนวณร้อยละเมื่อเป้าหมายเป็นศูนย์หรือขาดค่า
 
 ## CHIRPS v3.0 Daily final RNL วันที่ 2026-09-30
 
@@ -155,5 +171,5 @@ Package metadata ระบุชื่อสัญญาอนุญาตระ
 
 ## การใช้ทะเบียนนี้
 
-ทะเบียนนี้ไม่มีผลอนุมัติอัตโนมัติ `pending` หมายถึงยังปิดเงื่อนไขสำหรับการใช้และเผยแพร่ของโครงการไม่ครบ เมื่อได้หลักฐานเพิ่ม ให้เก็บ URL หรือเอกสารสิทธิ์ วันที่ตรวจ เงื่อนไขการใช้งาน และผู้รับผิดชอบก่อนเปลี่ยนสถานะของ resource จริง การอนุมัติต้องตรงกับไฟล์หรือ endpoint ที่ใช้ รวมถึงเครดิตใน CSV, Parquet, API, หน้าเว็บ Next.js และไฟล์ดาวน์โหลด; ห้ามส่ง pending/restricted หรือข้อมูลส่วนบุคคลผ่าน public HTML/JSON/props/cache
+ทะเบียนนี้มีผลอนุมัติอัตโนมัติเฉพาะ resource ที่ป้ายสัญญาอนุญาตตรงคลาสใน `config/publication_policy.json` และไม่มีหลักฐานขัดใน `rights_facts`; `pending` หมายถึงยังปิดเงื่อนไขสำหรับการใช้และเผยแพร่ของโครงการไม่ครบ เมื่อได้หลักฐานเพิ่ม ให้เก็บ URL หรือเอกสารสิทธิ์ วันที่ตรวจ เงื่อนไขการใช้งาน และผู้รับผิดชอบก่อนเปลี่ยนสถานะของ resource จริง การอนุมัติต้องตรงกับไฟล์หรือ endpoint ที่ใช้ รวมถึงเครดิตใน CSV, Parquet, API, หน้าเว็บ Next.js และไฟล์ดาวน์โหลด; แถวที่ `derivation_allowed=false` แสดงได้เฉพาะค่าเดิม ห้ามคำนวณต่อ; ห้ามส่ง pending/restricted หรือข้อมูลส่วนบุคคลผ่าน public HTML/JSON/props/cache
 

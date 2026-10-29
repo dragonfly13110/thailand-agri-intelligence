@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0.0",
+  "policy_id": "publication-policy-2026-10-29",
+  "effective_at": "2026-10-29",
+  "authority": {
+    "basis": "project_owner_instruction",
+    "document": "AGENTS.md",
+    "section": 3,
+    "statement": "Owner authorised publication of real data and asked to relax the per-resource manual gate for openly licensed resources."
+  },
+  "default_decision": "pending",
+  "blocking_rights_keywords": [
+    "isopen=false",
+    "ระหว่างหน่วยงาน",
+    "inter-agency",
+    "restricted",
+    "internal use only"
+  ],
+  "service_noncommercial_keywords": [
+    "non-commercial use",
+    "non-commercial purposes",
+    "ไม่เชิงพาณิชย์"
+  ],
+  "attribution_required": true,
+  "attribution_template": "{owner} — {resource_name} ({license_label})",
+  "classes": [
+    {
+      "id": "open",
+      "decision": "approved_public",
+      "commercial_use_confirmed": true,
+      "derivation_allowed": true,
+      "license_ids": [
+        "CC0-1.0",
+        "CC-BY-3.0",
+        "CC-BY-4.0",
+        "Creative Commons Attributions",
+        "Open Data Common",
+        "OGL-3.0",
+        "OGL-Thailand",
+        "NASA Open Data Policy / US Government Work",
+        "Public Domain"
+      ],
+      "assumptions": [
+        "A label without a version or URL is treated as the current attribution variant (CC BY 4.0 or ODC-By).",
+        "If the provider later names a share-alike variant, derived tables are re-reviewed before further publication."
+      ]
+    },
+    {
+      "id": "open_noncommercial",
+      "decision": "approved_public",
+      "commercial_use_confirmed": false,
+      "derivation_allowed": true,
+      "license_ids": [
+        "Creative Commons Attributions Non-Commercial",
+        "Creative Commons Attribution Non-Commercial"
+      ],
+      "assumptions": [
+        "Project use is a non-commercial public-service dashboard; commercial reuse is not approved."
+      ]
+    },
+    {
+      "id": "open_no_derivatives",
+      "decision": "approved_public",
+      "commercial_use_confirmed": true,
+      "derivation_allowed": false,
+      "license_ids": ["Creative Commons Attribution No-Derivs"],
+      "assumptions": [
+        "Only verbatim source values may be displayed; computed indices or rollups are not approved."
+      ]
+    },
+    {
+      "id": "open_noncommercial_no_derivatives",
+      "decision": "approved_public",
+      "commercial_use_confirmed": false,
+      "derivation_allowed": false,
+      "license_ids": ["Creative Commons Attribution Non-Commercial No-Derivs"],
+      "assumptions": [
+        "Project use is non-commercial and only verbatim source values may be displayed."
+      ]
+    }
+  ],
+  "manual_review_license_ids": [
+    "License not specified",
+    "อื่นๆ",
+    "",
+    null
+  ]
+}

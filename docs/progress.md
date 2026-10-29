@@ -1,3 +1,10 @@
+## นโยบายอนุมัติสิทธิ์ตามสัญญาอนุญาตเปิด — 29 ต.ค. 2026
+
+- เพิ่ม `config/publication_policy.json` + `src/tadih/publication_policy.py` + `scripts/apply_publication_policy.py`: ป้ายเปิดที่ชัดเจนอนุมัติอัตโนมัติพร้อม attribution; NC/ND คงข้อจำกัด; หลักฐานขัดหรือป้ายกำกวมคง `pending`
+- ทะเบียน 91 รายการ: approved 13→62, pending 78→29; อนุมัติเพิ่ม 49 (open 47, NC 1, NC-ND 1); `config/web_catalog_review.json` อัปเดต 10 แถวให้ตรงทะเบียน; เอกสาร `docs/source-license-register.md` และ `AGENTS.md` ข้อ 3 อัปเดตกติกา
+- ตรวจรับ: Python 854/854 · web 320/320 · typecheck 0 error · build:vinext complete; ไม่มี D1 read/write, ไม่เรียก upstream, ไม่ commit/push/deploy
+- ต่อเนื่อง: เพิ่ม resource ใหม่ให้รันสคริปต์นโยบายก่อนใช้; การอนุมัติสิทธิ์ไม่แทนที่ gate คุณภาพข้อมูล/หน่วย/ปี
+
 ## Group C UI sweep 12 หน้า (sample/compute, 0 D1 writes) — 29 ต.ค. 2026
 
 - 10 subagent ทำขนานแบบแยกไฟล์: labor, finance, carbon, machinery, food-safety, gi-products, fertilizer, smart-farming, logistics, agri-tourism, land-reform, cooperatives — เพิ่มแบ่งหน้า/ตัวกรอง/คีย์บอร์ด/`aria-live`/ยุบข้อความยาวใน `<details>`; แก้ 8 หน้า + 24 component, ไม่แตะ `web/lib/hub/*` หรือ `web/app/api/*`

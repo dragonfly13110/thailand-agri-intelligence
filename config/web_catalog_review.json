@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-26",
+  "reviewed_at": "2026-10-29",
   "review_scope": "project_authored_descriptions_only",
   "records": [
     {
@@ -15,7 +15,7 @@
       "period": "ม.ค. 2566 – ก.พ. 2567",
       "unit": "ไร่, กก., กก./ไร่ และบาท/กก.",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "farmgate-jasmine-rice",
@@ -29,7 +29,7 @@
       "period": "ม.ค. 2554 – ก.ย. 2569",
       "unit": "บาท/ตัน และค่าที่แปลงเป็นบาท/กก.",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "administrative-codes",
@@ -85,7 +85,7 @@
       "period": null,
       "unit": null,
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "reservoir-situation",
@@ -113,7 +113,7 @@
       "period": "วันที่ภาพ 30 ก.ย. 2569",
       "unit": "ดัชนี, สัดส่วน และรหัสคุณภาพ",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "rice-soil-suitability",
@@ -155,7 +155,7 @@
       "period": "ปีตามต้นทาง 2562–2568",
       "unit": "ล้านบาท",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "perennial-production",
@@ -169,7 +169,7 @@
       "period": "ปีข้อมูล 2566",
       "unit": "ไร่, กก. และบาท/กก.",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "dry-season-plan",
@@ -197,7 +197,7 @@
       "period": "ปีข้อมูล 2567",
       "unit": null,
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "perennial-production-2567",
@@ -211,7 +211,7 @@
       "period": "ปีข้อมูล 2567",
       "unit": null,
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "reported-disaster-impact",
@@ -225,7 +225,7 @@
       "period": null,
       "unit": null,
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     },
     {
       "id": "pgs-program-progress",
@@ -239,7 +239,7 @@
       "period": "ปีงบประมาณ 2566",
       "unit": "กลุ่ม ราย ไร่ และงบประมาณ (บาท) แยกตัวชี้วัด",
       "metadata_review": "project_authored_public",
-      "data_license_status": "pending"
+      "data_license_status": "approved_public"
     }
   ]
 }
