@@ -114,6 +114,55 @@
   overflow-wrap: anywhere;
 }
 
+/* รายละเอียดยาวถูกพับไว้ ส่วนหัวประกาศ "ข้อมูลตัวอย่าง / metadata_only" ยังเห็นตลอด */
+.bannerDetails {
+  margin: 0;
+}
+
+.bannerDetails summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid #e2cfa0;
+  border-radius: 999px;
+  background: #fbf0d5;
+  color: #6b5418;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.5;
+  cursor: pointer;
+  list-style: none;
+}
+
+.bannerDetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.bannerDetails summary::before {
+  content: '▸';
+  font-size: 9px;
+  line-height: 1;
+}
+
+.bannerDetails[open] summary::before {
+  content: '▾';
+}
+
+.bannerDetails summary:hover {
+  background: #f7e7bd;
+}
+
+.bannerDetails summary:focus-visible {
+  outline: 2px solid #8a6d1f;
+  outline-offset: 2px;
+}
+
+.bannerDetails[open] summary {
+  margin-bottom: 7px;
+}
+
 .bannerMeta {
   display: flex;
   flex-wrap: wrap;
@@ -1423,6 +1472,66 @@
   outline-offset: 2px;
 }
 
+.tableCount {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #5d7062;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.pagerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #cfdcc6;
+  border-radius: 8px;
+  background: #f5f8f0;
+  color: #2c4638;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.pagerButton:hover:not(:disabled) {
+  background: #e8efdf;
+  border-color: #b9cbb0;
+}
+
+.pagerButton:disabled {
+  background: #f7f8f4;
+  border-color: #e2e7dd;
+  color: #8b978a;
+  cursor: not-allowed;
+}
+
+.pagerButton:focus-visible {
+  outline: 2px solid #2f6b4f;
+  outline-offset: 2px;
+}
+
+.pagerStatus {
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.5;
+  color: #4b6052;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .table {
   width: 100%;
   min-width: 980px;
@@ -2431,6 +2540,22 @@
     display: none;
   }
 
+  .pager {
+    gap: 6px;
+  }
+
+  .pagerButton {
+    min-width: 0;
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .pagerStatus {
+    font-size: 10.5px;
+    white-space: normal;
+  }
+
   .techCard {
     padding: 13px;
   }
@@ -2462,6 +2587,7 @@
   .kpiCard,
   .cohortButton,
   .resetButton,
+  .pagerButton,
   .regionRow,
   .pyramidRow,
   .progressFill,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type {
   CertStatus,
   CertificateRecord,
@@ -39,8 +39,8 @@ const THAI_MONTHS = [
 ];
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
 
-const CERT_LIST_LIMIT = 6;
-const LOT_LIST_LIMIT = 8;
+const PAGE_SIZE = 12;
+const TABLE_PAGE_SIZE = 20;
 
 /* ------------------------------------------------------------------ *
  * ตัวช่วยคำนวณ/รูปแบบ (guard การหารศูนย์และค่าไม่ว่างเสมอ)
@@ -358,6 +358,46 @@ function QrPlaceholder({ value }: { value: string }) {
   );
 }
 
+/** แบ่งหน้าลิสต์การ์ด/ตาราง: ยุบหน้าให้อยู่ในช่วงเสมอแม้ผลลัพธ์จะเปลี่ยนหลังค้นหา */
+function Pager({
+  page,
+  pageCount,
+  onChange,
+  label,
+  status,
+}: {
+  page: number;
+  pageCount: number;
+  onChange: (next: number) => void;
+  label: string;
+  status: string;
+}) {
+  if (pageCount <= 1) return null;
+  return (
+    <nav className={styles.pager} aria-label={label}>
+      <button
+        type="button"
+        className={styles.pagerButton}
+        onClick={() => onChange(Math.max(1, page - 1))}
+        disabled={page <= 1}
+      >
+        ← ก่อนหน้า
+      </button>
+      <span className={styles.pagerStatus} aria-live="polite">
+        หน้า {intFormatter.format(page)} จาก {intFormatter.format(pageCount)} · {status}
+      </span>
+      <button
+        type="button"
+        className={styles.pagerButton}
+        onClick={() => onChange(Math.min(pageCount, page + 1))}
+        disabled={page >= pageCount}
+      >
+        ถัดไป →
+      </button>
+    </nav>
+  );
+}
+
 /* ------------------------------------------------------------------ *
  * ส่วนประกอบย่อย: การ์ด
  * ------------------------------------------------------------------ */
@@ -465,13 +505,9 @@ function CertificateCard({
           <dd>{record.standardLabel}</dd>
         </div>
         <div>
-          <dt>รหัสฟาร์ม</dt>
-          <dd>{record.farmCode}</dd>
-        </div>
-        <div>
-          <dt>จังหวัด</dt>
+          <dt>ฟาร์ม / จังหวัด</dt>
           <dd>
-            {record.provinceName} ({record.provinceCode})
+            {record.farmCode} · {record.provinceName} ({record.provinceCode})
           </dd>
         </div>
         <div>
@@ -557,6 +593,9 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
   const [sortKey, setSortKey] = useState<ProvinceSortKey>('totalCertifiedFarmCount');
   const [sortDesc, setSortDesc] = useState<boolean>(true);
   const [selectedLotCode, setSelectedLotCode] = useState<string | null>(null);
+  const [certPage, setCertPage] = useState(1);
+  const [lotPage, setLotPage] = useState(1);
+  const [tablePage, setTablePage] = useState(1);
 
   const summary = payload.summary;
   const normalizedQuery = query.trim().toLowerCase();
@@ -689,6 +728,28 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
     matchedCertificates.length + matchedLots.length + matchedProvinces.length;
   const isSearching = normalizedQuery.length > 0;
 
+  /* ค้นหาหรือเปลี่ยนตัวกรอง = กลับไปหน้าแรกของทุกリスト */
+  useEffect(() => {
+    setCertPage(1);
+    setLotPage(1);
+    setTablePage(1);
+  }, [normalizedQuery, standardFilter, mandateFilter, regionFilter, provinceFilter]);
+
+  const certPageCount = Math.max(1, Math.ceil(matchedCertificates.length / PAGE_SIZE));
+  const safeCertPage = Math.min(certPage, certPageCount);
+  const visibleCertificates = matchedCertificates.slice(
+    (safeCertPage - 1) * PAGE_SIZE,
+    safeCertPage * PAGE_SIZE,
+  );
+  const certRangeStart = matchedCertificates.length === 0 ? 0 : (safeCertPage - 1) * PAGE_SIZE + 1;
+  const certRangeEnd = Math.min(safeCertPage * PAGE_SIZE, matchedCertificates.length);
+
+  const lotPageCount = Math.max(1, Math.ceil(matchedLots.length / PAGE_SIZE));
+  const safeLotPage = Math.min(lotPage, lotPageCount);
+  const visibleLots = matchedLots.slice((safeLotPage - 1) * PAGE_SIZE, safeLotPage * PAGE_SIZE);
+  const lotRangeStart = matchedLots.length === 0 ? 0 : (safeLotPage - 1) * PAGE_SIZE + 1;
+  const lotRangeEnd = Math.min(safeLotPage * PAGE_SIZE, matchedLots.length);
+
   /* ---------- ตารางจังหวัด (เรียงคอลัมน์ได้) ---------- */
   const provinceRows = useMemo(() => {
     const rows = payload.provinceStats.filter((row) => {
@@ -705,6 +766,15 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
       return (left - right) * direction;
     });
   }, [payload.provinceStats, regionFilter, provinceFilter, sortKey, sortDesc]);
+
+  const tablePageCount = Math.max(1, Math.ceil(provinceRows.length / TABLE_PAGE_SIZE));
+  const safeTablePage = Math.min(tablePage, tablePageCount);
+  const visibleProvinceRows = provinceRows.slice(
+    (safeTablePage - 1) * TABLE_PAGE_SIZE,
+    safeTablePage * TABLE_PAGE_SIZE,
+  );
+  const tableRangeStart = provinceRows.length === 0 ? 0 : (safeTablePage - 1) * TABLE_PAGE_SIZE + 1;
+  const tableRangeEnd = Math.min(safeTablePage * TABLE_PAGE_SIZE, provinceRows.length);
 
   const provinceTotals = useMemo(() => {
     let farms = 0;
@@ -732,13 +802,15 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
 
   /* ---------- ล็อตที่เลือกแสดง traceability ---------- */
   const activeLot = useMemo(() => {
+    // ระหว่างค้นหา (เช่น พิมพ์ QR payload) ให้ผลค้นหาเป็นตัวกำหนดเส้นทางเสมอ
+    if (isSearching) return matchedLots[0] ?? null;
     if (selectedLotCode) {
       const found = payload.traceabilityLots.find((lot) => lot.lotCode === selectedLotCode);
       if (found) return found;
     }
     if (matchedLots.length === 1) return matchedLots[0] ?? null;
     return matchedLots[0] ?? payload.traceabilityLots[0] ?? null;
-  }, [selectedLotCode, matchedLots, payload.traceabilityLots]);
+  }, [isSearching, selectedLotCode, matchedLots, payload.traceabilityLots]);
 
   const activeLotChain = useMemo(() => {
     if (!activeLot) return [] as ChainStage[];
@@ -814,11 +886,16 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
             </span>
           </p>
           {payload.warnings.length > 0 ? (
-            <ul className={styles.warningList}>
-              {payload.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
+            <details className={styles.bannerDetails}>
+              <summary>
+                อ่านข้อจำกัดและคำเตือนการกำกับดูแล ({intFormatter.format(payload.warnings.length)} ข้อ)
+              </summary>
+              <ul className={styles.warningList}>
+                {payload.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </details>
           ) : null}
         </div>
       </section>
@@ -1079,19 +1156,20 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
             </h3>
             {matchedCertificates.length > 0 ? (
               <div className={styles.cardStack}>
-                {matchedCertificates.slice(0, CERT_LIST_LIMIT).map((record) => (
+                {visibleCertificates.map((record) => (
                   <CertificateCard
                     key={record.certificateNo}
                     record={record}
                     mandateLabel={mandateLabelOf(record.mandateType)}
                   />
                 ))}
-                {matchedCertificates.length > CERT_LIST_LIMIT ? (
-                  <p className={styles.moreNote}>
-                    แสดง {CERT_LIST_LIMIT} จาก {intFormatter.format(matchedCertificates.length)} ฉบับ
-                    — ใช้ช่องค้นหาหรือตัวกรองเพื่อจำกัดผล
-                  </p>
-                ) : null}
+                <Pager
+                  page={safeCertPage}
+                  pageCount={certPageCount}
+                  onChange={setCertPage}
+                  label="แบ่งหน้ารายการใบรับรอง"
+                  status={`แสดง ${intFormatter.format(certRangeStart)}–${intFormatter.format(certRangeEnd)} จาก ${intFormatter.format(matchedCertificates.length)} ฉบับ`}
+                />
               </div>
             ) : (
               <p className={styles.columnEmpty}>ไม่มีใบรับรองที่ตรงกับเงื่อนไขนี้</p>
@@ -1104,7 +1182,7 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
             </h3>
             {matchedLots.length > 0 ? (
               <div className={styles.cardStack}>
-                {matchedLots.slice(0, LOT_LIST_LIMIT).map((lot) => (
+                {visibleLots.map((lot) => (
                   <LotCard
                     key={lot.lotCode}
                     lot={lot}
@@ -1113,11 +1191,13 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
                     onSelect={() => setSelectedLotCode(lot.lotCode)}
                   />
                 ))}
-                {matchedLots.length > LOT_LIST_LIMIT ? (
-                  <p className={styles.moreNote}>
-                    แสดง {LOT_LIST_LIMIT} จาก {intFormatter.format(matchedLots.length)} ล็อต — คลิกเพื่อดูเส้นทางสืบย้อน
-                  </p>
-                ) : null}
+                <Pager
+                  page={safeLotPage}
+                  pageCount={lotPageCount}
+                  onChange={setLotPage}
+                  label="แบ่งหน้ารายการล็อตการผลิต"
+                  status={`แสดง ${intFormatter.format(lotRangeStart)}–${intFormatter.format(lotRangeEnd)} จาก ${intFormatter.format(matchedLots.length)} ล็อต`}
+                />
               </div>
             ) : (
               <p className={styles.columnEmpty}>ไม่มีล็อตการผลิตที่ตรงกับเงื่อนไขนี้</p>
@@ -1169,89 +1249,105 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
               const ratio = toFinite(row.certifiedRatio);
               const topThree = row.topProvinces.slice(0, 3);
               return (
-                <article key={row.commodityId} className={styles.commodityCard}>
-                  <header className={styles.commodityHeader}>
-                    <h3>{row.commodityName}</h3>
+                <details key={row.commodityId} className={styles.commodityCard}>
+                  <summary className={styles.commoditySummary}>
+                    <span className={styles.commodityTitleWrap}>
+                      <h3>{row.commodityName}</h3>
+                      <span className={styles.commodityGroup}>{groupLabelOf(row.groupId)}</span>
+                    </span>
+                    <span className={styles.commodityMini}>
+                      <span className={styles.commodityMiniItem}>
+                        <strong>{intFormatter.format(toFinite(row.gapCertifiedFarmCount))}</strong> ฟาร์ม GAP
+                      </span>
+                      <span className={styles.commodityMiniItem}>
+                        <strong className={bandClass(rateBandOf(ratio))}>{rateLabel(ratio)}</strong> สัดส่วนรับรอง
+                      </span>
+                    </span>
                     <MandateBadge
                       typeValue={row.mandateType}
                       label={mandateLabelOf(row.mandateType)}
                     />
-                  </header>
-
-                  <dl className={styles.commodityStats}>
-                    <div>
-                      <dt>ฟาร์ม GAP รับรอง</dt>
-                      <dd>{intFormatter.format(toFinite(row.gapCertifiedFarmCount))} แห่ง</dd>
-                    </div>
-                    <div>
-                      <dt>พื้นที่รับรอง</dt>
-                      <dd>{intFormatter.format(toFinite(row.gapCertifiedAreaRai))} ไร่</dd>
-                    </div>
-                    <div>
-                      <dt>อินทรีย์</dt>
-                      <dd>{intFormatter.format(toFinite(row.organicCertifiedFarmCount))} แห่ง</dd>
-                    </div>
-                    <div>
-                      <dt>lot ที่สุ่มตรวจ</dt>
-                      <dd>{intFormatter.format(toFinite(row.residueSampledLots))} lot</dd>
-                    </div>
-                  </dl>
-
-                  <div className={styles.metricBlock}>
-                    <span className={styles.metricLabel}>
-                      สัดส่วนได้รับการรับรอง <strong className={bandClass(rateBandOf(ratio))}>{rateLabel(ratio)}</strong>
+                    <span className={styles.summaryHint} aria-hidden="true">
+                      รายละเอียด ▾
                     </span>
-                    <Bar value={ratio} tone="forest" />
-                  </div>
+                  </summary>
 
-                  <div className={styles.metricBlock}>
-                    <span className={styles.metricLabel}>
-                      ผลตรวจสารตกค้าง
-                      <strong className={bandClass(rateBandOf(row.residuePassRate))}>
-                        ผ่าน {rateLabel(row.residuePassRate)}
-                      </strong>
-                    </span>
-                    <SplitBar
-                      pass={toFinite(row.residuePassRate)}
-                      fail={toFinite(row.residueFailRate)}
-                      pending={Math.max(
-                        0,
-                        100 - toFinite(row.residuePassRate) - toFinite(row.residueFailRate),
+                  <div className={styles.commodityBody}>
+                    <dl className={styles.commodityStats}>
+                      <div>
+                        <dt>ฟาร์ม GAP รับรอง</dt>
+                        <dd>{intFormatter.format(toFinite(row.gapCertifiedFarmCount))} แห่ง</dd>
+                      </div>
+                      <div>
+                        <dt>พื้นที่รับรอง</dt>
+                        <dd>{intFormatter.format(toFinite(row.gapCertifiedAreaRai))} ไร่</dd>
+                      </div>
+                      <div>
+                        <dt>อินทรีย์</dt>
+                        <dd>{intFormatter.format(toFinite(row.organicCertifiedFarmCount))} แห่ง</dd>
+                      </div>
+                      <div>
+                        <dt>lot ที่สุ่มตรวจ</dt>
+                        <dd>{intFormatter.format(toFinite(row.residueSampledLots))} lot</dd>
+                      </div>
+                    </dl>
+
+                    <div className={styles.metricBlock}>
+                      <span className={styles.metricLabel}>
+                        สัดส่วนได้รับการรับรอง <strong className={bandClass(rateBandOf(ratio))}>{rateLabel(ratio)}</strong>
+                      </span>
+                      <Bar value={ratio} tone="forest" />
+                    </div>
+
+                    <div className={styles.metricBlock}>
+                      <span className={styles.metricLabel}>
+                        ผลตรวจสารตกค้าง
+                        <strong className={bandClass(rateBandOf(row.residuePassRate))}>
+                          ผ่าน {rateLabel(row.residuePassRate)}
+                        </strong>
+                      </span>
+                      <SplitBar
+                        pass={toFinite(row.residuePassRate)}
+                        fail={toFinite(row.residueFailRate)}
+                        pending={Math.max(
+                          0,
+                          100 - toFinite(row.residuePassRate) - toFinite(row.residueFailRate),
+                        )}
+                      />
+                      <span className={styles.splitLegend}>
+                        <span className={styles.legendPass}>ผ่าน {rateLabel(row.residuePassRate)}</span>
+                        <span className={styles.legendFail}>ไม่ผ่าน {rateLabel(row.residueFailRate)}</span>
+                      </span>
+                    </div>
+
+                    <div className={styles.topProvinceBlock}>
+                      <span className={styles.metricLabel}>จังหวัดนำด้านการรับรอง</span>
+                      {topThree.length > 0 ? (
+                        <ol className={styles.topProvinceList}>
+                          {topThree.map((province, index) => (
+                            <li key={`${row.commodityId}-${province.provinceCode}`}>
+                              <span className={styles.rankMark} aria-hidden="true">
+                                {index + 1}
+                              </span>
+                              <button
+                                type="button"
+                                className={styles.provinceLink}
+                                onClick={() => setProvinceFilter(province.provinceCode)}
+                              >
+                                {province.provinceName}
+                              </button>
+                              <span className={styles.rankValue}>
+                                {intFormatter.format(toFinite(province.certifiedFarmCount))} แห่ง
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p className={styles.columnEmpty}>ยังไม่ระบุจังหวัดนำ</p>
                       )}
-                    />
-                    <span className={styles.splitLegend}>
-                      <span className={styles.legendPass}>ผ่าน {rateLabel(row.residuePassRate)}</span>
-                      <span className={styles.legendFail}>ไม่ผ่าน {rateLabel(row.residueFailRate)}</span>
-                    </span>
+                    </div>
                   </div>
-
-                  <div className={styles.topProvinceBlock}>
-                    <span className={styles.metricLabel}>จังหวัดนำด้านการรับรอง</span>
-                    {topThree.length > 0 ? (
-                      <ol className={styles.topProvinceList}>
-                        {topThree.map((province, index) => (
-                          <li key={`${row.commodityId}-${province.provinceCode}`}>
-                            <span className={styles.rankMark} aria-hidden="true">
-                              {index + 1}
-                            </span>
-                            <button
-                              type="button"
-                              className={styles.provinceLink}
-                              onClick={() => setProvinceFilter(province.provinceCode)}
-                            >
-                              {province.provinceName}
-                            </button>
-                            <span className={styles.rankValue}>
-                              {intFormatter.format(toFinite(province.certifiedFarmCount))} แห่ง
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <p className={styles.columnEmpty}>ยังไม่ระบุจังหวัดนำ</p>
-                    )}
-                  </div>
-                </article>
+                </details>
               );
             })}
           </div>
@@ -1312,7 +1408,8 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
         </div>
 
         {provinceRows.length > 0 ? (
-          <div className={styles.tableScroll} role="region" aria-label="ตารางรายจังหวัด" tabIndex={0}>
+          <>
+            <div className={styles.tableScroll} role="region" aria-label="ตารางรายจังหวัด" tabIndex={0}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -1359,7 +1456,7 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
                 </tr>
               </thead>
               <tbody>
-                {provinceRows.map((row) => {
+                {visibleProvinceRows.map((row) => {
                   const band = rateBandOf(row.passRate);
                   const traceBand = rateBandOf(row.traceabilityRate);
                   return (
@@ -1429,7 +1526,15 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
                 </tr>
               </tfoot>
             </table>
-          </div>
+            </div>
+            <Pager
+              page={safeTablePage}
+              pageCount={tablePageCount}
+              onChange={setTablePage}
+              label="แบ่งหน้าตารางรายจังหวัด"
+              status={`แสดง ${intFormatter.format(tableRangeStart)}–${intFormatter.format(tableRangeEnd)} จาก ${intFormatter.format(provinceRows.length)} จังหวัด`}
+            />
+          </>
         ) : (
           <div className={styles.emptyState} role="status">
             <h3>ไม่พบผลการค้นหา</h3>
@@ -1520,12 +1625,21 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
               <div className={styles.qrBlock}>
                 <QrPlaceholder value={activeLot.lotCode} />
                 <div className={styles.qrSide}>
+                  <span className={styles.demoTag}>DEMO · ภาพจำลอง ไม่ใช่การรับรองจริง</span>
                   <span className={styles.qrCaption}>ภาพแทน QR สร้างในเว็บจาก lotCode</span>
                   <p className={styles.qrPayload}>{activeLot.qrPayload}</p>
                   <p className={styles.qrNote}>
                     ระบบสร้างภาพแทน QR ภายในเว็บเท่านั้น ไม่เรียกบริการ QR ภายนอก
+                    และภาพนี้ไม่ใช่หลักฐานการรับรองหรือเอกสารราชการ
                     เพื่อไม่แสดงข้อมูลที่ยังไม่ได้รับสิทธิ์เผยแพร่
                   </p>
+                  <button
+                    type="button"
+                    className={styles.qrSearchButton}
+                    onClick={() => setQuery(activeLot.qrPayload)}
+                  >
+                    ค้นหาด้วย QR payload นี้
+                  </button>
                 </div>
               </div>
             </article>
@@ -1628,30 +1742,39 @@ export function FoodSafetyDashboard({ payload }: FoodSafetyDashboardProps) {
             <p>แสดงเฉพาะ URL ที่เผยแพร่เป็นสาธารณะ ถ้ายังไม่มี URL ระบบจะไม่สร้างลิงก์เปล่า</p>
           </div>
         </header>
-        <ul className={styles.sourceList}>
-          {payload.sources.map((source: SourceEntry) => (
-            <li key={source.id} className={styles.sourceItem}>
-              <div className={styles.sourceHead}>
-                <strong>{source.name}</strong>
-                <span className={styles.licenseBadge}>{licenseLabel(source.licenseStatus)}</span>
-              </div>
-              <p className={styles.sourceAgency}>{source.agencyLabel}</p>
-              <p className={styles.sourceRole}>{source.role}</p>
-              {source.sourceUrl ? (
-                <a
-                  className={styles.sourceLink}
-                  href={source.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  <Icon name="external" size={14} /> {source.sourceUrl}
-                </a>
-              ) : (
-                <span className={styles.noLink}>อยู่ระหว่างตรวจสอบสิทธิ์การเผยแพร่ (Metadata Only)</span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <p className={styles.sourcesNote}>
+          ทุกแหล่งข้อมูลมีสถานะสิทธิ์เป็น pending (Metadata Only) — ระบบจึงเผยแพร่ได้เฉพาะ metadata
+          และค่าตัวอย่าง มิใช่ตัวเลขทางการจากทะเบียนต้นทาง
+        </p>
+        <details className={styles.sourcesDetails}>
+          <summary>
+            อ่านรายละเอียดแหล่งข้อมูลและสถานะสิทธิ์ ({intFormatter.format(payload.sources.length)} แหล่ง)
+          </summary>
+          <ul className={styles.sourceList}>
+            {payload.sources.map((source: SourceEntry) => (
+              <li key={source.id} className={styles.sourceItem}>
+                <div className={styles.sourceHead}>
+                  <strong>{source.name}</strong>
+                  <span className={styles.licenseBadge}>{licenseLabel(source.licenseStatus)}</span>
+                </div>
+                <p className={styles.sourceAgency}>{source.agencyLabel}</p>
+                <p className={styles.sourceRole}>{source.role}</p>
+                {source.sourceUrl ? (
+                  <a
+                    className={styles.sourceLink}
+                    href={source.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    <Icon name="external" size={14} /> {source.sourceUrl}
+                  </a>
+                ) : (
+                  <span className={styles.noLink}>อยู่ระหว่างตรวจสอบสิทธิ์การเผยแพร่ (Metadata Only)</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       </section>
     </div>
   );

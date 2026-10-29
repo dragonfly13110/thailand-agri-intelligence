@@ -1,3 +1,11 @@
+## Group C UI sweep 12 หน้า (sample/compute, 0 D1 writes) — 29 ต.ค. 2026
+
+- 10 subagent ทำขนานแบบแยกไฟล์: labor, finance, carbon, machinery, food-safety, gi-products, fertilizer, smart-farming, logistics, agri-tourism, land-reform, cooperatives — เพิ่มแบ่งหน้า/ตัวกรอง/คีย์บอร์ด/`aria-live`/ยุบข้อความยาวใน `<details>`; แก้ 8 หน้า + 24 component, ไม่แตะ `web/lib/hub/*` หรือ `web/app/api/*`
+- วัดด้วย CDP ที่ 1440/390: ทุกหน้า overflow=0, console error=0, h1=1; ตัวอย่าง 390px: logistics 50,252→10,903 · gi 64,933→11,657 · smart-farming 49,925→16,133 · agri-tourism 39,301→17,742 · food-safety 22,814→17,767
+- `npm --prefix web run typecheck` 0 error · `npm --prefix web run test` 320/320 (เพิ่ม `web/tests/group-c-finance-carbon.test.ts`) · `npm --prefix web run build:vinext` build complete
+- ไม่มี D1 read/write, ไม่เรียก upstream, ไม่ commit/push/deploy; ข้อมูลยัง `sample: true` / `metadata_only`
+- ต่อเนื่อง: ผูก API/ข้อมูลจริงรายหน้าเมื่อสิทธิ์พร้อม; UI ทั้ง 12 หน้าไม่ใช่ blocker แล้ว
+
 ## ปิดงาน local merge — 28 ต.ค. 2026
 
 - Commit repairs `2dc527c`; fast-forward local `main` จาก `6a54c2b` เป็น `2dc527c` สำเร็จ พร้อมเก็บกิ่ง checkpoint และประวัติงานเดิมครบ

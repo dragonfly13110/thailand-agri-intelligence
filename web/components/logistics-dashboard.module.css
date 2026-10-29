@@ -49,6 +49,11 @@
   line-height: 1.6;
 }
 
+.sampleBannerLead {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .warningList {
   margin: 4px 0 0;
   padding-left: 18px;
@@ -59,6 +64,59 @@
 
 .warningList li + li {
   margin-top: 3px;
+}
+
+/* Long prose disclosure */
+.details {
+  margin-top: 2px;
+  max-width: 100%;
+}
+
+.detailsSummary {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #7a5a12;
+  padding: 4px 0;
+  line-height: 1.5;
+}
+
+.detailsSummary:focus-visible {
+  outline: 2px solid #7a5a12;
+  outline-offset: 2px;
+}
+
+.detailsBody {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Section headings */
+.sectionHeading {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--forest, var(--forest));
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sectionHeadingInline {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--forest, var(--forest));
+  line-height: 1.45;
+  margin: 0;
+}
+
+.kpiSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
 
 /* KPI Summary Cards Grid */
@@ -287,6 +345,13 @@
 }
 
 /* Section Header & View Toggles */
+.resultsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 .sectionBar {
   display: flex;
   justify-content: space-between;
@@ -301,13 +366,81 @@
   color: var(--forest, var(--forest));
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .resultCount {
   font-size: 13px;
   font-weight: normal;
   color: var(--muted, var(--muted));
+}
+
+/* Pagination */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.pagerInfo {
+  font-size: 13px;
+  color: var(--muted, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+.pagerControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagerButton {
+  min-height: 40px;
+  padding: 0 14px;
+  background: var(--white);
+  border: 1px solid #d0dcd0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--forest, var(--forest));
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pagerButton:hover:not(:disabled) {
+  background: #eef3eb;
+  border-color: #b5c7b4;
+}
+
+.pagerButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagerStatus {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest, var(--forest));
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 28px 22px;
+  background: var(--white);
+  border: 1px dashed var(--line, var(--line));
+  border-radius: var(--radius, 8px);
+  color: var(--muted, var(--muted));
+  font-size: 14px;
 }
 
 .viewToggleGroup {
@@ -368,7 +501,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .typeBadge {
@@ -433,14 +567,21 @@
   font-weight: 600;
   color: var(--forest, var(--forest));
   line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .facilityLocation {
   font-size: 13px;
   color: var(--muted, var(--muted));
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
+  margin-top: 4px;
+}
+
+.facilityLocation span {
+  min-width: 0;
 }
 
 .operatorText {
@@ -467,6 +608,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
   font-size: 12.5px;
 }
 
@@ -511,16 +654,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 10px 14px;
   background: #f0f5ee;
   border: 1px solid #d5e2d2;
   border-radius: 6px;
   font-size: 13px;
+  min-width: 0;
 }
 
 .connectivityScoreCol {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -576,7 +723,13 @@
   border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 8px);
   overflow-x: auto;
+  max-width: 100%;
   box-shadow: 0 1px 3px rgba(33, 61, 50, 0.04);
+}
+
+.scrollRegion:focus-visible {
+  outline: 2px solid var(--forest, var(--forest));
+  outline-offset: 2px;
 }
 
 .dataTable {
@@ -622,16 +775,65 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.connectivityHeader h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--forest, var(--forest));
+  min-width: 0;
 }
 
 .connectivityHeader p {
   font-size: 13.5px;
+  color: var(--muted, var(--muted));
+  line-height: 1.6;
+}
+
+/* Provincial ranking header + region pills */
+.rankingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  min-width: 0;
+}
+
+.regionPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.regionPill {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid #dce3d9;
+  background: #ffffff;
+  color: #53645a;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.regionPill:hover {
+  background: #eef3eb;
+  color: var(--forest, var(--forest));
+}
+
+.regionPillActive {
+  border-color: #213d32;
+  background: #213d32;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.provinceTableWrap {
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.rankingNote {
+  font-size: 12.5px;
   color: var(--muted, var(--muted));
   line-height: 1.6;
 }
@@ -675,6 +877,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
 }
 
 .tierDesc {
@@ -780,6 +985,11 @@
   margin-top: 4px;
 }
 
+.emptyState p {
+  margin: 0;
+  line-height: 1.6;
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .kpiGrid {
@@ -797,8 +1007,15 @@
   .container {
     gap: 20px;
   }
+  .sampleBanner {
+    padding: 14px 14px;
+    gap: 10px;
+  }
   .kpiGrid {
     grid-template-columns: 1fr;
+  }
+  .filterCard {
+    padding: 16px;
   }
   .filterControlsRow {
     grid-template-columns: 1fr;
@@ -809,5 +1026,39 @@
   .sectionBar {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .sectionHeading {
+    font-size: 17px;
+  }
+  .sectionHeadingInline {
+    font-size: 16px;
+  }
+  .connectivityContainer {
+    padding: 16px;
+    gap: 16px;
+  }
+  .facilityCard {
+    padding: 16px;
+  }
+  .typePill,
+  .viewToggleButton,
+  .regionPill,
+  .pagerButton,
+  .resetButton {
+    min-height: 44px;
+  }
+  .pager {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pagerControls {
+    justify-content: space-between;
+  }
+  .pagerButton {
+    flex: 1;
+    min-width: 104px;
+  }
+  .pagerStatus {
+    text-align: center;
   }
 }

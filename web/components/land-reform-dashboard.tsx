@@ -25,6 +25,7 @@ type LandTypeFilter = LandType | 'all';
 type ProvinceStatusKey = 'no_area' | 'deed_issued' | 'verified' | 'applied' | 'not_applied';
 
 const ALL = 'all' as const;
+const PAGE_SIZE = 20;
 
 const numberFormatter = new Intl.NumberFormat('th-TH');
 const decimalFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 1 });
@@ -96,6 +97,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
   const [region, setRegion] = useState<RegionFilter>(ALL);
   const [provinceCode, setProvinceCode] = useState<string>(ALL);
   const [landType, setLandType] = useState<LandTypeFilter>(ALL);
+  const [page, setPage] = useState(1);
 
   const provinceOptions = useMemo(() => {
     return initialData.provinces
@@ -124,6 +126,11 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
       return a.provinceCode < b.provinceCode ? -1 : a.provinceCode > b.provinceCode ? 1 : 0;
     });
   }, [view.provinces]);
+
+  const pageCount = Math.max(1, Math.ceil(sortedProvinces.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagedProvinces = sortedProvinces.slice(pageStart, pageStart + PAGE_SIZE);
 
   const landUseTotalRai = useMemo(() => {
     return view.landUse.reduce((sum, item) => (Number.isFinite(item.areaRai) ? sum + item.areaRai : sum), 0);
@@ -158,12 +165,24 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
   const handleRegionChange = (value: string) => {
     setRegion(value as RegionFilter);
     setProvinceCode(ALL);
+    setPage(1);
+  };
+
+  const handleProvinceChange = (value: string) => {
+    setProvinceCode(value);
+    setPage(1);
+  };
+
+  const handleLandTypeChange = (value: string) => {
+    setLandType(value as LandTypeFilter);
+    setPage(1);
   };
 
   const handleReset = () => {
     setRegion(ALL);
     setProvinceCode(ALL);
     setLandType(ALL);
+    setPage(1);
   };
 
   return (
@@ -250,7 +269,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
               id="land-reform-province"
               className={styles.select}
               value={provinceCode}
-              onChange={(event) => setProvinceCode(event.target.value)}
+              onChange={(event) => handleProvinceChange(event.target.value)}
             >
               <option value={ALL}>ทุกจังหวัด</option>
               {provinceOptions.map((province) => (
@@ -267,7 +286,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
               id="land-reform-land-type"
               className={styles.select}
               value={landType}
-              onChange={(event) => setLandType(event.target.value as LandTypeFilter)}
+              onChange={(event) => handleLandTypeChange(event.target.value)}
             >
               <option value={ALL}>ทุกประเภทเอกสารสิทธิ์</option>
               {LAND_TYPES.map((landTypeOption) => (
@@ -301,10 +320,13 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
       )}
 
       {/* 4. KPI cards */}
-      <section className={styles.kpiGrid} aria-label="ตัวชี้วัดหลักเขตปฏิรูปที่ดิน">
+      <section className={styles.kpiGrid} aria-labelledby="land-reform-kpi-title">
+        <h2 id="land-reform-kpi-title" className="sr-only">
+          ตัวชี้วัดหลักเขตปฏิรูปที่ดิน
+        </h2>
         <article className={`${styles.kpiCard} ${styles.kpiArea}`}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiLabel}>เนื้อที่ปฏิรูปที่ดิน (ไร่)</span>
+            <h3 className={styles.kpiLabel}>เนื้อที่ปฏิรูปที่ดิน (ไร่)</h3>
             <span className={styles.kpiIcon} aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6 9 3l6 3 6-3v15l-6 3-6-3-6 3Z" />
@@ -321,7 +343,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
 
         <article className={`${styles.kpiCard} ${styles.kpiFarmers}`}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiLabel}>เกษตรกรผู้ได้รับจัดสรร (ราย)</span>
+            <h3 className={styles.kpiLabel}>เกษตรกรผู้ได้รับจัดสรร (ราย)</h3>
             <span className={styles.kpiIcon} aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -339,7 +361,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
 
         <article className={`${styles.kpiCard} ${styles.kpiDeed}`}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiLabel}>แปลงโฉนดเพื่อเกษตรกรรม (แปลง)</span>
+            <h3 className={styles.kpiLabel}>แปลงโฉนดเพื่อเกษตรกรรม (แปลง)</h3>
             <span className={styles.kpiIcon} aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
@@ -356,7 +378,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
 
         <article className={`${styles.kpiCard} ${styles.kpiTenure}`}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiLabel}>ดัชนีความมั่นคงถือครองที่ดิน (%)</span>
+            <h3 className={styles.kpiLabel}>ดัชนีความมั่นคงถือครองที่ดิน (%)</h3>
             <span className={styles.kpiIcon} aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
@@ -373,10 +395,13 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
       </section>
 
       {/* 5. Charts */}
-      <section className={styles.chartGrid} aria-label="กราฟสรุปสัดส่วนที่ดิน">
+      <section className={styles.chartGrid} aria-labelledby="land-reform-charts-title">
+        <h2 id="land-reform-charts-title" className="sr-only">
+          กราฟสรุปสัดส่วนที่ดิน
+        </h2>
         <article className={styles.chartCard}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>สัดส่วนการใช้ประโยชน์ที่ดิน</h2>
+            <h3 className={styles.cardTitle}>สัดส่วนการใช้ประโยชน์ที่ดิน</h3>
             <span className={styles.cardNote}>
               5 หมวด · รวม {formatInteger(landUseTotalRai)} ไร่
             </span>
@@ -446,7 +471,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
 
         <article className={styles.chartCard}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>ที่ดินของตนเอง vs เช่าทำกิน</h2>
+            <h3 className={styles.cardTitle}>ที่ดินของตนเอง vs เช่าทำกิน</h3>
             <span className={styles.cardNote}>จากเนื้อที่จัดสรรแล้ว</span>
           </div>
 
@@ -502,19 +527,27 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
                 เปรียบเทียบข้อมูลเขตปฏิรูปที่ดินรายจังหวัด
               </h2>
               <p className={styles.sectionNote}>
-                เรียงตามเนื้อที่เขตปฏิรูปจากมากไปน้อย · แสดง {sortedProvinces.length} จังหวัด
-                ตามตัวกรองปัจจุบัน
+                เรียงตามเนื้อที่เขตปฏิรูปจากมากไปน้อย · แสดง{' '}
+                {sortedProvinces.length === 0 ? 0 : pageStart + 1}–
+                {Math.min(pageStart + PAGE_SIZE, sortedProvinces.length)} จาก {sortedProvinces.length}{' '}
+                จังหวัดตามตัวกรองปัจจุบัน
               </p>
             </div>
+            <span className={styles.resultsMeta} aria-live="polite">
+              หน้า {currentPage} จาก {pageCount}
+            </span>
           </div>
 
-          <p className={styles.scrollHint}>เลื่อนตารางแนวนอน</p>
+          <p id="land-reform-table-hint" className={styles.scrollHint}>
+            เลื่อนตารางแนวนอน
+          </p>
 
           <div className={styles.tableCard}>
             <div
               className={styles.tableWrap}
               role="region"
               aria-label="ตารางข้อมูลเขตปฏิรูปที่ดินรายจังหวัด เลื่อนแนวนอนได้"
+              aria-describedby="land-reform-table-hint"
               tabIndex={0}
             >
               <table className={styles.table}>
@@ -535,7 +568,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedProvinces.map((province) => {
+                  {pagedProvinces.map((province) => {
                     const status = getProvinceStatus(province);
                     return (
                       <tr key={province.provinceCode}>
@@ -561,6 +594,32 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
               </table>
             </div>
           </div>
+
+          {pageCount > 1 && (
+            <nav className={styles.pagination} aria-label="แบ่งหน้าตารางรายจังหวัด">
+              <button
+                type="button"
+                className={styles.pageButton}
+                onClick={() => setPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage <= 1}
+              >
+                ก่อนหน้า
+              </button>
+              <span className={styles.pageStatus} aria-live="polite">
+                หน้า {currentPage} จาก {pageCount} ·{' '}
+                {Math.min(pageStart + PAGE_SIZE, sortedProvinces.length)} จาก{' '}
+                {sortedProvinces.length} จังหวัด
+              </span>
+              <button
+                type="button"
+                className={styles.pageButton}
+                onClick={() => setPage(Math.min(pageCount, currentPage + 1))}
+                disabled={currentPage >= pageCount}
+              >
+                ถัดไป
+              </button>
+            </nav>
+          )}
         </section>
       )}
 
@@ -572,6 +631,7 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
           </h2>
           <p className={styles.sectionNote}>
             เหตุผลเชิงโครงสร้างจากชุดข้อมูลตัวอย่าง ไม่ได้หมายความว่าจังหวัดนั้นไม่มีเขตปฏิรูปที่ดินจริง
+            · ทั้งห้ารายการเป็น placeholder ของแบบจำลอง ไม่ใช่ผลการตรวจสอบอย่างเป็นทางการ
           </p>
           <ul className={styles.zeroAreaList}>
             {view.zeroAreaProvinces.map((item) => (
@@ -586,21 +646,51 @@ export function LandReformDashboard({ initialData }: LandReformDashboardProps) {
         </section>
       )}
 
-      {/* 8. Footer / disclaimer */}
-      <footer className={styles.footerNote}>
-        <p>{LAND_REFORM_DISCLAIMER}</p>
-        <p className={styles.footerMeta}>
-          ข้อมูล ณ วันที่ {view.asOfDate} · datasetVersion: {view.datasetVersion} ·
-          หน้านี้ไม่มีตัวเลขทางการของ ส.ป.ก. (ALRO)
-        </p>
-        {view.warnings.length > 0 && (
-          <ul className={styles.warningList}>
-            {view.warnings.map((warning, index) => (
-              <li key={`${index}-${warning}`}>{warning}</li>
-            ))}
-          </ul>
-        )}
-      </footer>
+      {/* 8. Sources and limitations */}
+      <section className={styles.sourcesSection} aria-labelledby="land-reform-sources-title">
+        <h2 id="land-reform-sources-title" className={styles.sectionTitle}>
+          แหล่งข้อมูลและข้อจำกัด
+        </h2>
+        <ul className={styles.sourceFacts}>
+          <li className={styles.sourceFact}>deterministic sample · สร้างจาก seed คงที่</li>
+          <li className={styles.sourceFact}>metadata_only · ไม่เรียก API หรืออ่านไฟล์ตัวเลข ALRO</li>
+          <li className={styles.sourceFact}>สิทธิ์เผยแพร่ข้อมูล ALRO อยู่ระหว่างตรวจสอบ (pending)</li>
+          <li className={styles.sourceFact}>
+            5 จังหวัดที่ไม่มีเนื้อที่เขตปฏิรูปเป็น placeholder ของแบบจำลอง
+          </li>
+        </ul>
+        <details className={styles.notesDetails}>
+          <summary className={styles.notesSummary}>
+            อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล
+          </summary>
+          <div className={styles.notesBody}>
+            <p>{LAND_REFORM_DISCLAIMER}</p>
+            <p className={styles.footerMeta}>
+              ข้อมูล ณ วันที่ {view.asOfDate} · datasetVersion: {view.datasetVersion} ·
+              หน้านี้ไม่มีตัวเลขทางการของ ส.ป.ก. (ALRO)
+            </p>
+            {view.warnings.length > 0 && (
+              <ul className={styles.warningList}>
+                {view.warnings.map((warning, index) => (
+                  <li key={`${index}-${warning}`}>{warning}</li>
+                ))}
+              </ul>
+            )}
+            <p>
+              แหล่งข้อมูล:{' '}
+              {view.sources
+                .map((source) => `${source.name} (${source.type}, access: ${source.access})`)
+                .join(' · ')}
+            </p>
+            {view.zeroAreaProvinces.length > 0 && (
+              <p>
+                จังหวัด placeholder ของแบบจำลอง:{' '}
+                {view.zeroAreaProvinces.map((item) => item.provinceName).join(' · ')}
+              </p>
+            )}
+          </div>
+        </details>
+      </section>
     </div>
   );
 }

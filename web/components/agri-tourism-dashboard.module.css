@@ -2204,7 +2204,180 @@
 }
 
 /* --------------------------------------------------------------------------
-   14) class ช่วยเข้าถึง (caption ของตาราง)
+   14) รายละเอียดแบบพับได้ (intro / แหล่งข้อมูล / การ์ด) + ตัวแบ่งหน้า
+   -------------------------------------------------------------------------- */
+.introDetails,
+.bannerDetails,
+.cardDetails {
+  min-width: 0;
+}
+
+.introDetails {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line, var(--line));
+  border-radius: var(--radius, 8px);
+  background: var(--surface-muted);
+}
+
+.introDetails summary,
+.bannerDetails summary,
+.cardDetails summary {
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--forest, var(--forest));
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.introDetails summary {
+  color: var(--forest, var(--forest));
+  font-size: 13.5px;
+}
+
+.introDetailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--muted, var(--muted));
+  overflow-wrap: anywhere;
+}
+
+.bannerDetails {
+  margin-top: 4px;
+  border-top: 1px dashed #e0cf9c;
+  padding-top: 6px;
+}
+
+.bannerDetails summary {
+  font-size: 12.5px;
+  color: inherit;
+  list-style-position: inside;
+}
+
+.bannerDetailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.bannerDetailsBody .sourceStrip {
+  margin-top: 0;
+}
+
+.cardDetails {
+  margin-top: 2px;
+  border-top: 1px dashed var(--atLineSoft, var(--line));
+  padding-top: 4px;
+}
+
+.cardDetails summary {
+  font-size: 12px;
+  font-weight: 500;
+  color: #4c624d;
+  list-style-position: inside;
+}
+
+.cardDetailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.destQuickMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--atInkSoft, #5f7160);
+  font-variant-numeric: tabular-nums;
+}
+
+.destQuickMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workshopQuickMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #4c624d;
+  font-variant-numeric: tabular-nums;
+}
+
+.workshopQuickMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ตัวแบ่งหน้าร่วมของทุกรายการ */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  min-width: 0;
+}
+
+.pagerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--white, #fff);
+  color: var(--forest, var(--forest));
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pagerButton:hover:not(:disabled) {
+  background: #edf2e7;
+  border-color: #9fb29a;
+}
+
+.pagerButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagerPrevIcon {
+  transform: rotate(180deg);
+}
+
+.pagerInfo {
+  margin: 0;
+  flex: 1 1 180px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   15) class ช่วยเข้าถึง (caption ของตาราง)
    -------------------------------------------------------------------------- */
 .srOnly {
   position: absolute;
@@ -2316,6 +2489,116 @@
   }
 }
 
+@media (max-width: 560px) {
+  .container {
+    gap: 14px;
+  }
+
+  .section {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .sectionHeader p {
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpiCard {
+    gap: 6px;
+    padding: 12px;
+  }
+
+  .kpiCardWide {
+    grid-column: 1 / -1;
+  }
+
+  .kpiIcon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .kpiNote {
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  .kpiRatioLabel {
+    font-size: 10.5px;
+    line-height: 1.6;
+  }
+
+  .filterGrid .chipRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .filterGrid .chipRow .chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .workshopQuickPlace {
+    flex-basis: 100%;
+    color: var(--muted, var(--muted));
+  }
+
+  .tipCard {
+    gap: 6px;
+    padding: 11px;
+  }
+
+  .tipGuidance {
+    line-height: 1.8;
+  }
+
+  .disclosure {
+    gap: 6px;
+    padding: 13px;
+  }
+
+  .disclosure p {
+    font-size: 11.5px;
+    line-height: 1.8;
+  }
+
+  .destCard,
+  .workshopCard {
+    gap: 6px;
+    padding: 11px;
+  }
+
+  .tipCard {
+    gap: 5px;
+    padding: 10px;
+  }
+
+  .destHighlight {
+    line-height: 1.8;
+  }
+
+  .pager {
+    justify-content: center;
+  }
+
+  .pagerButton {
+    flex: 1 1 auto;
+  }
+
+  .pagerInfo {
+    flex-basis: 100%;
+    order: -1;
+  }
+}
+
 @media (max-width: 430px) {
   .kpiValue {
     font-size: 23px;
@@ -2337,12 +2620,12 @@
     gap: 2px;
   }
 
-  .destStats dt {
-    min-width: 78px;
+  .destStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .workshopStats {
-    grid-template-columns: minmax(0, 1fr);
+  .destStats dt {
+    min-width: 0;
   }
 }
 

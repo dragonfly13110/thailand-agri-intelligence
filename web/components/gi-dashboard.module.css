@@ -539,6 +539,18 @@
   text-underline-offset: 3px;
 }
 
+/* summary เป็น inline-flex จึงไม่มี marker ของเบราว์เซอร์: เติมลูกศรบอกสถานะเปิด/ปิด */
+.expandSummary::after {
+  content: '▾';
+  margin-left: 6px;
+  font-size: 10px;
+  color: #6e8a5a;
+}
+
+.expandDetails[open] > .expandSummary::after {
+  content: '▴';
+}
+
 .expandSummary:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
@@ -586,29 +598,41 @@
   overflow-wrap: anywhere;
 }
 
-.plotTable {
-  width: 100%;
-  min-width: 360px;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 12px;
+/* พิกัดเชิงโครงสร้าง: key/value list แทนตารางรายบัตร (ไม่ให้หน้าเว็บแบก <table> 122 ใบ) */
+.plotList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
 }
 
-.plotTable thead th {
-  background: #eff2e9;
-  color: var(--muted, var(--muted));
-  font-size: 11px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line, var(--line));
-}
-
-.plotTable tbody td {
+.plotRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
   padding: 7px 10px;
-  border-bottom: 1px solid var(--giLineSoft, var(--line));
-  color: var(--ink, var(--ink));
+  min-width: 0;
+  border: 1px solid var(--giLineSoft, var(--line));
+  border-radius: 6px;
+  background: var(--giSubtleBg, var(--surface-muted));
+}
+
+.plotDistrict {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: #45594b;
+  overflow-wrap: anywhere;
+}
+
+.plotCoords {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted, var(--muted));
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .descriptionText {
@@ -624,6 +648,66 @@
   font-size: 11px;
   line-height: 1.7;
   color: #7b8a7c;
+}
+
+/* --------------------------------------------------------------------------
+   3b) แบ่งหน้าบัตรสินค้า
+   -------------------------------------------------------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--giLineSoft, var(--line));
+  min-width: 0;
+}
+
+.pageStatus {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+.pageStatus strong {
+  color: var(--forest, var(--forest));
+}
+
+.pageButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pageButton {
+  min-height: 44px;
+  min-width: 108px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--white, #fff);
+  color: var(--forest, var(--forest));
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: #edf2e7;
+}
+
+.pageButton:disabled {
+  color: #97a498;
+  background: #f4f6f2;
+  cursor: not-allowed;
+}
+
+.pageButton:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------------------
@@ -994,6 +1078,31 @@
   min-width: 0;
 }
 
+.warningSummary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.8;
+  color: #6f5a1f;
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+}
+
+.warningSummary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.warningSummary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.warningBlock[open] .warningSummary {
+  margin-bottom: 6px;
+}
+
 .warningList {
   margin: 0;
   padding-left: 18px;
@@ -1063,6 +1172,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .plotRow {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: baseline;
+    gap: 10px;
+  }
+
   .productGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1130,6 +1245,24 @@
   .resetButton {
     width: 100%;
   }
+
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pageButtons {
+    flex-wrap: nowrap;
+  }
+
+  .pageButton {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pageStatus {
+    text-align: center;
+  }
 }
 
 @media (max-width: 420px) {
@@ -1156,6 +1289,7 @@
   .splitExternal,
   .resetButton,
   .moreButton,
+  .pageButton,
   .kpiCard,
   .productCard,
   .control,

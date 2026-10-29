@@ -1,3 +1,11 @@
+## Group C UI sweep 12 หน้า (sample/compute, 0 D1 writes) — 29 ต.ค. 2026
+
+- แบ่ง 10 subagent ตาม lane ไฟล์ไม่ทับกัน (หน้าละ 1 lane, food-safety/logistics แยก component/หน้า) ทำ UI ให้จบโดยไม่แตะ `web/lib/hub/*`, `web/app/api/*`, `data/local`, `.env`: เพิ่มแบ่งหน้า (การ์ด ≤12, ตาราง ≤20 แถว), ตัวกรอง/search ที่ reset หน้า, ปุ่มก่อนหน้า/ถัดไป, `aria-live` จำนวนผล, `role=region`+`tabIndex` ให้ตารางเลื่อนได้, ยุบข้อความ governance ยาวไว้ใน `<details>` — แก้ 8 หน้า + 24 ไฟล์ component (4,520+/1,250−)
+- ผลวัดจริงด้วย CDP (1440×900 และ 390×844, ทุกหน้า overflow=0, console error=0, h1=1): logistics 18,803→5,138 / 50,252(+overflow)→10,903 · gi-products 23,224→5,838 / 64,933→11,657 (ตารางเริ่มต้น 124→2) · smart-farming 15,090→6,071 / 49,925→16,133 · agri-tourism 16,491→9,807 / 39,301→17,742 · food-safety 9,946→9,190 / 22,814→17,767 · หน้าอื่นลดลงทั้งหมดและอยู่ในเพดาน (severe ≤18,000 ที่ 390)
+- ตรวจรับ: `npm --prefix web run typecheck` 0 error · `npm --prefix web run test` 320/320 ผ่าน (เพิ่ม `web/tests/group-c-finance-carbon.test.ts` 5 tests ปัก invariants ตัวกรองว่าง/แบ่งหน้า) · `npm --prefix web run build:vinext` build complete; `web/next-env.d.ts` ที่ dev/build สร้างใหม่ถูก restore
+- ไม่มี D1 read/write, ไม่เรียก API ต้นทาง, ไม่ commit/push/deploy; สถานะข้อมูลยังเป็น `sample: true` / `metadata_only` เดิมทุกหน้า
+- หมายเหตุ: `/gi-products` และ `/cooperatives` มีอยู่ใน `web/components/page-registry.ts` แล้ว จึงลบข้อความ "เมนู shell ยังไม่มี" ที่ค้างออก; งานที่เหลือของ Group C คือต่อ API/ข้อมูลจริงทีละหน้าเมื่อได้รับสิทธิ์ ไม่ใช่แก้ UI เพิ่ม
+
 ## ปิดงาน local merge — 28 ต.ค. 2026
 
 - Commit งานแก้ `2dc527c`; รวม `codex/checkpoint-2026-10-28` เข้า local `main` ด้วย `git merge --ff-only` สำเร็จ (จาก `6a54c2b` → `2dc527c`). เก็บกิ่ง checkpoint และประวัติ `4d7df75`/`b013584` ครบ

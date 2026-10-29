@@ -15,6 +15,27 @@ export const metadata = {
 const intFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 });
 const decimalFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
 
+const DETAILS_SUMMARY = 'อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล';
+
+const detailsStyle = {
+  margin: '4px 0 0',
+  maxWidth: '75ch',
+  border: '1px solid var(--line)',
+  borderRadius: 'var(--radius)',
+  background: '#ffffff',
+  padding: '0 18px 12px',
+} as const;
+
+const summaryStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  minHeight: 44,
+  cursor: 'pointer',
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--forest)',
+} as const;
+
 export default async function CooperativesPage() {
   // ตัวสร้าง payload เป็น synchronous ตามสัญญา lane 1A — ไม่ต้อง await และไม่ต้อง fetch /api/v1/cooperatives จากหน้า
   const payload: CooperativesPayload = buildCooperativesData();
@@ -39,21 +60,29 @@ export default async function CooperativesPage() {
         <div>
           <h1>สหกรณ์การเกษตร วิสาหกิจชุมชน และเครือข่ายแปลงใหญ่</h1>
           <p>
-            สหกรณ์การเกษตรคือองค์กรที่เกษตรกรตั้งขึ้นเพื่อร่วมกันจัดหาปัจจัยการผลิต รับซื้อและรวบรวมผลผลิต
-            และให้บริการสินเชื่อภายในกลุ่ม ขณะที่สหกรณ์นิคมทำหน้าที่บริหารพื้นที่เกษตรแปลงใหญ่พร้อมสิทธิทำกินในเขตนิคม
-            สหกรณ์ประมงรวบรวมสัตว์น้ำและดูแลเครื่องมือทำประมงของสมาชิก ส่วนสหกรณ์ผู้เลี้ยงโคนมรวบรวมน้ำนมดิบรายวัน
-            ส่งต่อโรงงานแปรรูปอย่างมีมาตรฐาน ด้านวิสาหกิจชุมชนและเครือข่ายแปลงใหญ่เป็นกลุ่มเกษตรกรนอกรูปแบบสหกรณ์
-            ที่รวมกลุ่มผลิตและจำหน่ายสินค้าร่วมกันบนพื้นที่เกษตรแปลงเดียวขนาดใหญ่ ตัวเลขในชุดนี้จึงรายงานทั้งจำนวนสมาชิก
-            ปริมาณการรวบรวมผลผลิตต่อชนิดสินค้า มูลค่าธุรกิจ และสินเชื่อที่จ่ายให้สมาชิก
+            หน้านี้สรุปจำนวนสหกรณ์/กลุ่ม สมาชิก มูลค่าธุรกิจ ปริมาณการรวบรวมผลผลิต และคะแนน CAMELS
+            ของชุดตัวอย่างเชิงโครงสร้าง (sample) ใช้ตัวกรองด้านล่างเพื่อดูเฉพาะภาค จังหวัด ประเภท หรือชั้น CAMELS
+            — ตาราง สรุป และเรดาร์จะเปลี่ยนตามเงื่อนไขเดียวกัน
           </p>
-          <p>
-            การประเมินความแข็งแรงทางการเงินของสหกรณ์ใช้หลักเกณฑ์ CAMELS ซึ่งพิจารณาหกมิติ ได้แก่ เงินทุน (Capital)
-            คุณภาพสินทรัพย์และหนี้ด้อยคุณภาพ (Asset Quality) การบริหารงาน (Management) ผลตอบแทนและสถานะกำไร (Earnings)
-            สภาพคล่อง (Liquidity) และความอ่อนไหวต่อความเสี่ยง (Sensitivity to Market Risk)
-            ในหน้านี้ทุกมิติแสดงเป็นคะแนน “ความแข็งแรง” บนมาตราส่วน 0-100 ยิ่งสูงยิ่งดี
-            โดยมิติ Sensitivity ถูกคำนวณเป็นความสามารถในการบริหารจัดการความเสี่ยง ไม่ใช่ระดับความเสี่ยงดิบ
-            ทำให้แกนทั้งหกอ่านทิศทางเดียวกันคือคะแนนสูงคือแข็งแรงกว่า
-          </p>
+          <details style={detailsStyle}>
+            <summary style={summaryStyle}>{DETAILS_SUMMARY}</summary>
+            <p>
+              สหกรณ์การเกษตรคือองค์กรที่เกษตรกรตั้งขึ้นเพื่อร่วมกันจัดหาปัจจัยการผลิต รับซื้อและรวบรวมผลผลิต
+              และให้บริการสินเชื่อภายในกลุ่ม ขณะที่สหกรณ์นิคมทำหน้าที่บริหารพื้นที่เกษตรแปลงใหญ่พร้อมสิทธิทำกินในเขตนิคม
+              สหกรณ์ประมงรวบรวมสัตว์น้ำและดูแลเครื่องมือทำประมงของสมาชิก ส่วนสหกรณ์ผู้เลี้ยงโคนมรวบรวมน้ำนมดิบรายวัน
+              ส่งต่อโรงงานแปรรูปอย่างมีมาตรฐาน ด้านวิสาหกิจชุมชนและเครือข่ายแปลงใหญ่เป็นกลุ่มเกษตรกรนอกรูปแบบสหกรณ์
+              ที่รวมกลุ่มผลิตและจำหน่ายสินค้าร่วมกันบนพื้นที่เกษตรแปลงเดียวขนาดใหญ่ ตัวเลขในชุดนี้จึงรายงานทั้งจำนวนสมาชิก
+              ปริมาณการรวบรวมผลผลิตต่อชนิดสินค้า มูลค่าธุรกิจ และสินเชื่อที่จ่ายให้สมาชิก
+            </p>
+            <p style={{ marginTop: 12 }}>
+              การประเมินความแข็งแรงทางการเงินของสหกรณ์ใช้หลักเกณฑ์ CAMELS ซึ่งพิจารณาหกมิติ ได้แก่ เงินทุน (Capital)
+              คุณภาพสินทรัพย์และหนี้ด้อยคุณภาพ (Asset Quality) การบริหารงาน (Management) ผลตอบแทนและสถานะกำไร (Earnings)
+              สภาพคล่อง (Liquidity) และความอ่อนไหวต่อความเสี่ยง (Sensitivity to Market Risk)
+              ในหน้านี้ทุกมิติแสดงเป็นคะแนน “ความแข็งแรง” บนมาตราส่วน 0-100 ยิ่งสูงยิ่งดี
+              โดยมิติ Sensitivity ถูกคำนวณเป็นความสามารถในการบริหารจัดการความเสี่ยง ไม่ใช่ระดับความเสี่ยงดิบ
+              ทำให้แกนทั้งหกอ่านทิศทางเดียวกันคือคะแนนสูงคือแข็งแรงกว่า
+            </p>
+          </details>
         </div>
       </div>
 
@@ -92,27 +121,50 @@ export default async function CooperativesPage() {
               ชื่อสหกรณ์และเลขทะเบียนที่ปรากฏเป็นค่าตัวอย่างที่ตั้งขึ้น (
               <code>registrationNoStatus = “sample_placeholder”</code>) มิได้หมายถึงนิติบุคคลที่มีอยู่จริง
             </li>
-            <li>
-              คะแนน CAMELS ในหน้านี้เป็นผลจากโมเดลสาธิตของแพลตฟอร์ม <em>ไม่ใช่</em> การจัดชั้นที่กรมส่งเสริมสหกรณ์ประกาศ
-              และไม่ใช่ผลการตรวจสอบบัญชีของกรมตรวจบัญชีสหกรณ์
-            </li>
-            <li>
-              รหัส 77 จังหวัดเป็นเพียงทะเบียนรายชื่อรหัส (register code list) ไม่ใช่ขอบเขตการครอบคลุมข้อมูล
-              และมีจังหวัดที่มีข้อมูลจริงเพียงบางส่วน
-            </li>
-            <li>
-              ช่องที่ยังไม่มีข้อมูลคงค่าเป็น <code>null</code> และแสดงเป็นคำว่า “ไม่มีข้อมูล” เสมอ
-              ระบบจะไม่แปลงค่าขาดข้อมูลเป็น 0 หรือนับรวมเป็นผลรวม
-            </li>
           </ul>
-          <p style={{ margin: '12px 0 0' }}>{payload.coverageNote}</p>
-          {shownWarnings.length > 0 && (
-            <ul style={{ margin: '10px 0 0', paddingLeft: 20, display: 'grid', gap: 4 }}>
-              {shownWarnings.map((warning, i) => (
-                <li key={i}>{warning}</li>
-              ))}
+          <details
+            style={{
+              marginTop: 12,
+              borderTop: '1px solid #ebdcb2',
+              paddingTop: 4,
+            }}
+          >
+            <summary
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                minHeight: 44,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#5f4a13',
+              }}
+            >
+              {DETAILS_SUMMARY}
+            </summary>
+            <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 6 }}>
+              <li>
+                คะแนน CAMELS ในหน้านี้เป็นผลจากโมเดลสาธิตของแพลตฟอร์ม <em>ไม่ใช่</em> การจัดชั้นที่กรมส่งเสริมสหกรณ์ประกาศ
+                และไม่ใช่ผลการตรวจสอบบัญชีของกรมตรวจบัญชีสหกรณ์
+              </li>
+              <li>
+                รหัส 77 จังหวัดเป็นเพียงทะเบียนรายชื่อรหัส (register code list) ไม่ใช่ขอบเขตการครอบคลุมข้อมูล
+                และมีจังหวัดที่มีข้อมูลจริงเพียงบางส่วน
+              </li>
+              <li>
+                ช่องที่ยังไม่มีข้อมูลคงค่าเป็น <code>null</code> และแสดงเป็นคำว่า “ไม่มีข้อมูล” เสมอ
+                ระบบจะไม่แปลงค่าขาดข้อมูลเป็น 0 หรือนับรวมเป็นผลรวม
+              </li>
             </ul>
-          )}
+            <p style={{ margin: '12px 0 0' }}>{payload.coverageNote}</p>
+            {shownWarnings.length > 0 && (
+              <ul style={{ margin: '10px 0 0', paddingLeft: 20, display: 'grid', gap: 4 }}>
+                {shownWarnings.map((warning, i) => (
+                  <li key={i}>{warning}</li>
+                ))}
+              </ul>
+            )}
+          </details>
         </section>
       )}
 
@@ -146,41 +198,50 @@ export default async function CooperativesPage() {
       <CooperativesDashboard payload={payload} />
 
       <p className="area-note">
-        หมายเหตุการกำกับดูแลข้อมูล: จำนวนสหกรณ์ สมาชิก แต้ม CAMELS ปริมาณการรวบรวมผลผลิต มูลค่าธุรกิจ
-        เงินทุนหมุนเวียน และสินเชื่อที่จ่ายให้สมาชิกในหน้านี้ เป็นข้อมูลตัวอย่างเชิงโครงสร้างที่กำหนดผลซ้ำได้
-        (Deterministic Sample Data) เพื่อสาธิตการเชื่อมทะเบียนสหกรณ์เข้ากับข้อมูลสินค้าเกษตรรายจังหวัด
-        มิใช่สถิติทางการ สิทธิ์การเผยแพร่ข้อมูลทะเบียนดิบของหน่วยงานต้นทาง ได้แก่ กรมส่งเสริมสหกรณ์
-        (cpd.go.th — ทะเบียนสหกรณ์และกลุ่มเกษตรกร การจัดชั้นสหกรณ์ และข้อมูลการรวบรวมผลผลิต)
-        และกรมตรวจบัญชีสหกรณ์ (go2cad.go.th — งบการเงินและผลการตรวจสอบบัญชีสหกรณ์) ยังอยู่ระหว่างการตรวจสอบ
-        จึงเปิดเผยเฉพาะส่วน metadata และห้ามอ้างอิงตัวเลขในหน้านี้เป็นสถิติทางกฎหมาย
-        ส่วนพื้นผิว API สำหรับโปรแกรมอยู่ที่ <code>/api/v1/cooperatives?provinceCode=19</code>{' '}
-        ข้อต่อเนื่องที่ต้องทำ: เมนูหลักของ shell ยังไม่มีรายการสำหรับ /cooperatives ซึ่งต้องรอเจ้าของ shell เพิ่มคีย์{' '}
-        <code>cooperatives</code> แล้วจึงสลับค่า <code>active</code> ของหน้านี้จาก projects ไปเป็น cooperatives
+        แหล่งข้อมูลต้นทาง: กรมส่งเสริมสหกรณ์ (cpd.go.th) และกรมตรวจบัญชีสหกรณ์ (go2cad.go.th) ·
+        สิทธิ์การเผยแพร่ข้อมูลดิบยังอยู่ระหว่างการตรวจสอบ (pending) · พื้นผิว API สำหรับโปรแกรม{' '}
+        <code>/api/v1/cooperatives?provinceCode=19</code>
       </p>
 
-      <ul
-        aria-label="รายการแหล่งข้อมูลต้นทางและสถานะสิทธิ์"
-        style={{
-          margin: '8px 0 0',
-          paddingLeft: 20,
-          display: 'grid',
-          gap: 6,
-          maxWidth: '75ch',
-          lineHeight: 1.8,
-          fontSize: 14,
-          color: 'var(--muted)',
-        }}
-      >
-        {payload.sources.map((source) => (
-          <li key={source.id}>
-            <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer">
-              {source.name}
-            </a>{' '}
-            — {source.agencyLabel} · {source.role}{' '}
-            <span className="badge pending">{source.licenseStatus}</span>
-          </li>
-        ))}
-      </ul>
+      <details style={detailsStyle}>
+        <summary style={summaryStyle}>{DETAILS_SUMMARY}</summary>
+        <p className="area-note">
+          หมายเหตุการกำกับดูแลข้อมูล: จำนวนสหกรณ์ สมาชิก แต้ม CAMELS ปริมาณการรวบรวมผลผลิต มูลค่าธุรกิจ
+          เงินทุนหมุนเวียน และสินเชื่อที่จ่ายให้สมาชิกในหน้านี้ เป็นข้อมูลตัวอย่างเชิงโครงสร้างที่กำหนดผลซ้ำได้
+          (Deterministic Sample Data) เพื่อสาธิตการเชื่อมทะเบียนสหกรณ์เข้ากับข้อมูลสินค้าเกษตรรายจังหวัด
+          มิใช่สถิติทางการ สิทธิ์การเผยแพร่ข้อมูลทะเบียนดิบของหน่วยงานต้นทาง ได้แก่ กรมส่งเสริมสหกรณ์
+          (cpd.go.th — ทะเบียนสหกรณ์และกลุ่มเกษตรกร การจัดชั้นสหกรณ์ และข้อมูลการรวบรวมผลผลิต)
+          และกรมตรวจบัญชีสหกรณ์ (go2cad.go.th — งบการเงินและผลการตรวจสอบบัญชีสหกรณ์) ยังอยู่ระหว่างการตรวจสอบ
+          จึงเปิดเผยเฉพาะส่วน metadata และห้ามอ้างอิงตัวเลขในหน้านี้เป็นสถิติทางกฎหมาย
+          ส่วนพื้นผิว API สำหรับโปรแกรมอยู่ที่ <code>/api/v1/cooperatives?provinceCode=19</code>{' '}
+          ข้อต่อเนื่องที่ต้องทำ: เมนูหลักของ shell ยังไม่มีรายการสำหรับ /cooperatives ซึ่งต้องรอเจ้าของ shell เพิ่มคีย์{' '}
+          <code>cooperatives</code> แล้วจึงสลับค่า <code>active</code> ของหน้านี้จาก projects ไปเป็น cooperatives
+        </p>
+
+        <ul
+          aria-label="รายการแหล่งข้อมูลต้นทางและสถานะสิทธิ์"
+          style={{
+            margin: '8px 0 0',
+            paddingLeft: 20,
+            display: 'grid',
+            gap: 6,
+            maxWidth: '75ch',
+            lineHeight: 1.8,
+            fontSize: 14,
+            color: 'var(--muted)',
+          }}
+        >
+          {payload.sources.map((source) => (
+            <li key={source.id}>
+              <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer">
+                {source.name}
+              </a>{' '}
+              — {source.agencyLabel} · {source.role}{' '}
+              <span className="badge pending">{source.licenseStatus}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
     </Shell>
   );
 }

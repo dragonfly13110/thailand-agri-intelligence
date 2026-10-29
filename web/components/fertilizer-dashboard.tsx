@@ -125,43 +125,64 @@ function NumberBox({
 }) {
   const [draft, setDraft] = useState(() => formatEditable(value));
   const [focused, setFocused] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   function commit(event: FocusEvent<HTMLInputElement>) {
     const trimmed = event.currentTarget.value.trim();
     setFocused(false);
-    if (!trimmed) return;
+    if (!trimmed) {
+      setFeedback(null);
+      return;
+    }
     const parsed = Number(trimmed);
-    if (Number.isFinite(parsed)) onChange(clampValue(parsed, min, max));
+    if (!Number.isFinite(parsed)) {
+      setFeedback(`กรอกเฉพาะตัวเลข ระบบใช้ค่าเดิม ${formatEditable(value)}`);
+      return;
+    }
+    const clamped = clampValue(parsed, min, max);
+    if (clamped !== parsed) {
+      setFeedback(`ค่าที่กรอกอยู่นอกช่วง ${min}–${max} ระบบปรับเป็น ${formatEditable(clamped)}`);
+    } else {
+      setFeedback(null);
+    }
+    onChange(clamped);
   }
 
   return (
-    <div className={styles.numberWrap}>
-      <input
-        id={id}
-        type="number"
-        inputMode="decimal"
-        aria-label={ariaLabel}
-        className={styles.numberInput}
-        value={focused ? draft : formatEditable(value)}
-        min={min}
-        max={max}
-        step={step}
-        onFocus={(event) => {
-          setFocused(true);
-          setDraft(formatEditable(value));
-          event.currentTarget.select();
-        }}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            event.currentTarget.blur();
-          }
-        }}
-      />
-      {unit ? <span className={styles.numberUnit}>{unit}</span> : null}
-    </div>
+    <>
+      <div className={styles.numberWrap}>
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          aria-label={ariaLabel}
+          aria-invalid={feedback ? true : undefined}
+          className={styles.numberInput}
+          value={focused ? draft : formatEditable(value)}
+          min={min}
+          max={max}
+          step={step}
+          onFocus={(event) => {
+            setFocused(true);
+            setFeedback(null);
+            setDraft(formatEditable(value));
+            event.currentTarget.select();
+          }}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        {unit ? <span className={styles.numberUnit}>{unit}</span> : null}
+      </div>
+      <span className="sr-only" role="status" aria-live="polite">
+        {feedback}
+      </span>
+    </>
   );
 }
 
@@ -658,6 +679,7 @@ export function FertilizerDashboard() {
               คืนค่าเริ่มต้น
             </button>
             <span className={styles.resetHint}>
+              ช่องตัวเลขรับค่าตามช่วงที่กำหนด ค่าที่ว่างหรือไม่ใช่ตัวเลขจะกลับไปใช้ค่าเดิม ·
               ค่าที่แก้ไขไม่ถูกบันทึกหรือส่งออกจากเบราว์เซอร์
             </span>
           </div>
@@ -709,7 +731,7 @@ export function FertilizerDashboard() {
                     className={`${styles.materialCard} ${material.cardClass}`}
                   >
                     <div className={styles.materialHead}>
-                      <span className={styles.materialName}>{material.name}</span>
+                      <h3 className={styles.materialName}>{material.name}</h3>
                       <span className={styles.materialGrade}>{material.grade}</span>
                     </div>
                     <p className={styles.materialAmount}>
@@ -799,7 +821,7 @@ export function FertilizerDashboard() {
 
             <div className={styles.costGrid}>
               <article className={styles.costCard}>
-                <span className={styles.costCardLabel}>แม่ปุ๋ย 3 ชนิด</span>
+                <h3 className={styles.costCardLabel}>แม่ปุ๋ย 3 ชนิด</h3>
                 <strong className={styles.costAmount}>
                   {formatNumber(result.cost.straightCostThbPerRai, 0)}
                   <span className={styles.costUnit}> บาท/ไร่</span>
@@ -807,7 +829,7 @@ export function FertilizerDashboard() {
                 <span className={styles.costMeta}>{formatNumber(totalMixKg, 1)} กก./ไร่</span>
               </article>
               <article className={styles.costCard}>
-                <span className={styles.costCardLabel}>ปุ๋ยผสม {result.cost.baseline.grade}</span>
+                <h3 className={styles.costCardLabel}>ปุ๋ยผสม {result.cost.baseline.grade}</h3>
                 <strong className={styles.costAmount}>
                   {formatNumber(result.cost.baseline.costThbPerRai, 0)}
                   <span className={styles.costUnit}> บาท/ไร่</span>
@@ -821,9 +843,9 @@ export function FertilizerDashboard() {
                   savingsIsPositive ? styles.costCardGood : styles.costCardBad
                 }`}
               >
-                <span className={styles.costCardLabel}>
+                <h3 className={styles.costCardLabel}>
                   {savingsIsPositive ? 'ประหยัดโดยประมาณ' : 'ต้นทุนสูงกว่า'}
-                </span>
+                </h3>
                 <strong className={styles.costAmount}>
                   {formatNumber(Math.abs(savings), 0)}
                   <span className={styles.costUnit}> บาท/ไร่</span>
@@ -893,7 +915,12 @@ export function FertilizerDashboard() {
               <span className={styles.sectionMeta}>รวม {formatNumber(totalMixKg, 1)} กก./ไร่</span>
             </header>
 
-            <div className={styles.tableScroll}>
+            <div
+              className={styles.tableScroll}
+              role="region"
+              aria-label="ตารางแบ่งใส่ปุ๋ยต่อไร่ เลื่อนแนวนอนได้"
+              tabIndex={0}
+            >
               <table className={styles.table}>
                 <caption className={styles.tableCaption}>
                   ปริมาณสารอาหารต่อไร่ แยกตามครั้งที่ใส่
@@ -1023,13 +1050,13 @@ export function FertilizerDashboard() {
               </summary>
               <div className={styles.detailsBody}>
                 <p>{result.model.officialBasis}</p>
-                <h4>การปรับเทียบและสมมติฐาน</h4>
+                <p className={styles.detailsHeading}>การปรับเทียบและสมมติฐาน</p>
                 <ul className={styles.detailsList}>
                   {result.model.adjustments.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-                <h4>หมายเหตุรายพืชและขอบเขต</h4>
+                <p className={styles.detailsHeading}>หมายเหตุรายพืชและขอบเขต</p>
                 <ul className={styles.detailsList}>
                   {result.model.notes.map((item) => (
                     <li key={item}>{item}</li>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type {
   AgeBand,
   AgeBandKey,
@@ -36,6 +36,9 @@ type ScopeKey = 'national' | 'region' | 'province';
 type BandHighlight = 'young' | 'senior' | 'focus' | null;
 
 const NO_DATA = 'ไม่มีข้อมูล';
+
+/** จำนวนแถวต่อหน้าของตารางรายจังหวัด (77 แถวแบ่งหน้า ไม่ปล่อยยาวทั้งหน้า) */
+const TABLE_PAGE_SIZE = 20;
 
 const REGION_ORDER: RegionKey[] = ['north', 'northeast', 'central', 'east', 'south'];
 
@@ -349,6 +352,8 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
   const [cohort, setCohort] = useState<AgeGroupFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('afi');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [tablePage, setTablePage] = useState(1);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const selectedProvince = useMemo<ProvinceLaborProfile | null>(
     () => payload.provinces.find((province) => province.provinceCode === provinceCode) ?? null,
@@ -470,6 +475,25 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
     return rows;
   }, [regionProvinces, sortKey, sortDir]);
 
+  /** แบ่งหน้าตาราง 20 แถว; ถ้าตัวกรองทำให้หน้าเดิมเกินจำนวน ให้ยึดหน้าสุดท้ายที่ยังมีข้อมูล */
+  const tablePageCount = Math.max(1, Math.ceil(tableProvinces.length / TABLE_PAGE_SIZE));
+  const currentTablePage = Math.min(tablePage, tablePageCount);
+  const tablePageRows = useMemo(
+    () =>
+      tableProvinces.slice(
+        (currentTablePage - 1) * TABLE_PAGE_SIZE,
+        currentTablePage * TABLE_PAGE_SIZE,
+      ),
+    [tableProvinces, currentTablePage],
+  );
+  const tableRangeStart = tableProvinces.length === 0 ? 0 : (currentTablePage - 1) * TABLE_PAGE_SIZE + 1;
+  const tableRangeEnd = Math.min(currentTablePage * TABLE_PAGE_SIZE, tableProvinces.length);
+
+  /** เปลี่ยนหน้าหรือตัวกรองแล้วให้ตารางกลับไปเริ่มที่แถวแรก ไม่ค้าง scroll เดิม */
+  useEffect(() => {
+    if (tableScrollRef.current) tableScrollRef.current.scrollTop = 0;
+  }, [currentTablePage, tableProvinces]);
+
   const techLabelByCategory = useMemo(() => {
     const map = new Map<TechnologyCategory, string>();
     payload.technologyDemand.forEach((item) => map.set(item.category, item.label));
@@ -551,12 +575,23 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
 
   function handleRegionChange(nextRegion: RegionFilter) {
     setRegionKey(nextRegion);
+    setTablePage(1);
     if (nextRegion !== 'all' && provinceCode !== 'all') {
       const province = payload.provinces.find((item) => item.provinceCode === provinceCode);
       if (!province || province.regionKey !== nextRegion) {
         setProvinceCode('all');
       }
     }
+  }
+
+  function handleProvinceChange(nextProvinceCode: string) {
+    setProvinceCode(nextProvinceCode);
+    setTablePage(1);
+  }
+
+  function handleCohortChange(nextCohort: AgeGroupFilter) {
+    setCohort(nextCohort);
+    setTablePage(1);
   }
 
   function selectProvince(province: ProvinceLaborProfile) {
@@ -567,6 +602,7 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
   }
 
   function handleSort(next: SortKey) {
+    setTablePage(1);
     if (next === sortKey) {
       setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
       return;
@@ -579,6 +615,7 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
     setRegionKey('all');
     setProvinceCode('all');
     setCohort('all');
+    setTablePage(1);
   }
 
   const hasActiveFilter = regionKey !== 'all' || provinceCode !== 'all' || cohort !== 'all';
@@ -686,7 +723,7 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
               id="labor-province"
               className={styles.select}
               value={provinceCode}
-              onChange={(event) => setProvinceCode(event.target.value)}
+              onChange={(event) => handleProvinceChange(event.target.value)}
             >
               <option value="all">
                 ทุกจังหวัด ({intFormatter.format(regionProvinces.length)} รายการในขอบเขต)
@@ -712,7 +749,7 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
                   type="button"
                   className={`${styles.cohortButton} ${cohort === option.value ? styles.cohortButtonActive : ''}`}
                   aria-pressed={cohort === option.value}
-                  onClick={() => setCohort(option.value)}
+                  onClick={() => handleCohortChange(option.value)}
                 >
                   <span>{option.label}</span>
                   <small>{option.hint}</small>
@@ -932,7 +969,7 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
                 })}
               </div>
 
-              <p className={styles.pyramidHighlightNote}>
+              <p className={styles.pyramidHighlightNote} aria-live="polite">
                 {cohortNote} · ชาย {formatInt(pyramidTotals.male)} คน · หญิง{' '}
                 {formatInt(pyramidTotals.female)} คน · รวม {formatInt(pyramidTotals.total)} คน
               </p>
@@ -1169,7 +1206,8 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
             </p>
           </div>
           <span className={styles.sectionMeta}>
-            แสดง {intFormatter.format(tableProvinces.length)} จาก {intFormatter.format(regionProvinces.length)} จังหวัด
+            {intFormatter.format(tableProvinces.length)} จังหวัดในขอบเขต · หน้าละ{' '}
+            {intFormatter.format(TABLE_PAGE_SIZE)} แถว
           </span>
         </header>
 
@@ -1181,7 +1219,13 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
           </div>
         ) : (
           <div className={styles.tableCard}>
+            <p className={styles.tableCount} aria-live="polite">
+              แสดงจังหวัดที่ {intFormatter.format(tableRangeStart)}–
+              {intFormatter.format(tableRangeEnd)} จาก {intFormatter.format(tableProvinces.length)}{' '}
+              จังหวัดในขอบเขต
+            </p>
             <div
+              ref={tableScrollRef}
               className={styles.tableScroll}
               role="region"
               aria-label="ตารางสถานการณ์แรงงานรายจังหวัด เลื่อนแนวนอนได้"
@@ -1256,7 +1300,7 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {tableProvinces.map((province) => {
+                  {tablePageRows.map((province) => {
                     const isSelected = province.provinceCode === provinceCode;
                     return (
                       <tr
@@ -1304,6 +1348,29 @@ export function LaborDashboard({ payload }: LaborDashboardProps) {
                 </tbody>
               </table>
             </div>
+            {tablePageCount > 1 ? (
+              <nav className={styles.pager} aria-label="แบ่งหน้าตารางสถานการณ์รายจังหวัด">
+                <button
+                  type="button"
+                  className={styles.pagerButton}
+                  onClick={() => setTablePage(Math.max(1, currentTablePage - 1))}
+                  disabled={currentTablePage === 1}
+                >
+                  ← ก่อนหน้า
+                </button>
+                <span className={styles.pagerStatus}>
+                  หน้า {intFormatter.format(currentTablePage)} จาก {intFormatter.format(tablePageCount)}
+                </span>
+                <button
+                  type="button"
+                  className={styles.pagerButton}
+                  onClick={() => setTablePage(Math.min(tablePageCount, currentTablePage + 1))}
+                  disabled={currentTablePage === tablePageCount}
+                >
+                  ถัดไป →
+                </button>
+              </nav>
+            ) : null}
             <p className={styles.scrollHint}>
               <Icon name="arrow" size={13} />
               ตารางกว้างกว่าจอเล็กน้อย เลื่อนแนวนอนเพื่อดูคอลัมน์ที่เหลือ
@@ -1488,7 +1555,10 @@ function GovernanceBanner({ payload }: { payload: LaborDashboardPayload }) {
           <span className={styles.bannerUpdated}>อัปเดต {formatStamp(governance.updatedAt)}</span>
         </div>
         <p className={styles.bannerHeadline}>{governance.bannerText}</p>
-        <p className={styles.bannerText}>{governance.disclaimer}</p>
+        <details className={styles.bannerDetails}>
+          <summary>อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล</summary>
+          <p className={styles.bannerText}>{governance.disclaimer}</p>
+        </details>
         <ul className={styles.bannerMeta}>
           <li>ไม่อ้างอิงเป็นสถิติทางการ</li>
           <li>ไม่แสดงข้อมูลรายบุคคล</li>
@@ -1732,7 +1802,12 @@ function TrendPanel({ trend }: { trend: LaborDashboardPayload['trend'] }) {
         </div>
       </div>
 
-      <div className={styles.trendScroll}>
+      <div
+        className={styles.trendScroll}
+        role="region"
+        aria-label="กราฟแนวโน้มรายปี เลื่อนแนวนอนได้หากจอแคบ"
+        tabIndex={0}
+      >
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className={styles.trendSvg}

@@ -18,6 +18,9 @@ type CssVars = CSSProperties & Record<string, string | number>;
 type CenterSort = 'availability' | 'response' | 'load' | 'name';
 type TableSort = 'index' | 'readiness' | 'area' | 'units' | 'name';
 
+const CENTER_PAGE_SIZE = 6;
+const TABLE_PAGE_SIZE = 20;
+
 const LEVEL_LABELS: Record<ReadinessLevel, string> = {
   surplus: 'เพียงพอมาก',
   adequate: 'เพียงพอ',
@@ -289,8 +292,10 @@ export function MachineryDashboard({ payload }: Props) {
   const [centerKind, setCenterKind] = useState<ServiceCenterKind | 'all'>('all');
   const [centerQuery, setCenterQuery] = useState('');
   const [centerSort, setCenterSort] = useState<CenterSort>('availability');
-  const [centerLimit, setCenterLimit] = useState(6);
+  const [centerPage, setCenterPage] = useState(1);
   const [tableSort, setTableSort] = useState<TableSort>('index');
+  const [tablePage, setTablePage] = useState(1);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
 
   const typeMap = useMemo(
     () =>
@@ -329,12 +334,12 @@ export function MachineryDashboard({ payload }: Props) {
 
   const selectProvince = (code: string) => {
     setProvinceCode(code);
-    setCenterLimit(6);
+    setCenterPage(1);
   };
 
   const selectType = (type: MachineryType | 'all') => {
     setTypeFilter(type);
-    setCenterLimit(6);
+    setCenterPage(1);
   };
 
   const resetFilters = () => {
@@ -343,8 +348,9 @@ export function MachineryDashboard({ payload }: Props) {
     setCenterKind('all');
     setCenterQuery('');
     setCenterSort('availability');
-    setCenterLimit(6);
+    setCenterPage(1);
     setTableSort('index');
+    setTablePage(1);
   };
 
   const centersInScope = useMemo(
@@ -408,9 +414,15 @@ export function MachineryDashboard({ payload }: Props) {
     });
   }, [centersInScope, centerKind, centerQuery, centerSort, typeMap]);
 
+  const centerPageCount = Math.max(1, Math.ceil(filteredCenters.length / CENTER_PAGE_SIZE));
+  const safeCenterPage = Math.min(centerPage, centerPageCount);
   const visibleCenters = useMemo(
-    () => filteredCenters.slice(0, centerLimit),
-    [filteredCenters, centerLimit],
+    () =>
+      filteredCenters.slice(
+        (safeCenterPage - 1) * CENTER_PAGE_SIZE,
+        safeCenterPage * CENTER_PAGE_SIZE,
+      ),
+    [filteredCenters, safeCenterPage],
   );
 
   const watchlist = useMemo(
@@ -442,6 +454,13 @@ export function MachineryDashboard({ payload }: Props) {
       return right.profile.mechanizationIndex - left.profile.mechanizationIndex;
     });
   }, [payload.provinces, focusType, tableSort]);
+
+  const tablePageCount = Math.max(1, Math.ceil(tableRows.length / TABLE_PAGE_SIZE));
+  const safeTablePage = Math.min(tablePage, tablePageCount);
+  const visibleTableRows = useMemo(
+    () => tableRows.slice((safeTablePage - 1) * TABLE_PAGE_SIZE, safeTablePage * TABLE_PAGE_SIZE),
+    [tableRows, safeTablePage],
+  );
 
   const groundTypes = scope.types.filter((stat) => stat.totalHorsepower !== null);
   const groundHp = groundTypes.reduce((sum, stat) => sum + (stat.totalHorsepower ?? 0), 0);
@@ -557,7 +576,14 @@ export function MachineryDashboard({ payload }: Props) {
             <span>DOAE</span>
             <span>OAE</span>
             <span>ยังไม่เชื่อมทะเบียนรายหน่วย</span>
-            <a href="#sources">ดูแหล่งอ้างอิงและข้อจำกัด</a>
+            <a
+              href="#sources"
+              aria-expanded={sourcesOpen}
+              aria-controls="sources-details"
+              onClick={() => setSourcesOpen(true)}
+            >
+              ดูแหล่งอ้างอิงและข้อจำกัด
+            </a>
           </div>
         </div>
       </aside>
@@ -922,6 +948,7 @@ export function MachineryDashboard({ payload }: Props) {
                 key={entry.profile.provinceCode}
                 type="button"
                 className={`${styles.watchCard} ${provinceCode === entry.profile.provinceCode ? styles.watchCardActive : ''}`}
+                aria-pressed={provinceCode === entry.profile.provinceCode}
                 onClick={() => selectProvince(entry.profile.provinceCode)}
               >
                 <span className={styles.watchLocation}>
@@ -1025,7 +1052,7 @@ export function MachineryDashboard({ payload }: Props) {
                 value={centerQuery}
                 onChange={(event) => {
                   setCenterQuery(event.target.value);
-                  setCenterLimit(6);
+                  setCenterPage(1);
                 }}
                 aria-label="ค้นหาศูนย์บริการ"
               />
@@ -1035,7 +1062,7 @@ export function MachineryDashboard({ payload }: Props) {
                   className={styles.searchClear}
                   onClick={() => {
                     setCenterQuery('');
-                    setCenterLimit(6);
+                    setCenterPage(1);
                   }}
                   aria-label="ล้างคำค้นหา"
                 >
@@ -1050,7 +1077,7 @@ export function MachineryDashboard({ payload }: Props) {
                 value={centerSort}
                 onChange={(event) => {
                   setCenterSort(event.target.value as CenterSort);
-                  setCenterLimit(6);
+                  setCenterPage(1);
                 }}
               >
                 <option value="availability">เครื่องจักรว่างมากก่อน</option>
@@ -1068,7 +1095,7 @@ export function MachineryDashboard({ payload }: Props) {
               aria-pressed={centerKind === 'all'}
               onClick={() => {
                 setCenterKind('all');
-                setCenterLimit(6);
+                setCenterPage(1);
               }}
             >
               ทั้งหมด <span>{formatNumber(centersInScope.length)}</span>
@@ -1081,7 +1108,7 @@ export function MachineryDashboard({ payload }: Props) {
                 aria-pressed={centerKind === kind.id}
                 onClick={() => {
                   setCenterKind(centerKind === kind.id ? 'all' : kind.id);
-                  setCenterLimit(6);
+                  setCenterPage(1);
                 }}
               >
                 {kind.label} <span>{formatNumber(kindCounts[kind.id])}</span>
@@ -1118,17 +1145,33 @@ export function MachineryDashboard({ payload }: Props) {
                   <ServiceCenterCard key={center.id} center={center} typeMap={typeMap} />
                 ))}
               </div>
-              {visibleCenters.length < filteredCenters.length ? (
-                <div className={styles.loadMoreWrap}>
+              {filteredCenters.length > CENTER_PAGE_SIZE ? (
+                <nav className={styles.pager} aria-label="การแบ่งหน้าศูนย์บริการ">
                   <button
                     type="button"
-                    className={styles.outlineButton}
-                    onClick={() => setCenterLimit((current) => current + 6)}
+                    className={styles.pageButton}
+                    onClick={() => setCenterPage(safeCenterPage - 1)}
+                    disabled={safeCenterPage <= 1}
                   >
-                    แสดงเพิ่มอีก {formatNumber(Math.min(6, filteredCenters.length - visibleCenters.length))} รายการ
+                    ก่อนหน้า
                   </button>
-                  <span>แสดง {formatNumber(visibleCenters.length)} จาก {formatNumber(filteredCenters.length)} ศูนย์</span>
-                </div>
+                  <span className={styles.pageStatus}>
+                    หน้า <strong>{formatNumber(safeCenterPage)}</strong> จาก {formatNumber(centerPageCount)}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.pageButton}
+                    onClick={() => setCenterPage(safeCenterPage + 1)}
+                    disabled={safeCenterPage >= centerPageCount}
+                  >
+                    ถัดไป
+                  </button>
+                  <span className={styles.pagerRange}>
+                    แสดง {formatNumber((safeCenterPage - 1) * CENTER_PAGE_SIZE + 1)}–
+                    {formatNumber(Math.min(safeCenterPage * CENTER_PAGE_SIZE, filteredCenters.length))} จาก{' '}
+                    {formatNumber(filteredCenters.length)}
+                  </span>
+                </nav>
               ) : null}
             </>
           )}
@@ -1219,7 +1262,10 @@ export function MachineryDashboard({ payload }: Props) {
               <select
                 className={styles.sortSelect}
                 value={tableSort}
-                onChange={(event) => setTableSort(event.target.value as TableSort)}
+                onChange={(event) => {
+                  setTableSort(event.target.value as TableSort);
+                  setTablePage(1);
+                }}
               >
                 <option value="index">ดัชนี HP/ไร่ มากไปน้อย</option>
                 <option value="readiness">ความพร้อม ต่ำไปสูง</option>
@@ -1252,15 +1298,17 @@ export function MachineryDashboard({ payload }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {tableRows.map((row, index) => {
+                {visibleTableRows.map((row, index) => {
                   const selected = provinceCode === row.profile.provinceCode;
                   return (
                     <tr key={row.profile.provinceCode} className={selected ? styles.rowSelected : undefined}>
-                      <td className={styles.rankCell}>{formatNumber(index + 1)}</td>
+                      <td className={styles.rankCell}>
+                        {formatNumber((safeTablePage - 1) * TABLE_PAGE_SIZE + index + 1)}
+                      </td>
                       <td>
                         <button
                           type="button"
-                          className={styles.provinceButton}
+                          className={`${styles.provinceButton} ${selected ? styles.provinceButtonActive : ''}`}
                           onClick={() => selectProvince(selected ? 'all' : row.profile.provinceCode)}
                           aria-pressed={selected}
                         >
@@ -1283,6 +1331,34 @@ export function MachineryDashboard({ payload }: Props) {
               </tbody>
             </table>
           </div>
+          {tableRows.length > TABLE_PAGE_SIZE ? (
+            <nav className={styles.pager} aria-label="การแบ่งหน้าตารางอันดับจังหวัด">
+              <button
+                type="button"
+                className={styles.pageButton}
+                onClick={() => setTablePage(safeTablePage - 1)}
+                disabled={safeTablePage <= 1}
+              >
+                ก่อนหน้า
+              </button>
+              <span className={styles.pageStatus}>
+                หน้า <strong>{formatNumber(safeTablePage)}</strong> จาก {formatNumber(tablePageCount)}
+              </span>
+              <button
+                type="button"
+                className={styles.pageButton}
+                onClick={() => setTablePage(safeTablePage + 1)}
+                disabled={safeTablePage >= tablePageCount}
+              >
+                ถัดไป
+              </button>
+              <span className={styles.pagerRange} aria-live="polite">
+                แสดง {formatNumber((safeTablePage - 1) * TABLE_PAGE_SIZE + 1)}–
+                {formatNumber(Math.min(safeTablePage * TABLE_PAGE_SIZE, tableRows.length))} จาก{' '}
+                {formatNumber(tableRows.length)} จังหวัด
+              </span>
+            </nav>
+          ) : null}
         </div>
       </section>
 
@@ -1291,82 +1367,98 @@ export function MachineryDashboard({ payload }: Props) {
           id="sources-title"
           kicker="GOVERNANCE &amp; METHOD"
           title="วิธีการ แหล่งอ้างอิง และข้อจำกัด"
-          lead="ตัวเลขทั้งหมดเป็นชุดตัวอย่างที่คำนวณซ้ำได้จากสมมติฐานเดียวกัน ต้องตรวจทานกับทะเบียนจริงก่อนใช้ตัดสินใจลงทุนหรือจัดสรรเครื่องจักร"
+          aside={<span className={styles.sectionPill}>ต้องอ่านก่อนใช้ข้อมูล</span>}
         />
-        <div className={styles.governanceGrid}>
-          <div className={styles.methodCard}>
-            <span className={styles.cardKicker}>METHODOLOGY</span>
-            <h3>สูตรและสมมติฐานหลัก</h3>
-            <div className={styles.methodList}>
-              {payload.methodology.map((method) => (
-                <div key={method.title} className={styles.methodItem}>
-                  <strong>{method.title}</strong>
-                  <p>{method.detail}</p>
+        <details id="sources-details" className={styles.detailsPanel} open={sourcesOpen}>
+          <summary
+            onClick={(event) => {
+              event.preventDefault();
+              setSourcesOpen((open) => !open);
+            }}
+          >
+            อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล
+          </summary>
+          <div className={styles.detailsBody}>
+            <p className={styles.detailsLead}>
+              ตัวเลขทั้งหมดเป็นชุดตัวอย่างที่คำนวณซ้ำได้จากสมมติฐานเดียวกัน
+              ต้องตรวจทานกับทะเบียนจริงก่อนใช้ตัดสินใจลงทุนหรือจัดสรรเครื่องจักร
+            </p>
+            <div className={styles.governanceGrid}>
+              <div className={styles.methodCard}>
+                <span className={styles.cardKicker}>METHODOLOGY</span>
+                <h3>สูตรและสมมติฐานหลัก</h3>
+                <div className={styles.methodList}>
+                  {payload.methodology.map((method) => (
+                    <div key={method.title} className={styles.methodItem}>
+                      <strong>{method.title}</strong>
+                      <p>{method.detail}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className={styles.endpointBox}>
-              <span>PUBLIC API</span>
-              <code>GET /api/v1/machinery?provinceCode=14&amp;machineryType=combine_harvester</code>
-              <a href={apiHref} target="_blank" rel="noreferrer">
-                <CodeIcon size={15} /> เปิดผลลัพธ์ตามตัวกรองปัจจุบัน
-              </a>
-            </div>
-          </div>
-
-          <div className={styles.sourceCard}>
-            <div className={styles.sourceHead}>
-              <div>
-                <span className={styles.cardKicker}>REFERENCES</span>
-                <h3>แหล่งอ้างอิงและสถานะ</h3>
+                <div className={styles.endpointBox}>
+                  <span>PUBLIC API</span>
+                  <code>GET /api/v1/machinery?provinceCode=14&amp;machineryType=combine_harvester</code>
+                  <a href={apiHref} target="_blank" rel="noreferrer">
+                    <CodeIcon size={15} /> เปิดผลลัพธ์ตามตัวกรองปัจจุบัน
+                  </a>
+                </div>
               </div>
-              <span className={styles.sectionPill}>{formatNumber(payload.sources.length)} แหล่ง</span>
-            </div>
-            <div className={styles.sourceList}>
-              {payload.sources.map((source) => (
-                <div key={source.id} className={styles.sourceItem}>
-                  <div className={styles.sourceTitleRow}>
-                    <strong>{source.name}</strong>
-                    <span className={source.status === 'verified_reference' ? styles.sourceVerified : styles.sourcePending}>
-                      {source.status === 'verified_reference' ? 'อ้างอิงราชการ' : 'รอยืนยัน'}
-                    </span>
+
+              <div className={styles.sourceCard}>
+                <div className={styles.sourceHead}>
+                  <div>
+                    <span className={styles.cardKicker}>REFERENCES</span>
+                    <h3>แหล่งอ้างอิงและสถานะ</h3>
                   </div>
-                  <span className={styles.sourceRole}>{source.role}</span>
-                  <p>{source.note}</p>
-                  {source.url ? (
-                    <a href={source.url} target="_blank" rel="noreferrer">
-                      {source.url}
-                    </a>
-                  ) : (
-                    <span className={styles.sourceNoLink}>ไม่แสดงลิงก์จนกว่าจะยืนยันแหล่งทางการ</span>
-                  )}
+                  <span className={styles.sectionPill}>{formatNumber(payload.sources.length)} แหล่ง</span>
                 </div>
-              ))}
+                <div className={styles.sourceList}>
+                  {payload.sources.map((source) => (
+                    <div key={source.id} className={styles.sourceItem}>
+                      <div className={styles.sourceTitleRow}>
+                        <strong>{source.name}</strong>
+                        <span className={source.status === 'verified_reference' ? styles.sourceVerified : styles.sourcePending}>
+                          {source.status === 'verified_reference' ? 'อ้างอิงราชการ' : 'รอยืนยัน'}
+                        </span>
+                      </div>
+                      <span className={styles.sourceRole}>{source.role}</span>
+                      <p>{source.note}</p>
+                      {source.url ? (
+                        <a href={source.url} target="_blank" rel="noreferrer">
+                          {source.url}
+                        </a>
+                      ) : (
+                        <span className={styles.sourceNoLink}>ไม่แสดงลิงก์จนกว่าจะยืนยันแหล่งทางการ</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className={styles.warningsCard}>
-          <div className={styles.warningsHead}>
-            <span className={styles.warningsIcon}>
-              <AlertIcon size={18} />
-            </span>
-            <div>
-              <strong>ข้อจำกัดที่ต้องอ่านก่อนใช้ข้อมูล</strong>
-              <span>อ่านควบคู่กับ methodology และแหล่งอ้างอิงทุกครั้ง</span>
+            <div className={styles.warningsCard}>
+              <div className={styles.warningsHead}>
+                <span className={styles.warningsIcon}>
+                  <AlertIcon size={18} />
+                </span>
+                <div>
+                  <strong>ข้อจำกัดที่ต้องอ่านก่อนใช้ข้อมูล</strong>
+                  <span>อ่านควบคู่กับ methodology และแหล่งอ้างอิงทุกครั้ง</span>
+                </div>
+              </div>
+              <ul>
+                {payload.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
             </div>
-          </div>
-          <ul>
-            {payload.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
 
-        <p className={styles.footerNote}>
-          Thailand Agricultural Data Hub • Machinery sample dataset • ข้อมูล ณ {payload.dataAsOfLabel} •
-          ค่าเช่าและความพร้อมเป็นค่าจำลอง ไม่ใช่ราคาหรือสถานะบริการจริง
-        </p>
+            <p className={styles.footerNote}>
+              Thailand Agricultural Data Hub • Machinery sample dataset • ข้อมูล ณ {payload.dataAsOfLabel} •
+              ค่าเช่าและความพร้อมเป็นค่าจำลอง ไม่ใช่ราคาหรือสถานะบริการจริง
+            </p>
+          </div>
+        </details>
       </section>
     </div>
   );

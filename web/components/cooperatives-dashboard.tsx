@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type {
   CamelClass,
   CamelDimension,
@@ -32,8 +32,10 @@ export interface CooperativesDashboardProps {
 }
 
 const NO_DATA = 'ไม่มีข้อมูล';
-const COOP_TABLE_CAP_STEP = 25;
-const PROVINCE_TABLE_CAP_STEP = 12;
+/** ตารางยาวแบ่งหน้า 20 แถวต่อหน้า (สอดคล้องกฎ Group C: ไม่เกิน 20 แถวต่อครั้ง) */
+const COOP_PAGE_SIZE = 20;
+const PROVINCE_PAGE_SIZE = 20;
+const DETAILS_SUMMARY = 'อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล';
 
 const intFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 });
 const compactFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
@@ -217,6 +219,56 @@ function deriveDimensionAverages(rows: CooperativeRecord[]): DimensionAverage[] 
   }));
 }
 
+// Rollup รายจังหวัดจากรายการที่กรองแล้ว ใช้กติกาบวกเดียวกับ lib/hub/cooperatives-data.ts
+function rollupProvinces(rows: CooperativeRecord[]): CoopProvinceRollup[] {
+  const buckets = new Map<string, CoopProvinceRollup>();
+  const tonsByCode = new Map<string, number>();
+
+  rows.forEach((coop) => {
+    let bucket = buckets.get(coop.provinceCode);
+    if (bucket === undefined) {
+      bucket = {
+        provinceCode: coop.provinceCode,
+        provinceName: coop.provinceName,
+        region: coop.region,
+        coopCount: 0,
+        memberCount: 0,
+        collectionTons: 0,
+        collectionValueTHB: 0,
+        supplyCreditValueTHB: 0,
+        workingCapitalValueTHB: 0,
+        businessValueTHB: 0,
+        tier1Count: 0,
+        tier2Count: 0,
+        tier3Count: 0,
+      };
+      buckets.set(coop.provinceCode, bucket);
+      tonsByCode.set(coop.provinceCode, 0);
+    }
+    bucket.coopCount += 1;
+    bucket.memberCount += coop.memberCount;
+    tonsByCode.set(coop.provinceCode, (tonsByCode.get(coop.provinceCode) ?? 0) + coop.collectionTotalTons);
+    bucket.collectionValueTHB += coop.collectionTotalValueTHB;
+    bucket.supplyCreditValueTHB += coop.supplyCreditValueTHB;
+    bucket.workingCapitalValueTHB += coop.workingCapitalTHB;
+    bucket.businessValueTHB += coop.businessValueTHB;
+    if (coop.camel.camelClass === 'tier1') bucket.tier1Count += 1;
+    else if (coop.camel.camelClass === 'tier2') bucket.tier2Count += 1;
+    else bucket.tier3Count += 1;
+  });
+
+  const out = Array.from(buckets.values()).map((bucket) => ({
+    ...bucket,
+    collectionTons: Math.round((tonsByCode.get(bucket.provinceCode) ?? 0) * 10) / 10,
+  }));
+  out.sort((a, b) => b.businessValueTHB - a.businessValueTHB || a.provinceName.localeCompare(b.provinceName, 'th'));
+  return out;
+}
+
+function clampPage(page: number, pageCount: number): number {
+  return Math.min(Math.max(1, page), Math.max(1, pageCount));
+}
+
 function radarAngle(index: number): number {
   return ((-90 + index * 60) * Math.PI) / 180;
 }
@@ -253,8 +305,8 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
   const [selectedId, setSelectedId] = useState<string>(() => payload.cooperatives[0]?.id ?? '');
   const [sortKey, setSortKey] = useState<CoopSortKey>('businessValueTHB');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [coopVisible, setCoopVisible] = useState<number>(COOP_TABLE_CAP_STEP);
-  const [provinceVisible, setProvinceVisible] = useState<number>(PROVINCE_TABLE_CAP_STEP);
+  const [coopPage, setCoopPage] = useState<number>(1);
+  const [provincePage, setProvincePage] = useState<number>(1);
 
   const filteredCoops = useMemo(
     () =>
@@ -288,12 +340,21 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
     [payload.filterOptions.provinces, payload.filterOptions.regions],
   );
 
-  const sortedProvinces = useMemo(() => {
-    // เรียงถาวรตามมูลค่าธุรกิจมากสุดก่อน — ไม่ผูกกับปุ่มเรียงของตารางสหกรณ์
-    const rows = [...payload.byProvince];
-    rows.sort((a, b) => b.businessValueTHB - a.businessValueTHB);
-    return rows;
-  }, [payload.byProvince]);
+  const sortedProvinces = useMemo(() => rollupProvinces(filteredCoops), [filteredCoops]);
+
+  const coopPageCount = Math.max(1, Math.ceil(sortedCoops.length / COOP_PAGE_SIZE));
+  const coopPageSafe = clampPage(coopPage, coopPageCount);
+  const coopPageRows = sortedCoops.slice(
+    (coopPageSafe - 1) * COOP_PAGE_SIZE,
+    coopPageSafe * COOP_PAGE_SIZE,
+  );
+
+  const provincePageCount = Math.max(1, Math.ceil(sortedProvinces.length / PROVINCE_PAGE_SIZE));
+  const provincePageSafe = clampPage(provincePage, provincePageCount);
+  const provincePageRows = sortedProvinces.slice(
+    (provincePageSafe - 1) * PROVINCE_PAGE_SIZE,
+    provincePageSafe * PROVINCE_PAGE_SIZE,
+  );
 
   const hasActiveFilter =
     region !== 'all' ||
@@ -304,16 +365,23 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
 
   const isSelectionFallback = selectedCoop !== null && selectedCoop.id !== selectedId;
 
+  /** เปลี่ยนตัวกรองแล้วต้องกลับไปหน้า 1 ของตารางทั้งสอง (ตารางสะท้อนตัวกรองเดียวกัน) */
+  function resetPages() {
+    setCoopPage(1);
+    setProvincePage(1);
+  }
+
   function resetFilters() {
     setRegion('all');
     setProvinceCode('all');
     setCoopType('all');
     setCamelClass('all');
     setQuery('');
-    setCoopVisible(COOP_TABLE_CAP_STEP);
+    resetPages();
   }
 
   function toggleSort(key: CoopSortKey) {
+    setCoopPage(1);
     if (key === sortKey) {
       setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       return;
@@ -341,7 +409,10 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
               id="coop-region"
               className={styles.control}
               value={region}
-              onChange={(event) => setRegion(event.target.value)}
+              onChange={(event) => {
+                setRegion(event.target.value);
+                resetPages();
+              }}
             >
               <option value="all">ทุกภาค ({payload.filterOptions.regions.length})</option>
               {payload.filterOptions.regions.map((item) => (
@@ -360,7 +431,10 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
               id="coop-province"
               className={styles.control}
               value={provinceCode}
-              onChange={(event) => setProvinceCode(event.target.value)}
+              onChange={(event) => {
+                setProvinceCode(event.target.value);
+                resetPages();
+              }}
             >
               <option value="all">ทุกจังหวัด ({payload.filterOptions.provinces.length})</option>
               {provinceGroups.map((group) => (
@@ -383,7 +457,10 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
               id="coop-type"
               className={styles.control}
               value={coopType}
-              onChange={(event) => setCoopType(event.target.value as CoopType | 'all')}
+              onChange={(event) => {
+                setCoopType(event.target.value as CoopType | 'all');
+                resetPages();
+              }}
             >
               <option value="all">ทุกประเภท ({payload.filterOptions.types.length})</option>
               {payload.filterOptions.types.map((option) => (
@@ -402,7 +479,10 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
               id="coop-class"
               className={styles.control}
               value={camelClass}
-              onChange={(event) => setCamelClass(event.target.value as CamelClass | 'all')}
+              onChange={(event) => {
+                setCamelClass(event.target.value as CamelClass | 'all');
+                resetPages();
+              }}
             >
               <option value="all">ทุกชั้น ({payload.filterOptions.classes.length})</option>
               {payload.filterOptions.classes.map((option) => (
@@ -424,7 +504,10 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
                 type="search"
                 className={styles.searchInput}
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  resetPages();
+                }}
                 aria-describedby="coop-query-hint"
                 placeholder="เช่น สหกรณ์ / ชลบุรี / ข้าว"
               />
@@ -490,8 +573,11 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
           </div>
         ) : (
           <>
-            <div className={styles.tableWrap}>
+            <TableRegion label="ตารางสหกรณ์และกลุ่มตามตัวกรอง (เลื่อนแนวนอนหรือแนวตั้งได้)">
               <table className={styles.table}>
+                <caption className={styles.tableCaption}>
+                  ตารางสหกรณ์/กลุ่ม {intFormatter.format(sortedCoops.length)} รายการตามตัวกรอง · ชื่อและเลขทะเบียนเป็นค่าตัวอย่าง
+                </caption>
                 <thead className={styles.tableHead}>
                   <tr>
                     <th scope="col" className={styles.nameCell} aria-sort={ariaSortOf('name')}>
@@ -549,7 +635,7 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedCoops.slice(0, coopVisible).map((coop) => (
+                  {coopPageRows.map((coop) => (
                     <CoopRow
                       key={coop.id}
                       coop={coop}
@@ -559,20 +645,19 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
                   ))}
                 </tbody>
               </table>
-            </div>
-            {coopVisible < sortedCoops.length ? (
-              <div className={styles.moreRow}>
-                <button
-                  type="button"
-                  className={styles.moreButton}
-                  onClick={() => setCoopVisible((prev) => prev + COOP_TABLE_CAP_STEP)}
-                >
-                  แสดงเพิ่ม (เหลืออีก {intFormatter.format(sortedCoops.length - coopVisible)} รายการ)
-                </button>
-              </div>
-            ) : (
+            </TableRegion>
+            <Pagination
+              noun="รายการ"
+              page={coopPageSafe}
+              pageCount={coopPageCount}
+              total={sortedCoops.length}
+              pageSize={COOP_PAGE_SIZE}
+              onPrevious={() => setCoopPage(Math.max(1, coopPageSafe - 1))}
+              onNext={() => setCoopPage(Math.min(coopPageCount, coopPageSafe + 1))}
+            />
+            {coopPageCount <= 1 ? (
               <p className={styles.moreNote}>แสดงครบทุกรายการที่ผ่านตัวกรองแล้ว</p>
-            )}
+            ) : null}
           </>
         )}
       </section>
@@ -585,9 +670,13 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
       </div>
 
       <ProvinceTable
-        rows={sortedProvinces}
-        visible={provinceVisible}
-        onShowMore={() => setProvinceVisible((prev) => prev + PROVINCE_TABLE_CAP_STEP)}
+        rows={provincePageRows}
+        total={sortedProvinces.length}
+        page={provincePageSafe}
+        pageCount={provincePageCount}
+        onPrevious={() => setProvincePage(Math.max(1, provincePageSafe - 1))}
+        onNext={() => setProvincePage(Math.min(provincePageCount, provincePageSafe + 1))}
+        filtered={hasActiveFilter}
       />
 
       <section className={styles.section} aria-label="ข้อจำกัดของชุดข้อมูล">
@@ -596,22 +685,38 @@ export function CooperativesDashboard({ payload }: CooperativesDashboardProps) {
             <span className={styles.eyebrow}>Provenance</span>
             <h2 className={styles.sectionTitle}>ข้อจำกัดที่ต้องอ่านร่วมกัน</h2>
           </div>
+          <span className={styles.sectionMeta}>
+            ชุดตัวอย่าง (sample) · เผยแพร่แบบ metadata-only · หลักฐานยังไม่ตรวจสอบ
+          </span>
         </header>
-        <p className={styles.coverageNote}>{payload.coverageNote}</p>
-        {payload.warnings.length > 0 ? (
-          <div className={styles.warningBlock}>
-            <span className={styles.expandLabel}>
-              ข้อควรระวังของชุดข้อมูล ({intFormatter.format(payload.warnings.length)} รายการ)
-            </span>
-            <ul className={styles.warningList}>
-              {payload.warnings.map((warning) => (
-                <li key={warning} className={styles.warningItem}>
-                  {warning}
-                </li>
-              ))}
-            </ul>
+
+        <div className={styles.chipRow}>
+          <span className={styles.chip}>ชุดตัวอย่าง (sample: true)</span>
+          <span className={styles.chip}>สิทธิ์: metadata_only (CPD/CAD pending)</span>
+          <span className={styles.chip}>เลขทะเบียนเป็นค่าตัวอย่าง (sample_placeholder)</span>
+        </div>
+
+        <details className={styles.details}>
+          <summary className={styles.detailsSummary}>{DETAILS_SUMMARY}</summary>
+          <div className={styles.detailsBody}>
+            <p className={styles.coverageNote}>{payload.coverageNote}</p>
+            {payload.warnings.length > 0 ? (
+              <div className={styles.warningBlock}>
+                <span className={styles.expandLabel}>
+                  ข้อควรระวังของชุดข้อมูล ({intFormatter.format(payload.warnings.length)} รายการ)
+                </span>
+                <ul className={styles.warningList}>
+                  {payload.warnings.map((warning) => (
+                    <li key={warning} className={styles.warningItem}>
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        </details>
+
         <p className={styles.datasetMeta}>
           เวอร์ชันชุดข้อมูล <code>{payload.datasetVersion}</code> · อ้างอิง ณ วันที่{' '}
           <code>{payload.dataAsOf}</code> · สถานะการเข้าถึง <code>{payload.access}</code> · แหล่งอ้างอิง{' '}
@@ -675,9 +780,9 @@ function KpiSection({
 
       <div className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>
+          <h3 className={styles.kpiLabel}>
             <Icon name="catalog" size={14} /> สหกรณ์/กลุ่มทั้งหมด
-          </span>
+          </h3>
           <span className={styles.kpiValue}>
             {formatIntOrNull(stats.coopCount)} <span className={styles.kpiUnit}>แห่ง</span>
           </span>
@@ -688,9 +793,9 @@ function KpiSection({
         </div>
 
         <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>
+          <h3 className={styles.kpiLabel}>
             <Icon name="layers" size={14} /> สมาชิก
-          </span>
+          </h3>
           <span className={styles.kpiValue}>
             {formatIntOrNull(stats.memberCount)} <span className={styles.kpiUnit}>ราย</span>
           </span>
@@ -700,9 +805,9 @@ function KpiSection({
         </div>
 
         <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>
+          <h3 className={styles.kpiLabel}>
             <Icon name="chart" size={14} /> มูลค่าธุรกิจรวม
-          </span>
+          </h3>
           <span className={styles.kpiValue}>{formatBahtMillions(stats.businessValueTHB)}</span>
           <span className={styles.kpiNote}>
             หน่วย ล้านบาท (ทศนิยม 1-2 ตำแหน่ง) · ทั้งชุดทะเบียน{' '}
@@ -711,9 +816,9 @@ function KpiSection({
         </div>
 
         <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>
+          <h3 className={styles.kpiLabel}>
             <Icon name="leaf" size={14} /> สหกรณ์ชั้น 1
-          </span>
+          </h3>
           <span className={styles.kpiValue}>
             {formatPct(stats.tier1SharePct)} <span className={styles.kpiUnit}>ของรายการที่แสดง</span>
           </span>
@@ -724,9 +829,9 @@ function KpiSection({
         </div>
 
         <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>
+          <h3 className={styles.kpiLabel}>
             <Icon name="info" size={14} /> แต้ม CAMELS เฉลี่ย
-          </span>
+          </h3>
           <span className={styles.kpiValue}>
             {formatScore(stats.avgComposite)} <span className={styles.kpiUnit}>/ 100</span>
           </span>
@@ -737,9 +842,9 @@ function KpiSection({
         </div>
 
         <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>
+          <h3 className={styles.kpiLabel}>
             <Icon name="water" size={14} /> ปริมาณรวบรวมรวม
-          </span>
+          </h3>
           <span className={styles.kpiValue}>
             {formatIntOrNull(stats.collectionTons)} <span className={styles.kpiUnit}>ตัน</span>
           </span>
@@ -960,7 +1065,7 @@ function DimensionDetail({ coop, averages }: { coop: CooperativeRecord; averages
         </span>
       </div>
 
-      <div className={styles.tableWrap}>
+      <TableRegion label="ตารางคะแนน CAMELS รายมิติ (เลื่อนแนวนอนได้)">
         <table className={styles.table}>
           <caption className={styles.tableCaption}>
             คะแนน CAMELS รายมิติของ {coop.name} พร้อมคำอธิบาย (ข้อมูลตัวอย่าง)
@@ -991,7 +1096,7 @@ function DimensionDetail({ coop, averages }: { coop: CooperativeRecord; averages
             ))}
           </tbody>
         </table>
-      </div>
+      </TableRegion>
 
       <dl className={styles.factList}>
         <div className={styles.factRow}>
@@ -1084,7 +1189,7 @@ function CollectionSection({ coop }: { coop: CooperativeRecord | null }) {
       ) : coop.collection.length === 0 ? (
         <p className={styles.nullValue}>{NO_DATA} — รายการนี้ไม่มีเส้นการรวบรวมผลผลิตในชุดตัวอย่าง</p>
       ) : (
-        <div className={styles.tableWrap}>
+        <TableRegion label="ตารางการรวบรวมผลผลิตรายสินค้า (เลื่อนแนวนอนได้)">
           <table className={styles.table}>
             <caption className={styles.tableCaption}>
               เส้นการรวบรวมผลผลิตของ {coop.name} (ข้าวเปลือก ยางพารา ปาล์มน้ำมัน ข้าวโพดเลี้ยงสัตว์)
@@ -1122,7 +1227,7 @@ function CollectionSection({ coop }: { coop: CooperativeRecord | null }) {
               </tr>
             </tbody>
           </table>
-        </div>
+        </TableRegion>
       )}
       <p className={styles.tableFootNote}>
         ค่าว่างแสดงเป็น “ไม่มีข้อมูล” ไม่แปลงเป็น 0 และไม่บวก subtotal ซ้ำกับรายการรายสายสินค้า
@@ -1238,31 +1343,49 @@ const TIER_FILL_CLASS: Record<CamelClass, string> = {
 
 function ProvinceTable({
   rows,
-  visible,
-  onShowMore,
+  total,
+  page,
+  pageCount,
+  onPrevious,
+  onNext,
+  filtered,
 }: {
   rows: CoopProvinceRollup[];
-  visible: number;
-  onShowMore: () => void;
+  total: number;
+  page: number;
+  pageCount: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  filtered: boolean;
 }) {
   return (
-    <section className={styles.section} aria-label="สรุปภาพรวมรายจังหวัด (ภาพรวมทั้งชุดตัวอย่าง)">
+    <section className={styles.section} aria-label="สรุปภาพรวมรายจังหวัด (ตามเงื่อนไขที่เลือก)">
       <header className={styles.sectionHeader}>
         <div>
           <span className={styles.eyebrow}>
-            ภาพรวมทั้งชุด · {intFormatter.format(rows.length)} จังหวัดที่มีรายการตัวอย่าง
+            {filtered ? 'ตามเงื่อนไขที่เลือก' : 'ภาพรวมทั้งชุด'} · {intFormatter.format(total)} จังหวัดที่มีรายการตัวอย่าง
           </span>
           <h2 className={styles.sectionTitle}>ตารางรายจังหวัด</h2>
         </div>
         <span className={styles.sectionMeta}>จังหวัดเป็นหมุดอ้างอิง ไม่ใช่ขอบเขตครอบคลุมข้อมูล</span>
       </header>
 
-      {rows.length === 0 ? (
-        <p className={styles.nullValue}>{NO_DATA}</p>
+      {total === 0 ? (
+        <div className={styles.emptyState} role="status">
+          <Icon name="search" size={26} />
+          <p className={styles.emptyTitle}>ไม่พบจังหวัดที่ตรงกับตัวกรอง</p>
+          <p className={styles.emptyText}>
+            ตารางนี้สรุปจากรายการที่ผ่านตัวกรองเดียวกับตารางสหกรณ์ จึงว่างเมื่อไม่มีรายการตรงเงื่อนไข
+            ลองเลือกภาค/จังหวัด/ประเภท/ชั้นใหม่ หรือล้างตัวกรอง
+          </p>
+        </div>
       ) : (
         <>
-          <div className={styles.tableWrap}>
+          <TableRegion label="ตารางสรุปรายจังหวัดตามตัวกรอง (เลื่อนแนวนอนหรือแนวตั้งได้)">
             <table className={styles.table}>
+              <caption className={styles.tableCaption}>
+                ตารางรายจังหวัด {intFormatter.format(total)} จังหวัด · ผลรวมคำนวณจากรายการที่ผ่านตัวกรองเท่านั้น (ข้อมูลตัวอย่าง)
+              </caption>
               <thead className={styles.tableHead}>
                 <tr>
                   <th scope="col" className={styles.nameCell}>
@@ -1287,7 +1410,7 @@ function ProvinceTable({
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, visible).map((row) => (
+                {rows.map((row) => (
                   <tr key={row.provinceCode} className={styles.row}>
                     <th scope="row" className={styles.rowHead}>
                       {row.provinceName}
@@ -1303,18 +1426,70 @@ function ProvinceTable({
                 ))}
               </tbody>
             </table>
-          </div>
-          {visible < rows.length ? (
-            <div className={styles.moreRow}>
-              <button type="button" className={styles.moreButton} onClick={onShowMore}>
-                แสดงเพิ่ม (เหลืออีก {intFormatter.format(rows.length - visible)} จังหวัด)
-              </button>
-            </div>
-          ) : (
+          </TableRegion>
+          <Pagination
+            noun="จังหวัด"
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            pageSize={PROVINCE_PAGE_SIZE}
+            onPrevious={onPrevious}
+            onNext={onNext}
+          />
+          {pageCount <= 1 ? (
             <p className={styles.moreNote}>แสดงครบทุกจังหวัดที่มีรายการตัวอย่างแล้ว</p>
-          )}
+          ) : null}
         </>
       )}
     </section>
+  );
+}
+
+/** กรอบตารางที่โฟกัสได้ เพื่อให้ผู้ใช้คีย์บอร์ดเลื่อนตารางแนวนอนได้ (role=region + tabIndex) */
+function TableRegion({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.tableWrap} role="region" aria-label={label} tabIndex={0}>
+      {children}
+    </div>
+  );
+}
+
+/** แบ่งหน้าตาราง: แสดงช่วงรายการ + หน้า X จาก Y + ปุ่มก่อนหน้า/ถัดไป (ซ่อนเมื่อข้อมูลจบในหน้าเดียว) */
+function Pagination({
+  noun,
+  page,
+  pageCount,
+  total,
+  pageSize,
+  onPrevious,
+  onNext,
+}: {
+  noun: string;
+  page: number;
+  pageCount: number;
+  total: number;
+  pageSize: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  if (pageCount <= 1 || total === 0) return null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  return (
+    <div className={styles.pager}>
+      <p className={styles.pagerStatus} role="status" aria-live="polite">
+        แสดง <strong>{intFormatter.format(from)}–{intFormatter.format(to)}</strong> จาก{' '}
+        {intFormatter.format(total)} {noun} · หน้า <strong>{intFormatter.format(page)}</strong> จาก{' '}
+        {intFormatter.format(pageCount)}
+      </p>
+      <div className={styles.pagerButtons}>
+        <button type="button" className={styles.pagerButton} onClick={onPrevious} disabled={page <= 1}>
+          ก่อนหน้า
+        </button>
+        <button type="button" className={styles.pagerButton} onClick={onNext} disabled={page >= pageCount}>
+          ถัดไป
+        </button>
+      </div>
+    </div>
   );
 }

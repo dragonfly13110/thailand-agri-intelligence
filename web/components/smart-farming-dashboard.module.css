@@ -13,6 +13,41 @@
   color: var(--ink, var(--ink));
 }
 
+/* ------------------------------------------------- บทนำแบบยุบ/ขยาย (page) */
+.introDetails {
+  margin-top: 10px;
+}
+
+.introSummary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--forest, var(--forest));
+  cursor: pointer;
+}
+
+.introSummary:hover {
+  text-decoration: underline;
+}
+
+.introBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  max-width: 92ch;
+}
+
+.introBody p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--muted, var(--muted));
+  overflow-wrap: anywhere;
+}
+
 /* ---------------------------------------------------------------- Banner */
 .banner {
   display: flex;
@@ -278,6 +313,22 @@
   border-radius: var(--radius, 8px);
 }
 
+.filterHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--forest, var(--forest));
+}
+
 .filterGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -404,6 +455,7 @@
 }
 
 .farmCard {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -426,7 +478,7 @@
   box-shadow: 0 4px 12px rgba(33, 61, 50, 0.08);
 }
 
-.farmCard:focus-visible {
+.farmCard:focus-within {
   outline: 2px solid var(--forest, var(--forest));
   outline-offset: 2px;
 }
@@ -436,6 +488,35 @@
   border-left-color: var(--forest, var(--forest));
   background: #f7faf1;
   box-shadow: 0 4px 14px rgba(33, 61, 50, 0.1);
+}
+
+/* ปุ่มเลือกแปลง: ข้อความเต็มบัตรยังคลิกได้ด้วยการขยายพื้นที่ปุ่มให้คลุมบัตร */
+.farmSelect {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.farmSelect::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.farmSelect:focus-visible {
+  outline: none;
+}
+
+.farmSelect:hover {
+  text-decoration: underline;
 }
 
 .farmCardTop {
@@ -448,6 +529,7 @@
 
 .farmName {
   margin: 0;
+  flex: 1;
   font-size: 14.5px;
   font-weight: 700;
   line-height: 1.5;
@@ -658,6 +740,72 @@
   color: #fff;
   background: #15803d;
   border-color: #12692f;
+}
+
+/* ------------------------------------------------------- Pagination (list) */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, var(--line));
+  border-radius: var(--radius, 8px);
+}
+
+.pagerStatus {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+.pagerControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagerButton {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest, var(--forest));
+  background: var(--white, #fff);
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.pagerButton:hover:not(:disabled) {
+  background: var(--accent, var(--accent));
+  border-color: #9fb27f;
+}
+
+.pagerButton:disabled {
+  color: var(--muted, var(--muted));
+  background: var(--surface-muted);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.pagerButton:focus-visible {
+  outline: 2px solid var(--forest, var(--forest));
+  outline-offset: 1px;
+}
+
+.pagerPosition {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--forest, var(--forest));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* --------------------------------------------------------------- Details */
@@ -1143,6 +1291,11 @@
   border-radius: var(--radius, 8px);
 }
 
+.tableScroll:focus-visible {
+  outline: 2px solid var(--forest, var(--forest));
+  outline-offset: 2px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -1256,6 +1409,61 @@
   font-size: 11px;
   line-height: 1.6;
   color: var(--muted, var(--muted));
+}
+
+/* -------------------------------------------------- Limits / governance */
+.limitsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #f3f6ee;
+  border: 1px solid #d5dfc8;
+  border-radius: var(--radius, 8px);
+}
+
+.limitsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.limitCard {
+  padding: 12px;
+  background: var(--white, #fff);
+  border: 1px solid var(--line, var(--line));
+  border-left: 3px solid #b45309;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.limitTitle {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--forest, var(--forest));
+  overflow-wrap: anywhere;
+}
+
+.limitDetail {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, var(--muted));
+  overflow-wrap: anywhere;
+}
+
+.limitsSources {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--muted, var(--muted));
+  overflow-wrap: anywhere;
 }
 
 /* -------------------------------------------------------- Sources & gaps */
@@ -1445,6 +1653,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .limitsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .scrollHint {
     display: flex;
   }
@@ -1483,6 +1695,40 @@
 
   .resetButton {
     width: 100%;
+  }
+
+  .pager {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pagerControls {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .pagerButton {
+    flex: 1;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .pagerPosition {
+    flex: 1;
+    text-align: center;
+  }
+
+  .limitsSection {
+    padding: 14px;
+  }
+
+  .limitsGrid {
+    gap: 8px;
+  }
+
+  .introBody p {
+    font-size: 13px;
   }
 
   .field {
@@ -1629,7 +1875,8 @@
 /* ลดการเคลื่อนไหวสำหรับผู้ใช้ตั้ง prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .farmCard,
-  .resetButton {
+  .resetButton,
+  .pagerButton {
     transition: none;
   }
 

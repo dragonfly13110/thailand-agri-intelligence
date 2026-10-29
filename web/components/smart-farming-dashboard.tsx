@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type {
   FarmPlot,
   IrrigationPriority,
@@ -33,6 +33,26 @@ export interface SmartFarmingDashboardProps {
 
 type MoistureFilter = 'all' | MoistureStatus;
 type SensorStateFilter = 'all' | 'online' | 'offline' | 'low_battery';
+/** เรียงลำดับบัตรแปลงในรายการ (ไม่เปลี่ยนค่าหรือจำนวนแปลง) */
+type FarmSort = 'default' | 'moisture_asc' | 'priority' | 'area_desc' | 'name';
+
+/** จำนวนบัตรแปลงต่อหน้า — รายการยาว 100+ แปลงต้องแบ่งหน้า ไม่ปล่อยเป็นท่อเดียว */
+const FARM_PAGE_SIZE = 9;
+
+const FARM_SORT_OPTION: { value: FarmSort; label: string }[] = [
+  { value: 'default', label: 'ตามลำดับชุดข้อมูล' },
+  { value: 'priority', label: 'ต้องให้น้ำก่อน' },
+  { value: 'moisture_asc', label: 'ความชื้นดินต่ำก่อน' },
+  { value: 'area_desc', label: 'พื้นที่มากก่อน' },
+  { value: 'name', label: 'ชื่อแปลง ก–ฮ' },
+];
+
+const PRIORITY_RANK: Record<IrrigationPriority, number> = {
+  now: 0,
+  today: 1,
+  scheduled: 2,
+  skip: 3,
+};
 
 const NO_DATA = 'ไม่มีข้อมูล';
 const LOW_BATTERY_PERCENT = 20;
@@ -347,6 +367,32 @@ function deriveStats(farms: FarmPlot[]): ScopedStats {
   };
 }
 
+/** เรียงบัตรแปลงตามตัวเลือก โดยใช้ farmId เป็นตัวตัดสินสุดท้ายให้ผลคงที่ทุกครั้ง */
+function sortFarms(farms: FarmPlot[], sort: FarmSort): FarmPlot[] {
+  if (sort === 'default') return farms;
+  const sorted = [...farms];
+  if (sort === 'priority') {
+    sorted.sort(
+      (left, right) =>
+        PRIORITY_RANK[left.nextIrrigation.priority] - PRIORITY_RANK[right.nextIrrigation.priority] ||
+        left.moistureGaugePercent - right.moistureGaugePercent ||
+        left.farmId.localeCompare(right.farmId),
+    );
+  } else if (sort === 'moisture_asc') {
+    sorted.sort(
+      (left, right) =>
+        left.moistureGaugePercent - right.moistureGaugePercent || left.farmId.localeCompare(right.farmId),
+    );
+  } else if (sort === 'area_desc') {
+    sorted.sort((left, right) => right.areaRai - left.areaRai || left.farmId.localeCompare(right.farmId));
+  } else {
+    sorted.sort(
+      (left, right) => left.farmName.localeCompare(right.farmName, 'th') || left.farmId.localeCompare(right.farmId),
+    );
+  }
+  return sorted;
+}
+
 export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
   const [provinceCode, setProvinceCode] = useState<string>('all');
   const [provinceQuery, setProvinceQuery] = useState<string>('');
@@ -354,7 +400,10 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
   const [moistureFilter, setMoistureFilter] = useState<MoistureFilter>('all');
   const [sensorState, setSensorState] = useState<SensorStateFilter>('all');
   const [query, setQuery] = useState<string>('');
+  const [sort, setSort] = useState<FarmSort>('default');
+  const [page, setPage] = useState<number>(1);
   const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
+  const listRef = useRef<HTMLElement | null>(null);
 
   const referenceMs = useMemo(() => parseInstant(payload.generatedAt), [payload.generatedAt]);
 
@@ -365,23 +414,35 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
 
   const farms = useMemo(
     () =>
-      payload.farms.filter(
-        (farm) =>
-          (provinceCode === 'all' || farm.provinceCode === provinceCode) &&
-          (cropId === 'all' || farm.cropId === cropId) &&
-          (moistureFilter === 'all' || farm.moistureStatus === moistureFilter) &&
-          matchesSensorState(farm, sensorState) &&
-          matchesText(farm, query),
+      sortFarms(
+        payload.farms.filter(
+          (farm) =>
+            (provinceCode === 'all' || farm.provinceCode === provinceCode) &&
+            (cropId === 'all' || farm.cropId === cropId) &&
+            (moistureFilter === 'all' || farm.moistureStatus === moistureFilter) &&
+            matchesSensorState(farm, sensorState) &&
+            matchesText(farm, query),
+        ),
+        sort,
       ),
-    [payload.farms, provinceCode, cropId, moistureFilter, sensorState, query],
+    [payload.farms, provinceCode, cropId, moistureFilter, sensorState, query, sort],
   );
 
   const stats = useMemo(() => deriveStats(farms), [farms]);
 
-  // แปลงที่เปิดดูรายละเอียด: เลือกตาม card ที่กด ถ้าไม่ได้เลือกหรือถูกกรองหาย ก็ใช้แปลงแรกของรายการ
+  // แบ่งหน้าเฉพาะรายการบัตรแปลง (ทั้งชุดมี 108 แปลง ถ้าไม่แบ่งหน้าจะยาวเกิน 30,000px บนมือถือ)
+  const pageCount = farms.length === 0 ? 0 : Math.ceil(farms.length / FARM_PAGE_SIZE);
+  const currentPage = pageCount === 0 ? 1 : Math.min(Math.max(page, 1), pageCount);
+  const pageStart = (currentPage - 1) * FARM_PAGE_SIZE;
+  const pageFarms = useMemo(
+    () => farms.slice(pageStart, pageStart + FARM_PAGE_SIZE),
+    [farms, pageStart],
+  );
+
+  // แปลงที่เปิดดูรายละเอียด: ต้องเป็นบัตรที่อยู่ในหน้าปัจจุบันเสมอ ถ้าไม่ได้เลือกก็ใช้บัตรแรกของหน้า
   const activeFarm = useMemo(
-    () => farms.find((farm) => farm.farmId === selectedFarmId) ?? farms[0] ?? null,
-    [farms, selectedFarmId],
+    () => pageFarms.find((farm) => farm.farmId === selectedFarmId) ?? pageFarms[0] ?? null,
+    [pageFarms, selectedFarmId],
   );
 
   const hasActiveFilter =
@@ -389,8 +450,22 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
     cropId !== 'all' ||
     moistureFilter !== 'all' ||
     sensorState !== 'all' ||
+    sort !== 'default' ||
     query.trim() !== '' ||
     provinceQuery.trim() !== '';
+
+  /** ทุกครั้งที่ตัวกรอง/คำค้น/การเรียงเปลี่ยน ให้กลับไปหน้า 1 เพื่อไม่ให้ค้างอยู่หน้าที่ไม่มีผลลัพธ์ */
+  function goToFirstPage() {
+    setPage(1);
+  }
+
+  function changePage(next: number) {
+    setPage(next);
+    const node = listRef.current;
+    if (node && typeof node.scrollIntoView === 'function') {
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
 
   function resetFilters() {
     setProvinceCode('all');
@@ -399,7 +474,9 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
     setMoistureFilter('all');
     setSensorState('all');
     setQuery('');
+    setSort('default');
     setSelectedFarmId(null);
+    setPage(1);
   }
 
   return (
@@ -425,6 +502,12 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
       </section>
 
       <section className={styles.filterCard} aria-label="ตัวกรองแปลงเซนเซอร์">
+        <header className={styles.filterHeader}>
+          <h2 className={styles.filterTitle}>ค้นหา กรอง และเรียงแปลง</h2>
+          <span className={styles.sectionMeta}>
+            ตัวกรองทุกช่องทำงานทันที และรีเซ็ตกลับหน้า 1 ของรายการบัตรแปลง
+          </span>
+        </header>
         <div className={styles.filterGrid}>
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="sf-province-search">
@@ -437,7 +520,10 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
                 type="search"
                 className={`${styles.control} ${styles.searchInput}`}
                 value={provinceQuery}
-                onChange={(event) => setProvinceQuery(event.target.value)}
+                onChange={(event) => {
+                  setProvinceQuery(event.target.value);
+                  goToFirstPage();
+                }}
                 placeholder="เช่น ขอนแก่น / เชียงใหม่"
                 aria-label="พิมพ์ชื่อจังหวัดเพื่อลดรายการจังหวัดในช่องเลือกจังหวัด"
               />
@@ -452,7 +538,10 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
               id="sf-province"
               className={styles.control}
               value={provinceCode}
-              onChange={(event) => setProvinceCode(event.target.value)}
+              onChange={(event) => {
+                setProvinceCode(event.target.value);
+                goToFirstPage();
+              }}
               aria-label="เลือกจังหวัดเพื่อกรองแปลงเซนเซอร์"
             >
               <option value="all">ทุกจังหวัด ({payload.provinces.length} รายการ)</option>
@@ -476,7 +565,10 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
               id="sf-crop"
               className={styles.control}
               value={cropId}
-              onChange={(event) => setCropId(event.target.value)}
+              onChange={(event) => {
+                setCropId(event.target.value);
+                goToFirstPage();
+              }}
               aria-label="เลือกชนิดพืชเพื่อกรองแปลงเซนเซอร์"
             >
               <option value="all">ทุกชนิดพืช ({payload.crops.length} รายการ)</option>
@@ -496,7 +588,10 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
               id="sf-moisture"
               className={styles.control}
               value={moistureFilter}
-              onChange={(event) => setMoistureFilter(event.target.value as MoistureFilter)}
+              onChange={(event) => {
+                setMoistureFilter(event.target.value as MoistureFilter);
+                goToFirstPage();
+              }}
               aria-label="เลือกสถานะความชื้นดินเพื่อกรองแปลง"
             >
               <option value="all">ทุกสถานะความชื้น</option>
@@ -516,7 +611,10 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
               id="sf-sensor"
               className={styles.control}
               value={sensorState}
-              onChange={(event) => setSensorState(event.target.value as SensorStateFilter)}
+              onChange={(event) => {
+                setSensorState(event.target.value as SensorStateFilter);
+                goToFirstPage();
+              }}
               aria-label="เลือกสถานะเซนเซอร์เพื่อกรองแปลงที่มีอุปกรณ์ในสภาพนั้นอย่างน้อยหนึ่งตัว"
             >
               <option value="all">ทุกสถานะเซนเซอร์</option>
@@ -537,11 +635,36 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
                 type="search"
                 className={`${styles.control} ${styles.searchInput}`}
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  goToFirstPage();
+                }}
                 placeholder="เช่น ข้าวโพด / สาธิต / สปริงเกลอร์"
                 aria-label="ค้นหาชื่อแปลง อำเภอชนิดพืช หรือระบบให้น้ำ"
               />
             </span>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="sf-sort">
+              เรียงลำดับบัตรแปลง
+            </label>
+            <select
+              id="sf-sort"
+              className={styles.control}
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value as FarmSort);
+                goToFirstPage();
+              }}
+              aria-label="เลือกการเรียงลำดับบัตรแปลงในรายการ"
+            >
+              {FARM_SORT_OPTION.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -567,7 +690,7 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
         </div>
       </section>
 
-      <section className={styles.section} aria-label="รายการแปลงเซนเซอร์">
+      <section className={styles.section} aria-label="รายการแปลงเซนเซอร์" ref={listRef}>
         <header className={styles.sectionHeader}>
           <div>
             <span className={styles.eyebrow}>สถานะอุปกรณ์รายแปลง</span>
@@ -588,21 +711,59 @@ export function SmartFarmingDashboard({ payload }: SmartFarmingDashboardProps) {
             </button>
           </div>
         ) : (
-          <div className={styles.farmGrid}>
-            {farms.map((farm) => (
-              <FarmCard
-                key={farm.farmId}
-                farm={farm}
-                isActive={activeFarm?.farmId === farm.farmId}
-                referenceMs={referenceMs}
-                onSelect={setSelectedFarmId}
-              />
-            ))}
-          </div>
+          <>
+            <div className={styles.farmGrid}>
+              {pageFarms.map((farm) => (
+                <FarmCard
+                  key={farm.farmId}
+                  farm={farm}
+                  isActive={activeFarm?.farmId === farm.farmId}
+                  referenceMs={referenceMs}
+                  onSelect={setSelectedFarmId}
+                />
+              ))}
+            </div>
+
+            {pageCount > 1 ? (
+              <nav className={styles.pager} aria-label="แบ่งหน้ารายการแปลงเซนเซอร์">
+                <p className={styles.pagerStatus} role="status" aria-live="polite">
+                  แสดงบัตรแปลงที่ {intFormatter.format(pageStart + 1)}–
+                  {intFormatter.format(Math.min(pageStart + FARM_PAGE_SIZE, farms.length))} จาก{' '}
+                  {intFormatter.format(farms.length)} แปลง · หน้า {intFormatter.format(currentPage)} จาก{' '}
+                  {intFormatter.format(pageCount)}
+                </p>
+                <div className={styles.pagerControls}>
+                  <button
+                    type="button"
+                    className={styles.pagerButton}
+                    onClick={() => changePage(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    aria-label="ไปยังหน้าก่อนหน้าของรายการแปลง"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <span className={styles.pagerPosition}>
+                    หน้า {intFormatter.format(currentPage)} จาก {intFormatter.format(pageCount)}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.pagerButton}
+                    onClick={() => changePage(currentPage + 1)}
+                    disabled={currentPage >= pageCount}
+                    aria-label="ไปยังหน้าถัดไปของรายการแปลง"
+                  >
+                    ถัดไป
+                  </button>
+                </div>
+              </nav>
+            ) : null}
+          </>
         )}
       </section>
 
       {activeFarm ? <FarmDetail farm={activeFarm} referenceMs={referenceMs} /> : null}
+
+      <LimitsSection payload={payload} />
 
       <SourceSection payload={payload} />
     </div>
@@ -818,15 +979,19 @@ function FarmCard({
   const offlineShare = farm.sensorTotal > 0 ? farm.sensorOffline / farm.sensorTotal : 0;
 
   return (
-    <button
-      type="button"
-      className={`${styles.farmCard} ${isActive ? styles.farmCardActive : ''}`}
-      onClick={() => onSelect(farm.farmId)}
-      aria-pressed={isActive}
-      aria-label={`เปิดรายละเอียดแปลง ${farm.farmName} ตำบล ${farm.districtLabel} จังหวัด ${farm.provinceName}`}
-    >
+    <article className={`${styles.farmCard} ${isActive ? styles.farmCardActive : ''}`}>
       <span className={styles.farmCardTop}>
-        <span className={styles.farmName}>{farm.farmName}</span>
+        <h3 className={styles.farmName}>
+          <button
+            type="button"
+            className={styles.farmSelect}
+            onClick={() => onSelect(farm.farmId)}
+            aria-pressed={isActive}
+            aria-label={`เปิดรายละเอียดแปลง ${farm.farmName} ตำบล ${farm.districtLabel} จังหวัด ${farm.provinceName}`}
+          >
+            {farm.farmName}
+          </button>
+        </h3>
         <span className={styles.farmTypeBadge}>{FARM_TYPE_LABEL[farm.farmType]}</span>
       </span>
 
@@ -886,7 +1051,7 @@ function FarmCard({
           </span>
         ) : null}
       </span>
-    </button>
+    </article>
   );
 }
 
@@ -1493,7 +1658,12 @@ function SensorTable({ farm, referenceMs }: { farm: FarmPlot; referenceMs: numbe
         </div>
       ) : (
         <>
-          <div className={styles.tableScroll}>
+          <div
+            className={styles.tableScroll}
+            role="region"
+            aria-label={`ตารางเซนเซอร์ของแปลง ${farm.farmName} เลื่อนแนวนอนได้เมื่อหน้าจอแคบ`}
+            tabIndex={0}
+          >
             <table className={styles.table}>
               <caption className={styles.panelNote}>
                 ค่าที่แสดงคือรอบอ่านล่าสุดตามเวลาของรายงาน ไม่ใช่ค่าสดจากเกตเวย์ LoRaWAN
@@ -1562,6 +1732,68 @@ function SensorTable({ farm, referenceMs }: { farm: FarmPlot; referenceMs: numbe
   );
 }
 
+// คงข้อความ governance เดิม (sample / metadata_only / 77 จังหวัด / null) ไม่ได้ใส่ตัวเลขใหม่
+function LimitsSection({ payload }: { payload: SmartFarmingDashboardPayload }) {
+  const items = [
+    {
+      key: 'sample',
+      title: 'ข้อมูลตัวอย่าง ไม่ใช่ telemetry จริง',
+      detail:
+        'ทุกตัวเลขสังเคราะห์แบบ deterministic จาก seed คงที่ (farmId/nodeId/ชั่วโมง) ไม่มีการเรียก LoRaWAN gateway, MQTT broker หรือ SCADA และห้ามใช้สั่งเปิดวาล์วหรือใส่ปุ๋ยจริง',
+    },
+    {
+      key: 'rights',
+      title: 'metadata_only — สิทธิ์เผยแพร่ยังรอตรวจ',
+      detail:
+        `แหล่งอ้างอิงทั้ง ${intFormatter.format(payload.sources.length)} แหล่งยังอยู่สถานะ metadata_only จึงยังเผยแพร่ตัวเลขเป็นสถิติทางการไม่ได้ จนกว่าจะผ่านการตรวจสิทธิ์`,
+    },
+    {
+      key: 'coverage',
+      title: '77 จังหวัดเป็นทะเบียนอ้างอิง ไม่ใช่ coverage',
+      detail:
+        'การมีชื่อจังหวัดไม่ได้แปลว่าติดตั้งเซนเซอร์จริง และจำนวนแปลงต่อจังหวัดมาจากกติกาของแบบจำลอง ไม่ใช่จำนวนฟาร์ม IoT ของประเทศ',
+    },
+    {
+      key: 'null',
+      title: 'ค่าที่วัดไม่ได้เป็น null ไม่ใช่ศูนย์',
+      detail:
+        'โหนดที่ไม่รายงานค่าแสดง “ไม่มีข้อมูล” เสมอ หน่วยผูกกับตำแหน่งวัด (%VWC / มม. / ppm) ห้ามเทียบหรือรวมข้ามหน่วย',
+    },
+  ];
+
+  return (
+    <section className={styles.limitsSection} aria-label="แหล่งข้อมูลและข้อจำกัด">
+      <header className={styles.sectionHeader}>
+        <div>
+          <span className={styles.eyebrow}>Governance</span>
+          <h2 className={styles.sectionTitle}>แหล่งข้อมูลและข้อจำกัด</h2>
+        </div>
+        <span className={styles.sectionMeta}>
+          sample: true · access: {payload.access} · รอบสร้างข้อมูล {formatStamp(payload.generatedAt)}
+        </span>
+      </header>
+
+      <div className={styles.limitsGrid}>
+        {items.map((item) => (
+          <div key={item.key} className={styles.limitCard}>
+            <h3 className={styles.limitTitle}>{item.title}</h3>
+            <p className={styles.limitDetail}>{item.detail}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className={styles.limitsSources}>
+        <Icon name="lock" size={14} />
+        <span>
+          แหล่งอ้างอิงที่ใช้ประกอบ:{' '}
+          {payload.sources.map((source) => source.name.split(' — ')[0]).join(' · ')} — รายละเอียดและช่องว่างที่ยังเปิดค้าง
+          อยู่ในหัวข้อ “ที่มาข้อมูล” ถัดลงไป
+        </span>
+      </p>
+    </section>
+  );
+}
+
 function SourceSection({ payload }: { payload: SmartFarmingDashboardPayload }) {
   return (
     <section className={styles.section} aria-label="ที่มาของข้อมูลและช่องว่างที่ยังตรวจสอบไม่เสร็จ">
@@ -1579,7 +1811,7 @@ function SourceSection({ payload }: { payload: SmartFarmingDashboardPayload }) {
         {payload.sources.map((source) => (
           <div key={source.id} className={styles.sourceCard}>
             <div className={styles.sourceTop}>
-              <span className={styles.sourceName}>{source.name}</span>
+              <h3 className={styles.sourceName}>{source.name}</h3>
               <span className={styles.metaOnlyBadge}>
                 <Icon name="lock" size={12} /> {source.access}
               </span>

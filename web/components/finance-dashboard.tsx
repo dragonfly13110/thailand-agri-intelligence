@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from '@/components/icon';
 import {
   DISASTER_CONFIG,
@@ -82,6 +82,55 @@ function GradeChip({ grade, label }: { grade: RiskGrade | null; label: string })
 
 function TableScrollHint() {
   return <p className={styles.tableScrollHint}>ตารางกว้าง · เลื่อนแนวนอนเพื่อดูทุกคอลัมน์</p>;
+}
+
+/** ตารางกว้างอยู่ในพื้นที่เลื่อนที่โฟกัสได้ เพื่อให้ใช้คีย์บอร์ดเลื่อนดูคอลัมน์ได้ */
+function TableRegion({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.tableScroll} role="region" aria-label={label} tabIndex={0}>
+      {children}
+    </div>
+  );
+}
+
+const RANKED_PAGE_SIZE = 12;
+
+function Pager({
+  page,
+  pageCount,
+  total,
+  from,
+  to,
+  noun,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  from: number;
+  to: number;
+  noun: string;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  if (pageCount <= 1 || total === 0) return null;
+  return (
+    <div className={styles.pager}>
+      <p className={styles.pagerStatus} role="status" aria-live="polite">
+        แสดง <strong>{formatInteger(from)}–{formatInteger(to)}</strong> จาก {formatInteger(total)} {noun}
+        {' · '}หน้า <strong>{formatInteger(page)}</strong> จาก {formatInteger(pageCount)}
+      </p>
+      <div className={styles.pagerButtons}>
+        <button type="button" className={styles.pagerButton} onClick={onPrevious} disabled={page <= 1}>
+          ก่อนหน้า
+        </button>
+        <button type="button" className={styles.pagerButton} onClick={onNext} disabled={page >= pageCount}>
+          ถัดไป
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function KpiCard({
@@ -183,6 +232,7 @@ function DisasterDonut({ split }: { split: DisasterSplit }) {
 export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload }) {
   const [provinceCode, setProvinceCode] = useState('');
   const [program, setProgram] = useState<ProgramFilter>('all');
+  const [rankedPage, setRankedPage] = useState(1);
 
   const provinceGroups = useMemo(
     () => FINANCE_REGIONS.map((region) => ({
@@ -201,9 +251,14 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
   const regionBreakdown = useMemo(() => buildRegionSummaries(filteredRecords), [filteredRecords]);
   const rankedRecords = useMemo(
     () => [...filteredRecords]
-      .sort((left, right) => right.riskScore - left.riskScore || right.claimRatioPct - left.claimRatioPct)
-      .slice(0, 12),
+      .sort((left, right) => right.riskScore - left.riskScore || right.claimRatioPct - left.claimRatioPct),
     [filteredRecords],
+  );
+  const rankedPageCount = Math.max(1, Math.ceil(rankedRecords.length / RANKED_PAGE_SIZE));
+  const currentRankedPage = Math.min(rankedPage, rankedPageCount);
+  const rankedPageRecords = rankedRecords.slice(
+    (currentRankedPage - 1) * RANKED_PAGE_SIZE,
+    currentRankedPage * RANKED_PAGE_SIZE,
   );
 
   const selectedProvince = provinceCode
@@ -229,6 +284,17 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
   function resetFilters() {
     setProvinceCode('');
     setProgram('all');
+    setRankedPage(1);
+  }
+
+  function selectProvince(code: string) {
+    setProvinceCode(code);
+    setRankedPage(1);
+  }
+
+  function selectProgram(value: ProgramFilter) {
+    setProgram(value);
+    setRankedPage(1);
   }
 
   return (
@@ -268,7 +334,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
             <select
               className={styles.select}
               value={provinceCode}
-              onChange={(event) => setProvinceCode(event.target.value)}
+              onChange={(event) => selectProvince(event.target.value)}
             >
               <option value="">ทั้งประเทศ (ทะเบียน 77 รหัสจังหวัด)</option>
               {provinceGroups.map((group) => (
@@ -290,7 +356,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                   type="button"
                   className={`${styles.programPill} ${program === option.value ? styles.programPillActive : ''}`}
                   aria-pressed={program === option.value}
-                  onClick={() => setProgram(option.value)}
+                  onClick={() => selectProgram(option.value)}
                 >
                   {option.label}
                 </button>
@@ -300,8 +366,9 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
         </div>
 
         <div className={styles.filterActions}>
-          <p className={styles.filterContext}>
-            กำลังแสดง <strong>{formatInteger(summary.recordCount)}</strong> รายการจังหวัด × โครงการ
+          <p className={styles.filterContext} role="status" aria-live="polite">
+            กำลังแสดง <strong>{formatInteger(summary.recordCount)}</strong> จาก{' '}
+            <strong>{formatInteger(payload.records.length)}</strong> รายการจังหวัด × โครงการ
             {hasInsurance
               ? ` · ${formatRai(summary.insuredAreaRai)} · ${formatInteger(summary.insuredHouseholds)} ครัวเรือน`
               : ' · ไม่พบหลักฐานในแบบจำลอง'}
@@ -489,7 +556,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                 <span className={styles.cardSub}>บาท/ไร่ · ค่าจำลองจากกรอบโครงการ</span>
               </div>
               <TableScrollHint />
-              <div className={styles.tableScroll}>
+              <TableRegion label="ตารางเบี้ยประกัน ความคุ้มครอง และสัดส่วนผู้จ่ายเบี้ย">
                 <table className={styles.dataTable}>
                   <thead>
                     <tr>
@@ -538,7 +605,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                     })}
                   </tbody>
                 </table>
-              </div>
+              </TableRegion>
               <p className={styles.tableNote}>
                 หมายเหตุ: เบี้ย Tier 2 ของข้าวนาปีเป็นอัตราตามระดับความเสี่ยง (27–110 บาท/ไร่) ตารางใช้ค่ากลาง 63 บาท/ไร่
                 ส่วนข้าวโพดเลี้ยงสัตว์ใช้ค่ากลาง 92 บาท/ไร่ ตัวเลขทั้งหมดเป็นค่าจำลองเพื่อเปรียบเทียบโครงสร้าง
@@ -594,7 +661,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
 
             <div className={styles.tableCard}>
               <TableScrollHint />
-              <div className={styles.tableScroll}>
+              <TableRegion label="ตาราง Claim Ratio และการจ่ายค่าสินไหมรายภูมิภาค">
                 <table className={styles.dataTable}>
                   <thead>
                     <tr>
@@ -621,7 +688,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableRegion>
             </div>
 
             <details className={styles.assumptionsBox}>
@@ -642,12 +709,14 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                   อันดับนี้เป็นของแบบจำลอง ไม่ใช่การจัดอันดับอย่างเป็นทางการ
                 </p>
               </div>
-              <span className={styles.inlineChip}>แสดง {formatInteger(rankedRecords.length)} จาก {formatInteger(filteredRecords.length)} รายการ</span>
+              <span className={styles.inlineChip}>
+                {formatInteger(filteredRecords.length)} รายการในขอบเขต · เรียงตาม Risk Score
+              </span>
             </div>
 
             <div className={styles.tableCard}>
               <TableScrollHint />
-              <div className={styles.tableScroll}>
+              <TableRegion label="ตารางจังหวัดที่ควรจับตา เรียงตาม Risk Score ของแบบจำลอง">
                 <table className={styles.dataTable}>
                   <thead>
                     <tr>
@@ -662,9 +731,9 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                     </tr>
                   </thead>
                   <tbody>
-                    {rankedRecords.map((record, index) => (
+                    {rankedPageRecords.map((record, index) => (
                       <tr key={record.id} className={record.provinceCode === provinceCode ? styles.rowHighlight : undefined}>
-                        <td className={styles.rankCell}>{index + 1}</td>
+                        <td className={styles.rankCell}>{(currentRankedPage - 1) * RANKED_PAGE_SIZE + index + 1}</td>
                         <td>
                           <div className={styles.programName}>{record.provinceName}</div>
                           <div className={styles.programMeta}>{record.region} · รหัส {record.provinceCode}</div>
@@ -688,7 +757,17 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableRegion>
+              <Pager
+                page={currentRankedPage}
+                pageCount={rankedPageCount}
+                total={rankedRecords.length}
+                from={(currentRankedPage - 1) * RANKED_PAGE_SIZE + 1}
+                to={Math.min(rankedRecords.length, currentRankedPage * RANKED_PAGE_SIZE)}
+                noun="รายการ"
+                onPrevious={() => setRankedPage((page) => Math.max(1, page - 1))}
+                onNext={() => setRankedPage((page) => Math.min(rankedPageCount, page + 1))}
+              />
             </div>
           </section>
         </>
@@ -873,7 +952,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
             <span className={styles.cardSub}>ค่าถ่วงน้ำหนักด้วยจำนวนครัวเรือนเกษตรกร</span>
           </div>
           <TableScrollHint />
-          <div className={styles.tableScroll}>
+          <TableRegion label="ตารางดัชนีสินเชื่อรายภูมิภาค">
             <table className={styles.dataTable}>
               <thead>
                 <tr>
@@ -902,7 +981,7 @@ export function FinanceDashboard({ payload }: { payload: FinanceDashboardPayload
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableRegion>
           <p className={styles.tableNote}>
             สเกล “การเข้าถึง” สูงกว่าคือดีกว่า จึงใช้สีตรงข้ามกับ “ภาระหนี้” เพื่อไม่ให้อ่านสลับทิศ
           </p>

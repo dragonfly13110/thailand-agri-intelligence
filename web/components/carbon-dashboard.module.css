@@ -929,26 +929,58 @@
   color: #859086;
 }
 
-.loadMoreWrap {
+.pager {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--white, var(--white));
+  border: 1px solid var(--line, var(--line));
+  border-radius: var(--radius, 8px);
 }
 
-.loadMoreButton {
-  height: 40px;
-  padding: 0 20px;
-  background: var(--white);
-  border: 1px solid #bfcdbb;
+.pagerStatus {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+.pagerStatus strong {
+  color: var(--forest, var(--forest));
+  font-weight: 600;
+}
+
+.pagerButtons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pagerButton {
+  min-height: 44px;
+  padding: 9px 16px;
+  background: var(--white, var(--white));
+  border: 1px solid #c9d5c8;
   border-radius: 6px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--forest, var(--forest));
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.loadMoreButton:hover {
+.pagerButton:hover:not(:disabled) {
   background: #eef3eb;
+  border-color: #9fb39e;
+}
+
+.pagerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .emptyState {
@@ -993,7 +1025,6 @@
 }
 
 .tableWrap {
-  max-height: 600px;
   overflow: auto;
   background: var(--white, var(--white));
   border: 1px solid var(--line, var(--line));

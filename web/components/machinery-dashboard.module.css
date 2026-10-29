@@ -674,7 +674,8 @@
 .resetButton:focus-visible,
 .primaryButton:focus-visible,
 .apiLink:focus-visible,
-.searchClear:focus-visible {
+.searchClear:focus-visible,
+.pageButton:focus-visible {
   outline: 2px solid #2f6b4f;
   outline-offset: 2px;
 }
@@ -2060,18 +2061,62 @@
   color: #768678;
 }
 
-.loadMoreWrap {
+.pager {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 7px 14px;
-  padding-top: 5px;
+  gap: 8px 12px;
+  padding-top: 6px;
 }
 
-.loadMoreWrap span {
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  min-height: 38px;
+  padding: 7px 15px;
+  border: 1px solid #b9c8b1;
+  border-radius: 7px;
+  background: var(--white, #fff);
+  color: #2f5c41;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pageButton:hover:not(:disabled) {
+  border-color: #2f6b4f;
+  background: #f5f9f1;
+}
+
+.pageButton:disabled {
+  border-color: #dbe4d4;
+  background: #f6f8f3;
+  color: #9aa89b;
+  cursor: not-allowed;
+}
+
+.pageStatus {
+  font-size: 11.5px;
+  color: #637568;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pageStatus strong {
+  font-weight: 650;
+  color: #2c4638;
+}
+
+.pagerRange {
   font-size: 10.5px;
   color: #7b8b7c;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .outlineButton {
@@ -2431,6 +2476,15 @@
   text-decoration-color: #2f5c41;
 }
 
+.provinceButtonActive,
+.provinceButton[aria-pressed='true'] {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #2f6b4f;
+  color: #f5f9f1;
+  text-decoration-color: transparent;
+}
+
 .regionCell {
   color: #7d8c7e !important;
   white-space: nowrap;
@@ -2691,6 +2745,73 @@
   height: 5px;
   border-radius: 50%;
   background: #c69a35;
+}
+
+.detailsPanel {
+  border: 1px solid var(--machine-line);
+  border-radius: 12px;
+  background: var(--white, #fff);
+  overflow: hidden;
+}
+
+.detailsPanel > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 18px;
+  color: #2f5c41;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.detailsPanel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.detailsPanel > summary::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #6d8a74;
+  border-bottom: 2px solid #6d8a74;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.detailsPanel[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.detailsPanel[open] > summary {
+  border-bottom: 1px solid var(--machine-line);
+}
+
+.detailsPanel > summary:hover {
+  background: #f6f9f2;
+}
+
+.detailsPanel > summary:focus-visible {
+  outline: 2px solid #2f6b4f;
+  outline-offset: -2px;
+}
+
+.detailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px 18px;
+}
+
+.detailsLead {
+  max-width: 76ch;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #748677;
 }
 
 .footerNote {
@@ -2973,6 +3094,28 @@
 
   .tableScroll {
     max-height: 520px;
+  }
+
+  .pager {
+    justify-content: space-between;
+  }
+
+  .pageButton {
+    flex: 1 1 120px;
+    min-height: 44px;
+  }
+
+  .pagerRange {
+    width: 100%;
+    text-align: center;
+  }
+
+  .detailsPanel > summary {
+    padding: 12px 15px;
+  }
+
+  .detailsBody {
+    padding: 14px 15px 16px;
   }
 
   .footerNote {

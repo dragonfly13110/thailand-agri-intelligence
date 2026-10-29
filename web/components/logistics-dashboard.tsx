@@ -14,6 +14,9 @@ import styles from './logistics-dashboard.module.css';
 const numberFormatter = new Intl.NumberFormat('th-TH');
 const percentFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 1 });
 
+const CARD_PAGE_SIZE = 12;
+const TABLE_PAGE_SIZE = 20;
+
 export interface LogisticsDashboardProps {
   initialPayload?: LogisticsDashboardPayload;
   payload?: LogisticsDashboardPayload;
@@ -28,6 +31,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [page, setPage] = useState<number>(1);
 
   // กรองรายการสิ่งอำนวยความสะดวกตามเงื่อนไขของผู้ใช้
   const filteredFacilities = useMemo(() => {
@@ -97,6 +101,37 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
     return activePayload.provinceScores.filter((p) => p.region === regionFilter);
   }, [activePayload.provinceScores, regionFilter]);
 
+  // แบ่งหน้ารายการคลังสินค้า (การ์ด 12 รายการ / ตาราง 20 แถว)
+  const pageSize = viewMode === 'card' ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(filteredFacilities.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pagedFacilities = filteredFacilities.slice(pageStart, pageStart + pageSize);
+  const rangeFrom = filteredFacilities.length === 0 ? 0 : pageStart + 1;
+  const rangeTo = Math.min(pageStart + pageSize, filteredFacilities.length);
+
+  // ทุกครั้งที่ตัวกรองเปลี่ยน ให้กลับไปหน้าแรก
+  const handleProvinceChange = (value: string) => {
+    setSelectedProvince(value);
+    setPage(1);
+  };
+  const handleTypeChange = (value: FacilityType | 'all') => {
+    setSelectedType(value);
+    setPage(1);
+  };
+  const handleStatusChange = (value: FacilityStatus | 'all') => {
+    setSelectedStatus(value);
+    setPage(1);
+  };
+  const handleCapacityTierChange = (value: string) => {
+    setSelectedCapacityTier(value);
+    setPage(1);
+  };
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+
   // ฟังก์ชันรีเซ็ตฟิลเตอร์
   const handleResetFilters = () => {
     setSelectedProvince('all');
@@ -104,7 +139,11 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
     setSelectedStatus('all');
     setSelectedCapacityTier('all');
     setSearchQuery('');
+    setPage(1);
   };
+
+  const goToPrevPage = () => setPage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => setPage(Math.min(totalPages, currentPage + 1));
 
   const hasActiveFilters =
     selectedProvince !== 'all' ||
@@ -112,6 +151,12 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
     selectedStatus !== 'all' ||
     selectedCapacityTier !== 'all' ||
     searchQuery.trim().length > 0;
+
+  const renderProgressClass = (utilPercent: number) => {
+    if (utilPercent >= 90) return styles.progressCritical;
+    if (utilPercent >= 75) return styles.progressWarning;
+    return styles.progressNormal;
+  };
 
   return (
     <div className={styles.container}>
@@ -121,88 +166,105 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
           <Icon name="info" size={20} />
         </div>
         <div className={styles.sampleBannerBody}>
-          <strong>ระบบแสดงผลข้อมูลตัวอย่าง (Simulation & Demo Mode)</strong>
-          <p>
-            ข้อมูลตำแหน่งคลังสินค้า ไซโล และห้องเย็น รวมถึงระดับสต็อกความจุในหน้านี้เป็นข้อมูลจำลองเพื่อการวางแผนระบบขนส่งเกษตร
-            และประเมินดัชนี <em>Farm-to-Storage Connectivity Score</em> ข้อมูลพิกัดกายภาพจริงอยู่ระหว่างการตรวจสอบสิทธิ์ความมั่นคงทางอาหาร
+          <strong>ระบบแสดงผลข้อมูลตัวอย่าง (Simulation &amp; Demo Mode)</strong>
+          <p className={styles.sampleBannerLead}>
+            ข้อมูลจำลองเพื่อวางแผนระบบขนส่งเกษตรและประเมินดัชนี Farm-to-Storage Connectivity — ยังไม่ใช่สถิติทางการ
           </p>
-          <ul className={styles.warningList}>
-            {activePayload.warnings.map((w, idx) => (
-              <li key={idx}>{w}</li>
-            ))}
-          </ul>
+          <details className={styles.details}>
+            <summary className={styles.detailsSummary}>อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล</summary>
+            <div className={styles.detailsBody}>
+              <p>
+                ข้อมูลตำแหน่งคลังสินค้า ไซโล และห้องเย็น รวมถึงระดับสต็อกความจุในหน้านี้เป็นข้อมูลจำลองเพื่อการวางแผนระบบขนส่งเกษตร
+                และประเมินดัชนี <em>Farm-to-Storage Connectivity Score</em> ข้อมูลพิกัดกายภาพจริงอยู่ระหว่างการตรวจสอบสิทธิ์ความมั่นคงทางอาหาร
+              </p>
+              <ul className={styles.warningList}>
+                {activePayload.warnings.map((w, idx) => (
+                  <li key={idx}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          </details>
         </div>
       </section>
 
       {/* KPI Overview Cards */}
-      <section className={styles.kpiGrid} aria-label="สรุปสถิติความจุและโลจิสติกส์">
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiHead}>
-            <span>ความจุคลังทั้งหมดที่คัดกรอง</span>
-            <span className={styles.kpiIcon}>
-              <Icon name="catalog" size={16} />
-            </span>
+      <section className={styles.kpiSection} aria-labelledby="logistics-kpi-heading">
+        <h2 id="logistics-kpi-heading" className={styles.sectionHeading}>
+          สรุปภาพรวมคลังสินค้าและห่วงโซ่ความเย็น
+        </h2>
+        <div className={styles.kpiGrid}>
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHead}>
+              <span>ความจุคลังทั้งหมดที่คัดกรอง</span>
+              <span className={styles.kpiIcon}>
+                <Icon name="catalog" size={16} />
+              </span>
+            </div>
+            <div className={styles.kpiValue}>
+              {numberFormatter.format(filteredMetrics.totalCapacity)} <span style={{ fontSize: 16 }}>ตัน</span>
+            </div>
+            <div className={styles.kpiSub}>
+              <span>จากทั้งหมด {filteredMetrics.count} แห่ง</span>
+              <span>(จัดเก็บแล้ว {numberFormatter.format(filteredMetrics.totalUtilized)} ตัน)</span>
+            </div>
           </div>
-          <div className={styles.kpiValue}>
-            {numberFormatter.format(filteredMetrics.totalCapacity)} <span style={{ fontSize: 16 }}>ตัน</span>
-          </div>
-          <div className={styles.kpiSub}>
-            <span>จากทั้งหมด {filteredMetrics.count} แห่ง</span>
-            <span>(จัดเก็บแล้ว {numberFormatter.format(filteredMetrics.totalUtilized)} ตัน)</span>
-          </div>
-        </div>
 
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiHead}>
-            <span>อัตราการใช้พื้นที่คลัง (Utilization)</span>
-            <span className={styles.kpiIcon}>
-              <Icon name="chart" size={16} />
-            </span>
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHead}>
+              <span>อัตราการใช้พื้นที่คลัง (Utilization)</span>
+              <span className={styles.kpiIcon}>
+                <Icon name="chart" size={16} />
+              </span>
+            </div>
+            <div className={styles.kpiValue}>{percentFormatter.format(filteredMetrics.avgUtilization)}%</div>
+            <div className={styles.kpiSub}>
+              <span className={styles.kpiHighlight}>
+                {filteredMetrics.avgUtilization > 85 ? 'ค่อนข้างหนาแน่น' : 'ระดับปกติ'}
+              </span>
+              <span>· รองรับสินค้าเกษตรฤดูกาลถัดไปได้</span>
+            </div>
           </div>
-          <div className={styles.kpiValue}>
-            {percentFormatter.format(filteredMetrics.avgUtilization)}%
-          </div>
-          <div className={styles.kpiSub}>
-            <span className={styles.kpiHighlight}>
-              {filteredMetrics.avgUtilization > 85 ? 'ค่อนข้างหนาแน่น' : 'ระดับปกติ'}
-            </span>
-            <span>· รองรับสินค้าเกษตรฤดูกาลถัดไปได้</span>
-          </div>
-        </div>
 
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiHead}>
-            <span>ดัชนี Farm-to-Storage เฉลี่ย</span>
-            <span className={styles.kpiIcon}>
-              <Icon name="pin" size={16} />
-            </span>
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHead}>
+              <span>ดัชนี Farm-to-Storage เฉลี่ย</span>
+              <span className={styles.kpiIcon}>
+                <Icon name="pin" size={16} />
+              </span>
+            </div>
+            <div className={styles.kpiValue}>
+              {percentFormatter.format(filteredMetrics.avgConnectivityScore)} <span style={{ fontSize: 16 }}>/ 100</span>
+            </div>
+            <div className={styles.kpiSub}>
+              <span>
+                ระยะห่างเฉลี่ยจากแปลงปลูก: <strong>{percentFormatter.format(filteredMetrics.avgFarmDistance)} กม.</strong>
+              </span>
+            </div>
           </div>
-          <div className={styles.kpiValue}>
-            {percentFormatter.format(filteredMetrics.avgConnectivityScore)} <span style={{ fontSize: 16 }}>/ 100</span>
-          </div>
-          <div className={styles.kpiSub}>
-            <span>ระยะห่างเฉลี่ยจากแปลงปลูก: <strong>{percentFormatter.format(filteredMetrics.avgFarmDistance)} กม.</strong></span>
-          </div>
-        </div>
 
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiHead}>
-            <span>ความจุห้องเย็นควบคุมอุณหภูมิ</span>
-            <span className={styles.kpiIcon}>
-              <Icon name="water" size={16} />
-            </span>
-          </div>
-          <div className={styles.kpiValue}>
-            {numberFormatter.format(activePayload.summary.coldStorageCapacityTons)} <span style={{ fontSize: 16 }}>ตัน</span>
-          </div>
-          <div className={styles.kpiSub}>
-            <span>ห่วงโซ่ความเย็น (Cold Chain) ผลไม้ สัตว์น้ำ และเนื้อสัตว์</span>
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHead}>
+              <span>ความจุห้องเย็นควบคุมอุณหภูมิ</span>
+              <span className={styles.kpiIcon}>
+                <Icon name="water" size={16} />
+              </span>
+            </div>
+            <div className={styles.kpiValue}>
+              {numberFormatter.format(activePayload.summary.coldStorageCapacityTons)} <span style={{ fontSize: 16 }}>ตัน</span>
+            </div>
+            <div className={styles.kpiSub}>
+              <span>ห่วงโซ่ความเย็น (Cold Chain) ผลไม้ สัตว์น้ำ และเนื้อสัตว์</span>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Filter & Search Controls */}
-      <section className={styles.filterCard} aria-label="เครื่องมือค้นหาและคัดกรอง">
+      <section className={styles.filterCard} aria-labelledby="logistics-filter-heading">
+        <h2 id="logistics-filter-heading" className={styles.sectionHeading}>
+          ค้นหาและคัดกรองรายการคลังสินค้า
+        </h2>
+
         {/* Search input */}
         <div className={styles.searchRow}>
           <div className={styles.searchBox}>
@@ -214,7 +276,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               className={styles.searchInput}
               placeholder="ค้นหาชื่อคลัง, อำเภอ, จังหวัด, ผู้ดูแล (อคส./สหกรณ์), ชนิดพืช (ข้าว, ทุเรียน, ยางพารา, สัตว์น้ำ)..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               aria-label="ค้นหาคลังสินค้า"
             />
           </div>
@@ -231,7 +293,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               id="province-select"
               className={styles.selectInput}
               value={selectedProvince}
-              onChange={(e) => setSelectedProvince(e.target.value)}
+              onChange={(e) => handleProvinceChange(e.target.value)}
             >
               <option value="all">ทุกจังหวัด (77 จังหวัด)</option>
               {activePayload.allProvinces.map((prov) => (
@@ -251,7 +313,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               id="type-select"
               className={styles.selectInput}
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value as FacilityType | 'all')}
+              onChange={(e) => handleTypeChange(e.target.value as FacilityType | 'all')}
             >
               <option value="all">ทุกชนิดคลังสินค้า</option>
               <option value="silo">ไซโลอบแห้ง (Grain Silo)</option>
@@ -269,7 +331,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               id="capacity-select"
               className={styles.selectInput}
               value={selectedCapacityTier}
-              onChange={(e) => setSelectedCapacityTier(e.target.value)}
+              onChange={(e) => handleCapacityTierChange(e.target.value)}
             >
               <option value="all">ทุกขนาดความจุ</option>
               <option value="small">ขนาดเล็ก (&lt; 20,000 ตัน)</option>
@@ -288,7 +350,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               id="status-select"
               className={styles.selectInput}
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value as FacilityStatus | 'all')}
+              onChange={(e) => handleStatusChange(e.target.value as FacilityStatus | 'all')}
             >
               <option value="all">ทุกสถานะ</option>
               <option value="operational">เปิดบริการ</option>
@@ -315,7 +377,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
           <button
             type="button"
             className={`${styles.typePill} ${selectedType === 'all' ? styles.typePillActive : ''}`}
-            onClick={() => setSelectedType('all')}
+            onClick={() => handleTypeChange('all')}
           >
             <span>ทั้งหมด</span>
             <span className={styles.typePillCount}>{activePayload.facilities.length}</span>
@@ -325,7 +387,7 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               key={t.id}
               type="button"
               className={`${styles.typePill} ${selectedType === t.id ? styles.typePillActive : ''}`}
-              onClick={() => setSelectedType(t.id)}
+              onClick={() => handleTypeChange(t.id)}
             >
               <span>{t.label}</span>
               <span className={styles.typePillCount}>{t.count}</span>
@@ -335,177 +397,59 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
       </section>
 
       {/* Facilities Results Header & View Toggle */}
-      <div className={styles.sectionBar}>
-        <div className={styles.sectionTitle}>
-          <span>รายการโครงสร้างพื้นฐานจัดเก็บสินค้าเกษตร</span>
-          <span className={styles.resultCount}>
-            (พบ {filteredFacilities.length} แห่ง จากทั้งหมด {activePayload.facilities.length} แห่ง)
-          </span>
+      <section className={styles.resultsSection} aria-labelledby="logistics-results-heading">
+        <div className={styles.sectionBar}>
+          <div className={styles.sectionTitle}>
+            <h2 id="logistics-results-heading" className={styles.sectionHeadingInline}>
+              รายการโครงสร้างพื้นฐานจัดเก็บสินค้าเกษตร
+            </h2>
+            <span className={styles.resultCount}>
+              (พบ {numberFormatter.format(filteredFacilities.length)} แห่ง จากทั้งหมด{' '}
+              {numberFormatter.format(activePayload.facilities.length)} แห่ง)
+            </span>
+          </div>
+
+          <div className={styles.viewToggleGroup} role="group" aria-label="เปลี่ยนรูปแบบการแสดงผล">
+            <button
+              type="button"
+              className={`${styles.viewToggleButton} ${viewMode === 'card' ? styles.viewToggleButtonActive : ''}`}
+              onClick={() => setViewMode('card')}
+              aria-pressed={viewMode === 'card'}
+              aria-label="แสดงผลแบบการ์ด"
+            >
+              <Icon name="layers" size={15} /> มุมมองการ์ด
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewToggleButton} ${viewMode === 'table' ? styles.viewToggleButtonActive : ''}`}
+              onClick={() => setViewMode('table')}
+              aria-pressed={viewMode === 'table'}
+              aria-label="แสดงผลแบบตาราง"
+            >
+              <Icon name="catalog" size={15} /> มุมมองตาราง
+            </button>
+          </div>
         </div>
 
-        <div className={styles.viewToggleGroup} role="group" aria-label="เปลี่ยนรูปแบบการแสดงผล">
-          <button
-            type="button"
-            className={`${styles.viewToggleButton} ${viewMode === 'card' ? styles.viewToggleButtonActive : ''}`}
-            onClick={() => setViewMode('card')}
-            aria-pressed={viewMode === 'card'}
-          >
-            <Icon name="layers" size={15} /> มุมมองการ์ด
-          </button>
-          <button
-            type="button"
-            className={`${styles.viewToggleButton} ${viewMode === 'table' ? styles.viewToggleButtonActive : ''}`}
-            onClick={() => setViewMode('table')}
-            aria-pressed={viewMode === 'table'}
-          >
-            <Icon name="catalog" size={15} /> มุมมองตาราง
-          </button>
-        </div>
-      </div>
+        {filteredFacilities.length === 0 && (
+          <div className={styles.emptyState}>
+            <p>ไม่พบคลังสินค้าที่ตรงกับเงื่อนไขที่เลือก</p>
+            <button type="button" className={styles.resetButton} onClick={handleResetFilters}>
+              <Icon name="close" size={14} /> ล้างตัวกรองทั้งหมด
+            </button>
+          </div>
+        )}
 
-      {/* Facility Results: Card View */}
-      {viewMode === 'card' ? (
-        <section className={styles.facilityGrid} aria-label="การ์ดรายการคลังสินค้า">
-          {filteredFacilities.map((fac) => {
-            const utilPercent = fac.utilizationRate;
-            let progressClass = styles.progressNormal;
-            if (utilPercent >= 90) progressClass = styles.progressCritical;
-            else if (utilPercent >= 75) progressClass = styles.progressWarning;
+        {/* Facility Results: Card View */}
+        {viewMode === 'card' && filteredFacilities.length > 0 && (
+          <div className={styles.facilityGrid}>
+            {pagedFacilities.map((fac) => {
+              const progressClass = renderProgressClass(fac.utilizationRate);
 
-            return (
-              <article key={fac.id} className={styles.facilityCard}>
-                <div className={styles.cardTopRow}>
-                  {/* Type Badge */}
-                  <span
-                    className={`${styles.typeBadge} ${
-                      fac.type === 'silo'
-                        ? styles.typeBadgeSilo
-                        : fac.type === 'cold_storage'
-                        ? styles.typeBadgeColdStorage
-                        : styles.typeBadgeWarehouse
-                    }`}
-                  >
-                    {fac.type === 'silo' && <Icon name="chart" size={13} />}
-                    {fac.type === 'cold_storage' && <Icon name="water" size={13} />}
-                    {fac.type === 'general_warehouse' && <Icon name="layers" size={13} />}
-                    {fac.typeLabel}
-                  </span>
-
-                  {/* Status Badge */}
-                  <span
-                    className={`${styles.statusBadge} ${
-                      fac.status === 'operational'
-                        ? styles.statusOperational
-                        : fac.status === 'maintenance'
-                        ? styles.statusMaintenance
-                        : styles.statusFull
-                    }`}
-                  >
-                    ● {fac.statusLabel}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className={styles.facilityTitle}>{fac.name}</h4>
-                  <div className={styles.facilityLocation}>
-                    <Icon name="pin" size={13} />
-                    <span>
-                      อ.{fac.district} จ.{fac.provinceName} ({fac.region})
-                    </span>
-                  </div>
-                </div>
-
-                <div className={styles.operatorText}>
-                  ผู้ดำเนินงาน: <strong>{fac.operator}</strong> ({fac.operatorTypeLabel})
-                </div>
-
-                {/* Capacity & Progress */}
-                <div className={styles.capacityBox}>
-                  <div className={styles.capacityLabels}>
-                    <span className={styles.capacityTotal}>
-                      ความจุ: {numberFormatter.format(fac.capacityTons)} ตัน
-                    </span>
-                    <span className={styles.capacityPercent}>
-                      {percentFormatter.format(fac.utilizationRate)}% ใช้งานแล้ว
-                    </span>
-                  </div>
-                  <div className={styles.progressTrack} title={`ใช้งานแล้ว ${fac.utilizedTons} จาก ${fac.capacityTons} ตัน`}>
-                    <div
-                      className={`${styles.progressBar} ${progressClass}`}
-                      style={{ width: `${Math.min(100, Math.max(0, fac.utilizationRate))}%` }}
-                    />
-                  </div>
-                  <div style={{ fontSize: 11.5, color: '#68756a', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>สต็อกปัจจุบัน: {numberFormatter.format(fac.utilizedTons)} ตัน</span>
-                    <span>ว่าง: {numberFormatter.format(fac.capacityTons - fac.utilizedTons)} ตัน</span>
-                  </div>
-                </div>
-
-                {/* Farm-to-Storage Connectivity Score Box */}
-                <div className={styles.connectivityBox}>
-                  <div>
-                    <span style={{ fontSize: 11, color: '#53645a', display: 'block' }}>Farm-to-Storage Connectivity</span>
-                    <div className={styles.connectivityScoreCol}>
-                      <span className={styles.connectivityScoreNumber}>{fac.farmConnectivityScore}</span>
-                      <span className={styles.connectivityScoreMax}>/100</span>
-                      <span style={{ fontSize: 11.5, marginLeft: 4, fontWeight: 600, color: '#166534' }}>
-                        ({fac.connectivityGradeLabel})
-                      </span>
-                    </div>
-                  </div>
-                  <div className={styles.distanceBadge}>
-                    <Icon name="arrow" size={13} />
-                    <span>~{fac.avgFarmDistanceKm} กม. จากแปลง</span>
-                  </div>
-                </div>
-
-                {/* Commodities tags */}
-                <div className={styles.commodityRow}>
-                  {fac.supportedCommodities.map((crop, cIdx) => (
-                    <span key={cIdx} className={styles.commodityTag}>
-                      {crop}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Specific features / transport */}
-                <div className={styles.specsBox}>
-                  {fac.temperatureControlled && fac.temperatureRange && (
-                    <div>❄️ อุณหภูมิควบคุม: <strong>{fac.temperatureRange}</strong></div>
-                  )}
-                  {fac.dryingCapacityTonsPerDay && (
-                    <div>🔥 กำลังการอบแห้ง: <strong>{numberFormatter.format(fac.dryingCapacityTonsPerDay)} ตัน/วัน</strong></div>
-                  )}
-                  <div>🚛 เส้นทาง: {fac.transportAccess}</div>
-                </div>
-              </article>
-            );
-          })}
-        </section>
-      ) : (
-        /* Facility Results: Table View */
-        <section className={styles.tableContainer} aria-label="ตารางรายการคลังสินค้า">
-          <table className={styles.dataTable}>
-            <thead>
-              <tr>
-                <th>ชื่อคลัง / รหัส</th>
-                <th>ชนิดคลัง</th>
-                <th>จังหวัด/อำเภอ</th>
-                <th>ความจุ (ตัน)</th>
-                <th>อัตราใช้งาน</th>
-                <th>ดัชนี Farm-to-Storage</th>
-                <th>สถานะ</th>
-                <th>ผู้ดูแล</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFacilities.map((fac) => (
-                <tr key={fac.id}>
-                  <td>
-                    <strong>{fac.name}</strong>
-                    <div style={{ fontSize: 11.5, color: '#68756a' }}>{fac.id}</div>
-                  </td>
-                  <td>
+              return (
+                <article key={fac.id} className={styles.facilityCard}>
+                  <div className={styles.cardTopRow}>
+                    {/* Type Badge */}
                     <span
                       className={`${styles.typeBadge} ${
                         fac.type === 'silo'
@@ -515,30 +459,13 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
                           : styles.typeBadgeWarehouse
                       }`}
                     >
+                      {fac.type === 'silo' && <Icon name="chart" size={13} />}
+                      {fac.type === 'cold_storage' && <Icon name="water" size={13} />}
+                      {fac.type === 'general_warehouse' && <Icon name="layers" size={13} />}
                       {fac.typeLabel}
                     </span>
-                  </td>
-                  <td>
-                    {fac.provinceName} (อ.{fac.district})
-                  </td>
-                  <td>
-                    <strong>{numberFormatter.format(fac.capacityTons)}</strong> ตัน
-                  </td>
-                  <td>
-                    <strong>{percentFormatter.format(fac.utilizationRate)}%</strong>
-                    <div style={{ fontSize: 11, color: '#68756a' }}>
-                      ({numberFormatter.format(fac.utilizedTons)} ตัน)
-                    </div>
-                  </td>
-                  <td>
-                    <div>
-                      <strong>{fac.farmConnectivityScore}/100</strong>
-                      <span style={{ fontSize: 12, color: '#53645a', marginLeft: 4 }}>
-                        ({fac.avgFarmDistanceKm} กม.)
-                      </span>
-                    </div>
-                  </td>
-                  <td>
+
+                    {/* Status Badge */}
                     <span
                       className={`${styles.statusBadge} ${
                         fac.status === 'operational'
@@ -550,33 +477,232 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
                     >
                       ● {fac.statusLabel}
                     </span>
-                  </td>
-                  <td>{fac.operator}</td>
+                  </div>
+
+                  <div>
+                    <h3 className={styles.facilityTitle}>{fac.name}</h3>
+                    <div className={styles.facilityLocation}>
+                      <Icon name="pin" size={13} />
+                      <span>
+                        อ.{fac.district} จ.{fac.provinceName} ({fac.region})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.operatorText}>
+                    ผู้ดำเนินงาน: <strong>{fac.operator}</strong> ({fac.operatorTypeLabel})
+                  </div>
+
+                  {/* Capacity & Progress */}
+                  <div className={styles.capacityBox}>
+                    <div className={styles.capacityLabels}>
+                      <span className={styles.capacityTotal}>
+                        ความจุ: {numberFormatter.format(fac.capacityTons)} ตัน
+                      </span>
+                      <span className={styles.capacityPercent}>
+                        {percentFormatter.format(fac.utilizationRate)}% ใช้งานแล้ว
+                      </span>
+                    </div>
+                    <div
+                      className={styles.progressTrack}
+                      title={`ใช้งานแล้ว ${fac.utilizedTons} จาก ${fac.capacityTons} ตัน`}
+                    >
+                      <div
+                        className={`${styles.progressBar} ${progressClass}`}
+                        style={{ width: `${Math.min(100, Math.max(0, fac.utilizationRate))}%` }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#68756a', display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                      <span>สต็อกปัจจุบัน: {numberFormatter.format(fac.utilizedTons)} ตัน</span>
+                      <span>ว่าง: {numberFormatter.format(fac.capacityTons - fac.utilizedTons)} ตัน</span>
+                    </div>
+                  </div>
+
+                  {/* Farm-to-Storage Connectivity Score Box */}
+                  <div className={styles.connectivityBox}>
+                    <div>
+                      <span style={{ fontSize: 11, color: '#53645a', display: 'block' }}>Farm-to-Storage Connectivity</span>
+                      <div className={styles.connectivityScoreCol}>
+                        <span className={styles.connectivityScoreNumber}>{fac.farmConnectivityScore}</span>
+                        <span className={styles.connectivityScoreMax}>/100</span>
+                        <span style={{ fontSize: 11.5, marginLeft: 4, fontWeight: 600, color: '#166534' }}>
+                          ({fac.connectivityGradeLabel})
+                        </span>
+                      </div>
+                    </div>
+                    <div className={styles.distanceBadge}>
+                      <Icon name="arrow" size={13} />
+                      <span>~{fac.avgFarmDistanceKm} กม. จากแปลง</span>
+                    </div>
+                  </div>
+
+                  {/* Commodities tags */}
+                  <div className={styles.commodityRow}>
+                    {fac.supportedCommodities.map((crop, cIdx) => (
+                      <span key={cIdx} className={styles.commodityTag}>
+                        {crop}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Specific features / transport */}
+                  <div className={styles.specsBox}>
+                    {fac.temperatureControlled && fac.temperatureRange && (
+                      <div>
+                        ❄️ อุณหภูมิควบคุม: <strong>{fac.temperatureRange}</strong>
+                      </div>
+                    )}
+                    {fac.dryingCapacityTonsPerDay && (
+                      <div>
+                        🔥 กำลังการอบแห้ง: <strong>{numberFormatter.format(fac.dryingCapacityTonsPerDay)} ตัน/วัน</strong>
+                      </div>
+                    )}
+                    <div>🚛 เส้นทาง: {fac.transportAccess}</div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Facility Results: Table View */}
+        {viewMode === 'table' && filteredFacilities.length > 0 && (
+          <div
+            className={`${styles.tableContainer} ${styles.scrollRegion}`}
+            role="region"
+            aria-label="ตารางรายการคลังสินค้า เลื่อนแนวนอนเพื่อดูคอลัมน์ทั้งหมด"
+            tabIndex={0}
+          >
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>ชื่อคลัง / รหัส</th>
+                  <th>ชนิดคลัง</th>
+                  <th>จังหวัด/อำเภอ</th>
+                  <th>ความจุ (ตัน)</th>
+                  <th>อัตราใช้งาน</th>
+                  <th>ดัชนี Farm-to-Storage</th>
+                  <th>สถานะ</th>
+                  <th>ผู้ดูแล</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+              </thead>
+              <tbody>
+                {pagedFacilities.map((fac) => (
+                  <tr key={fac.id}>
+                    <td>
+                      <strong>{fac.name}</strong>
+                      <div style={{ fontSize: 11.5, color: '#68756a' }}>{fac.id}</div>
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.typeBadge} ${
+                          fac.type === 'silo'
+                            ? styles.typeBadgeSilo
+                            : fac.type === 'cold_storage'
+                            ? styles.typeBadgeColdStorage
+                            : styles.typeBadgeWarehouse
+                        }`}
+                      >
+                        {fac.typeLabel}
+                      </span>
+                    </td>
+                    <td>
+                      {fac.provinceName} (อ.{fac.district})
+                    </td>
+                    <td>
+                      <strong>{numberFormatter.format(fac.capacityTons)}</strong> ตัน
+                    </td>
+                    <td>
+                      <strong>{percentFormatter.format(fac.utilizationRate)}%</strong>
+                      <div style={{ fontSize: 11, color: '#68756a' }}>({numberFormatter.format(fac.utilizedTons)} ตัน)</div>
+                    </td>
+                    <td>
+                      <div>
+                        <strong>{fac.farmConnectivityScore}/100</strong>
+                        <span style={{ fontSize: 12, color: '#53645a', marginLeft: 4 }}>({fac.avgFarmDistanceKm} กม.)</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.statusBadge} ${
+                          fac.status === 'operational'
+                            ? styles.statusOperational
+                            : fac.status === 'maintenance'
+                            ? styles.statusMaintenance
+                            : styles.statusFull
+                        }`}
+                      >
+                        ● {fac.statusLabel}
+                      </span>
+                    </td>
+                    <td>{fac.operator}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        <nav className={styles.pager} aria-label="การแบ่งหน้ารายการคลังสินค้า">
+          <p className={styles.pagerInfo} aria-live="polite">
+            แสดง {numberFormatter.format(rangeFrom)}-{numberFormatter.format(rangeTo)} จาก{' '}
+            {numberFormatter.format(filteredFacilities.length)} แห่ง
+            {totalPages > 1 ? ` · หน้า ${numberFormatter.format(currentPage)} จาก ${numberFormatter.format(totalPages)}` : ''}
+          </p>
+          {totalPages > 1 && (
+            <div className={styles.pagerControls}>
+              <button
+                type="button"
+                className={styles.pagerButton}
+                onClick={goToPrevPage}
+                disabled={currentPage <= 1}
+                aria-label="หน้าก่อนหน้า"
+              >
+                ← ก่อนหน้า
+              </button>
+              <span className={styles.pagerStatus}>
+                หน้า {numberFormatter.format(currentPage)} จาก {numberFormatter.format(totalPages)}
+              </span>
+              <button
+                type="button"
+                className={styles.pagerButton}
+                onClick={goToNextPage}
+                disabled={currentPage >= totalPages}
+                aria-label="หน้าถัดไป"
+              >
+                ถัดไป →
+              </button>
+            </div>
+          )}
+        </nav>
+      </section>
 
       {/* Farm-to-Storage Connectivity Score Deep-Dive Section */}
-      <section className={styles.connectivityContainer} aria-label="การประเมินดัชนี Farm-to-Storage Connectivity">
+      <section className={styles.connectivityContainer} aria-labelledby="logistics-connectivity-heading">
         <div className={styles.connectivityHeader}>
-          <h3>การประเมินดัชนีระยะห่างจากแหล่งผลิตถึงจุดรวบรวม (Farm-to-Storage Connectivity Score)</h3>
-          <p>
-            ดัชนีชี้วัดประสิทธิภาพโครงสร้างพื้นฐานหลังการเก็บเกี่ยว (Post-harvest Logistics)
-            ประเมินจากระยะทางโครงข่ายถนนเฉลี่ยจากแปลงปลูกถึงไซโลหรือห้องเย็นที่ใกล้ที่สุด
-            ความพอเพียงของกำลังการอบลดความชื้น และความเสี่ยงการเกิดคอขวดของผลผลิตเกษตรรายจังหวัด
-          </p>
+          <h2 id="logistics-connectivity-heading" className={styles.sectionHeading}>
+            การประเมินดัชนีระยะห่างจากแหล่งผลิตถึงจุดรวบรวม
+          </h2>
+          <details className={styles.details}>
+            <summary className={styles.detailsSummary}>อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล</summary>
+            <div className={styles.detailsBody}>
+              <p>
+                ดัชนีชี้วัดประสิทธิภาพโครงสร้างพื้นฐานหลังการเก็บเกี่ยว (Post-harvest Logistics)
+                ประเมินจากระยะทางโครงข่ายถนนเฉลี่ยจากแปลงปลูกถึงไซโลหรือห้องเย็นที่ใกล้ที่สุด
+                ความพอเพียงของกำลังการอบลดความชื้น และความเสี่ยงการเกิดคอขวดของผลผลิตเกษตรรายจังหวัด
+              </p>
+            </div>
+          </details>
         </div>
 
         {/* Tier Classification Explanation Cards */}
         <div className={styles.tierGrid}>
           <div className={`${styles.tierCard} ${styles.tierCardHigh}`}>
-            <div className={styles.tierTitle}>
+            <h3 className={styles.tierTitle}>
               <span>ระดับดีเยี่ยม (Score 80-100)</span>
               <span>&lt; 20 กม.</span>
-            </div>
+            </h3>
             <p className={styles.tierDesc}>
               เกษตรกรเข้าถึงคลังได้รวดเร็วภายใน 30-45 นาทีหลังเก็บเกี่ยว ลดความเสียหายจากความชื้นในข้าว
               และรักษาความสดของผลไม้/สัตว์น้ำได้สูงสุด มีโครงข่ายถนนเชื่อมโยงสมบูรณ์
@@ -584,10 +710,10 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
           </div>
 
           <div className={`${styles.tierCard} ${styles.tierCardModerate}`}>
-            <div className={styles.tierTitle}>
+            <h3 className={styles.tierTitle}>
               <span>ระดับปานกลาง (Score 65-79)</span>
               <span>20 - 35 กม.</span>
-            </div>
+            </h3>
             <p className={styles.tierDesc}>
               เข้าถึงได้ในเกณฑ์มาตรฐาน มีคลังรองรับระดับอำเภอ แต่อาจเกิดคอขวดและรอคิวนานช่วงฤดูเก็บเกี่ยวสูงสุด (Peak Harvest Period)
               ควรเสริมไซโลชุมชนหรือลานตากเสริม
@@ -595,37 +721,32 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
           </div>
 
           <div className={`${styles.tierCard} ${styles.tierCardLow}`}>
-            <div className={styles.tierTitle}>
+            <h3 className={styles.tierTitle}>
               <span>พื้นที่ห่างไกล / เสี่ยงคอขวด (&lt; 65)</span>
               <span>&gt; 35 กม.</span>
-            </div>
+            </h3>
             <p className={styles.tierDesc}>
               แปลงเกษตรอยู่ห่างไกลคลังหลักหรือเป็นพื้นที่ภูเขาสูง มีความเสี่ยงผลผลิตเน่าเสียสูง เกษตรกรต้องแบกรับต้นทุนค่าขนส่ง
               ควรได้รับการลงทุนสถานีรวบรวมและห้องเย็นเคลื่อนที่เร่งด่วน
             </p>
           </div>
         </div>
+      </section>
 
-        {/* Provincial Connectivity Scores Table */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-          <h4 style={{ fontSize: 16, fontWeight: 600, color: '#213d32', margin: 0 }}>
+      {/* Provincial Connectivity Scores Table */}
+      <section className={styles.connectivityContainer} aria-labelledby="logistics-ranking-heading">
+        <div className={styles.rankingHeader}>
+          <h2 id="logistics-ranking-heading" className={styles.sectionHeading}>
             คะแนนความเชื่อมโยงและระยะห่างรายจังหวัด (77 จังหวัดทั่วประเทศ)
-          </h4>
-          <div style={{ display: 'flex', gap: 6 }}>
+          </h2>
+          <div className={styles.regionPills} role="group" aria-label="กรองตารางรายจังหวัดตามภูมิภาค">
             {['all', 'ภาคกลาง', 'ภาคเหนือ', 'ภาคตะวันออกเฉียงเหนือ', 'ภาคใต้', 'ภาคตะวันออก', 'ภาคตะวันตก'].map((reg) => (
               <button
                 key={reg}
                 type="button"
-                style={{
-                  fontSize: 12,
-                  padding: '4px 9px',
-                  borderRadius: 4,
-                  border: regionFilter === reg ? '1px solid #213d32' : '1px solid #dce3d9',
-                  background: regionFilter === reg ? '#213d32' : '#ffffff',
-                  color: regionFilter === reg ? '#ffffff' : '#53645a',
-                  cursor: 'pointer',
-                }}
+                className={`${styles.regionPill} ${regionFilter === reg ? styles.regionPillActive : ''}`}
                 onClick={() => setRegionFilter(reg)}
+                aria-pressed={regionFilter === reg}
               >
                 {reg === 'all' ? 'ทุกภาค' : reg}
               </button>
@@ -633,7 +754,12 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
           </div>
         </div>
 
-        <div className={styles.tableContainer} style={{ maxHeight: 380, overflowY: 'auto' }}>
+        <div
+          className={`${styles.tableContainer} ${styles.provinceTableWrap} ${styles.scrollRegion}`}
+          role="region"
+          aria-label="ตารางคะแนนความเชื่อมโยงรายจังหวัด เลื่อนดูได้ทั้งแนวนอนและแนวตั้ง"
+          tabIndex={0}
+        >
           <table className={styles.provinceRankTable}>
             <thead>
               <tr>
@@ -648,10 +774,14 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
               </tr>
             </thead>
             <tbody>
-              {filteredProvinceScores.map((prov) => (
+              {filteredProvinceScores.map((prov: ProvinceConnectivity) => (
                 <tr key={prov.provinceCode}>
-                  <td><strong>{prov.provinceCode}</strong></td>
-                  <td><strong>{prov.provinceName}</strong></td>
+                  <td>
+                    <strong>{prov.provinceCode}</strong>
+                  </td>
+                  <td>
+                    <strong>{prov.provinceName}</strong>
+                  </td>
                   <td>{prov.region}</td>
                   <td>{prov.dominantCommodity}</td>
                   <td>{prov.avgFarmDistanceKm} กม.</td>
@@ -675,11 +805,16 @@ export function LogisticsDashboard({ initialPayload, payload }: LogisticsDashboa
             </tbody>
           </table>
         </div>
+        <p className={styles.rankingNote} aria-live="polite">
+          แสดง {numberFormatter.format(filteredProvinceScores.length)} จังหวัด · 77 จังหวัดเป็นทะเบียนอ้างอิง ไม่ใช่ coverage
+        </p>
       </section>
 
       {/* Sources & Transparency Section */}
-      <section className={styles.sourcesCard} aria-label="ข้อมูลอ้างอิงและหน่วยงานต้นทาง">
-        <div className={styles.sourcesTitle}>แหล่งข้อมูลอ้างอิงและมาตรฐานความโปร่งใส</div>
+      <section className={styles.sourcesCard} aria-labelledby="logistics-sources-heading">
+        <h2 id="logistics-sources-heading" className={styles.sectionHeading}>
+          แหล่งข้อมูล ข้อจำกัด และความโปร่งใส
+        </h2>
         <div className={styles.sourcesGrid}>
           {activePayload.sources.map((src) => (
             <div key={src.id} className={styles.sourceItem}>

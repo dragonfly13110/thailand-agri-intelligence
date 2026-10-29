@@ -299,8 +299,9 @@
 }
 
 .resetButton,
-.moreButton {
-  min-height: 40px;
+.moreButton,
+.pagerButton {
+  min-height: 44px;
   padding: 8px 16px;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
@@ -312,18 +313,21 @@
 }
 
 .resetButton:hover:not(:disabled),
-.moreButton:hover {
+.moreButton:hover,
+.pagerButton:hover:not(:disabled) {
   background: #edf2e7;
 }
 
-.resetButton:disabled {
+.resetButton:disabled,
+.pagerButton:disabled {
   color: #97a498;
   background: #f4f6f2;
   cursor: not-allowed;
 }
 
 .resetButton:focus-visible,
-.moreButton:focus-visible {
+.moreButton:focus-visible,
+.pagerButton:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -561,6 +565,80 @@
   border-radius: var(--radius, 8px);
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+}
+
+.tableWrap:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* แบ่งหน้าตาราง: ข้อความ "แสดง x–y จาก z · หน้า X จาก Y" + ปุ่มก่อนหน้า/ถัดไป */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pagerStatus {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted, var(--muted));
+}
+
+.pagerStatus strong {
+  color: var(--forest, var(--forest));
+  font-variant-numeric: tabular-nums;
+}
+
+.pagerButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagerButton {
+  min-width: 96px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ข้อความยาวที่พับเก็บได้ (สรุปข้อจำกัด/แหล่งข้อมูล) */
+.details {
+  min-width: 0;
+  padding: 2px 14px 12px;
+  background: var(--white, #fff);
+  border: 1px solid var(--coopLineSoft, var(--line));
+  border-radius: var(--radius, 8px);
+}
+
+.detailsSummary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.8;
+  color: var(--coopAccentInk, #35592c);
+  overflow-wrap: break-word;
+}
+
+.detailsSummary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.detailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 8px;
 }
 
 .table {
@@ -1080,6 +1158,7 @@
   .barFill,
   .resetButton,
   .moreButton,
+  .pagerButton,
   .kpiCard,
   .control,
   .searchField,

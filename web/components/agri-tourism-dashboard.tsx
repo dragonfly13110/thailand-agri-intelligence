@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 /*
  * สัญญาข้อมูลของ /agri-tourism อ่านจาก @/lib/hub/agri-tourism-data เฉพาะ “type”
  * เหตุผล: ไฟล์ data lane มี `import 'server-only'` ซึ่ง Next ห้ามดึงเข้า client bundle
@@ -83,11 +83,10 @@ const MONTH_FALLBACK_LABELS = [
 ];
 const MONTH_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
-const PROVINCE_LIST_START = 20;
-const PROVINCE_LIST_STEP = 20;
-const DESTINATION_LIST_LIMIT = 24;
-const WORKSHOP_LIST_LIMIT = 12;
-const ENTERPRISE_LIST_LIMIT = 24;
+const PROVINCE_LIST_START = 12;
+const PROVINCE_LIST_STEP = 12;
+/** เพดานรายการต่อหน้า — ตรงกับข้อกำหนด Group C (การ์ด ≤ 12 ต่อรายการ, ตาราง ≤ 20 แถว) */
+const LIST_PAGE_SIZE = 12;
 const SEASON_PICK_LIMIT = 3;
 const MONTH_PICK_LIMIT = 4;
 const REGION_PANEL_ID = 'agri-tourism-region-panel';
@@ -506,6 +505,11 @@ function DestinationCard({
   const activityIds = list(destination.activities);
   const bestMonths = list(destination.bestMonths);
   const distanceText = formatDistance(destination.distanceFromBangkokKm);
+  const stayText = destination.stayAvailable
+    ? 'มีที่พักรับรองในฟาร์ม'
+    : destination.dayTripOnly
+      ? 'ไป-กลับวันเดียว'
+      : 'ไม่มีที่พักรับรอง';
 
   return (
     <article className={styles.destCard}>
@@ -524,35 +528,6 @@ function DestinationCard({
       </p>
 
       <p className={styles.destHighlight}>{destination.highlight}</p>
-
-      {amenityIds.length > 0 ? (
-        <div className={styles.badgeRow} aria-label="สิ่งอำนวยความสะดวก">
-          {amenityIds.map((amenity: AmenityId, index) => {
-            const text = labelAt(list(destination.amenityLabels), index, String(amenity));
-            const key = String(amenity);
-            const tone = ACCESS_AMENITIES.has(key)
-              ? styles.amenityAccess
-              : LODGING_AMENITIES.has(key)
-                ? styles.amenityLodging
-                : styles.amenityPlain;
-            return (
-              <span key={`${destination.id}-amenity-${key}`} className={`${styles.amenityBadge} ${tone}`}>
-                {text}
-              </span>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {activityIds.length > 0 ? (
-        <ul className={styles.tagRow}>
-          {activityIds.map((activity: ActivityId, index) => (
-            <li key={`${destination.id}-activity-${String(activity)}`} className={styles.activityTag}>
-              {labelAt(list(destination.activityLabels), index, String(activity))}
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
       <div className={styles.destMonthRow}>
         <span className={styles.destMetaLabel}>เดือนที่เหมาะไป</span>
@@ -579,40 +554,85 @@ function DestinationCard({
         )}
       </div>
 
-      {list(destination.signatureCrops).length > 0 ? (
-        <p className={styles.destCrops}>
-          <span className={styles.destMetaLabel}>ผลิตภัณฑ์/ผลผลิตเด่น</span> {destination.signatureCrops.join(' · ')}
-        </p>
-      ) : null}
-
-      <dl className={styles.destStats}>
-        <div>
-          <dt>เวิร์กช็อปที่เปิดสอนที่นี่</dt>
-          <dd>{formatInt(destination.workshopCount)} หลักสูตร</dd>
-        </div>
-        <div>
-          <dt>ลักษณะการเที่ยว</dt>
-          <dd>
-            {destination.stayAvailable ? (
-              <span className={styles.stayYes}>มีที่พักรับรองในฟาร์ม</span>
-            ) : (
-              <span className={styles.stayNo}>ไม่มีที่พักรับรอง</span>
-            )}
-            {destination.dayTripOnly ? <span className={styles.dayTripTag}> · ไป-กลับวันเดียว</span> : null}
-          </dd>
-        </div>
-        <div>
-          <dt>ระยะทาง</dt>
-          <dd>{distanceText ?? <span className={styles.noneValue}>ไม่ระบุระยะทางจากกรุงเทพฯ</span>}</dd>
-        </div>
-      </dl>
-
-      <p className={styles.travelNote}>
-        <Icon name="arrow" size={14} />
-        <span>
-          <strong>คำแนะนำการเดินทาง:</strong> {destination.travelNote}
-        </span>
+      <p className={styles.destQuickMeta}>
+        <span>{formatInt(destination.workshopCount)} หลักสูตร</span>
+        <span>{stayText}</span>
+        <span>{distanceText ?? 'ไม่ระบุระยะทางจากกรุงเทพฯ'}</span>
       </p>
+
+      <details className={styles.cardDetails}>
+        <summary>
+          กิจกรรม สิ่งอำนวยความสะดวก และคำแนะนำการเดินทาง
+          {amenityIds.length + activityIds.length > 0
+            ? ` (${intFormatter.format(amenityIds.length + activityIds.length)})`
+            : ''}
+        </summary>
+        <div className={styles.cardDetailsBody}>
+          {amenityIds.length > 0 ? (
+            <div className={styles.badgeRow} aria-label="สิ่งอำนวยความสะดวก">
+              {amenityIds.map((amenity: AmenityId, index) => {
+                const text = labelAt(list(destination.amenityLabels), index, String(amenity));
+                const key = String(amenity);
+                const tone = ACCESS_AMENITIES.has(key)
+                  ? styles.amenityAccess
+                  : LODGING_AMENITIES.has(key)
+                    ? styles.amenityLodging
+                    : styles.amenityPlain;
+                return (
+                  <span key={`${destination.id}-amenity-${key}`} className={`${styles.amenityBadge} ${tone}`}>
+                    {text}
+                  </span>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {activityIds.length > 0 ? (
+            <ul className={styles.tagRow}>
+              {activityIds.map((activity: ActivityId, index) => (
+                <li key={`${destination.id}-activity-${String(activity)}`} className={styles.activityTag}>
+                  {labelAt(list(destination.activityLabels), index, String(activity))}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {list(destination.signatureCrops).length > 0 ? (
+            <p className={styles.destCrops}>
+              <span className={styles.destMetaLabel}>ผลิตภัณฑ์/ผลผลิตเด่น</span> {destination.signatureCrops.join(' · ')}
+            </p>
+          ) : null}
+
+          <dl className={styles.destStats}>
+            <div>
+              <dt>เวิร์กช็อปที่เปิดสอนที่นี่</dt>
+              <dd>{formatInt(destination.workshopCount)} หลักสูตร</dd>
+            </div>
+            <div>
+              <dt>ลักษณะการเที่ยว</dt>
+              <dd>
+                {destination.stayAvailable ? (
+                  <span className={styles.stayYes}>มีที่พักรับรองในฟาร์ม</span>
+                ) : (
+                  <span className={styles.stayNo}>ไม่มีที่พักรับรอง</span>
+                )}
+                {destination.dayTripOnly ? <span className={styles.dayTripTag}> · ไป-กลับวันเดียว</span> : null}
+              </dd>
+            </div>
+            <div>
+              <dt>ระยะทาง</dt>
+              <dd>{distanceText ?? <span className={styles.noneValue}>ไม่ระบุระยะทางจากกรุงเทพฯ</span>}</dd>
+            </div>
+          </dl>
+
+          <p className={styles.travelNote}>
+            <Icon name="arrow" size={14} />
+            <span>
+              <strong>คำแนะนำการเดินทาง:</strong> {destination.travelNote}
+            </span>
+          </p>
+        </div>
+      </details>
     </article>
   );
 }
@@ -755,34 +775,50 @@ function WorkshopCard({
         <h3 className={styles.workshopTitle}>{workshop.title}</h3>
         <span className={styles.activityTag}>{workshop.activityLabel}</span>
       </header>
-      <p className={styles.workshopPlace}>
-        <Icon name="pin" size={13} /> {workshop.destinationName} · {workshop.provinceName} ({workshop.provinceCode}) ·{' '}
-        {workshop.region}
+      <p className={styles.workshopQuickMeta}>
+        <span className={styles.workshopQuickPlace}>
+          <Icon name="pin" size={12} /> {workshop.destinationName} · {workshop.provinceName} ({workshop.provinceCode})
+        </span>
+        <span>{decimalFormatter.format(toFinite(workshop.durationHours))} ชั่วโมง</span>
+        <span>รับ {formatInt(workshop.capacity)} คน</span>
+        <span>{price <= 0 ? 'ไม่มีค่าใช้จ่าย (ตัวอย่าง)' : formatBaht(price)}</span>
+        <span>
+          <MonthChipStrip months={months} monthLabelOf={monthLabelOf} limit={4} />
+        </span>
       </p>
-      <dl className={styles.workshopStats}>
-        <div>
-          <dt>ระยะเวลา</dt>
-          <dd>{decimalFormatter.format(toFinite(workshop.durationHours))} ชั่วโมง</dd>
+      <details className={styles.cardDetails}>
+        <summary>สถานที่จัด หลักสูตร และกลุ่มเป้าหมาย</summary>
+        <div className={styles.cardDetailsBody}>
+          <p className={styles.workshopPlace}>
+            <Icon name="pin" size={13} /> {workshop.destinationName} · {workshop.provinceName} (
+            {workshop.provinceCode}) · {workshop.region}
+          </p>
+          <dl className={styles.workshopStats}>
+            <div>
+              <dt>ระยะเวลา</dt>
+              <dd>{decimalFormatter.format(toFinite(workshop.durationHours))} ชั่วโมง</dd>
+            </div>
+            <div>
+              <dt>รับได้</dt>
+              <dd>{formatInt(workshop.capacity)} คน</dd>
+            </div>
+            <div>
+              <dt>ค่าใช้จ่าย*</dt>
+              <dd className={styles.priceValue}>{price <= 0 ? 'ไม่มีค่าใช้จ่าย (ตัวอย่าง)' : formatBaht(price)}</dd>
+            </div>
+            <div>
+              <dt>ช่วงเดือน</dt>
+              <dd>
+                <MonthChipStrip months={months} monthLabelOf={monthLabelOf} limit={5} />
+              </dd>
+            </div>
+          </dl>
+          <p className={styles.workshopAudience}>
+            <strong>กลุ่มเป้าหมาย:</strong> {workshop.targetAudience}
+          </p>
+          {workshop.sample ? <p className={styles.workshopSample}>รายละเอียดหลักสูตรเป็นข้อมูลตัวอย่าง</p> : null}
         </div>
-        <div>
-          <dt>รับได้</dt>
-          <dd>{formatInt(workshop.capacity)} คน</dd>
-        </div>
-        <div>
-          <dt>ค่าใช้จ่าย*</dt>
-          <dd className={styles.priceValue}>{price <= 0 ? 'ไม่มีค่าใช้จ่าย (ตัวอย่าง)' : formatBaht(price)}</dd>
-        </div>
-        <div>
-          <dt>ช่วงเดือน</dt>
-          <dd>
-            <MonthChipStrip months={months} monthLabelOf={monthLabelOf} limit={5} />
-          </dd>
-        </div>
-      </dl>
-      <p className={styles.workshopAudience}>
-        <strong>กลุ่มเป้าหมาย:</strong> {workshop.targetAudience}
-      </p>
-      {workshop.sample ? <p className={styles.workshopSample}>รายละเอียดหลักสูตรเป็นข้อมูลตัวอย่าง</p> : null}
+      </details>
     </article>
   );
 }
@@ -841,6 +877,55 @@ function SortGlyph({ active, desc }: { active: boolean; desc: boolean }) {
   );
 }
 
+/** ตัวแบ่งหน้าร่วม: ก่อนหน้า/ถัดไป + "หน้า X จาก Y" + จำนวนผลลัพธ์แบบ aria-live */
+function Pagination({
+  page,
+  pageCount,
+  total,
+  startIndex,
+  shownCount,
+  unit,
+  label,
+  onChange,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  startIndex: number;
+  shownCount: number;
+  unit: string;
+  label: string;
+  onChange: (nextPage: number) => void;
+}) {
+  if (pageCount <= 1 || total <= 0) return null;
+  const first = startIndex + 1;
+  const last = startIndex + shownCount;
+  return (
+    <nav className={styles.pager} aria-label={label}>
+      <button
+        type="button"
+        className={styles.pagerButton}
+        onClick={() => onChange(page - 1)}
+        disabled={page <= 1}
+      >
+        <Icon name="arrow" size={14} className={styles.pagerPrevIcon} /> ก่อนหน้า
+      </button>
+      <p className={styles.pagerInfo} aria-live="polite">
+        หน้า {intFormatter.format(page)} จาก {intFormatter.format(pageCount)} · แสดง{' '}
+        {intFormatter.format(first)}–{intFormatter.format(last)} จาก {intFormatter.format(total)} {unit}
+      </p>
+      <button
+        type="button"
+        className={styles.pagerButton}
+        onClick={() => onChange(page + 1)}
+        disabled={page >= pageCount}
+      >
+        ถัดไป <Icon name="arrow" size={14} />
+      </button>
+    </nav>
+  );
+}
+
 /** เลื่อน focus ใน tablist ด้วยลูกศร (keyboard) แล้วเลือกแท็บตาม – ไม่มี state นอก React */
 function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, onSelect: () => void): void {
   if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'Home' && event.key !== 'End') {
@@ -883,6 +968,10 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
   const [provinceLimit, setProvinceLimit] = useState<number>(PROVINCE_LIST_START);
   const [enterpriseSortKey, setEnterpriseSortKey] = useState<EnterpriseSortKey>('memberCount');
   const [enterpriseSortDesc, setEnterpriseSortDesc] = useState<boolean>(true);
+  const [destinationPage, setDestinationPage] = useState<number>(1);
+  const [workshopPage, setWorkshopPage] = useState<number>(1);
+  const [enterprisePage, setEnterprisePage] = useState<number>(1);
+  const [tipPage, setTipPage] = useState<number>(1);
 
   const summary = payload.summary;
   const normalizedQuery = query.trim().toLowerCase();
@@ -1198,6 +1287,50 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
     stayFilter !== 'all' ||
     normalizedQuery.length > 0;
 
+  /** เปลี่ยนแท็บ/ตัวกรอง/คำค้นเมื่อไร ให้ทุก list กลับไปหน้า 1 และตารางจังหวัดย่อกลับชุดแรก */
+  useEffect(() => {
+    setDestinationPage(1);
+    setWorkshopPage(1);
+    setEnterprisePage(1);
+    setTipPage(1);
+    setProvinceLimit(PROVINCE_LIST_START);
+  }, [
+    regionFilter,
+    monthFilter,
+    activeProvinceCode,
+    activeActivity,
+    stayFilter,
+    normalizedQuery,
+    enterpriseSortKey,
+    enterpriseSortDesc,
+  ]);
+
+  const destinationPageCount = Math.max(1, Math.ceil(filteredDestinations.length / LIST_PAGE_SIZE));
+  const activeDestinationPage = Math.min(destinationPage, destinationPageCount);
+  const destinationStartIndex = (activeDestinationPage - 1) * LIST_PAGE_SIZE;
+  const visibleDestinations = filteredDestinations.slice(
+    destinationStartIndex,
+    destinationStartIndex + LIST_PAGE_SIZE,
+  );
+
+  const workshopPageCount = Math.max(1, Math.ceil(filteredWorkshops.length / LIST_PAGE_SIZE));
+  const activeWorkshopPage = Math.min(workshopPage, workshopPageCount);
+  const workshopStartIndex = (activeWorkshopPage - 1) * LIST_PAGE_SIZE;
+  const visibleWorkshops = filteredWorkshops.slice(workshopStartIndex, workshopStartIndex + LIST_PAGE_SIZE);
+
+  const enterprisePageCount = Math.max(1, Math.ceil(filteredEnterprises.length / LIST_PAGE_SIZE));
+  const activeEnterprisePage = Math.min(enterprisePage, enterprisePageCount);
+  const enterpriseStartIndex = (activeEnterprisePage - 1) * LIST_PAGE_SIZE;
+  const visibleEnterprises = filteredEnterprises.slice(
+    enterpriseStartIndex,
+    enterpriseStartIndex + LIST_PAGE_SIZE,
+  );
+
+  const tipPageCount = Math.max(1, Math.ceil(filteredTips.length / LIST_PAGE_SIZE));
+  const activeTipPage = Math.min(tipPage, tipPageCount);
+  const tipStartIndex = (activeTipPage - 1) * LIST_PAGE_SIZE;
+  const visibleTips = filteredTips.slice(tipStartIndex, tipStartIndex + LIST_PAGE_SIZE);
+
   const resetFilters = () => {
     setRegionFilter('all');
     setMonthFilter(null);
@@ -1206,6 +1339,10 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
     setStayFilter('all');
     setQuery('');
     setProvinceLimit(PROVINCE_LIST_START);
+    setDestinationPage(1);
+    setWorkshopPage(1);
+    setEnterprisePage(1);
+    setTipPage(1);
   };
 
   const toggleMonth = (month: number) => {
@@ -1259,6 +1396,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <Icon name={isSample ? 'info' : 'lock'} size={20} />
         </span>
         <div className={styles.bannerBody}>
+          <h2 className={styles.srOnly}>สถานะความพร้อมของข้อมูลและแหล่งอ้างอิง</h2>
           <div className={styles.bannerTopline}>
             <strong>
               {isSample
@@ -1282,64 +1420,72 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
               {formatInt(summary.provinceCount)} จากทะเบียน 77 จังหวัด
             </span>
           </p>
-          {list(payload.warnings).length > 0 ? (
-            <ul className={styles.warningList}>
-              {payload.warnings.map((warning, index) => (
-                <li key={`warning-${index}-${warning.slice(0, 24)}`}>{warning}</li>
-              ))}
-            </ul>
-          ) : null}
+          <details className={styles.bannerDetails}>
+            <summary>
+              แหล่งข้อมูล ข้อจำกัดสิทธิ์ และคำเตือน ({intFormatter.format(list(payload.sources).length)} แหล่ง)
+            </summary>
+            <div className={styles.bannerDetailsBody}>
+              {list(payload.warnings).length > 0 ? (
+                <ul className={styles.warningList}>
+                  {payload.warnings.map((warning, index) => (
+                    <li key={`warning-${index}-${warning.slice(0, 24)}`}>{warning}</li>
+                  ))}
+                </ul>
+              ) : null}
 
-          <div className={styles.sourceStrip} aria-label="แหล่งข้อมูลอ้างอิง">
-            <h3 className={styles.sourceStripTitle}>
-              <Icon name="book" size={15} /> แหล่งข้อมูลอ้างอิง
-            </h3>
-            <ul className={styles.sourceList}>
-              {list(payload.sources).map((source: AgriTourismSource) => (
-                <li key={source.id} className={styles.sourceItem}>
-                  <div className={styles.sourceHead}>
-                    <strong className={styles.sourceName}>{source.name}</strong>
-                    <span className={`${styles.licenseBadge} ${licenseClass(source.licenseStatus)}`}>
-                      <Icon name="lock" size={12} /> {licenseLabel(source.licenseStatus)}
-                    </span>
-                  </div>
-                  <p className={styles.sourceAgency}>{source.agency}</p>
-                  <p className={styles.sourceFlags}>
-                    <span>
-                      {source.publicationApproved === false
-                        ? 'ยังไม่อนุมัติให้เผยแพร่ตัวเลข'
-                        : 'อนุมัติเผยแพร่แล้ว'}
-                    </span>
-                    <span>{source.access === 'metadata_only' ? 'เปิดเผยเฉพาะ metadata' : String(source.access)}</span>
-                  </p>
-                  {list(source.limitations).length > 0 ? (
-                    <ul className={styles.sourceLimitList}>
-                      {source.limitations.map((limitation, index) => (
-                        <li key={`${source.id}-limit-${index}`}>{limitation}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {typeof source.sourceUrl === 'string' && source.sourceUrl.length > 0 ? (
-                    <a
-                      className={styles.sourceLink}
-                      href={source.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Icon name="external" size={13} /> เปิดต้นทาง
-                    </a>
-                  ) : (
-                    <span className={styles.noLink}>ยังไม่เปิด URL สาธารณะ (กันรายการที่สิทธิ์ pending ออกจากเว็บ)</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className={styles.sourceStrip} aria-label="แหล่งข้อมูลอ้างอิง">
+                <p className={styles.sourceStripTitle}>
+                  <Icon name="book" size={15} /> แหล่งข้อมูลอ้างอิง
+                </p>
+                <ul className={styles.sourceList}>
+                  {list(payload.sources).map((source: AgriTourismSource) => (
+                    <li key={source.id} className={styles.sourceItem}>
+                      <div className={styles.sourceHead}>
+                        <strong className={styles.sourceName}>{source.name}</strong>
+                        <span className={`${styles.licenseBadge} ${licenseClass(source.licenseStatus)}`}>
+                          <Icon name="lock" size={12} /> {licenseLabel(source.licenseStatus)}
+                        </span>
+                      </div>
+                      <p className={styles.sourceAgency}>{source.agency}</p>
+                      <p className={styles.sourceFlags}>
+                        <span>
+                          {source.publicationApproved === false
+                            ? 'ยังไม่อนุมัติให้เผยแพร่ตัวเลข'
+                            : 'อนุมัติเผยแพร่แล้ว'}
+                        </span>
+                        <span>{source.access === 'metadata_only' ? 'เปิดเผยเฉพาะ metadata' : String(source.access)}</span>
+                      </p>
+                      {list(source.limitations).length > 0 ? (
+                        <ul className={styles.sourceLimitList}>
+                          {source.limitations.map((limitation, index) => (
+                            <li key={`${source.id}-limit-${index}`}>{limitation}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {typeof source.sourceUrl === 'string' && source.sourceUrl.length > 0 ? (
+                        <a
+                          className={styles.sourceLink}
+                          href={source.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Icon name="external" size={13} /> เปิดต้นทาง
+                        </a>
+                      ) : (
+                        <span className={styles.noLink}>ยังไม่เปิด URL สาธารณะ (กันรายการที่สิทธิ์ pending ออกจากเว็บ)</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </details>
         </div>
       </section>
 
       {/* 2) KPI จาก summary */}
       <section className={styles.kpiGrid} aria-label="สรุปตัวชี้วัดการท่องเที่ยวเชิงเกษตร (ข้อมูลตัวอย่าง)">
+        <h2 className={styles.srOnly}>สรุปตัวชี้วัดการท่องเที่ยวเชิงเกษตร (ข้อมูลตัวอย่าง)</h2>
         {buildKpiModels(summary).map((model) => (
           <KpiCard key={model.key} model={model} />
         ))}
@@ -1351,8 +1497,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>เลือกภูมิภาคเพื่อกรองทั้งหน้า</h2>
             <p>
-              แท็บภาคกรองแหล่งท่องเที่ยว จังหวัด เวิร์กช็อป ทะเบียนวิสาหกิจชุมชน ปฏิทินผลไม้ตามพื้นที่
-              และคำแนะนำการเดินทางที่ใช้ขอบเขตภาคเดียวกัน ใช้ปุ่มลูกศรซ้าย–ขวาเลื่อนระหว่างแท็บได้
+              แท็บภาคกรองแหล่งท่องเที่ยว จังหวัด เวิร์กช็อป วิสาหกิจ และปฏิทินผลไม้พร้อมกัน ใช้ปุ่มลูกศรซ้าย–ขวาเลื่อนแท็บ
             </p>
           </div>
           <span className={styles.sectionCount}>{intFormatter.format(regionTabs.length - 1)} ภาค</span>
@@ -1418,8 +1563,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>ฤดูและเดือนที่จะเดินทาง</h2>
             <p>
-              เลือกเดือนเพื่อกรองแหล่งท่องเที่ยวที่เปิดให้เข้าชมเดือนนั้น พร้อมแสดงผลไม้และเทศกาลของเดือนนั้น
-              คลิกซ้ำเพื่อล้างการเลือก เมื่อไม่เลือกเดือน ระบบจะแสดงการ์ดแนะนำแหล่งท่องเที่ยวรายฤดู
+              เลือกเดือนเพื่อกรองแหล่งท่องเที่ยวและดูผลไม้/เทศกาลของเดือนนั้น คลิกซ้ำเพื่อล้างการเลือก
             </p>
           </div>
           <span className={styles.sectionCount}>
@@ -1550,9 +1694,8 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>ทะเบียนแหล่งท่องเที่ยวเชิงเกษตร</h2>
             <p>
-              การ์ดแต่ละใบแสดงชนิดแหล่งท่องเที่ยว ที่ตั้งระดับอำเภอ กิจกรรม สิ่งอำนวยความสะดวก
-              ช่วงเดือนที่เหมาะไปเที่ยว ลักษณะการพัก ระยะทางจากกรุงเทพฯ และคำแนะนำการเดินทาง
-              ตัวกรองในส่วนนี้ทำงานบนเครื่องผู้ใช้เท่านั้น ไม่เรียก API เพิ่ม
+              ตัวกรองทำงานบนเครื่องผู้ใช้เท่านั้น ไม่เรียก API เพิ่ม · เปิด “กิจกรรม สิ่งอำนวยความสะดวก”
+              ในการ์ดเพื่อดูรายละเอียดการเดินทาง
             </p>
           </div>
           <span className={styles.sectionCount}>
@@ -1650,8 +1793,13 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
               : 'แหล่งท่องเที่ยวที่ตรงกับตัวกรองปัจจุบัน'}
           </strong>
           <span>
-            แสดง {intFormatter.format(Math.min(filteredDestinations.length, DESTINATION_LIST_LIMIT))} การ์ด จาก{' '}
-            {intFormatter.format(filteredDestinations.length)} แห่งที่ผ่านตัวกรอง
+            แสดง {intFormatter.format(visibleDestinations.length)} การ์ด
+            {filteredDestinations.length > 0
+              ? ` (รายการที่ ${intFormatter.format(destinationStartIndex + 1)}–${intFormatter.format(
+                  destinationStartIndex + visibleDestinations.length,
+                )})`
+              : ''}{' '}
+            จาก {intFormatter.format(filteredDestinations.length)} แห่งที่ผ่านตัวกรอง
           </span>
           {hasActiveFilters ? (
             <span className={styles.filterEcho}>
@@ -1680,7 +1828,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
         {filteredDestinations.length > 0 ? (
           <>
             <div className={styles.destGrid}>
-              {filteredDestinations.slice(0, DESTINATION_LIST_LIMIT).map((destination) => (
+              {visibleDestinations.map((destination) => (
                 <DestinationCard
                   key={destination.id}
                   destination={destination}
@@ -1690,12 +1838,16 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
                 />
               ))}
             </div>
-            {filteredDestinations.length > DESTINATION_LIST_LIMIT ? (
-              <p className={styles.moreNote}>
-                แสดง {intFormatter.format(DESTINATION_LIST_LIMIT)} การ์ดจาก{' '}
-                {intFormatter.format(filteredDestinations.length)} แห่ง — ใช้ตัวกรองจังหวัด เดือน หรือกิจกรรมเพื่อจำกัดผล
-              </p>
-            ) : null}
+            <Pagination
+              page={activeDestinationPage}
+              pageCount={destinationPageCount}
+              total={filteredDestinations.length}
+              startIndex={destinationStartIndex}
+              shownCount={visibleDestinations.length}
+              unit="แห่ง"
+              label="แบ่งหน้าทะเบียนแหล่งท่องเที่ยว"
+              onChange={setDestinationPage}
+            />
           </>
         ) : (
           <div className={styles.emptyState} role="status">
@@ -1705,6 +1857,11 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
               หรือเลือกภาคเป็น “ทั้งหมด” เพราะบางกิจกรรมมีเฉพาะบางจังหวัดในฤดูกาลของมัน
               และรายการที่ยังไม่ยืนยันสิทธิ์เผยแพร่จะไม่ถูกนำมาแสดงในทะเบียนนี้
             </p>
+            {hasActiveFilters ? (
+              <button type="button" className={styles.resetButton} onClick={resetFilters}>
+                <Icon name="close" size={14} /> ล้างตัวกรองทั้งหมด
+              </button>
+            ) : null}
           </div>
         )}
       </section>
@@ -1715,8 +1872,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>ปฏิทินผลไม้และเทศกาลเก็บเกี่ยว 12 เดือน</h2>
             <p>
-              แถวที่เลือกคือเดือนที่กำลังกรองทั้งหน้า ผลไม้ที่เน้นกรอบทึบคือช่วงให้ผลมากสุด กรอบเส้นประคือเดือนที่มีเทศกาลเก็บเกี่ยว
-              จังหวัดที่ระบุคือแหล่งผลิตของผลไม้นั้นตามทะเบียน (เลือกภาคเพื่อดูเฉพาะผลไม้ของภาคนั้น)
+              กรอบทึบ = ช่วงให้ผลมากสุด · กรอบเส้นประ = เดือนที่มีเทศกาลเก็บเกี่ยว · จังหวัดคือแหล่งผลิตตามทะเบียน
             </p>
           </div>
           <span className={styles.sectionCount}>
@@ -1817,10 +1973,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
         <header className={styles.sectionHeader}>
           <div>
             <h2>เวิร์กช็อปและหลักสูตรระยะสั้นในชุมชน</h2>
-            <p>
-              รายการอบรมที่จัดโดยแหล่งท่องเที่ยวหรือวิสาหกิจชุมชน ตัวเลขค่าใช้จ่าย/ความจุเป็นค่าตัวอย่าง
-              ต้องยืนยันกับผู้จัดจริงก่อนลงทะเบียน
-            </p>
+            <p>ค่าใช้จ่ายและความจุเป็นค่าตัวอย่าง ต้องยืนยันกับผู้จัดจริงก่อนลงทะเบียน</p>
           </div>
           <span className={styles.sectionCount}>
             {intFormatter.format(filteredWorkshops.length)} หลักสูตร
@@ -1830,16 +1983,20 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
         {filteredWorkshops.length > 0 ? (
           <>
             <div className={styles.workshopGrid}>
-              {filteredWorkshops.slice(0, WORKSHOP_LIST_LIMIT).map((workshop) => (
+              {visibleWorkshops.map((workshop) => (
                 <WorkshopCard key={workshop.id} workshop={workshop} monthLabelOf={monthLabelOf} />
               ))}
             </div>
-            {filteredWorkshops.length > WORKSHOP_LIST_LIMIT ? (
-              <p className={styles.moreNote}>
-                แสดง {intFormatter.format(WORKSHOP_LIST_LIMIT)} จาก {intFormatter.format(filteredWorkshops.length)} หลักสูตร
-                — เลือกเดือนหรือกิจกรรมเพื่อจำกัดรายการ
-              </p>
-            ) : null}
+            <Pagination
+              page={activeWorkshopPage}
+              pageCount={workshopPageCount}
+              total={filteredWorkshops.length}
+              startIndex={workshopStartIndex}
+              shownCount={visibleWorkshops.length}
+              unit="หลักสูตร"
+              label="แบ่งหน้าเวิร์กช็อปและหลักสูตรชุมชน"
+              onChange={setWorkshopPage}
+            />
           </>
         ) : (
           <div className={styles.emptyState} role="status">
@@ -1847,6 +2004,11 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
             <p>
               ชุมชนมักเปิดอบรมตามฤดูกาลผลิตของผลผลิตหลัก ลองล้างการเลือกเดือน หรือเปลี่ยนภาคเพื่อดูหลักสูตรของพื้นที่อื่น
             </p>
+            {hasActiveFilters ? (
+              <button type="button" className={styles.resetButton} onClick={resetFilters}>
+                <Icon name="close" size={14} /> ล้างตัวกรองทั้งหมด
+              </button>
+            ) : null}
           </div>
         )}
       </section>
@@ -1857,18 +2019,18 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>ทะเบียนวิสาหกิจชุมชนและกลุ่มแปลงใหญ่</h2>
             <p>
-              เครือข่ายผู้ผลิตที่เป็นฐานของการท่องเที่ยวเชิงเกษตร คลิกหัวคอลัมน์ “สมาชิก” หรือ “พื้นที่” เพื่อเรียงลำดับ
-              จำนวนสมาชิก (คน) และพื้นที่ (ไร่) เป็นคนละหน่วยนับกับจำนวนแหล่งท่องเที่ยว จึงไม่นำมารวมกัน
+              คลิกหัวคอลัมน์เพื่อเรียงลำดับ · จำนวนสมาชิก (คน) และพื้นที่ (ไร่) เป็นคนละหน่วยนับกับจำนวนแหล่งท่องเที่ยว
             </p>
           </div>
           <span className={styles.sectionCount}>
-            {intFormatter.format(Math.min(filteredEnterprises.length, ENTERPRISE_LIST_LIMIT))} จาก{' '}
+            {intFormatter.format(visibleEnterprises.length)} จาก{' '}
             {intFormatter.format(filteredEnterprises.length)} รายการ
           </span>
         </header>
 
         {filteredEnterprises.length > 0 ? (
-          <div className={styles.tableScroll} role="region" aria-label="ตารางทะเบียนวิสาหกิจชุมชน" tabIndex={0}>
+          <>
+            <div className={styles.tableScroll} role="region" aria-label="ตารางทะเบียนวิสาหกิจชุมชน" tabIndex={0}>
             <table className={styles.table}>
               <caption className={styles.srOnly}>
                 ทะเบียนวิสาหกิจชุมชนและกลุ่มแปลงใหญ่ ระบุประเภท จังหวัด สินค้า สมาชิก พื้นที่ มาตรฐานรับรอง
@@ -1906,7 +2068,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
                 </tr>
               </thead>
               <tbody>
-                {filteredEnterprises.slice(0, ENTERPRISE_LIST_LIMIT).map((item: AgriTourismEnterprise) => (
+                {visibleEnterprises.map((item: AgriTourismEnterprise) => (
                   <tr key={item.id}>
                     <th scope="row" className={styles.nameCell}>
                       <span className={styles.rowName}>{item.name}</span>
@@ -1954,11 +2116,27 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+            <Pagination
+              page={activeEnterprisePage}
+              pageCount={enterprisePageCount}
+              total={filteredEnterprises.length}
+              startIndex={enterpriseStartIndex}
+              shownCount={visibleEnterprises.length}
+              unit="รายการ"
+              label="แบ่งหน้าทะเบียนวิสาหกิจชุมชนและกลุ่มแปลงใหญ่"
+              onChange={setEnterprisePage}
+            />
+          </>
         ) : (
           <div className={styles.emptyState} role="status">
             <h3>ไม่พบวิสาหกิจชุมชนที่ตรงกับเงื่อนไข</h3>
             <p>ภาคหรือจังหวัดที่เลือกยังไม่มีรายการในทะเบียนตัวอย่าง ลองเลือก “ทั้งหมด” หรือล้างตัวกรองกิจกรรม</p>
+            {hasActiveFilters ? (
+              <button type="button" className={styles.resetButton} onClick={resetFilters}>
+                <Icon name="close" size={14} /> ล้างตัวกรองทั้งหมด
+              </button>
+            ) : null}
           </div>
         )}
       </section>
@@ -1969,8 +2147,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>รายชื่อจังหวัดและศักยภาพการท่องเที่ยวเชิงเกษตร</h2>
             <p>
-              นับเฉพาะจังหวัดที่มีข้อมูลในชุดนี้ (ทะเบียนอ้างอิงมี 77 จังหวัด แต่ไม่ได้หมายความว่าทุกจังหวัดมี coverage)
-              คอลัมน์เที่ยวชมและรายได้เป็นค่าประเมินตัวอย่าง เรียงลำดับได้ด้วยการคลิกหัวคอลัมน์
+              นับเฉพาะจังหวัดที่มีข้อมูลในชุดนี้ · 77 จังหวัดเป็นทะเบียนอ้างอิง ไม่ใช่ coverage · เที่ยวชมและรายได้เป็นค่าประเมินตัวอย่าง
             </p>
           </div>
           <span className={styles.sectionCount}>
@@ -2082,7 +2259,7 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
             </div>
 
             <div className={styles.limitRow}>
-              <p className={styles.moreNote}>
+              <p className={styles.moreNote} aria-live="polite">
                 แสดง {intFormatter.format(visibleProvinces.length)} จาก {intFormatter.format(sortedProvinces.length)}{' '}
                 จังหวัด (เรียงตาม{provinceColumns.find((column) => column.key === provinceSortKey)?.label ?? 'จังหวัด'})
               </p>
@@ -2109,6 +2286,11 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div className={styles.emptyState} role="status">
             <h3>ไม่พบจังหวัดในเงื่อนไขนี้</h3>
             <p>ภาคที่เลือกยังไม่มีสถิติจังหวัดในชุดข้อมูลตัวอย่าง ลองเลือก “ทั้งหมด” เพื่อดูตารางทั้งประเทศ</p>
+            {hasActiveFilters ? (
+              <button type="button" className={styles.resetButton} onClick={resetFilters}>
+                <Icon name="close" size={14} /> ล้างตัวกรองทั้งหมด
+              </button>
+            ) : null}
           </div>
         )}
       </section>
@@ -2119,23 +2301,39 @@ export function AgriTourismDashboard({ payload }: AgriTourismDashboardProps) {
           <div>
             <h2>คำแนะนำการเดินทางตามฤดูและภูมิภาค</h2>
             <p>
-              การ์ดแต่ละใบใช้ประกอบวางแผนการเดินทางเท่านั้น ไม่ใช่ประกาศจากหน่วยงาน
-              และขอบเขตของคำแนะนำเป็นรายภาคตามที่ข้อมูลต้นทางระบุ (ค่าที่ระบุทุกภาคจะแสดงในทุกการเลือกภูมิภาค)
+              ใช้ประกอบวางแผนเท่านั้น ไม่ใช่ประกาศจากหน่วยงาน · ขอบเขตเป็นรายภาคตามที่ข้อมูลต้นทางระบุ
             </p>
           </div>
           <span className={styles.sectionCount}>{intFormatter.format(filteredTips.length)} ข้อแนะนำ</span>
         </header>
 
         {filteredTips.length > 0 ? (
-          <div className={styles.tipGrid}>
-            {filteredTips.map((tip) => (
-              <TipCard key={tip.id} tip={tip} monthLabelOf={monthLabelOf} regionLabelOf={regionLabelOf} />
-            ))}
-          </div>
+          <>
+            <div className={styles.tipGrid}>
+              {visibleTips.map((tip) => (
+                <TipCard key={tip.id} tip={tip} monthLabelOf={monthLabelOf} regionLabelOf={regionLabelOf} />
+              ))}
+            </div>
+            <Pagination
+              page={activeTipPage}
+              pageCount={tipPageCount}
+              total={filteredTips.length}
+              startIndex={tipStartIndex}
+              shownCount={visibleTips.length}
+              unit="ข้อแนะนำ"
+              label="แบ่งหน้าคำแนะนำการเดินทาง"
+              onChange={setTipPage}
+            />
+          </>
         ) : (
           <div className={styles.emptyState} role="status">
             <h3>ไม่มีคำแนะนำสำหรับภาคที่เลือก</h3>
             <p>เลือกภูมิภาคเป็น “ทั้งหมด” เพื่อดูคำแนะนำรายฤดูที่ครอบคลุมทั้งประเทศ</p>
+            {hasActiveFilters ? (
+              <button type="button" className={styles.resetButton} onClick={resetFilters}>
+                <Icon name="close" size={14} /> ล้างตัวกรองทั้งหมด
+              </button>
+            ) : null}
           </div>
         )}
       </section>

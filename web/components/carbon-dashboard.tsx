@@ -50,6 +50,47 @@ const PROJECT_TYPE_OPTIONS: Array<{ value: CarbonProjectFilter; label: string }>
   { value: 'soil', label: CARBON_PROJECT_TYPE_LABELS.soil },
 ];
 
+const PROJECT_PAGE_SIZE = 9;
+const PROVINCE_PAGE_SIZE = 20;
+
+function Pager({
+  page,
+  pageCount,
+  total,
+  from,
+  to,
+  noun,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  from: number;
+  to: number;
+  noun: string;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  if (pageCount <= 1 || total === 0) return null;
+  return (
+    <div className={styles.pager}>
+      <p className={styles.pagerStatus} role="status" aria-live="polite">
+        แสดง <strong>{formatInt(from)}–{formatInt(to)}</strong> จาก {formatInt(total)} {noun}
+        {' · '}หน้า <strong>{formatInt(page)}</strong> จาก {formatInt(pageCount)}
+      </p>
+      <div className={styles.pagerButtons}>
+        <button type="button" className={styles.pagerButton} onClick={onPrevious} disabled={page <= 1}>
+          ก่อนหน้า
+        </button>
+        <button type="button" className={styles.pagerButton} onClick={onNext} disabled={page >= pageCount}>
+          ถัดไป
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export interface CarbonDashboardProps {
   payload: CarbonDashboardPayload;
 }
@@ -57,7 +98,8 @@ export interface CarbonDashboardProps {
 export function CarbonDashboard({ payload }: CarbonDashboardProps) {
   const [provinceCode, setProvinceCode] = useState<string>(payload.filters.provinceCode ?? 'all');
   const [projectType, setProjectType] = useState<CarbonProjectFilter>(payload.filters.projectType);
-  const [projectLimit, setProjectLimit] = useState<number>(9);
+  const [projectPage, setProjectPage] = useState<number>(1);
+  const [provincePage, setProvincePage] = useState<number>(1);
 
   const activePayload = useMemo(
     () =>
@@ -79,7 +121,20 @@ export function CarbonDashboard({ payload }: CarbonDashboardProps) {
   );
 
   const maxAwdReduction = activePayload.awdTopProvinces[0]?.awdMethaneReductionTCO2e || 1;
-  const visibleProjects = activePayload.projects.slice(0, projectLimit);
+
+  const projectPageCount = Math.max(1, Math.ceil(activePayload.projects.length / PROJECT_PAGE_SIZE));
+  const currentProjectPage = Math.min(projectPage, projectPageCount);
+  const visibleProjects = activePayload.projects.slice(
+    (currentProjectPage - 1) * PROJECT_PAGE_SIZE,
+    currentProjectPage * PROJECT_PAGE_SIZE,
+  );
+
+  const provincePageCount = Math.max(1, Math.ceil(provinces.length / PROVINCE_PAGE_SIZE));
+  const currentProvincePage = Math.min(provincePage, provincePageCount);
+  const pagedProvinces = provinces.slice(
+    (currentProvincePage - 1) * PROVINCE_PAGE_SIZE,
+    currentProvincePage * PROVINCE_PAGE_SIZE,
+  );
 
   const awdAdoption = scopedSummary.awdAdoptionRate;
   const gaugeRadius = 54;
@@ -89,17 +144,20 @@ export function CarbonDashboard({ payload }: CarbonDashboardProps) {
   const handleReset = () => {
     setProvinceCode('all');
     setProjectType('all');
-    setProjectLimit(9);
+    setProjectPage(1);
+    setProvincePage(1);
   };
 
   const handleProvinceSelect = (code: string) => {
     setProvinceCode(code);
-    setProjectLimit(9);
+    setProjectPage(1);
+    setProvincePage(1);
   };
 
   const handleProjectTypeSelect = (value: CarbonProjectFilter) => {
     setProjectType(value);
-    setProjectLimit(9);
+    setProjectPage(1);
+    setProvincePage(1);
   };
 
   return (
@@ -568,16 +626,17 @@ export function CarbonDashboard({ payload }: CarbonDashboardProps) {
                 </article>
               ))}
             </div>
-            {activePayload.projects.length > projectLimit ? (
-              <div className={styles.loadMoreWrap}>
-                <button
-                  type="button"
-                  className={styles.loadMoreButton}
-                  onClick={() => setProjectLimit((limit) => limit + 9)}
-                >
-                  แสดงโครงการเพิ่มเติม ({activePayload.projects.length - projectLimit} รายการ)
-                </button>
-              </div>
+            {activePayload.projects.length > 0 ? (
+              <Pager
+                page={currentProjectPage}
+                pageCount={projectPageCount}
+                total={activePayload.projects.length}
+                from={(currentProjectPage - 1) * PROJECT_PAGE_SIZE + 1}
+                to={Math.min(activePayload.projects.length, currentProjectPage * PROJECT_PAGE_SIZE)}
+                noun="โครงการ"
+                onPrevious={() => setProjectPage((page) => Math.max(1, page - 1))}
+                onNext={() => setProjectPage((page) => Math.min(projectPageCount, page + 1))}
+              />
             ) : null}
           </>
         ) : (
@@ -612,7 +671,7 @@ export function CarbonDashboard({ payload }: CarbonDashboardProps) {
 
         <div
           className={styles.tableWrap}
-          role="group"
+          role="region"
           aria-label="ตารางศักยภาพคาร์บอนรายจังหวัด เลื่อนแนวนอนเพื่อดูทุกคอลัมน์"
           tabIndex={0}
         >
@@ -633,11 +692,11 @@ export function CarbonDashboard({ payload }: CarbonDashboardProps) {
               </tr>
             </thead>
             <tbody>
-              {provinces.map((province, index) => {
+              {pagedProvinces.map((province, index) => {
                 const isSelected = province.provinceCode === provinceCode;
                 return (
                   <tr key={province.provinceCode} className={isSelected ? styles.rowSelected : undefined}>
-                    <td className={styles.rankCell}>{index + 1}</td>
+                    <td className={styles.rankCell}>{(currentProvincePage - 1) * PROVINCE_PAGE_SIZE + index + 1}</td>
                     <th scope="row" className={styles.provinceNameCell}>
                       <button
                         type="button"
@@ -663,6 +722,16 @@ export function CarbonDashboard({ payload }: CarbonDashboardProps) {
             </tbody>
           </table>
         </div>
+        <Pager
+          page={currentProvincePage}
+          pageCount={provincePageCount}
+          total={provinces.length}
+          from={(currentProvincePage - 1) * PROVINCE_PAGE_SIZE + 1}
+          to={Math.min(provinces.length, currentProvincePage * PROVINCE_PAGE_SIZE)}
+          noun="จังหวัด"
+          onPrevious={() => setProvincePage((page) => Math.max(1, page - 1))}
+          onNext={() => setProvincePage((page) => Math.min(provincePageCount, page + 1))}
+        />
       </section>
 
       <section className={styles.footnoteGrid} aria-labelledby="carbon-sources-heading">

@@ -29,6 +29,8 @@ export interface GiDashboardProps {
 
 const NO_DATA = 'ไม่มีข้อมูล';
 const PROVINCE_TABLE_CAP_STEP = 12;
+/** จำนวนบัตรสินค้าต่อหน้า — กันหน้ายาวเป็นกำแพงรายการ 122 ใบ */
+const PRODUCT_PAGE_SIZE = 12;
 
 const MONTH_LABELS = [
   'ม.ค.',
@@ -166,6 +168,7 @@ export function GiDashboard({ payload }: GiDashboardProps) {
   const [query, setQuery] = useState<string>('');
   const [provinceSortDesc, setProvinceSortDesc] = useState<boolean>(true);
   const [provinceVisible, setProvinceVisible] = useState<number>(PROVINCE_TABLE_CAP_STEP);
+  const [page, setPage] = useState<number>(1);
 
   const filteredProducts = useMemo(
     () =>
@@ -181,6 +184,12 @@ export function GiDashboard({ payload }: GiDashboardProps) {
   );
 
   const filteredSummary = useMemo(() => deriveSummary(filteredProducts), [filteredProducts]);
+
+  // แบ่งหน้าเฉพาะรายการที่ผ่านตัวกรอง: pageCount >= 1 เสมอ และ page ถูกบีบให้อยู่ในช่วง
+  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PRODUCT_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, page), pageCount);
+  const pageStart = (currentPage - 1) * PRODUCT_PAGE_SIZE;
+  const visibleProducts = filteredProducts.slice(pageStart, pageStart + PRODUCT_PAGE_SIZE);
 
   const provinceGroups = useMemo(() => groupProvinces(payload.filterOptions.provinces, payload.filterOptions.regions), [
     payload.filterOptions.provinces,
@@ -204,6 +213,12 @@ export function GiDashboard({ payload }: GiDashboardProps) {
     setCategory('all');
     setStandard('all');
     setQuery('');
+    setPage(1);
+  }
+
+  // ผู้เรียกต้อง setPage(1) เมื่อตัวกรองเปลี่ยน เพื่อไม่ให้ค้างหน้ากลางของผลลัพธ์ชุดใหม่
+  function goToPage(next: number) {
+    setPage(Math.min(Math.max(1, next), pageCount));
   }
 
   return (
@@ -220,7 +235,10 @@ export function GiDashboard({ payload }: GiDashboardProps) {
               id="gi-region"
               className={styles.control}
               value={region}
-              onChange={(event) => setRegion(event.target.value)}
+              onChange={(event) => {
+                setRegion(event.target.value);
+                setPage(1);
+              }}
             >
               <option value="all">ทุกภาค ({payload.filterOptions.regions.length})</option>
               {payload.filterOptions.regions.map((r) => (
@@ -239,7 +257,10 @@ export function GiDashboard({ payload }: GiDashboardProps) {
               id="gi-province"
               className={styles.control}
               value={provinceCode}
-              onChange={(event) => setProvinceCode(event.target.value)}
+              onChange={(event) => {
+                setProvinceCode(event.target.value);
+                setPage(1);
+              }}
             >
               <option value="all">ทุกจังหวัด ({payload.filterOptions.provinces.length})</option>
               {provinceGroups.map((group) => (
@@ -262,7 +283,10 @@ export function GiDashboard({ payload }: GiDashboardProps) {
               id="gi-category"
               className={styles.control}
               value={category}
-              onChange={(event) => setCategory(event.target.value as GiCategory | 'all')}
+              onChange={(event) => {
+                setCategory(event.target.value as GiCategory | 'all');
+                setPage(1);
+              }}
             >
               <option value="all">ทุกหมวดหมู่ ({payload.filterOptions.categories.length})</option>
               {payload.filterOptions.categories.map((option) => (
@@ -281,7 +305,10 @@ export function GiDashboard({ payload }: GiDashboardProps) {
               id="gi-standard"
               className={styles.control}
               value={standard}
-              onChange={(event) => setStandard(event.target.value as GiControlStandard | 'all')}
+              onChange={(event) => {
+                setStandard(event.target.value as GiControlStandard | 'all');
+                setPage(1);
+              }}
             >
               <option value="all">ทุกระบบควบคุม</option>
               {payload.filterOptions.standards.map((option) => (
@@ -303,7 +330,10 @@ export function GiDashboard({ payload }: GiDashboardProps) {
                 type="search"
                 className={styles.searchInput}
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
                 placeholder="เช่น ข้าวสังข์หยด / มังคุด / พริกไทย"
               />
             </span>
@@ -332,7 +362,9 @@ export function GiDashboard({ payload }: GiDashboardProps) {
             <span className={styles.eyebrow}>รายการสินค้าสิ่งบ่งชี้ทางภูมิศาสตร์</span>
             <h2 className={styles.sectionTitle}>บัตรสินค้า GI</h2>
           </div>
-          <span className={styles.sectionMeta}>ข้อมูลชุดตัวอย่าง · ยังไม่ผ่านการตรวจสอบแหล่งอ้างอิง</span>
+          <span className={styles.sectionMeta}>
+            หน้าละ 12 รายการ · ข้อมูลชุดตัวอย่าง · ยังไม่ผ่านการตรวจสอบแหล่งอ้างอิง
+          </span>
         </header>
 
         {filteredProducts.length === 0 ? (
@@ -347,11 +379,46 @@ export function GiDashboard({ payload }: GiDashboardProps) {
             </button>
           </div>
         ) : (
-          <div className={styles.productGrid}>
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className={styles.productGrid}>
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {filteredProducts.length > PRODUCT_PAGE_SIZE ? (
+              <nav className={styles.pagination} aria-label="แบ่งหน้าบัตรสินค้า GI">
+                <p className={styles.pageStatus} role="status" aria-live="polite">
+                  หน้า <strong>{intFormatter.format(currentPage)}</strong> จาก{' '}
+                  {intFormatter.format(pageCount)} · แสดง{' '}
+                  {intFormatter.format(pageStart + 1)}–{intFormatter.format(pageStart + visibleProducts.length)}{' '}
+                  จาก {intFormatter.format(filteredProducts.length)} รายการ
+                </p>
+                <div className={styles.pageButtons}>
+                  <button
+                    type="button"
+                    className={styles.pageButton}
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                  >
+                    ← ก่อนหน้า
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.pageButton}
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage >= pageCount}
+                  >
+                    ถัดไป →
+                  </button>
+                </div>
+              </nav>
+            ) : (
+              <p className={styles.pageStatus}>
+                แสดงทั้ง {intFormatter.format(filteredProducts.length)} รายการที่ตรงกับตัวกรอง
+              </p>
+            )}
+          </>
         )}
       </section>
 
@@ -603,28 +670,17 @@ function ProductCard({ product }: { product: GiProductCard }) {
               พิกัดเชิงโครงสร้าง ไม่ใช่แปลงจริง ({intFormatter.format(product.plotPoints.length)} จุด)
             </span>
             {product.plotPoints.length > 0 ? (
-              <div className={styles.tableScroll}>
-                <table className={styles.plotTable}>
-                  <thead>
-                    <tr>
-                      <th scope="col">อำเภอ</th>
-                      <th scope="col">ละติจูด</th>
-                      <th scope="col">ลองจิจูด</th>
-                      <th scope="col">พื้นที่ (ไร่)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {product.plotPoints.map((point) => (
-                      <tr key={`${product.id}:${point.id}`}>
-                        <td>{point.district}</td>
-                        <td className={styles.numericCell}>{shortDecimalFormatter.format(point.lat)}</td>
-                        <td className={styles.numericCell}>{shortDecimalFormatter.format(point.lon)}</td>
-                        <td className={styles.numericCell}>{intFormatter.format(point.areaRai)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <dl className={styles.plotList}>
+                {product.plotPoints.map((point) => (
+                  <div key={`${product.id}:${point.id}`} className={styles.plotRow}>
+                    <dt className={styles.plotDistrict}>{point.district}</dt>
+                    <dd className={styles.plotCoords}>
+                      ละติจูด {shortDecimalFormatter.format(point.lat)} · ลองจิจูด{' '}
+                      {shortDecimalFormatter.format(point.lon)} · {intFormatter.format(point.areaRai)} ไร่
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             ) : (
               <p className={styles.nullValue}>{NO_DATA}</p>
             )}
@@ -702,7 +758,12 @@ function RegionTable({ byRegion }: { byRegion: GiDashboardPayload['byRegion'] })
       {byRegion.length === 0 ? (
         <p className={styles.nullValue}>{NO_DATA}</p>
       ) : (
-        <div className={styles.tableScroll}>
+        <div
+          className={styles.tableScroll}
+          role="region"
+          aria-label="ตารางสรุปตามภาค (เลื่อนแนวนอนได้)"
+          tabIndex={0}
+        >
           <table className={styles.table}>
             <thead className={styles.tableHead}>
               <tr>
@@ -771,7 +832,12 @@ function ProvinceTable({
         <p className={styles.nullValue}>{NO_DATA}</p>
       ) : (
         <>
-          <div className={styles.tableScroll}>
+          <div
+            className={styles.tableScroll}
+            role="region"
+            aria-label="ตารางรายจังหวัด (เลื่อนแนวนอนได้)"
+            tabIndex={0}
+          >
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
@@ -913,8 +979,10 @@ function SourceSection({ payload }: { payload: GiDashboardPayload }) {
       </ul>
 
       {payload.warnings.length > 0 ? (
-        <div className={styles.warningBlock}>
-          <span className={styles.expandLabel}>ข้อควรระวังของชุดข้อมูล ({intFormatter.format(payload.warnings.length)} รายการ)</span>
+        <details className={styles.warningBlock}>
+          <summary className={styles.warningSummary}>
+            ข้อควรระวังของชุดข้อมูล ({intFormatter.format(payload.warnings.length)} รายการ) — กดเพื่ออ่าน
+          </summary>
           <ul className={styles.warningList}>
             {payload.warnings.map((warning) => (
               <li key={warning} className={styles.warningItem}>
@@ -922,7 +990,7 @@ function SourceSection({ payload }: { payload: GiDashboardPayload }) {
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       ) : null}
 
       <p className={styles.coverageNote}>{payload.coverageNote}</p>
