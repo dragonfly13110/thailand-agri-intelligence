@@ -1,3 +1,20 @@
+## แก้ series API: SERIES_ID_TOO_LONG + D1 depth 100 — 30 ต.ค. 2026
+
+- ตัด period/stamp/provenance ออกจาก dimension signature; ขยายเพดาน series id 600 → 1,000; id จริงของ DLD 678 และ CPD 925 ตัวผ่าน
+- ย้าย dimension signature ไป derived table ใน D1 observations queries เพราะ WHERE เดิม (16 คอลัมน์ + signature 94 ชั้น) ชนเพดาน expression depth 100
+- web tests 393/393, typecheck 0; D1 จริง: cattle v2 200 (5 obs), CPD v2 200 (234 series), `/prices` `/cooperatives` `/livestock` `/trade` = 200
+- ยังไม่ commit/push/deploy
+
+## ตรวจ QA + ปิดช่องก่อน ingest — 30 ต.ค. 2026
+
+- QA 9 หน้า desktop/mobile: 6 PASS, 3 FAIL; API ใหม่ `cpd-counts`/`ndvi` ตอบ empty state ซื่อสัตย์ทั้งคู่
+- แก้ `/climate-history` 500 (bundler resolve โฟลเดอร์ gitignored) ด้วย runtime path — API คืน ERA5 จริง 10 ปี `sample:false`; แก้ `/crops` ล้น 390 ด้วย `overflow-wrap:anywhere` ที่ `.sourceNote`
+- `/price-trend` ไม่มี route จริง — view อยู่ที่ `/explore?view=price_trend` (ผ่าน); บันทึกไว้กันเข้าใจผิดซ้ำ
+- LDD: ใช้ key รูปแบบ crawler (`ldd:ord02:…`) ทั้ง writer/reader, เทสต์ Python 21 + web 21 ผ่าน
+- Runbook: 592 rows พร้อมรัน (0.59% โควตา); DOAE เกินเพดาน 100k/รัน และแบ่งรันไม่ได้เพราะ `active_run_id` เดียว
+- CI: web job มีอยู่แล้ว; เพิ่ม timeout/refuse-non-main/skip guard 1 ตัว; secret 6 ตัวรอ owner
+- gate: typecheck 0 · web 387 · Python 937 · build complete; ยังไม่ commit/push, ไม่มี D1 writes
+
 ## Multi-lane real-data round — 30 ต.ค. 2026
 
 - 8 agent ขนานแยกไฟล์: `/livestock`+DLD, `/cooperatives`+CPD, `/crops`+`/soil`+DOAE, `/trade`+price-trend+OAE, `/climate-history`+CHIRPS/ERA5, `/crop-evidence`+MODIS, `/land-reform`+LDD, และ lane หลักฐานสิทธิ์ 29 รายการ; รายงานอยู่ [docs/assignments/2026-10-30-multi-lane](assignments/2026-10-30-multi-lane)
@@ -459,3 +476,12 @@
 - **ข้อจำกัด:** `t2m` ต้นทางเป็น Kelvin (แปลงแล้วแต่ unit ยัง null), `rhum` เป็น %, `ws10m` ระงับเพราะต้นทางสลับคอลัมน์กับ `wd10m`, `p24h` ใช้ layout `daily_z` (`HH:MMZ YYYY-MM-DD`)
 - **คำสั่งรับต่อ:** `PYTHONPATH=src .venv/Scripts/python.exe scripts/sync_tmd_hpc_nwp.py publish --run-id tmd_hpc_d02_2026102600 --write` (หลังเปิดทะเบียน licence; เขียนซ้ำจะได้ `skipped_identical`)
 - รอบนี้ไม่ commit และไม่ deploy; `.env`/`.env.local`/`data/local/` ยัง gitignored
+
+## เขียน D1 จริงรอบแรก — 3 ชุด 496 observations (30 ต.ค. 2026)
+
+- **สิทธิ์**: token wrangler หมดอายุ (`D1_UNAUTHORIZED`) → `npx wrangler whoami` ต่ออายุ; ไม่ตั้ง secret ใหม่ ไม่แตะ `.env`
+- **schema**: apply `0004–0006` (5 คอลัมน์ nullable ใน `sync_runs`) เพราะ preflight อ่านแล้วขาด; ไม่มีตาราง `d1_migrations` จึงไม่มีการบันทึกแบบ wrangler
+- **เขียน**: OAE ราคาข้าว 100 obs (run `a673b5b3…`) · OAE ส่งออก 11 obs · DLD โคเนื้อ 385 obs + 77 locations; dry-run ตรง runbook ทุกตัว; รวม ~592 แถว = 0.59% ของ 100k/วัน
+- **ยืนยันบนจอ**: `/livestock` 385 แถว 77 จังหวัด ยอด 9,541,765 ตัว · `/trade` 11 ระเบียน (ข้าว 182,444 ล้านบาท) · `/prices` 18 รายการราคาวัน
+- **บั๊กใหม่**: `/api/v1/livestock/beef-cattle` + `/api/v1/datasets/{id}/series` → 422 `SERIES_ID_TOO_LONG` เพราะ time fields อยู่ใน `dimensions` และ v2 id ยาวเกิน 600 (รายละเอียดใน HANDOFF)
+- **ค้าง**: ยังไม่ commit; DOAE/LDD/MODIS/DLD อีก 5 ชุดยังติดบล็อกเดิม
