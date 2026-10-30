@@ -1,5 +1,12 @@
 name: Sync Hub source catalogs
 
+# Daily metadata sync: source catalogs -> Cloudflare D1 (or PostgreSQL).
+# Secrets consumed (exact setup commands: docs/operations/ci-secrets-2026-10-30.md):
+#   CF_D1_TOKEN, CF_ACCOUNT_ID, CF_D1_DATABASE_ID  D1 sink; the token is mandatory
+#   TADIH_SYNC_DATABASE_URL                        PostgreSQL sink, used when the token is empty
+# With none of them set the first step fails with a message naming them, instead
+# of finishing green without writing anything.
+
 on:
   schedule:
     - cron: '17 19 * * *'
@@ -14,6 +21,19 @@ concurrency:
   queue: max
 
 jobs:
+  # A manual dispatch on a feature branch would otherwise skip `sync` and finish
+  # green without writing anything. Fail loudly instead of reporting a silent no-op.
+  refuse-non-main:
+    name: Refuse to write from a non-main ref
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Explain why this run is red
+        run: |
+          echo "::error::This workflow writes to the shared warehouse and only runs from refs/heads/main; this run is on ${{ github.ref }}. Re-dispatch it on main."
+          exit 1
+
   sync:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -23,19 +43,23 @@ jobs:
         id: config
         shell: bash
         env:
+          CF_ACCOUNT_ID_SET: ${{ secrets.CF_ACCOUNT_ID != '' }}
+          CF_D1_DATABASE_ID_SET: ${{ secrets.CF_D1_DATABASE_ID != '' }}
           CF_D1_TOKEN_SET: ${{ secrets.CF_D1_TOKEN != '' }}
           TADIH_SYNC_DATABASE_URL_SET: ${{ secrets.TADIH_SYNC_DATABASE_URL != '' }}
         run: |
-          if [[ "$CF_D1_TOKEN_SET" == "true" || "$TADIH_SYNC_DATABASE_URL_SET" == "true" ]]; then
+          if [[ "$CF_D1_TOKEN_SET" == "true" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
-            if [[ "$CF_D1_TOKEN_SET" == "true" ]]; then
-              echo "sink=d1" >> "$GITHUB_OUTPUT"
-            else
-              echo "sink=postgresql" >> "$GITHUB_OUTPUT"
+            echo "sink=d1" >> "$GITHUB_OUTPUT"
+            if [[ "$CF_ACCOUNT_ID_SET" != "true" || "$CF_D1_DATABASE_ID_SET" != "true" ]]; then
+              echo "::warning::CF_ACCOUNT_ID / CF_D1_DATABASE_ID are not configured as repository secrets; the D1 client falls back to the defaults compiled into src/tadih/hub_catalog_sync.py. Set all three D1 secrets (see docs/operations/ci-secrets-2026-10-30.md)."
             fi
+          elif [[ "$TADIH_SYNC_DATABASE_URL_SET" == "true" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "sink=postgresql" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::error::Neither CF_D1_TOKEN nor TADIH_SYNC_DATABASE_URL is configured; catalog sync cannot run."
+            echo "::error::No sync database is configured: repository secrets CF_D1_TOKEN and TADIH_SYNC_DATABASE_URL are both empty, so the catalog sync would have nowhere to write. Set either CF_D1_TOKEN (+ CF_ACCOUNT_ID, CF_D1_DATABASE_ID) or TADIH_SYNC_DATABASE_URL; exact commands are in docs/operations/ci-secrets-2026-10-30.md."
             exit 1
           fi
 
@@ -49,11 +73,12 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: requirements.lock
 
       - name: Install dependencies
         if: steps.config.outputs.enabled == 'true'
         run: |
+          python -m pip install -r requirements.lock
           if [[ "${{ steps.config.outputs.sink }}" == "postgresql" ]]; then
             python -m pip install -e ".[hub]"
           else

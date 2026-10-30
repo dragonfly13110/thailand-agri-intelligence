@@ -9,8 +9,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  # Python pipeline: contracts, adapters and CLI.
+  # Tests whose input is a git-ignored local path (data/local/**, probes/**) skip
+  # themselves with a reason naming that path; they never fail a fresh checkout
+  # and they never report a silent pass.
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,8 +37,11 @@ jobs:
             exports/build/
             build-result.json
           retention-days: 14
+  # Web dashboard (Next.js on vinext). Node 22 matches web/package.json "engines".
+  # typecheck runs first so a type error fails before the slower test and build steps.
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: web
@@ -44,7 +52,11 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm test
-      - run: npm run typecheck
-      - run: npm run build:vinext
+      - name: Install from the lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck (next typegen + tsc)
+        run: npm run typecheck
+      - name: Unit tests (node --test on tests/*.test.ts)
+        run: npm run test
+      - name: Build with vinext
+        run: npm run build:vinext

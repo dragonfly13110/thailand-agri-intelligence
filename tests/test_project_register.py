@@ -51,6 +51,15 @@ class ProjectRegisterTests(unittest.TestCase):
         project.validate()
 
     def test_national_project_register_live_audit(self):
+        probe_dir = ROOT / "data/local/probes"
+        if not probe_dir.is_dir():
+            self.skipTest(
+                "gitignored local workspace data/local/probes/ is absent on this checkout "
+                "(it is not committed, so a fresh clone and CI never have it); run "
+                "`python scripts/audit_project_register.py` on a machine with the ingested "
+                "data to create data/local/probes/project-register-audit.json, or keep this "
+                "test on such a machine"
+            )
         result = audit_project_register(ROOT)
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["audit_version"], 2)

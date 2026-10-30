@@ -51,6 +51,8 @@ name: Sync Hub numeric observations
 #   gh secret set GISTDA_API_KEY --repo dragonfly13110/thailand-agri-intelligence
 # Until then every job fails closed on the missing D1 credential instead of
 # publishing anything half-configured.
+# Step-by-step owner checklist with the exact commands and which workflow uses
+# each secret: docs/operations/ci-secrets-2026-10-30.md
 
 on:
   schedule:
@@ -78,6 +80,19 @@ permissions:
 # Each writer job shares the `hub-d1-writes` queue with the catalog workflow.
 # This keeps concurrent sync runs from writing D1 at the same time.
 jobs:
+  # A manual dispatch on a feature branch would otherwise skip every writer job
+  # and finish green without publishing anything. Fail loudly instead.
+  refuse-non-main:
+    name: Refuse to write from a non-main ref
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Explain why this run is red
+        run: |
+          echo "::error::This workflow writes to the shared D1 warehouse and only runs from refs/heads/main; this run is on ${{ github.ref }}. Re-dispatch it on main."
+          exit 1
+
   resolve-slot:
     name: Resolve the numeric sync slot
     runs-on: ubuntu-latest
