@@ -6,9 +6,17 @@ import styles from './climate-history-dashboard.module.css';
 /**
  * Climate-history dashboard for `/climate-history`. Types mirror the JSON
  * contract of `/api/v1/climate-history`; the client never imports the
- * server-only module (web/lib/hub/climate-history-data.ts). Sample payloads
- * are labelled in the UI so a pending source value can never be read as
- * published data. All charts are hand-drawn SVG (no external chart library).
+ * server-only module (web/lib/hub/climate-history-data.ts).
+ *
+ * Honesty rules mirrored from the API:
+ * - `dataKind:'real'` numbers are ERA5 values read for exactly ONE 0.25° grid
+ *   point; the UI always shows the point identity, the covered day range and
+ *   the tier the values came from, so a single-cell series can never be read
+ *   as provincial coverage.
+ * - `dataKind:'sample'` (offline development only) keeps the sample banner.
+ * - Missing values stay `—`/grey gaps; years without full-calendar coverage
+ *   are never drawn as annual totals.
+ * All charts are hand-drawn SVG (no external chart library).
  */
 
 type ClimateRegion = 'north' | 'northeast' | 'central' | 'east' | 'south';
@@ -24,6 +32,25 @@ type ClimateYearStats = {
   drySpellEvents5d: number;
 };
 
+type ClimateRealYearStats = {
+  year: number;
+  tmeanC: number | null;
+  tmaxMeanC: number | null;
+  tminMeanC: number | null;
+  hotDays38C: number | null;
+  rainfallTotalMm: number | null;
+  longestDrySpellDays: number | null;
+  drySpellEvents5d: number | null;
+  calendarDays: number;
+  daysWithData: {
+    temperatureMean: number;
+    temperatureMax: number;
+    temperatureMin: number;
+    precipitation: number;
+  };
+  completeYear: boolean;
+};
+
 type ClimateNotableYear = {
   year: number;
   reason: 'hottest' | 'driest' | 'wettest' | 'most_hot_days' | 'longest_dry_spell';
@@ -32,6 +59,46 @@ type ClimateNotableYear = {
   unit: '°C' | 'mm' | 'วัน';
   normalC: number | null;
   normalMm: number | null;
+};
+
+type ClimateHistoryScope = {
+  tier: 'd1_published_batch' | 'reviewed_cache_point';
+  gridPoint: {
+    areaLabelTh: string;
+    requestedLatitude: number;
+    requestedLongitude: number;
+    providerGridLatitude: number | null;
+    providerGridLongitude: number | null;
+    resolutionDeg: number;
+    support: 'grid_point';
+  };
+  yearsWithData: number;
+  yearsMissing: number[];
+  firstDayWithData: string | null;
+  lastDayWithData: string | null;
+  dailyRowsRead: number;
+  rowsCapped: boolean;
+  variablesPublished: string[];
+  variablesNotPublishedHere: string[];
+  grainNoteTh: string;
+  rejectedCacheYears: { year: number; reason: string }[];
+};
+
+type ClimateHistoryProvenance = {
+  sourceId: string;
+  resourceId: string;
+  license: string;
+  attribution: string;
+  attributionUrl: string;
+  readThrough: 'd1_active_numeric_run' | 'reviewed_local_snapshot';
+  runId: string | null;
+  runStatus: string | null;
+  runCount: number;
+  payloadSha256: string | null;
+  sourceRetrievedAt: string | null;
+  cacheChecksums: string[];
+  cacheRetrievedAtFirst: string | null;
+  cacheRetrievedAtLast: string | null;
 };
 
 type ClimateHistoryOverviewBase = {
@@ -95,9 +162,45 @@ type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
   };
   notableYears: [];
   }
+  | {
+  dataKind: 'real';
+  sample: false;
+  baseline: { tmeanNormalC: number | null; tmaxNormalC: number | null; rainfallNormalMm: number | null; hotDaysNormal: number | null };
+  years: ClimateRealYearStats[];
+  trends: {
+    tmeanPerDecadeC: number | null;
+    tmaxPerDecadeC: number | null;
+    hotDaysPerDecade: number | null;
+    rainfallTrendMmPerDecade: number | null;
+    firstFiveYearMeanC: number | null;
+    lastFiveYearMeanC: number | null;
+    warmingDeltaC: number | null;
+  };
+  notableYears: ClimateNotableYear[];
+  dataAsOf: string | null;
+  scope: ClimateHistoryScope;
+  provenance: ClimateHistoryProvenance;
+  }
 );
 
-type PopulatedClimateHistoryOverview = Extract<ClimateHistoryOverview, { dataKind: 'sample' }>;
+/** Normalized chart input: sample and real rows both feed the same null-safe SVG code. */type ChartRow = {
+  year: number;
+  tmeanC: number | null;
+  tmaxMeanC: number | null;
+  hotDays38C: number | null;
+  rainfallTotalMm: number | null;
+  /** False for real years without full-calendar coverage: never drawn as annual values. */
+  claimable: boolean;
+};
+
+type ChartSeries = {
+  location: ClimateHistoryOverviewBase['location'];
+  startYear: number;
+  endYear: number;
+  years: ChartRow[];
+  baseline: { tmeanNormalC: number | null; rainfallNormalMm: number | null; hotDaysNormal: number | null };
+  trends: { tmeanPerDecadeC: number | null; rainfallTrendMmPerDecade: number | null };
+};
 
 type Envelope = {
   data: ClimateHistoryOverview;
@@ -112,24 +215,27 @@ type State =
   | { kind: 'error'; message: string; key: string };
 
 const YEAR_RANGES: YearRange[] = [
+  { id: '2016-2025', label: '2016–2025 (10 ปี · จุด ERA5 ที่ตรวจสอบแล้ว)', startYear: 2016, endYear: 2025 },
+  { id: '2017-2026', label: '2017–2026 (10 ปี)', startYear: 2017, endYear: 2026 },
   { id: '2005-2024', label: '2005–2024 (20 ปี)', startYear: 2005, endYear: 2024 },
   { id: '2010-2024', label: '2010–2024 (15 ปี)', startYear: 2010, endYear: 2024 },
   { id: '2015-2024', label: '2015–2024 (10 ปี)', startYear: 2015, endYear: 2024 },
 ];
 
-const DEFAULT_PROVINCE_CODE = '10';
-const DEFAULT_RANGE_ID = '2005-2024';
+const DEFAULT_PROVINCE_CODE = '73';
+const DEFAULT_RANGE_ID = '2016-2025';
 
 function thaiYear(year: number) {
   return year + 543;
 }
 
-function fmtNum(value: number | null, digits = 1) {
-  if (value === null || !Number.isFinite(value)) return '—';
+function fmtNum(value: number | null | undefined, digits = 1) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('th-TH', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
 }
 
-function fmtSigned(value: number, digits = 1) {
+function fmtSigned(value: number | null | undefined, digits = 1) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
   const formatted = new Intl.NumberFormat('th-TH', { minimumFractionDigits: digits, maximumFractionDigits: digits })
     .format(Math.abs(value));
   if (value > 0) return '+' + formatted;
@@ -141,7 +247,8 @@ function fmtTick(value: number) {
   return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 1 }).format(value);
 }
 
-function fmtGeo(value: number) {
+function fmtGeo(value: number | null) {
+  if (value === null) return '—';
   return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(value);
 }
 
@@ -245,7 +352,7 @@ export function ClimateHistoryDashboard({ provinces }: { provinces: Array<{ code
         </select>
       </div>
       <p className={styles.filterNote}>
-        <Icon name="pin" size={16}/>แสดงได้ทั้ง {provinces.length} จังหวัดในทะเบียนอ้างอิง · ช่วงปีคงที่ตามที่กำหนด
+        <Icon name="pin" size={16}/>จังหวัดที่มีข้อมูลจริง ณ จุดกริดที่ตรวจสอบแล้ว: นครปฐม เชียงใหม่ ขอนแก่น อุบลราชธานี สุราษฎร์ธานี · จังหวัดอื่นแสดงสถานะตามข้อมูลที่เผยแพร่จริง
       </p>
     </div>
 
@@ -283,8 +390,44 @@ function OverviewView({ value }: { value: Envelope }) {
     </div>;
   }
 
+  const chartYears: ChartRow[] = data.dataKind === 'real'
+    ? data.years.map((row) => ({
+        year: row.year,
+        tmeanC: row.tmeanC,
+        tmaxMeanC: row.tmaxMeanC,
+        hotDays38C: row.hotDays38C,
+        rainfallTotalMm: row.rainfallTotalMm,
+        // A real year may only be drawn as an annual value when its calendar
+        // coverage is complete; partial batches become grey gap markers.
+        claimable: row.completeYear,
+      }))
+    : data.years.map((row) => ({
+        year: row.year,
+        tmeanC: row.tmeanC,
+        tmaxMeanC: row.tmaxMeanC,
+        hotDays38C: row.hotDays38C,
+        rainfallTotalMm: row.rainfallTotalMm,
+        claimable: true,
+      }));
+
+  const series: ChartSeries = {
+    location,
+    startYear: data.startYear,
+    endYear: data.endYear,
+    years: chartYears,
+    baseline: {
+      tmeanNormalC: baseline.tmeanNormalC,
+      rainfallNormalMm: baseline.rainfallNormalMm,
+      hotDaysNormal: baseline.hotDaysNormal,
+    },
+    trends: {
+      tmeanPerDecadeC: trends.tmeanPerDecadeC,
+      rainfallTrendMmPerDecade: trends.rainfallTrendMmPerDecade,
+    },
+  };
+
   return <>
-    {meta.warnings.length > 0 && (
+    {data.dataKind === 'sample' && meta.warnings.length > 0 && (
       <section className={styles.notice} aria-label="ข้อจำกัดของข้อมูลชุดนี้">
         <span className={styles.noticeIcon}><Icon name="info" size={18}/></span>
         <div>
@@ -301,6 +444,8 @@ function OverviewView({ value }: { value: Envelope }) {
       </section>
     )}
 
+    {data.dataKind === 'real' && <RealDataNotice data={data} meta={meta}/>}
+
     <section className={styles.headline} aria-label="ภาพรวมประวัติภูมิอากาศของจังหวัดที่เลือก">
       <div>
         <span className={styles.eyebrow}>{location.regionLabelTh} · รหัส {location.code}</span>
@@ -311,12 +456,14 @@ function OverviewView({ value }: { value: Envelope }) {
           {' · '}มีข้อมูล {data.yearsWithData} จาก {data.yearsSpan} ปี
         </p>
       </div>
-      <span className="badge pending"><Icon name="lock" size={13}/>รอตรวจสิทธิ์เผยแพร่</span>
+      {data.dataKind === 'real'
+        ? <span className="badge neutral"><Icon name="info" size={13}/>ข้อมูลจริงอ่านแล้ว · {data.scope.tier === 'reviewed_cache_point' ? 'snapshot จุดที่ตรวจสอบแล้ว' : 'numeric run ที่เผยแพร่ใน D1'}</span>
+        : <span className="badge pending"><Icon name="lock" size={13}/>รอตรวจสิทธิ์เผยแพร่</span>}
     </section>
 
     <ul className={styles.statGrid} aria-label="ตัวเลขสรุปสภาพภูมิอากาศ">
       <li className={styles.statChip}>
-        <span>อุ่นขึ้นแค่ไหน (เฉลี่ย 5 ปีท้าย vs 5 ปีแรก)</span>
+        <span>อุ่นขึ้นแค่ไหน (เฉลี่ย 5 ปีท้าย vs 5 ปีแรก · เฉพาะปีที่ครบปฏิทิน)</span>
         <strong>{fmtSigned(trends.warmingDeltaC)} °C</strong>
       </li>
       <li className={styles.statChip}>
@@ -342,7 +489,7 @@ function OverviewView({ value }: { value: Envelope }) {
             {' · '}แนวโน้มเชิงเส้น {fmtSigned(trends.tmeanPerDecadeC)} °C/ทศวรรษ
           </p>
         </div>
-        <WarmingChart data={data}/>
+        <WarmingChart series={series}/>
       </section>
 
       <section className={styles.panel} aria-label="กราฟวันคลื่นความร้อนรายปี">
@@ -350,7 +497,7 @@ function OverviewView({ value }: { value: Envelope }) {
           <h3>วันคลื่นความร้อนรายปี (Tmax สูงกว่า 38 °C)</h3>
           <p>จำนวนวันที่อุณหภูมิสูงสุดรายวันเกิน 38 °C ในแต่ละปี</p>
         </div>
-        <HotDaysChart data={data}/>
+        <HotDaysChart series={series}/>
       </section>
 
       <section className={styles.panel} aria-label="กราฟฝนสะสมรายปี">
@@ -358,17 +505,19 @@ function OverviewView({ value }: { value: Envelope }) {
           <h3>ฝนสะสมรายปีเทียบค่าเฉลี่ยปกติ</h3>
           <p>แท่งสีต่างกันระหว่างปีที่ฝนต่ำกว่าและสูงกว่าค่าเฉลี่ยปกติ {fmtNum(baseline.rainfallNormalMm, 0)} มม.</p>
         </div>
-        <RainfallChart data={data}/>
+        <RainfallChart series={series}/>
       </section>
     </div>
 
     <section className={styles.panel} aria-label="ตารางปีที่สภาพอากาศผิดปกติเด่น">
       <div className={styles.panelHeading}>
         <h3>ปีที่สภาพอากาศผิดปกติเด่นในช่วงนี้</h3>
-        <p>สรุปปีที่ร้อนที่สุด แล้งที่สุด ฝนมากที่สุด และตัวชี้วัดสุดขั้วอื่น เทียบกับค่าเฉลี่ยปกติของพื้นที่</p>
+        <p>สรุปปีที่ร้อนที่สุด แล้งที่สุด ฝนมากที่สุด และตัวชี้วัดสุดขั้วอื่น เทียบกับค่าเฉลี่ยปกติของพื้นที่ (คำนวณจากปีที่ข้อมูลครบปฏิทินเท่านั้น)</p>
       </div>
       <NotableTable rows={data.notableYears}/>
     </section>
+
+    {data.dataKind === 'real' && <ScopePanel data={data}/>}
 
     <p className={styles.sourceLine}>
       <Icon name="external" size={16}/>
@@ -383,19 +532,91 @@ function OverviewView({ value }: { value: Envelope }) {
   </>;
 }
 
-function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
+function shortHash(value: string | null) {
+  return value === null ? '—' : value.slice(0, 12) + '…';
+}
+
+function RealDataNotice({ data, meta }: { data: Extract<ClimateHistoryOverview, { dataKind: 'real' }>; meta: Envelope['meta'] }) {
+  const { scope } = data;
+  return <section className={styles.notice} aria-label="ที่มาและข้อจำกัดของข้อมูลจริงชุดนี้">
+    <span className={styles.noticeIcon}><Icon name="info" size={18}/></span>
+    <div>
+      <strong>ข้อมูลจริงจาก ERA5 · จุดกริดเดียว ({scope.gridPoint.areaLabelTh})
+        <span className={styles.sampleBadge}>ข้อมูลจริง (real · sample:false)</span>
+      </strong>
+      <ul>{meta.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+      <p className={styles.noticeSource}>
+        <Icon name="external" size={14}/>
+        อ่านผ่าน: {scope.tier === 'reviewed_cache_point' ? 'snapshot รายจุดที่ตรวจสอบแล้วในเครื่อง (ingest Open-Meteo)' : 'numeric run ที่เผยแพร่ใน D1'}
+        {' · '}ช่วงวันที่มีข้อมูลจริง: {data.scope.firstDayWithData ?? '—'} ถึง {data.scope.lastDayWithData ?? '—'}
+        {' · '}{data.source.attribution} (<a href={data.source.attributionUrl} target="_blank" rel="noreferrer">open-meteo.com</a>)
+        {' · '}สัญญาอนุญาต {data.source.license}
+      </p>
+    </div>
+  </section>;
+}
+
+function ScopePanel({ data }: { data: Extract<ClimateHistoryOverview, { dataKind: 'real' }> }) {
+  const { scope, provenance } = data;
+  return <section className={styles.panel} aria-label="ขอบเขตจริงของข้อมูลที่อ่านมา">
+    <div className={styles.panelHeading}>
+      <h3>ขอบเขตข้อมูลที่อ่านมาจริง (scope)</h3>
+      <p>{scope.grainNoteTh}</p>
+    </div>
+    <ul className={styles.statGrid} aria-label="รายละเอียดจุดกริดและช่วงเวลา">
+      <li className={styles.statChip}>
+        <span>จุดกริดที่ให้บริการ (ค่าจริงจาก provider)</span>
+        <strong>{fmtGeo(scope.gridPoint.providerGridLatitude)}°N, {fmtGeo(scope.gridPoint.providerGridLongitude)}°E</strong>
+      </li>
+      <li className={styles.statChip}>
+        <span>พิกัดที่ขอ (centroid จังหวัด)</span>
+        <strong>{fmtGeo(scope.gridPoint.requestedLatitude)}°N, {fmtGeo(scope.gridPoint.requestedLongitude)}°E</strong>
+      </li>
+      <li className={styles.statChip}>
+        <span>จำนวนวันอ่านจริง / ปีที่มีข้อมูล</span>
+        <strong>{new Intl.NumberFormat('th-TH').format(scope.dailyRowsRead)} วัน · {scope.yearsWithData}/{data.yearsSpan} ปี{scope.rowsCapped ? ' (อ่านชนเพดาน)' : ''}</strong>
+      </li>
+      <li className={styles.statChip}>
+        <span>ปีที่ไม่มีแถวข้อมูล (ไม่ถูกแทนด้วยค่าประมาณ)</span>
+        <strong>{scope.yearsMissing.length ? scope.yearsMissing.join(', ') : 'ครบทุกปีที่เลือก'}</strong>
+      </li>
+      <li className={styles.statChip}>
+        <span>ตัวแปรที่จุดนี้เผยแพร่จริง</span>
+        <strong>{scope.variablesPublished.join(' · ') || '—'}</strong>
+      </li>
+      <li className={styles.statChip}>
+        <span>ตัวแปรที่ไม่มีในจุดนี้ (เป็น null ถาวร)</span>
+        <strong>{scope.variablesNotPublishedHere.join(' · ') || '—'}</strong>
+      </li>
+    </ul>
+    <p className={styles.chartNote}>
+      readThrough: {provenance.readThrough}
+      {provenance.runId !== null && <> · run: {provenance.runId} ({provenance.runStatus ?? 'ไม่ทราบสถานะ'})</>}
+      {provenance.payloadSha256 !== null && <> · payload sha256: {shortHash(provenance.payloadSha256)}</>}
+      {provenance.cacheChecksums.length > 0 && <> · snapshot checksums {provenance.cacheChecksums.length} ปี เช่น {shortHash(provenance.cacheChecksums[0] ?? null)}</>}
+      {' · '}source retrieved: {data.dataAsOf ?? '—'}
+      {scope.rejectedCacheYears.length > 0 && <> · พาทิชันไม่ผ่านการตรวจสอบ: {scope.rejectedCacheYears.map((row) => row.year + ' (' + row.reason + ')').join('; ')}</>}
+    </p>
+    <p className={styles.chartNote}>
+      ตารางปีรายค่า (daysWithData ต่อปี):{' '}
+      {data.years.map((row) => row.year + ': ' + row.daysWithData.precipitation + '/' + row.daysWithData.temperatureMax + (row.completeYear ? ' ครบปี' : ' ไม่ครบปฏิทิน')).join(' · ')}
+    </p>
+  </section>;
+}
+
+function WarmingChart({ series }: { series: ChartSeries }) {
   const width = 960;
   const height = 320;
   const pad = { left: 56, right: 20, top: 22, bottom: 46 };
   const innerWidth = width - pad.left - pad.right;
   const innerHeight = height - pad.top - pad.bottom;
-  const years = data.years;
-  const baseline = data.baseline.tmeanNormalC;
-  const slopePerYear = data.trends.tmeanPerDecadeC / 10;
-  const known = years.filter((row) => row.tmeanC !== null) as Array<ClimateYearStats & { tmeanC: number }>;
+  const years = series.years;
+  const baseline = series.baseline.tmeanNormalC;
+  const slopePerYear = series.trends.tmeanPerDecadeC === null ? null : series.trends.tmeanPerDecadeC / 10;
+  const known = years.filter((row) => row.tmeanC !== null && row.claimable) as Array<ChartRow & { tmeanC: number }>;
 
   if (!known.length) {
-    return <p className={styles.chartNote}>ปีในช่วงนี้ยังไม่มีค่าอุณหภูมิเฉลี่ย จึงวาดกราฟไม่ได้ ค่าที่ขาดจะไม่ถูกนับเป็นศูนย์</p>;
+    return <p className={styles.chartNote}>ปีในช่วงนี้ยังไม่มีค่าอุณหภูมิเฉลี่ยจากปีที่ข้อมูลครบ จึงวาดกราฟไม่ได้ ค่าที่ขาดจะไม่ถูกนับเป็นศูนย์</p>;
   }
 
   const firstYear = years[0].year;
@@ -403,9 +624,10 @@ function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
   // Trend line anchored at the centroid of observed values (OLS through the mean point).
   const meanYear = known.reduce((sum, row) => sum + row.year, 0) / known.length;
   const meanTmean = known.reduce((sum, row) => sum + row.tmeanC, 0) / known.length;
-  const trendAt = (year: number) => meanTmean + slopePerYear * (year - meanYear);
+  const trendAt = (year: number) => meanTmean + (slopePerYear ?? 0) * (year - meanYear);
 
-  const domainValues = [baseline, trendAt(firstYear), trendAt(lastYear), ...known.map((row) => row.tmeanC)];
+  const domainValues = [baseline, ...(slopePerYear === null ? [] : [trendAt(firstYear), trendAt(lastYear)]), ...known.map((row) => row.tmeanC)]
+    .filter((value): value is number => value !== null);
   const ticks = niceTicks(Math.min(...domainValues) - 0.4, Math.max(...domainValues) + 0.4, 4);
   const lo = ticks[0];
   const hi = ticks[ticks.length - 1];
@@ -413,10 +635,10 @@ function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
   const y = (value: number) => pad.top + innerHeight * (1 - (value - lo) / (hi - lo));
   const xTicks = xTickYears(firstYear, lastYear);
 
-  // Split the yearly line at missing years so gaps are never drawn as zero.
+  // Split the yearly line at missing or non-claimable years so gaps are never drawn as zero.
   const runs: string[][] = [];
   years.forEach((row) => {
-    if (row.tmeanC === null) {
+    if (row.tmeanC === null || !row.claimable) {
       if (runs.length && runs[runs.length - 1].length) runs.push([]);
       return;
     }
@@ -430,9 +652,9 @@ function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
       viewBox={'0 0 ' + width + ' ' + height}
       className={styles.chartSvg}
       role="img"
-      aria-label={'กราฟเส้นอุณหภูมิเฉลี่ยรายปีของจังหวัด' + data.location.nameTh + ' ปี ' + data.startYear + ' ถึง ' + data.endYear + ' หน่วยองศาเซลเซียส'}
+      aria-label={'กราฟเส้นอุณหภูมิเฉลี่ยรายปีของจังหวัด' + series.location.nameTh + ' ปี ' + series.startYear + ' ถึง ' + series.endYear + ' หน่วยองศาเซลเซียส'}
     >
-      <title>อุณหภูมิเฉลี่ยรายปี {data.location.nameTh} ปี {data.startYear}–{data.endYear}</title>
+      <title>อุณหภูมิเฉลี่ยรายปี {series.location.nameTh} ปี {series.startYear}–{series.endYear}</title>
       {ticks.map((tick) => <g key={tick}>
         <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} className={styles.gridLine}/>
         <text x={pad.left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisLabel}>{fmtTick(tick)}</text>
@@ -446,14 +668,14 @@ function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
         className={styles.axisLabel}
       >{year}</text>)}
       <line x1={pad.left} x2={width - pad.right} y1={y(lo)} y2={y(lo)} className={styles.axisLine}/>
-      <line x1={pad.left} x2={width - pad.right} y1={y(baseline)} y2={y(baseline)} className={styles.normalLine}/>
-      <line
+      {baseline !== null && <line x1={pad.left} x2={width - pad.right} y1={y(baseline)} y2={y(baseline)} className={styles.normalLine}/>}
+      {slopePerYear !== null && <line
         x1={x(firstYear)}
         x2={x(lastYear)}
         y1={y(trendAt(firstYear))}
         y2={y(trendAt(lastYear))}
         className={styles.trendLine}
-      />
+      />}
       {lineRuns.map((run, index) => <polyline key={index} points={run} className={styles.tempLine}/>)}
       {known.map((row) => <circle key={row.year} cx={x(row.year)} cy={y(row.tmeanC)} r="3.4" className={styles.point}>
         <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): ' + fmtNum(row.tmeanC) + ' °C'}</title>
@@ -463,29 +685,30 @@ function WarmingChart({ data }: { data: PopulatedClimateHistoryOverview }) {
       <span><i className={styles.swatchTemp}/>อุณหภูมิเฉลี่ยรายปี</span>
       <span><i className={styles.swatchTrend}/>แนวโน้มเชิงเส้น</span>
       <span><i className={styles.swatchNormal}/>ค่าเฉลี่ยปกติ</span>
-      <span>แกนนอนคือปี ค.ศ. · ปีที่ไม่มีค่าจะถูกเว้น ไม่นับเป็นศูนย์</span>
+      <span>แกนนอนคือปี ค.ศ. · ปีที่ไม่มีค่าหรือข้อมูลไม่ครบปฏิทินจะถูกเว้น ไม่นับเป็นศูนย์</span>
     </figcaption>
   </figure>;
 }
 
-function HotDaysChart({ data }: { data: PopulatedClimateHistoryOverview }) {
+function HotDaysChart({ series }: { series: ChartSeries }) {
   const width = 460;
   const height = 270;
   const pad = { left: 46, right: 14, top: 18, bottom: 42 };
   const innerWidth = width - pad.left - pad.right;
   const innerHeight = height - pad.top - pad.bottom;
-  const years = data.years;
+  const years = series.years;
   const count = Math.max(1, years.length);
-  const baseline = data.baseline.hotDaysNormal;
-  const peak = Math.max(1, baseline, ...years.map((row) => row.hotDays38C));
+  const baseline = series.baseline.hotDaysNormal;
+  const claimableValues = years.filter((row) => row.hotDays38C !== null && row.claimable).map((row) => row.hotDays38C as number);
+  const peak = Math.max(1, baseline ?? 0, ...claimableValues);
   const ticks = niceTicks(0, peak * 1.15, 3);
   const hi = Math.max(ticks[ticks.length - 1], peak);
   const band = innerWidth / count;
   const barWidth = Math.min(30, band * 0.62);
   const x = (index: number) => pad.left + band * (index + 0.5);
   const y = (value: number) => pad.top + innerHeight * (1 - value / hi);
-  const firstYear = years.length ? years[0].year : data.startYear;
-  const lastYear = years.length ? years[years.length - 1].year : data.endYear;
+  const firstYear = years.length ? years[0].year : series.startYear;
+  const lastYear = years.length ? years[years.length - 1].year : series.endYear;
   const xTicks = xTickYears(firstYear, lastYear);
   const xByYear = (year: number) => x(Math.max(0, years.findIndex((row) => row.year === year)));
 
@@ -494,9 +717,9 @@ function HotDaysChart({ data }: { data: PopulatedClimateHistoryOverview }) {
       viewBox={'0 0 ' + width + ' ' + height}
       className={styles.chartSvg}
       role="img"
-      aria-label={'กราฟแท่งวันคลื่นความร้อนรายปี Tmax สูงกว่า 38 องศาเซลเซียส ของจังหวัด' + data.location.nameTh + ' ปี ' + data.startYear + ' ถึง ' + data.endYear + ' หน่วยวัน'}
+      aria-label={'กราฟแท่งวันคลื่นความร้อนรายปี Tmax สูงกว่า 38 องศาเซลเซียส ของจังหวัด' + series.location.nameTh + ' ปี ' + series.startYear + ' ถึง ' + series.endYear + ' หน่วยวัน'}
     >
-      <title>วันคลื่นความร้อนรายปี {data.location.nameTh}</title>
+      <title>วันคลื่นความร้อนรายปี {series.location.nameTh}</title>
       {ticks.map((tick) => <g key={tick}>
         <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} className={styles.gridLine}/>
         <text x={pad.left - 8} y={y(tick) + 4} textAnchor="end" className={styles.axisLabel}>{fmtTick(tick)}</text>
@@ -510,18 +733,33 @@ function HotDaysChart({ data }: { data: PopulatedClimateHistoryOverview }) {
         className={styles.axisLabel}
       >{year}</text>)}
       <line x1={pad.left} x2={width - pad.right} y1={y(0)} y2={y(0)} className={styles.axisLine}/>
-      {baseline > 0 && <line x1={pad.left} x2={width - pad.right} y1={y(baseline)} y2={y(baseline)} className={styles.normalLine}/>}
-      {years.map((row, index) => <rect
-        key={row.year}
-        x={x(index) - barWidth / 2}
-        y={y(row.hotDays38C)}
-        width={barWidth}
-        height={Math.max(1, y(0) - y(row.hotDays38C))}
-        rx="2"
-        className={styles.hotBar}
-      >
-        <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): ' + row.hotDays38C + ' วัน'}</title>
-      </rect>)}
+      {baseline !== null && baseline > 0 && <line x1={pad.left} x2={width - pad.right} y1={y(baseline)} y2={y(baseline)} className={styles.normalLine}/>}
+      {years.map((row, index) => {
+        if (row.hotDays38C === null || !row.claimable) {
+          return <rect
+            key={row.year}
+            x={x(index) - barWidth / 2}
+            y={y(0) - 3}
+            width={barWidth}
+            height={3}
+            className={styles.missingBar}
+          >
+            <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): '
+              + (row.hotDays38C === null ? 'ไม่มีค่า Tmax ที่บันทึก' : 'ข้อมูลไม่ครบปฏิทินปี (นับได้ ' + row.hotDays38C + ' วันจากวันที่มีค่า) — ไม่วาดเป็นแท่งรายปี')}</title>
+          </rect>;
+        }
+        return <rect
+          key={row.year}
+          x={x(index) - barWidth / 2}
+          y={y(row.hotDays38C)}
+          width={barWidth}
+          height={Math.max(1, y(0) - y(row.hotDays38C))}
+          rx="2"
+          className={styles.hotBar}
+        >
+          <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): ' + row.hotDays38C + ' วัน'}</title>
+        </rect>;
+      })}
     </svg>
     <figcaption className={styles.legend}>
       <span><i className={styles.swatchHot}/>วัน Tmax สูงกว่า 38 °C</span>
@@ -530,25 +768,25 @@ function HotDaysChart({ data }: { data: PopulatedClimateHistoryOverview }) {
   </figure>;
 }
 
-function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
+function RainfallChart({ series }: { series: ChartSeries }) {
   const width = 460;
   const height = 290;
   const pad = { left: 56, right: 14, top: 18, bottom: 42 };
   const innerWidth = width - pad.left - pad.right;
   const innerHeight = height - pad.top - pad.bottom;
-  const years = data.years;
+  const years = series.years;
   const count = Math.max(1, years.length);
-  const baseline = data.baseline.rainfallNormalMm;
-  const knownYears = years.filter((row) => row.rainfallTotalMm !== null) as Array<ClimateYearStats & { rainfallTotalMm: number }>;
-  const peak = Math.max(1, baseline, ...knownYears.map((row) => row.rainfallTotalMm));
+  const baseline = series.baseline.rainfallNormalMm;
+  const knownYears = years.filter((row) => row.rainfallTotalMm !== null && row.claimable) as Array<ChartRow & { rainfallTotalMm: number }>;
+  const peak = Math.max(1, baseline ?? 0, ...knownYears.map((row) => row.rainfallTotalMm));
   const ticks = niceTicks(0, peak * 1.15, 3);
   const hi = Math.max(ticks[ticks.length - 1], peak);
   const band = innerWidth / count;
   const barWidth = Math.min(28, band * 0.6);
   const x = (index: number) => pad.left + band * (index + 0.5);
   const y = (value: number) => pad.top + innerHeight * (1 - value / hi);
-  const firstYear = years.length ? years[0].year : data.startYear;
-  const lastYear = years.length ? years[years.length - 1].year : data.endYear;
+  const firstYear = years.length ? years[0].year : series.startYear;
+  const lastYear = years.length ? years[years.length - 1].year : series.endYear;
   const xTicks = xTickYears(firstYear, lastYear);
   const xByYear = (year: number) => x(Math.max(0, years.findIndex((row) => row.year === year)));
   const driest = knownYears.reduce<(typeof knownYears)[number] | null>(
@@ -561,9 +799,9 @@ function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
       viewBox={'0 0 ' + width + ' ' + height}
       className={styles.chartSvg}
       role="img"
-      aria-label={'กราฟแท่งฝนสะสมรายปีของจังหวัด' + data.location.nameTh + ' ปี ' + data.startYear + ' ถึง ' + data.endYear + ' หน่วยมิลลิเมตร เทียบค่าเฉลี่ยปกติ'}
+      aria-label={'กราฟแท่งฝนสะสมรายปีของจังหวัด' + series.location.nameTh + ' ปี ' + series.startYear + ' ถึง ' + series.endYear + ' หน่วยมิลลิเมตร เทียบค่าเฉลี่ยปกติ'}
     >
-      <title>ฝนสะสมรายปี {data.location.nameTh}</title>
+      <title>ฝนสะสมรายปี {series.location.nameTh}</title>
       {ticks.map((tick) => <g key={tick}>
         <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} className={styles.gridLine}/>
         <text x={pad.left - 8} y={y(tick) + 4} textAnchor="end" className={styles.axisLabel}>{fmtTick(tick)}</text>
@@ -577,9 +815,9 @@ function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
         className={styles.axisLabel}
       >{year}</text>)}
       <line x1={pad.left} x2={width - pad.right} y1={y(0)} y2={y(0)} className={styles.axisLine}/>
-      <line x1={pad.left} x2={width - pad.right} y1={y(baseline)} y2={y(baseline)} className={styles.normalLine}/>
+      {baseline !== null && <line x1={pad.left} x2={width - pad.right} y1={y(baseline)} y2={y(baseline)} className={styles.normalLine}/>}
       {years.map((row, index) => {
-        if (row.rainfallTotalMm === null) {
+        if (row.rainfallTotalMm === null || !row.claimable) {
           return <rect
             key={row.year}
             x={x(index) - barWidth / 2}
@@ -588,7 +826,8 @@ function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
             height={3}
             className={styles.missingBar}
           >
-            <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): ไม่มีข้อมูล'}</title>
+            <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): '
+              + (row.rainfallTotalMm === null ? 'ไม่มีข้อมูลฝนที่บันทึก' : 'รวมฝน ' + row.rainfallTotalMm + ' มม. จากเฉพาะวันที่มีข้อมูล (ไม่ครบปฏิทินปี) — ไม่วาดเป็นแท่งรายปี')}</title>
           </rect>;
         }
         const extreme =
@@ -601,7 +840,7 @@ function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
           width={barWidth}
           height={Math.max(1, y(0) - y(row.rainfallTotalMm))}
           rx="2"
-          className={(row.rainfallTotalMm < baseline ? styles.rainBarBelow : styles.rainBarAbove)
+          className={((baseline === null || row.rainfallTotalMm >= baseline) ? styles.rainBarAbove : styles.rainBarBelow)
             + (extreme ? ' ' + styles.extremeBar : '')}
         >
           <title>{'ปี ' + thaiYear(row.year) + ' (ค.ศ. ' + row.year + '): ' + fmtNum(row.rainfallTotalMm, 0) + ' มม.' + extreme}</title>
@@ -619,7 +858,7 @@ function RainfallChart({ data }: { data: PopulatedClimateHistoryOverview }) {
 
 function NotableTable({ rows }: { rows: ClimateNotableYear[] }) {
   if (!rows.length) {
-    return <p className={styles.chartNote}>ยังไม่มีข้อมูลปีผิดปกติสำหรับช่วงปีนี้</p>;
+    return <p className={styles.chartNote}>ยังไม่มีข้อมูลปีผิดปกติสำหรับช่วงปีนี้ (ต้องมีปีที่ข้อมูลครบปฏิทินอย่างน้อยหนึ่งปี)</p>;
   }
   return <div className={styles.tableScroll}>
     <table className={styles.notableTable}>

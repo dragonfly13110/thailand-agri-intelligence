@@ -1,14 +1,25 @@
 import { Shell } from '@/components/shell';
+import { CooperativesCpdCounts } from '@/components/cooperatives-cpd-counts';
 import { CooperativesDashboard } from '@/components/cooperatives-dashboard';
-import { buildCooperativesData, type CooperativesPayload } from '@/lib/hub/cooperatives-data';
+import { HubRequestError } from '@/lib/hub/http';
+import {
+  buildCooperativesData,
+  cooperativesRealCountsUnavailable,
+  loadCooperativesRealCounts,
+  type CooperativesPayload,
+  type CooperativesRealCountsEnvelope,
+} from '@/lib/hub/cooperatives-data';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title:
-    'สหกรณ์การเกษตร วิสาหกิจชุมชน และเครือข่ายแปลงใหญ่ (ข้อมูลตัวอย่าง)',
+    'สหกรณ์การเกษตร วิสาหกิจชุมชน และเครือข่ายแปลงใหญ่ (จำนวนสหกรณ์จากทะเบียนจริง + ข้อมูลตัวอย่าง)',
   description:
-    'แดชบอร์ดตัวอย่างเชิงโครงสร้างของสหกรณ์การเกษตร สหกรณ์นิคม สหกรณ์ประมง สหกรณ์ผู้เลี้ยงโคนม และวิสาหกิจชุมชน/เครือข่ายแปลงใหญ่ ' +
-    'แสดงคะแนน CAMELS หกมิติ ปริมาณการรวบรวมผลผลิต จำนวนสมาชิก และมูลค่าธุรกิจ ภายใต้สถานะ metadata-only ' +
-    'ระหว่างรอตรวจสอบสิทธิ์การเผยแพร่จากกรมส่งเสริมสหกรณ์และกรมตรวจบัญชีสหกรณ์',
+    'หน้านี้แสดงจำนวนสหกรณ์การเกษตรตามทรัพยากรกรมส่งเสริมสหกรณ์ (CPD) ที่อนุมัติให้เผยแพร่ ' +
+    'อ่านจากคลังข้อมูลกลางพร้อมเกรนต้นทาง (ป้ายจังหวัด × หน่วยงานสังกัด × คอลัมน์สถานะ × ป้ายปี) ' +
+    'ถัดจากส่วนนั้นเป็นแดชบอร์ด CAMELS เชิงโครงสร้างที่ยังเป็นข้อมูลตัวอย่าง (sample) ' +
+    'ระหว่างรอตรวจสอบสิทธิ์การเผยแพร่ทะเบียนรายสหกรณ์จากกรมส่งเสริมสหกรณ์และกรมตรวจบัญชีสหกรณ์',
 };
 
 // TODO(shell-owner): ActiveNav ยังไม่มี key 'cooperatives' — ใช้ 'projects' ชั่วคราวจนกว่าเจ้าสำนักเมนูจะเพิ่มคีย์ (ห้ามแก้ shell.tsx ใน lane นี้)
@@ -16,6 +27,11 @@ const intFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }
 const decimalFormatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
 
 const DETAILS_SUMMARY = 'อ่านรายละเอียด ข้อจำกัด และแหล่งข้อมูล';
+
+/** ป้ายสีสถานะสิทธิ์: ใช้ป้ายกลางเมื่อทั้งแหล่งอนุมัติแล้ว ส่วนที่ยัง pending ทั้งหมดคงสีเตือน */
+function licenseBadge(licenseStatus: string): string {
+  return licenseStatus.trim() === 'approved_public' ? 'badge neutral' : 'badge pending';
+}
 
 const detailsStyle = {
   margin: '4px 0 0',
@@ -37,8 +53,20 @@ const summaryStyle = {
 } as const;
 
 export default async function CooperativesPage() {
-  // ตัวสร้าง payload เป็น synchronous ตามสัญญา lane 1A — ไม่ต้อง await และไม่ต้อง fetch /api/v1/cooperatives จากหน้า
+  // ตัวสร้าง payload ส่วน sample เป็น synchronous ตามสัญญา lane 1A — ไม่ต้อง await และไม่ต้อง fetch /api/v1/cooperatives จากหน้า
   const payload: CooperativesPayload = buildCooperativesData();
+
+  // ส่วนข้อมูลจริงอ่านจากคลังกลางทุกครั้งแบบ no-cache ถ้าอ่านไม่สำเร็จใช้สถานะ unavailable
+  // ห้ามสลับกลับไปใช้ตัวเลขของ payload ด้านบนเป็นอันขาด
+  let realCounts: CooperativesRealCountsEnvelope;
+  try {
+    realCounts = await loadCooperativesRealCounts();
+  } catch (error) {
+    realCounts = cooperativesRealCountsUnavailable(
+      error instanceof HubRequestError ? error.message : undefined,
+    );
+  }
+  const realIsNumeric = realCounts.meta.availability === 'ready' && realCounts.data.rows.length > 0;
 
   const businessValueMillions = decimalFormatter.format(
     payload.summary.totalBusinessValueTHB / 1_000_000,
@@ -60,9 +88,14 @@ export default async function CooperativesPage() {
         <div>
           <h1>สหกรณ์การเกษตร วิสาหกิจชุมชน และเครือข่ายแปลงใหญ่</h1>
           <p>
-            หน้านี้สรุปจำนวนสหกรณ์/กลุ่ม สมาชิก มูลค่าธุรกิจ ปริมาณการรวบรวมผลผลิต และคะแนน CAMELS
-            ของชุดตัวอย่างเชิงโครงสร้าง (sample) ใช้ตัวกรองด้านล่างเพื่อดูเฉพาะภาค จังหวัด ประเภท หรือชั้น CAMELS
-            — ตาราง สรุป และเรดาร์จะเปลี่ยนตามเงื่อนไขเดียวกัน
+            ส่วนบนของหน้านี้คือจำนวนสหกรณ์การเกษตรตามทรัพยากรที่กรมส่งเสริมสหกรณ์ (CPD) เผยแพร่และได้รับอนุมัติให้แสดงตัวเลข
+            อ่านจากคลังข้อมูลกลางตามเกรนต้นทาง ส่วนล่าง (KPI แดชบอร์ด CAMELS และตารางรายสหกรณ์) ยังเป็นข้อมูลตัวอย่าง
+            เชิงโครงสร้างที่แยกสถานะจากส่วนข้อมูลจริงอย่างชัดเจน
+          </p>
+          <p style={{ marginTop: 8 }}>
+            {realIsNumeric
+              ? `สถานะส่วนข้อมูลจริง: อ่านได้จากคลังกลาง ${realCounts.data.counts.rowCount} ระเบียน (sample = false)`
+              : `สถานะส่วนข้อมูลจริง: ${realCounts.meta.availability} — ยังไม่มีตัวเลขจากคลังกลางให้แสดง และหน้านี้ไม่ใช้ตัวเลขตัวอย่างแทน`}
           </p>
           <details style={detailsStyle}>
             <summary style={summaryStyle}>{DETAILS_SUMMARY}</summary>
@@ -86,6 +119,11 @@ export default async function CooperativesPage() {
         </div>
       </div>
 
+      {/* ส่วนข้อมูลจริง (lane L2): จำนวนสหกรณ์การเกษตรจากทรัพยากร CPD ที่อนุมัติ — ไม่สลับไปใช้ sample */}
+      <CooperativesCpdCounts envelope={realCounts} />
+
+      <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '32px 0 24px' }} />
+
       {/* Governance Banner — แบนเนอร์ข้อกำกับสิทธิ์/สถานะข้อมูลตัวอย่าง เรนเดอร์ฝั่งเพจ (lane 1C) */}
       {payload.sample && (
         <section
@@ -104,18 +142,24 @@ export default async function CooperativesPage() {
           }}
         >
           <strong style={{ display: 'block', marginBottom: 8 }}>
-            ข้อมูลตัวอย่างเพื่อการสาธิต (metadata-only · ข้อมูลจำลอง)
+            แดชบอร์ด CAMELS และตารางรายสหกรณ์ด้านล่าง = ข้อมูลตัวอย่างเพื่อการสาธิต (metadata-only · ข้อมูลจำลอง)
           </strong>
           <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 6 }}>
             <li>
-              ชุดข้อมูลนี้เป็นข้อมูลตัวอย่างเชิงโครงสร้างที่กำหนดผลซ้ำได้แน่นอน (
+              ชุดข้อมูลส่วนนี้เป็นข้อมูลตัวอย่างเชิงโครงสร้างที่กำหนดผลซ้ำได้แน่นอน (
               <code>data.sample = true</code>) สร้างจากการจำลองตามแบบรูป (deterministic structural simulation)
               มิใช่สถิติจริงจากทะเบียนสหกรณ์ ห้ามอ้างอิงในเอกสารราชการหรือใช้ประกอบการตัดสินใจทางนโยบาย
             </li>
             <li>
-              API เสนอข้อมูลภายใต้สถานะ <code>meta.access = “metadata_only”</code>{' '}
-              เนื่องจากสิทธิ์การเผยแพร่ข้อมูลดิบของกรมส่งเสริมสหกรณ์ (CPD) และกรมตรวจบัญชีสหกรณ์ (CAD)
-              ยังอยู่ระหว่างการตรวจสอบ
+              API ของส่วนตัวอย่าง (<code>/api/v1/cooperatives</code>) เสนอข้อมูลภายใต้สถานะ{' '}
+              <code>meta.access = “metadata_only”</code>{' '}
+              เนื่องจากสิทธิ์การเผยแพร่ทะเบียนรายสหกรณ์และการจัดชั้นของกรมส่งเสริมสหกรณ์ (CPD)
+              และข้อมูลบัญชีของกรมตรวจบัญชีสหกรณ์ (CAD) ยังอยู่ระหว่างการตรวจสอบ
+            </li>
+            <li>
+              ข้างบนของหน้านี้คืออีกเส้นทางหนึ่ง: จำนวนสหกรณ์การเกษตรจากทรัพยากร CPD ที่ระบุ resource id
+              ไว้แน่นอนซึ่งได้รับอนุมัติให้เผยแพร่ (<code>sample = false</code> ผ่าน{' '}
+              <code>/api/v1/cooperatives/cpd-counts</code>) ตัวเลขสองส่วนนี้ห้ามอ่านแทนกันหรือรวมกัน
             </li>
             <li>
               ชื่อสหกรณ์และเลขทะเบียนที่ปรากฏเป็นค่าตัวอย่างที่ตั้งขึ้น (
@@ -168,6 +212,18 @@ export default async function CooperativesPage() {
         </section>
       )}
 
+      {/* เส้นแบ่งที่ชัดเจนระหว่างส่วนข้อมูลจริงกับส่วนตัวอย่าง — ห้ามอ่านตัวเลขสองส่วนนี้ปนกัน */}
+      <div className="section-heading">
+        <div>
+          <h2>แดชบอร์ด CAMELS ของชุดตัวอย่างเชิงโครงสร้าง (sample)</h2>
+          <p>
+            ใช้ตัวกรองด้านล่างเพื่อดูเฉพาะภาค จังหวัด ประเภท หรือชั้น CAMELS — ตาราง สรุป และเรดาร์คำนวณจาก
+            ชุดตัวอย่างเท่านั้น ไม่มีความเกี่ยวข้องกับจำนวนสหกรณ์การเกษตรจากทะเบียนจริงข้างบน
+          </p>
+        </div>
+        <span className="badge pending">sample = true · metadata_only</span>
+      </div>
+
       {/* At a glance — เนื้อหา SSR ที่มีความหมายก่อน client dashboard hydrate */}
       <div
         style={{
@@ -199,21 +255,27 @@ export default async function CooperativesPage() {
 
       <p className="area-note">
         แหล่งข้อมูลต้นทาง: กรมส่งเสริมสหกรณ์ (cpd.go.th) และกรมตรวจบัญชีสหกรณ์ (go2cad.go.th) ·
-        สิทธิ์การเผยแพร่ข้อมูลดิบยังอยู่ระหว่างการตรวจสอบ (pending) · พื้นผิว API สำหรับโปรแกรม{' '}
-        <code>/api/v1/cooperatives?provinceCode=19</code>
+        สิทธิ์การเผยแพร่ทะเบียนรายสหกรณ์/การจัดชั้นและข้อมูลบัญชียังอยู่ระหว่างการตรวจสอบ (pending) ส่วน{' '}
+        <em>จำนวนสหกรณ์การเกษตร</em> ของ CPD ที่ระบุ resource id ไว้แน่นอนได้รับอนุมัติให้เผยแพร่แล้ว ·
+        พื้นผิว API สำหรับโปรแกรม{' '}
+        <code>/api/v1/cooperatives?provinceCode=19</code> (ตัวอย่าง) และ{' '}
+        <code>/api/v1/cooperatives/cpd-counts?provinceCode=19</code> (ข้อมูลจริงจากคลังกลาง)
       </p>
 
       <details style={detailsStyle}>
         <summary style={summaryStyle}>{DETAILS_SUMMARY}</summary>
         <p className="area-note">
           หมายเหตุการกำกับดูแลข้อมูล: จำนวนสหกรณ์ สมาชิก แต้ม CAMELS ปริมาณการรวบรวมผลผลิต มูลค่าธุรกิจ
-          เงินทุนหมุนเวียน และสินเชื่อที่จ่ายให้สมาชิกในหน้านี้ เป็นข้อมูลตัวอย่างเชิงโครงสร้างที่กำหนดผลซ้ำได้
-          (Deterministic Sample Data) เพื่อสาธิตการเชื่อมทะเบียนสหกรณ์เข้ากับข้อมูลสินค้าเกษตรรายจังหวัด
-          มิใช่สถิติทางการ สิทธิ์การเผยแพร่ข้อมูลทะเบียนดิบของหน่วยงานต้นทาง ได้แก่ กรมส่งเสริมสหกรณ์
+          เงินทุนหมุนเวียน และสินเชื่อที่จ่ายให้สมาชิก <em>ในแดชบอร์ดส่วนล่างของหน้านี้</em>{' '}
+          เป็นข้อมูลตัวอย่างเชิงโครงสร้างที่กำหนดผลซ้ำได้ (Deterministic Sample Data)
+          เพื่อสาธิตการเชื่อมทะเบียนสหกรณ์เข้ากับข้อมูลสินค้าเกษตรรายจังหวัด มิใช่สถิติทางการ
+          สิทธิ์การเผยแพร่ข้อมูลทะเบียนดิบของหน่วยงานต้นทาง ได้แก่ กรมส่งเสริมสหกรณ์
           (cpd.go.th — ทะเบียนสหกรณ์และกลุ่มเกษตรกร การจัดชั้นสหกรณ์ และข้อมูลการรวบรวมผลผลิต)
           และกรมตรวจบัญชีสหกรณ์ (go2cad.go.th — งบการเงินและผลการตรวจสอบบัญชีสหกรณ์) ยังอยู่ระหว่างการตรวจสอบ
-          จึงเปิดเผยเฉพาะส่วน metadata และห้ามอ้างอิงตัวเลขในหน้านี้เป็นสถิติทางกฎหมาย
-          ส่วนพื้นผิว API สำหรับโปรแกรมอยู่ที่ <code>/api/v1/cooperatives?provinceCode=19</code>{' '}
+          จึงเปิดเผยเฉพาะส่วน metadata และห้ามอ้างอิงตัวเลขส่วนนั้นเป็นสถิติทางกฎหมาย
+          ส่วน “จำนวนสหกรณ์การเกษตรจากทะเบียนจริง” ข้างบนอ่านจากคลังข้อมูลกลางด้วยเส้นทางคนละ endpoint
+          ประกาศ <code>sample = false</code> คงเกรนต้นทางไว้ครบ (ไม่บวกข้ามหน่วยงานสังกัด/สถานะ/ป้ายปี)
+          ไม่ตั้งวันที่อ้างอิงเพราะป้ายปีต้นทางยังไม่ยืนยันประเภทปี และไม่อ้างการครอบคลุมทั้งประเทศ
           ข้อต่อเนื่องที่ต้องทำ: เมนูหลักของ shell ยังไม่มีรายการสำหรับ /cooperatives ซึ่งต้องรอเจ้าของ shell เพิ่มคีย์{' '}
           <code>cooperatives</code> แล้วจึงสลับค่า <code>active</code> ของหน้านี้จาก projects ไปเป็น cooperatives
         </p>
@@ -237,7 +299,7 @@ export default async function CooperativesPage() {
                 {source.name}
               </a>{' '}
               — {source.agencyLabel} · {source.role}{' '}
-              <span className="badge pending">{source.licenseStatus}</span>
+              <span className={licenseBadge(source.licenseStatus)}>{source.licenseStatus}</span>
             </li>
           ))}
         </ul>

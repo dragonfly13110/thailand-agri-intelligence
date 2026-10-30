@@ -6,24 +6,25 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/v1/livestock (legacy)
  *
- * Legacy sample reference endpoint for livestock and aquaculture. The /livestock
- * page now uses /api/v1/livestock/beef-cattle for approved DLD observations.
+ * Mixed reference endpoint: DLD livestock sections carry real numbers read from
+ * the central store (only when an approved run publishes them — otherwise the
+ * section is explicitly empty/unavailable, never sample), while the DOF
+ * aquaculture sections are still deterministic samples pending licence review.
  *
  * พารามิเตอร์:
  * - sector = livestock | aquaculture เลือกเซกเตอร์เดียว
  * - species = รหัสชนิดสัตว์ เช่น cattle, whiteleg-shrimp, tilapia
  *   ค่าที่ไม่รู้จักจะตอบ 400 INVALID_QUERY (ห้ามเดาชนิดสัตว์)
  *
- * สิทธิ์: ทรัพยากรทั้งหมดยังอยู่ระหว่างตรวจสิทธิ์ใน config/resource_licenses.json
- * จึงไม่ส่งตัวเลขจริงจากต้นทาง — ค่าที่ส่งเป็นค่าตัวอย่างแบบ deterministic
- * พร้อม sample flag, access: 'metadata_only' และ warnings ชุดเดียวกับ payload
+ * meta.access คงเป็น metadata_only เพราะ payload ยังรวมค่าตัวอย่างของฝั่งกรมประมง
+ * สถานะข้อมูลจริงรายชนิดดูได้จาก summary.readState และ summary.provenance
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   return handleApi(async () => {
     const sectorParam = parseText(url, 'sector', 40);
     const speciesParam = parseText(url, 'species', 40);
-    const payload = buildLivestockDashboard();
+    const payload = await buildLivestockDashboard();
 
     const knownSpecies = payload.sectors.flatMap((sector) => sector.species.map((entry) => entry.def));
     if (sectorParam && !payload.sectors.some((sector) => sector.id === sectorParam)) {
@@ -49,20 +50,25 @@ export async function GET(request: Request) {
     const agencyIds = new Set(sectors.map((sector) => sector.agencyLabel));
     const sources = payload.sources.filter((source) => agencyIds.has(source.agencyLabel));
 
+    const summaries = sectors.flatMap((sector) => sector.species.map((entry) => entry.summary));
+    const anyReal = summaries.some((summary) => summary.readState === 'real');
+    const anyUnloaded = summaries.some((summary) => summary.readState === 'empty' || summary.readState === 'unavailable');
+    const anyUnavailable = summaries.some((summary) => summary.readState === 'unavailable');
+
     return jsonData(
       { ...payload, sectors, sources },
       {
         meta: {
-          availability: 'ready',
-          freshness: 'fresh',
-          completeness: 'complete',
+          availability: anyReal ? 'ready' : anyUnavailable ? 'unavailable' : 'empty',
+          freshness: anyReal ? 'fresh' : 'unknown',
+          completeness: anyReal ? 'partial' : anyUnloaded ? 'unknown' : 'complete',
           access: 'metadata_only',
           sourceIds: ['dld', 'dof'],
           dataAsOf: null,
           sourceUpdatedAt: null,
-          datasetVersion: 'livestock-aquaculture-reference-v1',
+          datasetVersion: 'livestock-aquaculture-reference-v2',
           warnings: payload.warnings,
-          runtimeMode: 'source_api_fallback',
+          runtimeMode: 'database',
         },
       },
     );

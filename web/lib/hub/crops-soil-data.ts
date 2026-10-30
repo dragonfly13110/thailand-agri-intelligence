@@ -1072,3 +1072,227 @@ export function fertilizerRowsForSoil(guidance: FertilizerGuidance, soil: SoilSe
     .map((row, index) => (row.textureTags?.includes(soil.textureClass) ? index : -1))
     .filter(index => index >= 0);
 }
+
+/* ================== บล็อกข้อมูลการผลิตจริง (DOAE เกรนระดับตำบล) ==================
+ * ส่วนนี้ประกาศเฉพาะชนิดข้อมูลและแคตตาล็อกทรัพยากร (client-safe, ไม่มี server-only)
+ * ตัวเลขจริงไม่เคย hard-code ในไฟล์นี้ — บล็อก `sample:false` ถูกสร้างจากการอ่าน
+ * observations ที่เผยแพร่แล้วในคลังข้อมูลกลางโดย lib/hub/doae-production-data.ts
+ * และหน้าเว็บต้องแสดงสถานะว่าง/ไม่พร้อมอย่างซื่อตรงเมื่อไม่มีแถวจริง
+ */
+
+export type DoaeCropResourceKey =
+  | 'doae_production_subdistrict_2023'
+  | 'doae_perennial_subdistrict_2023';
+
+export type DoaeCropMeasure =
+  | 'planted_area_rai'
+  | 'damaged_area_rai'
+  | 'harvested_area_rai'
+  | 'production_kg'
+  | 'yield_kg_per_rai'
+  | 'farm_gate_thb_per_kg'
+  | 'bearing_area_rai'
+  | 'standing_area_rai';
+
+export type DoaeCropResourceCatalog = {
+  resourceKey: DoaeCropResourceKey;
+  label: string;
+  sourceId: 'doae';
+  sourceName: string;
+  resourceId: string;
+  datasetId: string;
+  datasetUrl: string;
+  downloadUrl: string;
+  licenseStatus: 'approved_public';
+  declaredLicense: string;
+  /** ป้ายสัญญาอนุญาตต้นทางยังไม่ถูกระบุรูปแบบเฉพาะ — แสดงตามจริง ไม่ใช่ข้อสรุป */
+  licenseVariantVerified: false;
+  publicationBasis: string;
+  publicationPolicyId: string;
+  attribution: string;
+  reviewedAt: string;
+  grain: string;
+  measures: DoaeCropMeasure[];
+  /** หน่วยต่อตัวชี้วัดจากหัวคอลัมน์ต้นทาง; ตัวชี้วัดที่ไม่อยู่ในนี้ถือว่าไม่ยืนยันหน่วย */
+  unitsByMeasure: Partial<Record<DoaeCropMeasure, string>>;
+  semanticsNotes: string[];
+};
+
+export const DOAE_SUBDISTRICT_DATASET_ID = '6cc09797-a60e-43ce-a646-65364a1333c3';
+export const DOAE_SUBDISTRICT_DATASET_URL = 'https://ckan.doae.go.th/dataset/production_doae';
+
+const DOAE_LICENSE_NOTES = [
+  'ป้ายสัญญาอนุญาตต้นทาง "Open Data Common" ยังไม่ถูกระบุรูปแบบเฉพาะ (ไม่ยืนยัน CC BY/ODC-By โดยนัย)',
+  'สิทธิ์เผยแพร่ใน Hub อิงนโยบายสิทธิ์เปิด (publication-policy-2026-10-29) แยกจากการยืนยันสัญญาอนุญาตต้นทาง',
+];
+
+export const DOAE_CROP_RESOURCES: Record<DoaeCropResourceKey, DoaeCropResourceCatalog> = {
+  doae_production_subdistrict_2023: {
+    resourceKey: 'doae_production_subdistrict_2023',
+    label: 'ภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2566',
+    sourceId: 'doae',
+    sourceName: 'กรมส่งเสริมการเกษตร (DOAE)',
+    resourceId: 'f9ab6055-6364-4f78-812e-15989e300979',
+    datasetId: DOAE_SUBDISTRICT_DATASET_ID,
+    datasetUrl: DOAE_SUBDISTRICT_DATASET_URL,
+    downloadUrl:
+      'https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/f9ab6055-6364-4f78-812e-15989e300979/download/1.-01-open01-2023-new.csv',
+    licenseStatus: 'approved_public',
+    declaredLicense: 'Open Data Common',
+    licenseVariantVerified: false,
+    publicationBasis: 'open_license_policy',
+    publicationPolicyId: 'publication-policy-2026-10-29',
+    attribution: 'กรมส่งเสริมการเกษตร — ภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2566 (Open Data Common)',
+    reviewedAt: '2026-10-22',
+    grain: 'ตำบล (ตามป้ายชื่อจังหวัด/อำเภอ/ตำบลของต้นทาง) × ชนิดพืช/พันธุ์ × ปี พ.ศ. ต้นทาง × ตัวชี้วัดรายคอลัมน์',
+    measures: [
+      'planted_area_rai', 'damaged_area_rai', 'harvested_area_rai',
+      'production_kg', 'yield_kg_per_rai', 'farm_gate_thb_per_kg',
+    ],
+    unitsByMeasure: {
+      planted_area_rai: 'ไร่',
+      damaged_area_rai: 'ไร่',
+      harvested_area_rai: 'ไร่',
+      production_kg: 'กิโลกรัม',
+      yield_kg_per_rai: 'กิโลกรัม/ไร่',
+      farm_gate_thb_per_kg: 'บาท/กิโลกรัม',
+    },
+    semanticsNotes: [
+      ...DOAE_LICENSE_NOTES,
+      'คอลัมน์ เดือน และ รอบการปลูก เป็นฉลากต้นทางที่ยังไม่ยืนยันความหมาย — แสดงตามฉลาก ไม่แปลงเป็นช่วงเวลาหรือฤดูกาล',
+      'ปี พ.ศ. ในไฟล์นี้มีทั้ง 2566 และ 2567 แม้ชื่อไฟล์ระบุ 2023 — แสดงตามค่าต้นทาง',
+      'ไม่มีผลรวมระดับจังหวัดในบล็อกนี้ (rollup_eligible=false ทุกแถว); การนับแถวไม่ใช่การรวมค่า',
+    ],
+  },
+  doae_perennial_subdistrict_2023: {
+    resourceKey: 'doae_perennial_subdistrict_2023',
+    label: 'ภาวะการผลิตพืชอายุยาว (ไม้ผลยืนต้น) ระดับตำบล ปี 2566',
+    sourceId: 'doae',
+    sourceName: 'กรมส่งเสริมการเกษตร (DOAE)',
+    resourceId: '61f3f241-92c7-4cdc-9918-41ce73545268',
+    datasetId: DOAE_SUBDISTRICT_DATASET_ID,
+    datasetUrl: DOAE_SUBDISTRICT_DATASET_URL,
+    downloadUrl:
+      'https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/61f3f241-92c7-4cdc-9918-41ce73545268/download/open02-2023.csv',
+    licenseStatus: 'approved_public',
+    declaredLicense: 'Open Data Common',
+    licenseVariantVerified: false,
+    publicationBasis: 'open_license_policy',
+    publicationPolicyId: 'publication-policy-2026-10-29',
+    attribution: 'กรมส่งเสริมการเกษตร — ภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2566 (Open Data Common)',
+    reviewedAt: '2026-10-22',
+    grain: 'ตำบล (ตามป้ายชื่อจังหวัด/อำเภอ/ตำบลของต้นทาง) × ชนิดพืช/พันธุ์ × ปี พ.ศ. ต้นทาง × ตัวชี้วัดรายคอลัมน์',
+    measures: [
+      'bearing_area_rai', 'standing_area_rai', 'damaged_area_rai',
+      'production_kg', 'farm_gate_thb_per_kg',
+    ],
+    unitsByMeasure: {
+      bearing_area_rai: 'ไร่',
+      standing_area_rai: 'ไร่',
+      damaged_area_rai: 'ไร่',
+      production_kg: 'กิโลกรัม',
+      farm_gate_thb_per_kg: 'บาท/กิโลกรัม',
+    },
+    semanticsNotes: [
+      ...DOAE_LICENSE_NOTES,
+      'ทะเบียนสิทธิ์ยังมีรายการ unresolved (แถวซ้ำ 5 กลุ่มและค่าติดลบ 3 แถวจากต้นทาง) — write path ถูกบล็อกจนกว่า governance ปิดรายการ',
+      'ชุด staging กระทบการตรวจแล้วตัดแถวควอรันทีน 3 แถวออก และทำเครื่องหมายแถวซ้ำ 5 แถวไว้ไม่ให้เผยแพร่ซ้ำ identity',
+      'ไม่มีผลรวมระดับจังหวัดในบล็อกนี้ (rollup_eligible=false ทุกแถว); การนับแถวไม่ใช่การรวมค่า',
+    ],
+  },
+};
+
+/**
+ * ทรัพยากร DOAE ปี พ.ศ. 2567 (registry `doae:0719c5ce-…` / `doae:a130f9e0-…`)
+ * license_status = approved_public, project_publication_approved = true
+ * แต่ registry ยังบันทึก unresolved = ["Source semantics, units, period and temporal
+ * geography before model use", "Privacy review before sharing group records or free text"]
+ * ตัวแปลงเกรนของโครงการยังอ่านเฉพาะไฟล์ 2566 ที่ staging เสร็จแล้ว — จึงยังไม่สัญญาตัวเลขใด ๆ
+ */
+export const DOAE_APPROVED_SCHEMA_UNVERIFIED = [
+  {
+    resourceId: '0719c5ce-108c-4373-93e8-6b27a9176c5e',
+    ckanKey: 'doae:0719c5ce-108c-4373-93e8-6b27a9176c5e',
+    name: 'ข้อมูลภาวะการผลิตพืชอายุสั้น ระดับตำบล ปี 2567',
+    downloadUrl: 'https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/0719c5ce-108c-4373-93e8-6b27a9176c5e/download/production01.rar',
+    licenseStatus: 'approved_public' as const,
+    unresolved: [
+      'Source semantics, units, period and temporal geography before model use',
+      'Privacy review before sharing group records or free text',
+    ],
+    note: 'อนุมัติสิทธิ์แล้ว (Open Data Common) แต่ยังไม่ตรวจ semantics/หน่วย/period และยังไม่สร้าง staging → ไม่เผยแพร่ตัวเลข',
+  },
+  {
+    resourceId: 'a130f9e0-0795-4ac8-8daf-008c686c484d',
+    ckanKey: 'doae:a130f9e0-0795-4ac8-8daf-008c686c484d',
+    name: 'ข้อมูลภาวะการผลิตพืชอายุยาว ระดับตำบล ปี 2567',
+    downloadUrl: 'https://ckan.doae.go.th/dataset/6cc09797-a60e-43ce-a646-65364a1333c3/resource/a130f9e0-0795-4ac8-8daf-008c686c484d/download/production02.rar',
+    licenseStatus: 'approved_public' as const,
+    unresolved: [
+      'Source semantics, units, period and temporal geography before model use',
+      'Privacy review before sharing group records or free text',
+    ],
+    note: 'อนุมัติสิทธิ์แล้ว (Open Data Common) แต่ยังไม่ตรวจ semantics/หน่วย/period และยังไม่สร้าง staging → ไม่เผยแพร่ตัวเลข',
+  },
+];
+
+export type DoaeProductionBlockRow = {
+  rowKey: string;
+  measure: DoaeCropMeasure | string;
+  metricLabel: string | null;
+  cropType: string | null;
+  varietyName: string | null;
+  provinceCode: string | null;
+  provinceName: string | null;
+  districtName: string | null;
+  subdistrictName: string | null;
+  sourceYearBe: number | null;
+  monthLabel: string | null;
+  plantingRoundLabel: string | null;
+  periodLabel: string | null;
+  value: number | null;
+  unit: string | null;
+  qualityStatus: string | null;
+  revisionId: string | null;
+  sourceRowRef: string | null;
+};
+
+export type DoaeProductionBlockAvailability =
+  | 'ready'
+  | 'empty'
+  | 'catalog_pending'
+  | 'catalog_missing'
+  | 'no_numeric_run'
+  | 'unavailable';
+
+export type DoaeProductionBlock = {
+  /** บล็อกนี้สร้างจากแถวจริงในคลังข้อมูลกลางเท่านั้น — ค่าต้องเป็น false เสมอ */
+  sample: false;
+  resourceKey: DoaeCropResourceKey;
+  catalog: DoaeCropResourceCatalog;
+  availability: DoaeProductionBlockAvailability;
+  rows: DoaeProductionBlockRow[];
+  totalCount: number;
+  loadedCount: number;
+  truncated: boolean;
+  maxRows: number;
+  distinctSubdistrictsLoaded: number;
+  distinctProvinceCodesLoaded: number;
+  measuresFound: Array<{ measure: string; unit: string | null; rows: number }>;
+  sourceYearsBe: number[];
+  filters: { provinceCode: string | null; measure: string | null; sourceYearBe: number | null };
+  provenance: {
+    runId: string | null;
+    runStatus: string | null;
+    adapterVersion: string | null;
+    payloadSha256: string | null;
+    sourceRetrievedAt: string | null;
+    revisionIds: string[];
+  };
+  warnings: string[];
+};
+
+export const DOAE_PRODUCTION_README_NOTE =
+  'ตัวเลขการผลิตพืชในหน้า /crops และ /soil อ่านจากคลังข้อมูลกลาง (D1) ตามทรัพยากร DOAE ระดับตำบลที่อนุมัติแล้วเท่านั้น ' +
+  'ถ้ายังไม่มีการเผยแพร่ตัวเลขจริง หน้าเว็บจะแสดงสถานะว่าง/รอกาตาร์ล็อกของ resource อย่างซื่อตรง และไม่แสดงค่าตัวอย่างแทน';
+

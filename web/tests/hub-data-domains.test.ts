@@ -101,7 +101,7 @@ type SoilApiPayload = {
 };
 type ApiErrorPayload = { error: { code: string; message: string; requestId: string } };
 type LivestockApiPayload = {
-  data: ReturnType<typeof livestock.buildLivestockDashboard>;
+  data: Awaited<ReturnType<typeof livestock.buildLivestockDashboard>>;
   meta: ApiMeta;
 };
 
@@ -654,8 +654,8 @@ test('soil API: unverified names stay empty results but keep the warning status'
 /* Livestock & Fisheries data contract                                 */
 /* ------------------------------------------------------------------ */
 
-test('livestock: sectors and species definitions match DLD and DOF registries', () => {
-  const payload = livestock.buildLivestockDashboard();
+test('livestock: sectors and species definitions match DLD and DOF registries', async () => {
+  const payload = await livestock.buildLivestockDashboard();
   assert.equal(payload.sectors.length, 2);
   const [dldSector, dofSector] = payload.sectors;
 
@@ -663,7 +663,7 @@ test('livestock: sectors and species definitions match DLD and DOF registries', 
   assert.equal(dldSector.agencyLabel, 'กรมปศุสัตว์ (DLD)');
   assert.equal(dldSector.species.length, 5);
   assert.deepEqual(
-    dldSector.species.map((s: { def: { id: string } }) => s.def.id),
+    dldSector.species.map((s) => s.def.id),
     ['cattle', 'dairy', 'swine', 'poultry', 'duck'],
   );
 
@@ -671,7 +671,7 @@ test('livestock: sectors and species definitions match DLD and DOF registries', 
   assert.equal(dofSector.agencyLabel, 'กรมประมง (DOF)');
   assert.equal(dofSector.species.length, 3);
   assert.deepEqual(
-    dofSector.species.map((s: { def: { id: string } }) => s.def.id),
+    dofSector.species.map((s) => s.def.id),
     ['whiteleg-shrimp', 'tilapia', 'catfish'],
   );
 
@@ -681,50 +681,108 @@ test('livestock: sectors and species definitions match DLD and DOF registries', 
       assert.ok(item.def.unit.length > 0);
       assert.ok(item.def.sourceUrl.startsWith('http'));
       assert.ok(item.def.resourceId.length > 0);
-      assert.ok(item.summary.total !== null && item.summary.total > 0);
-      assert.equal(item.summary.sample, true);
+      if (item.def.agency === 'dld') {
+        // New honest contract: approved DLD resources publish numbers ONLY when an
+        // approved run exists in the central store; never as sample values.
+        assert.equal(item.def.licenseStatus, 'approved_public');
+        assert.equal(item.summary.sample, false);
+        assert.notEqual(item.summary.readState, 'sample');
+        if (item.summary.readState !== 'real') {
+          assert.equal(item.summary.total, null);
+          assert.equal(item.summary.unit, null);
+          assert.equal(item.summary.yearBe, null);
+          assert.equal(item.summary.provenance, null);
+          assert.equal(item.summary.regions.length, 0);
+          assert.equal(item.summary.topProvinces.length, 0);
+          assert.ok(item.summary.note !== null && item.summary.note.length > 0);
+        } else {
+          assert.ok(item.summary.provenance, 'real DLD numbers must carry provenance');
+        }
+      } else {
+        // DOF licence is still pending, so aquaculture stays labelled deterministic sample.
+        assert.equal(item.def.licenseStatus, 'pending');
+        assert.equal(item.summary.sample, true);
+        assert.equal(item.summary.readState, 'sample');
+        assert.ok(item.summary.total !== null && item.summary.total > 0);
+        assert.ok(item.summary.note !== null && item.summary.note.includes('ค่าตัวอย่าง'));
+      }
     }
   }
 });
 
-test('livestock: DLD and DOF region bases are kept distinct and never merged', () => {
-  const payload = livestock.buildLivestockDashboard();
+test('livestock: DLD and DOF region bases are kept distinct and never merged', async () => {
+  const payload = await livestock.buildLivestockDashboard();
   const [dldSector, dofSector] = payload.sectors;
 
   // DLD uses 4 regions (no eastern region)
   const dldRegions = dldSector.regions;
   assert.equal(dldRegions.length, 4);
   assert.deepEqual(
-    dldRegions.map((r: { label: string }) => r.label),
+    dldRegions.map((r) => r.label),
     ['ภาคเหนือ', 'ภาคกลาง', 'ภาคตะวันออกเฉียงเหนือ', 'ภาคใต้'],
   );
-  assert.ok(dldRegions.every((r: { basis: string }) => r.basis === 'source'));
+  assert.ok(dldRegions.every((r) => r.basis === 'source'));
+
+  // Region ids of the two agencies must never collide (proves the bases are not merged)
+  const dldRegionIds = new Set(dldRegions.map((r) => r.id));
+  assert.ok([...dldRegionIds].every((id) => id.startsWith('dld-')));
+  assert.ok(dofSector.regions.every((r) => !dldRegionIds.has(r.id)));
 
   // DOF aquaculture has distinct coastal vs crosswalk bases
-  const shrimp = dofSector.species.find((s: { def: { id: string } }) => s.def.id === 'whiteleg-shrimp')!;
+  const shrimp = dofSector.species.find((s) => s.def.id === 'whiteleg-shrimp')!;
   assert.equal(shrimp.summary.regions.length, 6);
   assert.ok(shrimp.def.regionSourceLabel.includes('กรมประมง'));
 
-  const tilapia = dofSector.species.find((s: { def: { id: string } }) => s.def.id === 'tilapia')!;
+  const tilapia = dofSector.species.find((s) => s.def.id === 'tilapia')!;
   assert.equal(tilapia.summary.regions.length, 5);
   assert.ok(tilapia.def.regionSourceLabel.includes('crosswalk'));
 
+  // DLD species (when present) aggregate only on dld-* region ids
+  for (const item of dldSector.species) {
+    assert.ok(item.summary.regions.every((r) => r.regionId.startsWith('dld-')));
+  }
+
   // Warnings must alert about DLD vs DOF region discrepancy
   assert.ok(
-    payload.warnings.some((w: string) => w.includes('กรมปศุสัตว์ใช้ภาค 4 ภาค') && w.includes('กรมประมงใช้ภาค 6 ภาค')),
+    payload.warnings.some((w) => w.includes('กรมปศุสัตว์ใช้ภาค 4 ภาค') && w.includes('กรมประมงใช้ภาค 6 ภาค')),
   );
 });
 
-test('livestock API: returns metadata_only with sample: true and warnings', async () => {
+test('livestock API: numbers are sample:false only from approved store rows, else honest empty/unavailable', async () => {
   const response = await livestockRoute.GET(new Request(new URL('/api/v1/livestock', HUB_ORIGIN)));
   assert.equal(response.status, 200);
   const body = (await response.json()) as LivestockApiPayload;
 
   assert.equal(body.meta.access, 'metadata_only');
-  assert.equal(body.meta.availability, 'ready');
-  assert.equal(body.data.sample, true);
   assert.equal(body.data.sectors.length, 2);
   assert.ok(body.meta.warnings.length >= 5);
+
+  const dldSummaries = body.data.sectors
+    .find((sector) => sector.id === 'livestock')!
+    .species.map((entry) => entry.summary);
+
+  // Guarantee 1: an approved DLD resource never surfaces fabricated numbers.
+  for (const summary of dldSummaries) {
+    assert.equal(summary.sample, false);
+    assert.notEqual(summary.readState, 'sample');
+    if (summary.readState !== 'real') {
+      assert.equal(summary.total, null);
+      assert.equal(summary.provenance, null);
+    }
+  }
+
+  // Guarantee 2: availability mirrors the observed per-species states —
+  // 'ready' only when at least one real approved row set exists.
+  const anyReal = dldSummaries.some((summary) => summary.readState === 'real');
+  const anyUnavailable = dldSummaries.some((summary) => summary.readState === 'unavailable');
+  assert.equal(body.meta.availability, anyReal ? 'ready' : anyUnavailable ? 'unavailable' : 'empty');
+
+  // Guarantee 3: payload-level sample is exactly "some section is still sample"
+  // (the pending DOF side), never a silent fallback for DLD.
+  const anySample = body.data.sectors
+    .flatMap((sector) => sector.species)
+    .some((entry) => entry.summary.sample);
+  assert.equal(body.data.sample, anySample);
 });
 
 test('livestock API: filters by sector and species correctly', async () => {

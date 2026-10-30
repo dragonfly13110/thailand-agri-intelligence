@@ -1,5 +1,15 @@
 import 'server-only';
 
+// ทางอ่านข้อมูลจริง (lane L2) เท่านั้นที่ใช้โมดูลนี้ ตัวสร้าง sample ด้านล่างยัง pure เหมือนเดิม
+// ชื่อที่ผู้เรียกใช้ import ต่อ (buildCpdCoopCountsEnvelope, cpdCoopStatusFromQuery, ค่าคงที่ CPD_*)
+// ถูกส่งต่อผ่าน `export { ... } from './cpd-coop-counts'` ท้ายไฟล์ จึงไม่ import มาใช้ซ้ำในไฟล์นี้
+import {
+  loadCpdCoopCountsEnvelope,
+  unavailableCpdCoopCountsEnvelope,
+  type CpdCoopCountsEnvelope,
+  type CpdCoopCountsFilters,
+} from './cpd-coop-counts';
+
 /**
  * สหกรณ์การเกษตร สหกรณ์นิคม สหกรณ์ประมง สหกรณ์ผู้เลี้ยงโคนม และวิสาหกิจชุมชน/เครือข่ายแปลงใหญ่
  * สำหรับหน้า /cooperatives และ /api/v1/cooperatives
@@ -8,9 +18,11 @@ import 'server-only';
  * - เป็นแคตตาล็อกตัวอย่างแบบ deterministic ชุดเดียวที่ page, dashboard และ API route ใช้ร่วมกัน
  *   buildCooperativesData() เป็น synchronous และ pure: เรียกซ้ำด้วยตัวกรองเดิมได้ byte เดียวกัน
  *   (ไม่ใช้ clock, ไม่ใช้ entropy, ไม่อ่าน filesystem, ไม่เรียก network, ไม่แคชค่าที่ขึ้นกับ request)
- * - ไฟล์นี้ self-contained: import เพียง 'server-only' แล้วมีทะเบียนจังหวัด 77 รายการเป็น own copy
+ * - ตัวสร้าง sample ในไฟล์นี้ self-contained: import เพียง 'server-only' แล้วมีทะเบียนจังหวัด 77 รายการเป็น own copy
  *   (รหัส/ชื่อ/ภาค ลอกจาก lib/hub/logistics-data.ts ซึ่งล้อกับ EMBEDDED_PROVINCES_CSV ของ
  *   lib/provinces.ts อีกทอด) เพราะ builder ต้อง sync จึงเรียก getProvinces() (async) ไม่ได้
+ * - import ที่สอง (./cpd-coop-counts) ใช้เฉพาะ "ทางอ่านข้อมูลจริง" ท้ายไฟล์ (lane L2)
+ *   ตัวสร้าง sample ยัง synchronous และ pure เหมือนเดิม ไม่เรียกคลังผ่านเส้นทางนั้น
  *
  * กติกาความซื่อสัตย์ของข้อมูล (AGENTS.md ข้อ 3-4):
  * 1) สิทธิ์เผยแพร่ตัวเลขดิบของ CPD (กรมส่งเสริมสหกรณ์) และ CAD (กรมตรวจบัญชีสหกรณ์) ยัง pending
@@ -1103,9 +1115,10 @@ const COOP_SOURCES: CoopSourceReference[] = [
     id: 'cpd',
     name: 'ทะเบียนสหกรณ์และกลุ่มเกษตรกร กรมส่งเสริมสหกรณ์ (CPD)',
     agencyLabel: 'กรมส่งเสริมสหกรณ์',
-    role: 'ทะเบียนนิติบุคคลสหกรณ์/กลุ่มเกษตรกร ประเภทสหกรณ์ การจัดชั้น และการรวบรวมผลผลิต',
+    role: 'ทะเบียนนิติบุคคลสหกรณ์/กลุ่มเกษตรกร ประเภทสหกรณ์ การจัดชั้น และการรวบรวมผลผลิต ' +
+      '(คนละส่วนกับทรัพยากร "จำนวนสหกรณ์การเกษตร" ที่อนุมัติแล้วและแสดงในส่วนข้อมูลจริง)',
     sourceUrl: COOP_CPD_SOURCE_URL,
-    licenseStatus: 'pending',
+    licenseStatus: 'pending (ทะเบียนรายสหกรณ์/การจัดชั้น) · approved_public (ทรัพยากรจำนวนสหกรณ์การเกษตรที่ระบุ resource id)',
   },
   {
     id: 'cad',
@@ -1125,7 +1138,9 @@ const COOP_COVERAGE_NOTE =
 
 const COOP_WARNINGS: string[] = [
   'ข้อมูลทั้งหมดในชุดนี้เป็นข้อมูลตัวอย่างเชิงโครงสร้าง (deterministic simulation) ห้ามอ้างอิงเป็นสถิติทางการของกรมส่งเสริมสหกรณ์หรือกรมตรวจบัญชีสหกรณ์',
-  'สิทธิ์เผยแพร่ตัวเลขดิบของ CPD และ CAD ยังอยู่ระหว่างตรวจสอบ (licenseStatus: pending) API จึงออกภายใต้ access = metadata_only เท่านั้น',
+  'สิทธิ์เผยแพร่ของทะเบียนรายสหกรณ์/การจัดชั้น (CPD) และข้อมูลบัญชี (CAD) ยังอยู่ระหว่างตรวจสอบ (licenseStatus: pending) ' +
+    'API ชุดนี้จึงออกภายใต้ access = metadata_only เท่านั้น ส่วนทรัพยากร "จำนวนสหกรณ์การเกษตร" ของ CPD ที่ระบุ resource id ' +
+    'ไว้แน่นอนได้รับอนุมัติให้แสดงตัวเลข และออกคนละ endpoint (/api/v1/cooperatives/cpd-counts)',
   'คะแนน CAMELS ทั้ง 6 มิติและชั้น 1/2/3 เป็นผลลัพธ์จากโมเดลสาธิตของแพลตฟอร์ม ไม่ใช่การจัดชั้นสหกรณ์ที่หน่วยงานประกาศ และไม่ใช่งบผลการตรวจสอบบัญชีของกรมตรวจบัญชีสหกรณ์',
   'ชื่อสหกรณ์และเลขทะเบียนเป็นนามสมมติต่อท้าย "(ข้อมูลตัวอย่าง)" ไม่ได้อ้างถึงนิติบุคคลที่มีอยู่จริง ห้ามใช้เทียบตรวจกับทะเบียนสหกรณ์จริง',
   'ค่าที่ไม่มีข้อมูลรายงานเป็น null และแสดงเป็น "ไม่มีข้อมูล" เสมอ ระบบไม่แปลงค่าขาดข้อมูลเป็น 0 และไม่รวม subtotal ซ้ำ',
@@ -1483,3 +1498,132 @@ export function camelClassFromQuery(raw: string): CamelClass | null {
   if (key === '' || key === 'all') return null;
   return CAMEL_CLASS_BY_QUERY[key] ?? null;
 }
+
+/* ------------------------------------------------------------------ */
+/* ทางอ่านข้อมูลจริง (lane L2): จำนวนสหกรณ์การเกษตรจาก CPD ในคลังกลาง        */
+/* ------------------------------------------------------------------ */
+/**
+ * ส่วนนี้เพิ่มเข้ามาเพื่อแสดง "ตัวเลขจริง" ของทรัพยากรที่อนุมัติแล้ว
+ * (cpd_agricultural_coop_counts — approved_public ตาม config/resource_licenses.json)
+ * โดยไม่แตะสัญญาของตัวสร้าง sample ด้านบนเลย
+ *
+ * ข้อบังคับที่ต่างจากเส้นทาง sample อย่างจงใจ:
+ * - data.sample = false เสมอ และไม่มีเส้นทางที่ดึงค่าจากตัวสร้าง sample มาแทน
+ *   เมื่อคลังอ่านไม่สำเร็จหรือยังไม่มีแถว สถานะจะเป็น unavailable / metadata_only / empty
+ * - meta.dataAsOf = null เสมอ เพราะป้ายปี (เช่น 2568) มากจากชื่อทรัพยากรต้นทาง
+ *   ยังไม่ยืนยันว่าเป็นปีปฏิทินหรือปีงบประมาณ จึงห้ามแปลงเป็นวันที่
+ * - row.unit = null เสมอ (ไฟล์ต้นทางไม่มีคอลัมน์หน่วยนับ) ส่วนคำที่ตัวเขียนบันทึกไว้
+ *   ในคลังแสดงแยกเป็น storedUnitLabels พร้อมสถานะ pending_official_confirmation
+ * - ไม่มียอดรวมใด ๆ ทั้งสิ้น เพราะการบวกข้ามหน่วยงานสังกัด/สถานะ/ป้ายปีเทียบกันไม่ได้
+ * - จำนวนจังหวัดที่อ่านได้ไม่ใช่ข้อสรุปว่าครอบคลุม 77 จังหวัดหรือทั้งประเทศ
+ */
+
+export type {
+  CpdCoopCountRow,
+  CpdCoopCountsData,
+  CpdCoopCountsEnvelope,
+  CpdCoopCountsFilters,
+  CpdCoopProvenance,
+  CpdCoopRunSnapshot,
+  CpdCoopSourceStatusId,
+} from './cpd-coop-counts';
+
+export {
+  buildCpdCoopCountsEnvelope,
+  CPD_COOP_CATALOG_URL,
+  CPD_COOP_DATASET_ID,
+  CPD_COOP_RESOURCE_ID,
+  CPD_COOP_RESOURCE_KEY,
+  CPD_COOP_RESOURCE_URL,
+  CPD_COOP_SOURCE_GRAIN,
+  CPD_COOP_SOURCE_ID,
+  CPD_COOP_SOURCE_STATUSES,
+  CPD_COOP_UNIT_STATUS,
+  CPD_COOP_YEAR_CONVENTION,
+  CPD_COOP_YEAR_LABEL_ORIGIN,
+  cpdCoopStatusFromQuery,
+  unavailableCpdCoopCountsEnvelope,
+} from './cpd-coop-counts';
+
+/** envelope ของส่วนข้อมูลจริง (sample = false) — ชื่อเฉพาะสำหรับใช้ในหน้า/ROUTE ของ lane นี้ */
+export type CooperativesRealCountsEnvelope = CpdCoopCountsEnvelope;
+export type CooperativesRealCountsFilters = CpdCoopCountsFilters;
+
+const REAL_COUNTS_AVAILABILITIES = ['ready', 'empty', 'metadata_only', 'unavailable'] as const;
+
+/**
+ * สัญญาภายในของ "ข้อมูลจริง" ต้องไม่แตก (fail closed เช่นเดียวกับ assertCoopInvariants)
+ * ถ้ามีโค้ดใหม่ทำให้ sample ไหลกลับเข้ามาในเส้นทางนี้ ให้ throw ไม่ใช่แสดงค่าต่อ
+ */
+export function assertCooperativesRealCounts(envelope: CooperativesRealCountsEnvelope): void {
+  const { data, meta } = envelope;
+
+  if (data.sample !== false) throw new Error('ส่วนข้อมูลจริงต้องประกาศ sample = false เสมอ');
+  if (!(REAL_COUNTS_AVAILABILITIES as readonly string[]).includes(meta.availability)) {
+    throw new Error('meta.availability ของส่วนข้อมูลจริงต้องมีค่าตามสัญญาเท่านั้น');
+  }
+  if (meta.dataAsOf !== null) {
+    throw new Error('ห้ามตั้ง dataAsOf จากการตีความป้ายปีต้นทางที่ยังไม่ยืนยันประเภทปี');
+  }
+  if (data.unit !== null || data.unitStatus !== 'pending_official_confirmation') {
+    throw new Error('หน่วยนับของทรัพยากรนี้ยังไม่ยืนยัน ต้องเป็น null พร้อมสถานะ pending เสมอ');
+  }
+  if (data.derivedTotalsProvided !== false || data.coverageClaim !== false) {
+    throw new Error('ส่วนข้อมูลจริงห้ามสรุปยอดรวมและห้ามอ้างการครอบคลุมจากแถวที่อ่านได้');
+  }
+  if (data.yearLabelOrigin !== 'resource_name' || data.yearConvention !== 'unknown') {
+    throw new Error('ที่มาและข้อสมมติของป้ายปีต้องคงตามสัญญาต้นทาง');
+  }
+  if (data.rows.length !== data.counts.rowCount) {
+    throw new Error('counts.rowCount ต้องเท่ากับจำนวนแถวที่ส่งจริงใน payload');
+  }
+  if (data.counts.rowsWithValue + data.counts.rowsMissing !== data.rows.length) {
+    throw new Error('จำนวนแถวที่มีค่าและที่ไม่มีข้อมูลต้องรวมกันเท่ากับจำนวนแถวทั้งหมด');
+  }
+  if (meta.availability === 'ready' && (data.rows.length === 0 || data.snapshot === null)) {
+    throw new Error('สถานะ ready ต้องมีแถวอย่างน้อยหนึ่งแถวและอ้างรอบข้อมูลที่อ่านได้จริง');
+  }
+  if (meta.availability === 'ready' && meta.access !== 'approved_public') {
+    throw new Error('แสดงตัวเลขจริงได้เฉพาะเมื่อคลังบันทึกว่าทรัพยากรนี้อนุมัติแล้ว');
+  }
+  if ((meta.availability === 'empty' || meta.availability === 'metadata_only' || meta.availability === 'unavailable')
+    && data.rows.length !== 0) {
+    throw new Error('สถานะว่าง/ไม่อนุมัติ/อ่านไม่ได้ ต้องไม่มีแถวตัวเลขแนบมา');
+  }
+  for (const row of data.rows) {
+    if (row.unit !== null) throw new Error(`${row.rowKey}: แถวข้อมูลจริงห้ามตั้ง unit ที่ยังไม่ยืนยัน`);
+    if (row.value === null && row.qualityStatus !== 'missing') {
+      throw new Error(`${row.rowKey}: ค่า null ต้องคู่กับ qualityStatus = missing เท่านั้น`);
+    }
+    if (row.value !== null && row.qualityStatus !== 'good') {
+      throw new Error(`${row.rowKey}: ค่าตัวเลขต้องมี qualityStatus = good`);
+    }
+    if (row.value !== null && (!Number.isSafeInteger(row.value) || row.value < 0)) {
+      throw new Error(`${row.rowKey}: จำนวนสหกรณ์ต้องเป็นจำนวนเต็มไม่ติดลบ`);
+    }
+    if (row.sourceYearLabel.length === 0) {
+      throw new Error(`${row.rowKey}: ป้ายปีต้นทางต้องเป็นข้อความตามที่บันทึกไว้ ไม่ใช่ค่าที่ตั้งเอง`);
+    }
+  }
+}
+
+/**
+ * อ่านจำนวนสหกรณ์การเกษตรจริงจากคลังกลาง (D1) สำหรับหน้า /cooperatives และ API
+ * - ไม่มีการ fallback ไปยัง buildCooperativesData() ในทุกกรณี
+ * - ทุกข้อผิดพลาดของการอ่านถูกเก็บเป็น unavailable โดยชั้นเรียกใช้ (page/route)
+ */
+export async function loadCooperativesRealCounts(
+  filters: CooperativesRealCountsFilters = {},
+): Promise<CooperativesRealCountsEnvelope> {
+  const envelope = await loadCpdCoopCountsEnvelope(filters);
+  assertCooperativesRealCounts(envelope);
+  return envelope;
+}
+
+/** สถานะสำรองเมื่ออ่านคลังไม่สำเร็จ — เป็นสถานะว่างที่ซื่อสัตย์ ไม่ใช่ตัวเลข sample */
+export function cooperativesRealCountsUnavailable(reason?: string): CooperativesRealCountsEnvelope {
+  const envelope = unavailableCpdCoopCountsEnvelope(reason);
+  assertCooperativesRealCounts(envelope);
+  return envelope;
+}
+

@@ -28,6 +28,7 @@ export type OaeTradeRow = {
 };
 
 export type OaeTradeData = {
+  sample: false;
   sourceId: typeof OAE_TRADE_SOURCE_ID;
   sourceName: string;
   datasetId: typeof OAE_TRADE_DATASET_ID;
@@ -62,6 +63,7 @@ export type OaeTradeEnvelope = { data: OaeTradeData; meta: ApiMeta };
 export type OaeTradeQueryRow = Record<string, unknown>;
 
 const baseData: OaeTradeData = {
+  sample: false,
   sourceId: OAE_TRADE_SOURCE_ID,
   sourceName: 'สำนักงานเศรษฐกิจการเกษตร (OAE)',
   datasetId: OAE_TRADE_DATASET_ID,

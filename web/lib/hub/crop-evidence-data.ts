@@ -894,3 +894,415 @@ export function buildCropEvidence(
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// MODIS NDVI point evidence (sub-contract of /crop-evidence, lane L6)
+//
+// - แถวทุกแถวต้องมาจาก observations/locations ที่เผยแพร่แล้วของ resource
+//   `modis-13A1-061` เท่านั้น — ไม่มีแถวตัวอย่าง ไม่มีค่าสังเคราะห์
+// - จุดกริด 500 ม. ไม่ใช่ข้อมูลครอบคลุมทั้งแปลง/อำเภอ/จังหวัด — ทุก payload
+//   ต้องมี scope ที่บอกจำนวนจุด tile และจำนวน composite ให้ผู้อ่านเห็นขอบเขต
+// - ค่าที่อ่านไม่ได้คง null เสมอ ไม่แทนด้วย 0 และไม่ interpolate ข้าม composite
+// - NDVI เป็นดัชนีไร้หน่วย (ประมาณ −1..1) ห้ามแปลเป็นเปอร์เซ็นต์หรือผลผลิต
+// ---------------------------------------------------------------------------
+
+export const CROP_EVIDENCE_NDVI_SCHEMA_VERSION = 'crop-evidence-ndvi-v1';
+export const MODIS_NDVI_SOURCE_ID = 'modis';
+export const MODIS_NDVI_RESOURCE_ID = 'modis-13A1-061';
+export const MODIS_NDVI_REGISTRY_KEY = 'planetary_computer_modis13a1_point';
+export const MODIS_NDVI_DATASET_ID = 'MOD13A1.061';
+export const MODIS_NDVI_COLLECTION = 'modis-13A1-061';
+export const MODIS_NDVI_ATTRIBUTION =
+  'NASA LP DAAC / USGS MODIS data accessed via Microsoft Planetary Computer';
+export const MODIS_NDVI_ATTRIBUTION_URL = 'https://doi.org/10.5067/MODIS/MOD13A1.061';
+export const MODIS_NDVI_DATA_URL = 'https://planetarycomputer.microsoft.com/dataset/modis-13A1-061';
+export const MODIS_NDVI_METRIC_ID = 'ndvi';
+/** หน่วยที่ writer เผยแพร่จริง — ดัชนีไร้หน่วย ไม่ใช่ percent/yield */
+export const MODIS_NDVI_UNIT = 'index';
+export const MODIS_COMPOSITE_DAYS = 16;
+export const MODIS_RESOLUTION_M = 500;
+
+export type CropEvidenceNdviAvailability = 'ready' | 'empty' | 'unavailable';
+export type CropEvidenceNdviAccess = 'approved_public' | 'metadata_only';
+
+/**
+ * โครงสร้างSubset ของ `D1ObservationRow` (web/lib/hub/d1-numeric-repository.ts)
+ * — ประกาศซ้ำแบบนี้เพราะไฟล์นี้ต้อง pure (client component import ได้)
+ * และ D1ObservationRow ใช้ structural typing อยู่แล้วฝั่ง reader
+ */
+export interface NdviEvidenceSourceRow {
+  rowKey: string;
+  runId: string;
+  runStatus: string | null;
+  resourceId: string;
+  seriesKey: string;
+  adapterVersion: string | null;
+  payloadSha256: string | null;
+  sourceRetrievedAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  periodLabel: string | null;
+  locationId: string | null;
+  locationCode: string | null;
+  locationKind: string | null;
+  locationName: string | null;
+  metricId: string | null;
+  unit: string | null;
+  value: number | null;
+  dimensions: Record<string, string | number | boolean | null>;
+  qualityStatus: string | null;
+  sourceRowRef: string | null;
+}
+
+export interface CropEvidenceNdviSource {
+  sourceId: string;
+  resourceId: string;
+  registryKey: string;
+  datasetId: string;
+  collection: string;
+  attribution: string;
+  attributionUrl: string;
+  dataUrl: string;
+  resolutionM: number;
+  compositeDays: number;
+}
+
+export interface CropEvidenceNdviProvenance {
+  runIds: string[];
+  runStatuses: string[];
+  adapterVersion: string | null;
+  payloadSha256: string | null;
+  sourceRetrievedAt: string | null;
+  rowCount: number;
+}
+
+export interface CropEvidenceNdviScope {
+  spatialSupport: 'grid_point';
+  resolutionM: number;
+  compositeDays: number;
+  pointCount: number;
+  pointIds: string[];
+  tileCount: number;
+  tileIds: string[];
+  compositeCount: number;
+  compositeStart: string | null;
+  compositeEnd: string | null;
+  metrics: string[];
+  statement: string;
+}
+
+export interface CropEvidenceNdviObservation {
+  rowKey: string;
+  locationId: string | null;
+  locationName: string | null;
+  locationKind: string | null;
+  metricId: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  periodLabel: string | null;
+  tileId: string | null;
+  compositeItem: string | null;
+  /** ไม่มีค่า = null เสมอ ไม่แทนด้วย 0 */
+  value: number | null;
+  /** 'index' ตามที่ writer เผยแพร่ — ห้าม reinterpret เป็น percent */
+  unit: string | null;
+  qualityStatus: string | null;
+}
+
+export interface CropEvidenceNdviPointSummary {
+  locationId: string;
+  locationName: string | null;
+  rowCount: number;
+  ndviRowCount: number;
+  missingValueCount: number;
+  latestPeriodEnd: string | null;
+  latestNdvi: number | null;
+  tileIds: string[];
+}
+
+export interface CropEvidenceNdviEvidence {
+  schemaVersion: typeof CROP_EVIDENCE_NDVI_SCHEMA_VERSION;
+  dataKind: 'observed' | 'empty' | 'unavailable';
+  sample: false;
+  availability: CropEvidenceNdviAvailability;
+  /** true เมื่อคลังรายงานแถวมากกว่าที่เดินเก็บภายในเพดาน — ผลลัพธ์เป็น partial */
+  capped: boolean;
+  access: CropEvidenceNdviAccess;
+  dataAsOf: string | null;
+  source: CropEvidenceNdviSource;
+  provenance: CropEvidenceNdviProvenance;
+  scope: CropEvidenceNdviScope;
+  points: CropEvidenceNdviPointSummary[];
+  observations: CropEvidenceNdviObservation[];
+  warnings: string[];
+  notAvailableReason: string | null;
+}
+
+const NDVI_SOURCE: CropEvidenceNdviSource = {
+  sourceId: MODIS_NDVI_SOURCE_ID,
+  resourceId: MODIS_NDVI_RESOURCE_ID,
+  registryKey: MODIS_NDVI_REGISTRY_KEY,
+  datasetId: MODIS_NDVI_DATASET_ID,
+  collection: MODIS_NDVI_COLLECTION,
+  attribution: MODIS_NDVI_ATTRIBUTION,
+  attributionUrl: MODIS_NDVI_ATTRIBUTION_URL,
+  dataUrl: MODIS_NDVI_DATA_URL,
+  resolutionM: MODIS_RESOLUTION_M,
+  compositeDays: MODIS_COMPOSITE_DAYS,
+};
+
+const NDVI_SCOPE_FALLBACK_STATEMENT =
+  'ยังไม่มีการตรวจจุดกริดที่เผยแพร่ได้ — ขอบเขตจุด/tile/composite จะระบุเมื่อมีแถวจริง';
+
+function dimensionText(row: NdviEvidenceSourceRow, key: string): string | null {
+  const value = row.dimensions?.[key];
+  if (value === null || value === undefined || value === '') return null;
+  return String(value);
+}
+
+/** tile id รูปแบบ hXXvYY: สั่งจาก dimensions.tile_id ก่อน แล้ว fallback จาก item id */
+function tileIdFor(row: NdviEvidenceSourceRow): string | null {
+  const explicit = dimensionText(row, 'tile_id');
+  if (explicit) return explicit;
+  const item = compositeItemFor(row);
+  const match = item ? /h(\d{2}v\d{2})/.exec(item) : null;
+  return match ? `h${match[1]}` : null;
+}
+
+function compositeItemFor(row: NdviEvidenceSourceRow): string | null {
+  return dimensionText(row, 'modis_item_id') ?? row.sourceRowRef;
+}
+
+function sortedTexts(values: (string | null)[]): string[] {
+  return [...new Set(values.filter((value): value is string => typeof value === 'string' && value.length > 0))].sort();
+}
+
+function latestText(values: (string | null)[]): string | null {
+  const sorted = sortedTexts(values);
+  return sorted.length ? sorted[sorted.length - 1] : null;
+}
+
+function earliestText(values: (string | null)[]): string | null {
+  const sorted = sortedTexts(values);
+  return sorted.length ? sorted[0] : null;
+}
+
+function emptyProvenance(): CropEvidenceNdviProvenance {
+  return {
+    runIds: [],
+    runStatuses: [],
+    adapterVersion: null,
+    payloadSha256: null,
+    sourceRetrievedAt: null,
+    rowCount: 0,
+  };
+}
+
+function emptyScope(): CropEvidenceNdviScope {
+  return {
+    spatialSupport: 'grid_point',
+    resolutionM: MODIS_RESOLUTION_M,
+    compositeDays: MODIS_COMPOSITE_DAYS,
+    pointCount: 0,
+    pointIds: [],
+    tileCount: 0,
+    tileIds: [],
+    compositeCount: 0,
+    compositeStart: null,
+    compositeEnd: null,
+    metrics: [],
+    statement: NDVI_SCOPE_FALLBACK_STATEMENT,
+  };
+}
+
+function emptyObservationFields(): Pick<
+  CropEvidenceNdviEvidence,
+  'dataAsOf' | 'provenance' | 'scope' | 'points' | 'observations'
+> {
+  return {
+    dataAsOf: null,
+    provenance: emptyProvenance(),
+    scope: emptyScope(),
+    points: [],
+    observations: [],
+  };
+}
+
+function ndviQualityWarning(row: NdviEvidenceSourceRow): string | null {
+  if (row.metricId !== MODIS_NDVI_METRIC_ID) return null;
+  if (row.value !== null && (row.value < -1 || row.value > 1)) {
+    return `แถว ${row.rowKey} มีค่า NDVI ${row.value} นอกช่วง −1..1 — แสดงค่าดิบไว้ตามคลัง ไม่แก้ไขหรือตัดขอบ`;
+  }
+  if (row.qualityStatus === 'missing' && row.value !== null) {
+    return `แถว ${row.rowKey} quality_status='missing' แต่มีค่าตัวเลข — แสดงตามคลังพร้อมเตือน ไม่ตีความเป็นค่าตรวจที่ผ่าน`;
+  }
+  return null;
+}
+
+function sortObservations(observations: CropEvidenceNdviObservation[]): CropEvidenceNdviObservation[] {
+  return observations.sort((a, b) => {
+    if (a.periodEnd !== b.periodEnd) {
+      if (a.periodEnd === null) return 1;
+      if (b.periodEnd === null) return -1;
+      return a.periodEnd < b.periodEnd ? 1 : -1;
+    }
+    return a.rowKey < b.rowKey ? -1 : a.rowKey > b.rowKey ? 1 : 0;
+  });
+}
+
+/** แถวจริงจาก published observations เท่านั้น — สร้าง scope/provenance จากแถวเหล่านั้น */
+export function buildCropEvidenceNdvi(
+  rows: NdviEvidenceSourceRow[],
+  options: { capped?: boolean } = {}
+): CropEvidenceNdviEvidence {
+  const capped = options.capped === true;
+  const observations = sortObservations(
+    rows.map((row) => ({
+      rowKey: row.rowKey,
+      locationId: row.locationId,
+      locationName: row.locationName,
+      locationKind: row.locationKind,
+      metricId: row.metricId,
+      periodStart: row.periodStart,
+      periodEnd: row.periodEnd,
+      periodLabel: row.periodLabel,
+      tileId: tileIdFor(row),
+      compositeItem: compositeItemFor(row),
+      value: row.value,
+      unit: row.unit,
+      qualityStatus: row.qualityStatus,
+    }))
+  );
+
+  const pointIds = sortedTexts(rows.map((row) => row.locationId));
+  const tileIds = sortedTexts(rows.map((row) => tileIdFor(row)));
+  const compositeKeys = new Set(
+    rows.map((row) => `${row.periodStart ?? '?'}|${row.periodEnd ?? '?'}|${row.periodLabel ?? ''}`)
+  );
+  const ndviRows = rows.filter((row) => row.metricId === MODIS_NDVI_METRIC_ID);
+  const dataAsOf = latestText(ndviRows.length ? ndviRows.map((row) => row.periodEnd) : rows.map((row) => row.periodEnd));
+
+  const points: CropEvidenceNdviPointSummary[] = pointIds.map((locationId) => {
+    const pointRows = rows.filter((row) => row.locationId === locationId);
+    const ndviPointRows = pointRows
+      .filter((row) => row.metricId === MODIS_NDVI_METRIC_ID)
+      .sort((a, b) => {
+        const endA = a.periodEnd ?? '';
+        const endB = b.periodEnd ?? '';
+        if (endA !== endB) return endA < endB ? 1 : -1;
+        return a.rowKey < b.rowKey ? -1 : 1;
+      });
+    return {
+      locationId,
+      locationName: pointRows[0]?.locationName ?? null,
+      rowCount: pointRows.length,
+      ndviRowCount: ndviPointRows.length,
+      missingValueCount: pointRows.filter((row) => row.value === null).length,
+      latestPeriodEnd: ndviPointRows.length ? ndviPointRows[0]?.periodEnd ?? null : null,
+      latestNdvi: ndviPointRows.length ? ndviPointRows[0]?.value ?? null : null,
+      tileIds: sortedTexts(pointRows.map((row) => tileIdFor(row))),
+    };
+  }).sort((a, b) => {
+    const endA = a.latestPeriodEnd ?? '';
+    const endB = b.latestPeriodEnd ?? '';
+    if (endA !== endB) return endA < endB ? 1 : -1;
+    return a.locationId < b.locationId ? -1 : 1;
+  });
+
+  const scope: CropEvidenceNdviScope = {
+    spatialSupport: 'grid_point',
+    resolutionM: MODIS_RESOLUTION_M,
+    compositeDays: MODIS_COMPOSITE_DAYS,
+    pointCount: pointIds.length,
+    pointIds,
+    tileCount: tileIds.length,
+    tileIds,
+    compositeCount: compositeKeys.size,
+    compositeStart: earliestText(rows.map((row) => row.periodStart)),
+    compositeEnd: latestText(rows.map((row) => row.periodEnd)),
+    metrics: sortedTexts(rows.map((row) => row.metricId)),
+    statement:
+      `หลักฐานคือจุดกริด MODIS ${pointIds.length} จุด (pixel 500 ม.) × ${compositeKeys.size} ช่วง composite ` +
+      `16 วัน จาก ${tileIds.length} tile${tileIds.length ? ` (${tileIds.join(', ')})` : ''} ` +
+      'ไม่ใช่ข้อมูลครอบคลุมทั้งแปลง ทั้งอำเภอ หรือทั้งจังหวัด',
+  };
+
+  const runIds = sortedTexts(rows.map((row) => row.runId));
+  const payloadHashes = sortedTexts(rows.map((row) => row.payloadSha256));
+  const warnings: string[] = [
+    scope.statement,
+    'ค่า composite ที่อ่านไม่ได้คงเป็น null ไม่แทนด้วย 0 และไม่ interpolate ข้ามช่วง composite ที่ว่าง',
+    'NDVI เป็นดัชนีไร้หน่วย (ช่วงประมาณ −1 ถึง 1) ไม่ใช่เปอร์เซ็นต์ เนื้อที่ หรือผลผลิต',
+  ];
+  if (capped) {
+    warnings.push('คลังรายงานจำนวนแถวมากกว่าที่เดินเก็บถึงเพดานของ reader — ผลนี้ยังไม่ครบชุด (partial)');
+  }
+  for (const row of rows) {
+    const qualityWarning = ndviQualityWarning(row);
+    if (qualityWarning) warnings.push(qualityWarning);
+  }
+
+  return {
+    schemaVersion: CROP_EVIDENCE_NDVI_SCHEMA_VERSION,
+    dataKind: 'observed',
+    sample: false,
+    availability: 'ready',
+    capped,
+    access: 'approved_public',
+    dataAsOf,
+    source: { ...NDVI_SOURCE },
+    provenance: {
+      runIds,
+      runStatuses: sortedTexts(rows.map((row) => row.runStatus)),
+      adapterVersion: latestText(rows.map((row) => row.adapterVersion)),
+      payloadSha256: payloadHashes.length === 1 ? payloadHashes[0] ?? null : null,
+      sourceRetrievedAt: latestText(rows.map((row) => row.sourceRetrievedAt)),
+      rowCount: rows.length,
+    },
+    scope,
+    points,
+    observations,
+    warnings,
+    notAvailableReason: null,
+  };
+}
+
+/** D1 อ่านได้แต่ไม่มีแถว modis ที่เผยแพร่ — สถานะว่างที่ซื่อตรง ไม่ใส่ค่าตัวอย่าง */
+export function emptyCropEvidenceNdvi(
+  reason = 'NO_PUBLISHED_MODIS_ROWS'
+): CropEvidenceNdviEvidence {
+  return {
+    schemaVersion: CROP_EVIDENCE_NDVI_SCHEMA_VERSION,
+    dataKind: 'empty',
+    sample: false,
+    availability: 'empty',
+    capped: false,
+    access: 'metadata_only',
+    ...emptyObservationFields(),
+    source: { ...NDVI_SOURCE },
+    warnings: [
+      'ยังไม่มีแถว NDVI จาก modis-13A1-061 ที่เผยแพร่ในคลังกลาง (ไม่มี numeric run ที่อนุมัติให้เผยแพร่) — ' +
+        'ค่าว่างนี้ไม่ใช่หลักฐานว่าพื้นที่ไม่มีพืช แต่หมายถึงยังไม่มีจุดที่อ่านและอนุมัติเผยแพร่จริง',
+      'เมื่อมีแถวจริง ขอบเขตจุด/tile/composite จะถูกระบุใน scope ของผลลัพธ์นี้',
+    ],
+    notAvailableReason: reason,
+  };
+}
+
+/** D1 อ่านไม่สำเร็จ (ไม่ตั้งค่า/เชื่อมต่อไม่ได้) — ห้ามตกไปแสดงค่าตัวอย่าง */
+export function unavailableCropEvidenceNdvi(reason = 'D1_READ_FAILED'): CropEvidenceNdviEvidence {
+  return {
+    schemaVersion: CROP_EVIDENCE_NDVI_SCHEMA_VERSION,
+    dataKind: 'unavailable',
+    sample: false,
+    availability: 'unavailable',
+    capped: false,
+    access: 'metadata_only',
+    ...emptyObservationFields(),
+    source: { ...NDVI_SOURCE },
+    warnings: [
+      'อ่านคลังข้อมูลกลาง (D1) ไม่สำเร็จ จึงยืนยันไม่ได้ว่ามีแถว NDVI เผยแพร่หรือไม่ — ระบบไม่แสดงค่าตัวอย่างแทน',
+    ],
+    notAvailableReason: reason,
+  };
+}

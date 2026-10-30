@@ -1,3 +1,13 @@
+## Multi-lane real-data round — 30 ต.ค. 2026
+
+- 8 agent ขนานแยกไฟล์: `/livestock`+DLD, `/cooperatives`+CPD, `/crops`+`/soil`+DOAE, `/trade`+price-trend+OAE, `/climate-history`+CHIRPS/ERA5, `/crop-evidence`+MODIS, `/land-reform`+LDD, และ lane หลักฐานสิทธิ์ 29 รายการ; รายงานอยู่ [docs/assignments/2026-10-30-multi-lane](assignments/2026-10-30-multi-lane)
+- gate โดยผู้คุม: typecheck 0 error · web 387 pass/0 fail · Python 931/931 · build:vinext complete; 23 ไฟล์แก้ (2,884+/478−) + 45 ไฟล์ใหม่ + lane test 7 ไฟล์
+- พบบั๊กจริง 2 ตัว: `retrievedAt` ทำให้ payload อ่านซ้ำไม่เท่ากับ byte เดิม (L2 แก้เป็น deterministic total order) และ import path ของ NDVI route ผิดระดับ (ทำให้ build พังทั้งที่ unit test ผ่าน — ผู้คุมแก้)
+- เทสต์ร่วม `hub-data-domains.test.ts` ปรับตามสัญญา async ของ livestock แล้วตรวจว่าข้ออ้างเข้มขึ้น (DLD ต้องมี provenance เมื่อมีแถวจริง ไม่มีแถวต้อง null ทั้งหมด; DOF ยัง pending ต้องคงป้ายค่าตัวอย่าง)
+- ไม่มีการเขียน D1 ทั้งรอบ (ไม่มี `--write`, writer fail-closed เพราะ resource ยังไม่ register); probe ของผู้คุม 1 ครั้งล้มที่ `D1_UNAUTHORIZED`
+- สิทธิ์: 29 pending คงเดิมทั้งหมด (อนุมัติเพิ่ม 0) เพราะหน้า primary ไม่มีสัญญาอนุญาตเปิด และพบหลักฐานขัด 2 จุด (LDD "ระหว่างหน่วยงาน", DOF ป้าย Open Data Common ไม่มี URL)
+- ยังไม่ commit/push/deploy; งานถัดไปคือลงทะเบียน+ingest จริงทีละ resource, apply migrations `0004–0006`, deploy, และใส่ secret ให้ GitHub Actions
+
 ## นโยบายอนุมัติสิทธิ์ตามสัญญาอนุญาตเปิด — 29 ต.ค. 2026
 
 - เพิ่ม `config/publication_policy.json` + `src/tadih/publication_policy.py` + `scripts/apply_publication_policy.py`: ป้ายเปิดที่ชัดเจนอนุมัติอัตโนมัติพร้อม attribution; NC/ND คงข้อจำกัด; หลักฐานขัดหรือป้ายกำกวมคง `pending`

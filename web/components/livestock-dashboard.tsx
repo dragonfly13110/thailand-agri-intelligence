@@ -11,13 +11,16 @@ import styles from './livestock-dashboard.module.css';
  * ฝั่ง client จึงประกาศชนิดข้อมูลซ้ำในไฟล์นี้ (แบบเดียวกับ weather-dashboard.tsx)
  * ชื่อชนิดและชื่อฟิลด์ต้องตรงกับที่หน้า server ส่ง prop `payload` เป๊ะ ๆ
  *
- * หลักความจริงของข้อมูล: ทุกค่าตัวเลขใน payload นี้เป็น "ค่าตัวอย่าง" (sample = true)
- * เพราะสิทธิ์การเผยแพร่ของทรัพยากรต้นทาง (กรมปศุสัตว์ / กรมประมง) ยังเป็น `pending`
- * หน้าจอจึงต้องแสดงป้าย "ข้อมูลตัวอย่าง" ไว้ตลอด และแสดงค่าที่ไม่ทราบเป็น "ไม่ทราบ" ไม่ใช่ 0
+ * หลักความจริงของข้อมูล:
+ * - ชนิดปศุสัตว์ของกรมปศุสัตว์ (ที่อนุมัติสิทธิ์แล้ว) มีตัวเลขจริงเมื่อ readState = 'real'
+ *   ถ้า readState เป็น 'empty'/'unavailable' หน้าจอแสดงข้อความอธิบายสถานะ ไม่ใส่ค่าตัวอย่างแทน
+ * - ชนิดสัตว์น้ำของกรมประมงยัง pending จึงเป็นค่าตัวอย่าง (readState = 'sample') พร้อมป้ายกำกับ
+ * - ค่าที่ไม่ทราบแสดงเป็น "ไม่ทราบ" เสมอ ห้ามแปลง null เป็น 0
  */
 
 type SectorId = 'livestock' | 'aquaculture';
 type AgencyId = 'dld' | 'dof';
+type ReadState = 'real' | 'empty' | 'unavailable' | 'sample';
 
 type RegionDef = {
   id: string;
@@ -63,15 +66,29 @@ type ProvinceStat = {
   value: number | null;
 };
 
+type StoreProvenance = {
+  runId: string;
+  runStatus: string | null;
+  adapterVersion: string | null;
+  payloadSha256: string | null;
+  sourceRetrievedAt: string | null;
+  revisionId: string | null;
+  rowCount: number;
+};
+
 type SpeciesSummary = {
   speciesId: string;
   total: number | null;
-  unit: string;
-  yearBe: number;
+  unit: string | null;
+  yearBe: number | null;
   provinceCount: number | null;
   regions: RegionStat[];
   topProvinces: ProvinceStat[];
   sample: boolean;
+  readState: ReadState;
+  note: string | null;
+  provenance: StoreProvenance | null;
+  availableYearsBe: number[];
 };
 
 type SectorPayload = {
@@ -120,6 +137,14 @@ const AVAILABILITY_LABEL: Record<string, string> = {
   verified: 'ตรวจสอบแล้ว',
   partial: 'ข้อมูลบางส่วน',
   unverified: 'ยังไม่ยืนยัน',
+};
+
+/** ป้ายสถานะที่มาของตัวเลขรายชนิด — ต้องสะท้อน readState ของคลัง ไม่ใช่ป้ายรวมของทั้งหน้า */
+const READ_STATE_LABEL: Record<ReadState, string> = {
+  real: 'ข้อมูลจริงจากคลัง',
+  empty: 'ยังไม่มีตัวเลขในคลัง',
+  unavailable: 'อ่านคลังไม่ได้',
+  sample: 'ข้อมูลตัวอย่าง',
 };
 
 const numberFormat = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
@@ -217,8 +242,10 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
 
   const def = entry.def;
   const summary = entry.summary;
-  const isSample = payload.sample || summary.sample;
-  const unit = summary.unit || def.unit;
+  const isSample = summary.sample;
+  const isReal = summary.readState === 'real';
+  const hasStoreNumbers = summary.readState === 'real' || summary.readState === 'empty' || summary.readState === 'unavailable';
+  const unit = summary.unit ?? 'ไม่ทราบหน่วย';
 
   const selectSector = (nextId: SectorId) => {
     setSectorId(nextId);
@@ -235,25 +262,27 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
   const metrics = [
     {
       label: 'ยอดรวมทั้งประเทศ',
-      value: formatNumber(summary.total),
-      unit,
+      value: hasStoreNumbers && !isReal ? '—' : formatNumber(summary.total),
+      unit: isReal || isSample ? unit : '',
       foot: `${def.sourceLabel} · ${def.metricLabel}`,
     },
     {
       label: 'จังหวัดที่มีข้อมูล',
-      value: formatNumber(summary.provinceCount),
+      value: hasStoreNumbers && !isReal ? '—' : formatNumber(summary.provinceCount),
       unit: 'จังหวัด',
       foot: `เกณฑ์ข้อมูล: ${def.grain}`,
     },
     {
       label: 'ปีข้อมูล (พ.ศ.)',
-      value: formatNumber(summary.yearBe),
+      value: hasStoreNumbers && !isReal ? '—' : formatNumber(summary.yearBe),
       unit: '',
-      foot: `ช่วงข้อมูลที่มี ${def.yearBeFrom}–${def.yearBeTo} · ล่าสุด ${def.yearBeLatest}`,
+      foot: summary.availableYearsBe.length > 0
+        ? `ปีในคลัง: ${summary.availableYearsBe.join(', ')}`
+        : `ช่วงข้อมูลที่มี ${def.yearBeFrom}–${def.yearBeTo} · ล่าสุด ${def.yearBeLatest}`,
     },
     {
-      label: 'ระเบียนต้นทาง',
-      value: formatNumber(def.recordCount),
+      label: isReal ? 'แถวในคลัง (run อนุมัติ)' : 'ระเบียนต้นทาง',
+      value: isReal ? formatNumber(summary.provenance?.rowCount ?? null) : formatNumber(def.recordCount),
       unit: 'แถว',
       foot: `resource: ${def.resourceId}`,
     },
@@ -261,18 +290,40 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
 
   return (
     <div className={styles.container}>
-      {/* แบนเนอร์ข้อมูลตัวอย่าง — ต้องอยู่เหนือตัวเลขทุกส่วนของหน้าจอ */}
-      <section className={styles.sampleBanner} aria-label="สถานะข้อมูลตัวอย่าง">
+      {/* แบนเนอร์สถานะที่มาของตัวเลข — ต้องอยู่เหนือตัวเลขทุกส่วนของหน้าจอ */}
+      <section className={styles.sampleBanner} aria-label="สถานะที่มาของข้อมูล">
         <span className={styles.sampleBannerIcon}>
           <Icon name="info" size={20} />
         </span>
         <div className={styles.sampleBannerBody}>
-          <strong>ข้อมูลตัวอย่างเพื่อสาธิตหน้าจอ — ยังไม่ใช่ตัวเลขจริง</strong>
-          <p>
-            ตัวเลขทุกช่องในหน้านี้เป็นค่าสาธิตแบบกำหนดผลลัพธ์ (deterministic demo) ไม่ใช่ตัวเลขจริงจากกรมปศุสัตว์/กรมประมง
-            เพราะสิทธิ์การเผยแพร่ยังอยู่ระหว่างตรวจสอบ และยังยืนยันไม่ได้ว่าปีข้อมูลใช้ปีปฏิทินหรือปีงบประมาณ
-            ส่วนข้อมูลเมทาดาท้ายหน้า (grain, หน่วย, ปี, จำนวนระเบียน, สิทธิ์) เป็นค่าที่ตรวจสอบได้จริง
-          </p>
+          {isReal ? (
+            <>
+              <strong>ข้อมูลจริงจากคลังข้อมูลกลาง — ทรัพยากรที่ทะเบียนสิทธิ์อนุมัติแล้ว</strong>
+              <p>
+                ตัวเลขชุดนี้อ่านจาก observations ของ run ที่อนุมัติในคลังกลางเท่านั้น
+                แสดงตามป้ายปี พ.ศ. ต้นทาง (ยังไม่ยืนยันปีปฏิทิน/ปีงบประมาณ)
+                {summary.note ? ` · หมายเหตุ: ${summary.note}` : ''}
+              </p>
+            </>
+          ) : summary.readState === 'empty' ? (
+            <>
+              <strong>ยังไม่มีตัวเลขในคลังข้อมูลกลางสำหรับชนิดนี้</strong>
+              <p>{summary.note ?? 'ทรัพยากรได้รับสิทธิ์แล้ว แต่ยังไม่มีแถวตัวเลขที่เผยแพร่ หน้าจอจึงไม่แสดงตัวเลขและไม่ใช้ค่าตัวอย่างแทน'}</p>
+            </>
+          ) : summary.readState === 'unavailable' ? (
+            <>
+              <strong>อ่านคลังข้อมูลกลางไม่สำเร็จสำหรับชนิดนี้</strong>
+              <p>{summary.note ?? 'ไม่สามารถยืนยันสถานะคลังข้อมูลได้ในขณะนี้ จึงไม่แสดงตัวเลขและไม่ใช้ค่าตัวอย่างแทน'}</p>
+            </>
+          ) : (
+            <>
+              <strong>ข้อมูลตัวอย่างเพื่อสาธิตหน้าจอ — ยังไม่ใช่ตัวเลขจริง</strong>
+              <p>
+                ตัวเลขของชนิดนี้เป็นค่าสาธิตแบบกำหนดผลลัพธ์ (deterministic demo) เพราะสิทธิ์การเผยแพร่ของทรัพยากรต้นทางยังอยู่ระหว่างตรวจสอบ
+                ส่วนข้อมูลเมทาดาท้ายหน้า (grain, หน่วย, ปี, จำนวนระเบียน, สิทธิ์) เป็นค่าที่ตรวจสอบได้จริง
+              </p>
+            </>
+          )}
           {payload.warnings.length > 0 && (
             <ol className={styles.warningList}>
               {payload.warnings.map((warning, index) => (
@@ -351,7 +402,7 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
           <div className={styles.statCard} key={metric.label}>
             <div className={styles.statHead}>
               <span className={styles.statLabel}>{metric.label}</span>
-              {isSample && <span className={styles.sampleChip}>ตัวอย่าง</span>}
+              <span className={styles.sampleChip}>{READ_STATE_LABEL[summary.readState]}</span>
             </div>
             <div className={styles.statValue}>
               {metric.value}
@@ -362,22 +413,36 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
         ))}
       </div>
 
-      {/* กราฟ + ตารางภาค */}
-      <div className={styles.splitGrid}>
+      {/* กราฟ + ตารางภาค — ซ่อนเมื่อชนิดนี้ไม่มีตัวเลขในคลัง (empty/unavailable) ไม่วาดค่าสมมติ */}
+      {hasStoreNumbers && !isReal ? (
         <section className={styles.card} aria-labelledby="livestock-share-heading">
           <div className={styles.cardHead}>
             <h3 id="livestock-share-heading">
-              <Icon name="chart" size={18} /> กราฟสัดส่วนการเลี้ยงตามภาค
+              <Icon name="chart" size={18} /> สัดส่วนการเลี้ยงตามภาคและรายจังหวัด
             </h3>
-            <p>
-              {def.label} · หน่วย {unit} · {isSample ? 'ตัวเลขตัวอย่าง' : 'ตัวเลขจริง'} · {basisLabel(basis, sector.agencyLabel)}
-            </p>
+            <p>{def.label} · {READ_STATE_LABEL[summary.readState]}</p>
           </div>
-          <ShareChart rows={regionRows} unit={unit} highlightId={regionId} speciesLabel={def.label} />
-          <p className={styles.chartNote}>
-            สัดส่วนคำนวณจากยอดรวมของ {def.label} ในปี พ.ศ. {summary.yearBe} · ภาคที่ไม่มีค่าจะขึ้นว่า “ไม่ทราบ” ไม่ใช่ 0
+          <p className={styles.emptyNote}>
+            {summary.note ?? 'ยังไม่มีตัวเลขจริงสำหรับชนิดนี้ จึงไม่แสดงกราฟและอันดับจังหวัด — ไม่ใช้ค่าตัวอย่างแทน'}
           </p>
         </section>
+      ) : (
+        <div className={styles.splitGrid}>
+          <section className={styles.card} aria-labelledby="livestock-share-heading">
+            <div className={styles.cardHead}>
+              <h3 id="livestock-share-heading">
+                <Icon name="chart" size={18} /> กราฟสัดส่วนการเลี้ยงตามภาค
+              </h3>
+              <p>
+                {def.label} · หน่วย {unit} · {isSample ? 'ตัวเลขตัวอย่าง' : 'ตัวเลขจริง'} · {basisLabel(basis, sector.agencyLabel)}
+              </p>
+            </div>
+            <ShareChart rows={regionRows} unit={unit} highlightId={regionId} speciesLabel={def.label} />
+            <p className={styles.chartNote}>
+              สัดส่วนคำนวณจากยอดรวมของ {def.label} ในปี พ.ศ. {formatNumber(summary.yearBe)} · ภาคที่ไม่มีค่าจะขึ้นว่า “ไม่ทราบ” ไม่ใช่ 0
+              {summary.note ? ` · หมายเหตุ: ${summary.note}` : ''}
+            </p>
+          </section>
 
         <section className={styles.card} aria-labelledby="livestock-region-table-heading">
           <div className={styles.cardHead}>
@@ -416,11 +481,12 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
               </tbody>
             </table>
           </div>
-          <p className={styles.chartNote}>
+            <p className={styles.chartNote}>
             ระบบภาคของ {sector.agencyLabel} และระบบภาคมาตรฐาน (crosswalk รหัสจังหวัด) เป็นคนละแกน จึงไม่นำมารวมหรือเทียบกัน
           </p>
         </section>
-      </div>
+        </div>
+      )}
 
       {/* จังหวัดเด่น + เมทาดาท้ายชนิด */}
       <div className={styles.splitGrid}>
@@ -431,7 +497,11 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
             </h3>
             <p>{def.label} · หน่วย {unit}</p>
           </div>
-          {summary.topProvinces.length > 0 ? (
+          {hasStoreNumbers && !isReal ? (
+            <p className={styles.emptyNote}>
+              {summary.note ?? 'ยังไม่มีรายชื่อจังหวัดจริงสำหรับชนิดนี้ — ไม่ใช้ค่าตัวอย่างแทน'}
+            </p>
+          ) : summary.topProvinces.length > 0 ? (
             <ol className={styles.provinceList}>
               {summary.topProvinces.map((row, index) => (
                 <li key={row.province}>
@@ -495,6 +565,38 @@ export function LivestockDashboard({ payload }: LivestockDashboardProps) {
               <dt>สถานะสิทธิ์เผยแพร่</dt>
               <dd>{LICENSE_LABEL[def.licenseStatus] ?? def.licenseStatus}</dd>
             </div>
+            <div>
+              <dt>สถานะตัวเลขในคลัง</dt>
+              <dd>{READ_STATE_LABEL[summary.readState]}</dd>
+            </div>
+            {isReal && summary.provenance && (
+              <>
+                <div>
+                  <dt>run ที่อนุมัติ</dt>
+                  <dd>{summary.provenance.runId}{summary.provenance.runStatus ? ` (${summary.provenance.runStatus})` : ''}</dd>
+                </div>
+                <div>
+                  <dt>adapter</dt>
+                  <dd>{summary.provenance.adapterVersion ?? 'ไม่ทราบ'}</dd>
+                </div>
+                <div>
+                  <dt>sha256 ของ payload</dt>
+                  <dd>{summary.provenance.payloadSha256 ?? 'ไม่ทราบ'}</dd>
+                </div>
+                <div>
+                  <dt>source revision</dt>
+                  <dd>{summary.provenance.revisionId ?? 'ไม่ทราบ'}</dd>
+                </div>
+                <div>
+                  <dt>ดึงข้อมูลต้นทางเมื่อ</dt>
+                  <dd>{summary.provenance.sourceRetrievedAt ? formatDateTime(summary.provenance.sourceRetrievedAt) : 'ไม่ทราบ'}</dd>
+                </div>
+                <div>
+                  <dt>แถวในคลัง</dt>
+                  <dd>{formatNumber(summary.provenance.rowCount)}</dd>
+                </div>
+              </>
+            )}
             <div>
               <dt>ความพร้อมของข้อมูล</dt>
               <dd>

@@ -1,5 +1,11 @@
-import { handleApi, HubRequestError, jsonData, parseText } from '../../../../lib/hub/http';
 import {
+  createMeta,
+  handleApi,
+  HubRequestError,
+  parseText,
+} from '../../../../lib/hub/http';
+import {
+  DOAE_PRODUCTION_README_NOTE,
   FERTILIZER_GUIDANCE,
   findFertilizerGuidance,
   findSoilSeries,
@@ -10,6 +16,7 @@ import {
   SOIL_SERIES,
   SOIL_SOURCE_NOTE,
 } from '../../../../lib/hub/crops-soil-data';
+import { loadDoaeProductionBlock } from '../../../../lib/hub/doae-production-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,24 +78,36 @@ export async function GET(request: Request) {
       totalSeries: SOIL_SERIES.length,
     };
 
-    return jsonData(payload, {
-      meta: {
-        availability: 'ready',
-        freshness: 'unknown',
-        completeness: 'partial',
-        access: 'metadata_only',
-        sourceIds: ['ldd', 'doae'],
-        dataAsOf: null,
-        sourceUpdatedAt: null,
-        datasetVersion: 'soil-fertilizer-reference-v1',
-        warnings: [
-          'ชุดดินเป็นหน่วยดินตามการสำรวจของ LDD หนึ่งจังหวัดมีหลายชุดดิน — ชื่อพื้นที่ใช้แมตช์การค้นหา ไม่ใช่ขอบเขตทั้งจังหวัด',
-          `เผยแพร่เฉพาะ ${SOIL_SERIES.length} ชุดดินที่ยืนยันจาก LDD; ชื่อที่ยังไม่ยืนยัน (${SOIL_NOT_FOUND_NAMES.join(', ')}) อยู่ใน unregisteredNames และไม่ถูกแปลงเป็นแถวข้อมูล`,
-          'ตัวเลขปุ๋ยเป็นค่าจากเอกสารต้นทางรายพืช ไม่ใช่คำแนะนำรายแปลง — ควรยืนยันด้วยค่าวิเคราะห์ดินจริง',
-          SOIL_SOURCE_NOTE,
-        ],
-        runtimeMode: 'source_api_fallback',
-      },
+    // บล็อกเทียบเคียง (sibling, ไม่แก้ `data`/`meta` ของส่วนอ้างอิง): ภาวะการผลิตพืชอายุยาวระดับตำบล
+    // อ่านจากแถวจริงที่เผยแพร่ในคลังกลางเท่านั้น ไม่มีแถว → สถานะว่าง/ไม่พร้อมอย่างซื่อตรง
+    const doaeProduction = await loadDoaeProductionBlock({
+      resourceKey: 'doae_perennial_subdistrict_2023',
     });
+
+    const meta = createMeta({
+      availability: 'ready',
+      freshness: 'unknown',
+      completeness: 'partial',
+      access: 'metadata_only',
+      sourceIds: ['ldd', 'doae'],
+      dataAsOf: null,
+      sourceUpdatedAt: null,
+      datasetVersion: 'soil-fertilizer-reference-v1',
+      warnings: [
+        'ชุดดินเป็นหน่วยดินตามการสำรวจของ LDD หนึ่งจังหวัดมีหลายชุดดิน — ชื่อพื้นที่ใช้แมตช์การค้นหา ไม่ใช่ขอบเขตทั้งจังหวัด',
+        `เผยแพร่เฉพาะ ${SOIL_SERIES.length} ชุดดินที่ยืนยันจาก LDD; ชื่อที่ยังไม่ยืนยัน (${SOIL_NOT_FOUND_NAMES.join(', ')}) อยู่ใน unregisteredNames และไม่ถูกแปลงเป็นแถวข้อมูล`,
+        'ตัวเลขปุ๋ยเป็นค่าจากเอกสารต้นทางรายพืช ไม่ใช่คำแนะนำรายแปลง — ควรยืนยันด้วยค่าวิเคราะห์ดินจริง',
+        SOIL_SOURCE_NOTE,
+        DOAE_PRODUCTION_README_NOTE,
+        'doaeProduction ในหน้านี้คือภาวะการผลิตพืช (เกรนตำบล) เพื่อเทียบเคียงพื้นที่ปลูกกับชุดดิน ไม่ใช่ผลตรวจดินของกรมพัฒนาที่ดิน',
+        ...doaeProduction.warnings.map(warning => 'doaeProduction: ' + warning),
+      ],
+      runtimeMode: 'source_api_fallback',
+    });
+
+    return Response.json(
+      { data: payload, meta, doaeProduction },
+      { status: 200, headers: { 'cache-control': 'no-store' } },
+    );
   });
 }

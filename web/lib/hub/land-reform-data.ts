@@ -1,3 +1,7 @@
+// Types only: `ldd-pgs-progress` is a `server-only` module and this file is also
+// pulled in by the client dashboard, so the import must be erased at build time.
+import type { LddPgsData, LddPgsEnvelope, LddPgsValueRow } from './ldd-pgs-progress';
+
 /**
  * Deterministic synthetic land-reform statistics for `/land-reform`.
  *
@@ -10,6 +14,12 @@
  * and for the unfiltered aggregate. Seeded subsets of provinces carry no
  * title-deed applications and no rented area so the `landType` filter returns
  * distinct result sets instead of repeating the same 72 rows every time.
+ *
+ * Appended at the end of this file (lane L7) is a separate, REAL block for the
+ * approved LDD resource `ldd_pgs_program_progress`: `buildLandReformLddPgsSection`
+ * folds warehouse rows into `data.lddPgs` with `sample: false`. Nothing above
+ * that section changed, and the two blocks must never be read as one dataset:
+ * ALRO (ส.ป.ก.) simulation below, LDD (กรมพัฒนาที่ดิน) organic-PGS figures above.
  */
 
 export type Region = 'ภาคเหนือ' | 'ภาคกลาง' | 'ภาคตะวันออกเฉียงเหนือ' | 'ภาคตะวันออก' | 'ภาคตะวันตก' | 'ภาคใต้';
@@ -636,5 +646,233 @@ export function buildLandReformData(filters: LandReformFilters = {}): LandReform
     },
     sources: createSources(),
     warnings: [...LAND_REFORM_WARNINGS],
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * Real LDD block (lane L7) — appended only; everything above keeps describing
+ * the ALRO structural simulation with its original `sample: true` labels.
+ * ------------------------------------------------------------------------ */
+
+/** Facts copied from `config/resource_licenses.json` row `ldd_pgs_program_progress`. */
+export const LDD_PGS_REGISTRY = {
+  resourceKey: 'ldd_pgs_program_progress',
+  sourceId: 'ldd',
+  sourceName: 'กรมพัฒนาที่ดิน (Land Development Department)',
+  datasetId: 'ord02',
+  resourceId: '2feb3230-cf86-4560-95f5-93e58270a7d8',
+  sourceUrl: 'https://lddcatalog.ldd.go.th/dataset/ord02',
+  projectTitle: 'โครงการพัฒนากลุ่มเกษตรกรผู้ผลิตเกษตรอินทรีย์ด้วยระบบการรับรองแบบมีส่วนร่วม PGS',
+  licenseName: 'Creative Commons Attribution Non-Commercial No-Derivs',
+  licenseStatus: 'approved_public',
+  licenseReviewedAt: '2026-10-24',
+  publicationDecisionAt: '2026-10-29',
+  attributionText:
+    'กรมพัฒนาที่ดิน — สถิติแผนและผลโครงการ PGS จำแนกตามหน่วยงาน (Creative Commons Attribution Non-Commercial No-Derivs)',
+  derivationAllowed: false,
+  commercialUseAllowed: false,
+  sourceLicenseVerifiedAtProvider: false,
+  grain: 'หน่วยงานผู้รายงาน (ข้อความตามต้นทาง) × ปีงบประมาณ พ.ศ. × ประเภทกลุ่ม × คอลัมน์เป้าหมาย/ผลดำเนินงาน',
+  unresolved: [
+    'Confirm reporting cutoff and differences between source group-stage labels and dictionary',
+    'Reporting-unit names do not establish beneficiary or project target areas',
+  ],
+} as const;
+
+export type LandReformLddPgsRow = LddPgsValueRow;
+
+export type LandReformLddPgsFacet = {
+  fiscalYearBe: number | null;
+  groupStage: string;
+  /** Rows read from the warehouse — a read count, not a figure the source published. */
+  rowsRead: number;
+};
+
+export type LandReformLddPgsMeasure = {
+  id: string;
+  /** Column header text as the warehouse recorded it for this measure. */
+  sourceField: string;
+  /** Unit word from the source column header; null when absent or inconsistent. */
+  unit: string | null;
+  unitNote: string | null;
+  planOrResult: 'target' | 'reported';
+};
+
+export type LandReformLddPgsSection = {
+  sample: false;
+  schemaVersion: 'land-reform-ldd-pgs-v1';
+  registry: typeof LDD_PGS_REGISTRY;
+  availability: string;
+  access: string;
+  derivation: 'forbidden';
+  unitPolicy: string;
+  measures: LandReformLddPgsMeasure[];
+  rowCount: number;
+  rows: LandReformLddPgsRow[];
+  reportingUnits: string[];
+  groupStages: string[];
+  fiscalYearsBe: number[];
+  facets: LandReformLddPgsFacet[];
+  missingValueCount: number;
+  missingUnitCount: number;
+  dataAsOf: null;
+  dataAsOfReason: string;
+  notAvailableReason: { code: string; message: string } | null;
+  warnings: string[];
+};
+
+const LDD_PGS_NO_DERIVATION_WARNING =
+  'LDD PGS: ต้นทางเผยแพร่ "เป้าหมาย" และ "ผลดำเนินงาน" แยกคอลัมน์ (กลุ่ม ราย ไร่ บาท) '
+    + 'หน้านี้แสดงค่าต่อคอลัมน์ต่อแถวตามที่เผยแพร่ ไม่คำนวณร้อยละความก้าวหน้า ไม่เฉลี่ย '
+    + 'และไม่บวกข้ามปี/ข้ามหน่วยงาน/ข้ามหน่วย (สัญญาอนุญาต No-Derivs ห้ามดัดแปลง)';
+
+const LDD_PGS_NON_COMMERCIAL_WARNING =
+  'LDD PGS: ระบุห้ามใช้เชิงพาณิชย์ (commercial_use_confirmed = false) และต้นทางยังไม่ยืนยัน '
+    + 'สัญญาอนุญาตที่ตัวระบบต้นทางโดยตรง (source_license_verified = false) จึงแสดงแบบ verbatim '
+    + 'พร้อม attribution เท่านั้น';
+
+/** Deterministic order: newest fiscal year, then reporting unit, stage and measure. */
+function compareLddPgsRows(left: LandReformLddPgsRow, right: LandReformLddPgsRow): number {
+  const year = (right.fiscalYearBe ?? -1) - (left.fiscalYearBe ?? -1);
+  if (year !== 0) return year;
+  const unit = left.reportingUnit.localeCompare(right.reportingUnit, 'th');
+  if (unit !== 0) return unit;
+  const stage = left.groupStage.localeCompare(right.groupStage, 'th');
+  if (stage !== 0) return stage;
+  const kind = left.planOrResult.localeCompare(right.planOrResult);
+  if (kind !== 0) return kind;
+  return left.measure.localeCompare(right.measure);
+}
+
+/**
+ * The measure list is read back from the rows themselves, so a column is only
+ * ever described by the header text and unit word the warehouse holds for it.
+ * A measure that appears with two different unit words is reported with
+ * `unit: null` (shown as "ไม่ระบุ") instead of picking one.
+ */
+function measuresFromRows(rows: readonly LandReformLddPgsRow[]): LandReformLddPgsMeasure[] {
+  const byId = new Map<string, LandReformLddPgsMeasure>();
+  const seenUnits = new Map<string, Set<string | null>>();
+  for (const row of rows) {
+    if (!byId.has(row.measure)) {
+      byId.set(row.measure, {
+        id: row.measure,
+        sourceField: row.sourceField,
+        unit: row.unit,
+        unitNote: null,
+        planOrResult: row.planOrResult,
+      });
+      seenUnits.set(row.measure, new Set([row.unit]));
+      continue;
+    }
+    const units = seenUnits.get(row.measure)!;
+    units.add(row.unit);
+    if (units.size > 1) {
+      const measure = byId.get(row.measure)!;
+      measure.unit = null;
+      measure.unitNote = 'คอลัมน์นี้ปรากฏคำหน่วยมากกว่าหนึ่งแบบในชุดที่อ่านได้ จึงไม่เลือกคำใดคำหนึ่ง';
+    }
+  }
+  return [...byId.values()].sort((left, right) => left.id.localeCompare(right.id));
+}
+
+/**
+ * Fold the reader envelope into the `/land-reform` payload without deriving a
+ * single number: rows, unit words and the target/result split pass through
+ * unchanged, and the only counts here are read-side row counts per grain cell.
+ */
+export function buildLandReformLddPgsSection(envelope: LddPgsEnvelope): LandReformLddPgsSection {
+  const data: LddPgsData = envelope.data;
+  const rows = [...data.rows].sort(compareLddPgsRows);
+
+  const facetCounts = new Map<string, LandReformLddPgsFacet>();
+  for (const row of rows) {
+    const key = `${row.fiscalYearBe ?? ''}|${row.groupStage}`;
+    const existing = facetCounts.get(key);
+    if (existing) existing.rowsRead += 1;
+    else facetCounts.set(key, { fiscalYearBe: row.fiscalYearBe, groupStage: row.groupStage, rowsRead: 1 });
+  }
+  const facets = [...facetCounts.values()].sort(
+    (left, right) =>
+      (right.fiscalYearBe ?? -1) - (left.fiscalYearBe ?? -1) ||
+      left.groupStage.localeCompare(right.groupStage, 'th'),
+  );
+
+  return {
+    sample: false,
+    schemaVersion: 'land-reform-ldd-pgs-v1',
+    registry: LDD_PGS_REGISTRY,
+    availability: envelope.meta.availability,
+    access: envelope.meta.access,
+    derivation: 'forbidden',
+    unitPolicy: data.unitPolicy,
+    measures: measuresFromRows(rows),
+    rowCount: data.rowCount,
+    rows,
+    reportingUnits: data.reportingUnits,
+    groupStages: data.groupStages,
+    fiscalYearsBe: data.fiscalYearsBe,
+    facets,
+    missingValueCount: data.missingValueCount,
+    missingUnitCount: data.missingUnitCount,
+    dataAsOf: null,
+    dataAsOfReason: data.dataAsOfReason,
+    notAvailableReason: data.notAvailableReason,
+    warnings: [...envelope.meta.warnings, LDD_PGS_NO_DERIVATION_WARNING, LDD_PGS_NON_COMMERCIAL_WARNING],
+  };
+}
+
+/**
+ * Honest "cannot read" section for the page when the reader itself fails.
+ * It carries no numbers at all: the page must never fall back to the ALRO
+ * simulation to fill this block.
+ */
+export function buildLandReformLddPgsUnavailable(reason = 'LDD_PGS_DATA_UNAVAILABLE'): LandReformLddPgsSection {
+  return {
+    sample: false,
+    schemaVersion: 'land-reform-ldd-pgs-v1',
+    registry: LDD_PGS_REGISTRY,
+    availability: 'unavailable',
+    access: 'metadata_only',
+    derivation: 'forbidden',
+    unitPolicy: 'source column header unit words, unchanged',
+    measures: [],
+    rowCount: 0,
+    rows: [],
+    reportingUnits: [],
+    groupStages: [],
+    fiscalYearsBe: [],
+    facets: [],
+    missingValueCount: 0,
+    missingUnitCount: 0,
+    dataAsOf: null,
+    dataAsOfReason: 'ต้นทางไม่มีวันตัดยอดที่เผยแพร่ จึงคง dataAsOf เป็น null และอ้างอิงเฉพาะป้ายปีงบประมาณในแถว',
+    notAvailableReason: {
+      code: reason,
+      message: 'ขณะนี้อ่านข้อมูลโครงการ PGS ของกรมพัฒนาที่ดินจากคลังข้อมูลกลางไม่ได้ จึงไม่แสดงตัวเลขใด ๆ',
+    },
+    warnings: [
+      'LDD PGS: อ่านคลังข้อมูลกลางไม่สำเร็จ จึงไม่แสดงตัวเลขแทนข้อมูลจริง และไม่ใช่ค่าตัวอย่าง',
+      LDD_PGS_NO_DERIVATION_WARNING,
+      LDD_PGS_NON_COMMERCIAL_WARNING,
+    ],
+  };
+}
+
+/** Rows the page renders; the API always carries the full read set. */
+export const LDD_PGS_PAGE_ROW_LIMIT = 80;
+
+export function lddPgsRowsForPage(section: LandReformLddPgsSection): {
+  rows: LandReformLddPgsRow[];
+  shownCount: number;
+  totalCount: number;
+  truncated: boolean;
+} {
+  const rows = section.rows.slice(0, LDD_PGS_PAGE_ROW_LIMIT);
+  return {
+    rows,
+    shownCount: rows.length,
+    totalCount: section.rowCount,
+    truncated: rows.length < section.rowCount,
   };
 }

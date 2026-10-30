@@ -1,0 +1,111 @@
+{
+  "success": true,
+  "data": [
+    {
+      "year_th": 2569,
+      "month": "09",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "16545.45",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2569,
+      "month": "08",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "16569.33",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2569,
+      "month": "07",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "16437.50",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2569,
+      "month": "06",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "16378.82",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2569,
+      "month": "05",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "16073.51",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2569,
+      "month": "04",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "15951.55",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2569,
+      "month": "01",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "15579.57",
+      "unit": "บาท/ตัน"
+    },
+    {
+      "year_th": 2561,
+      "month": "06",
+      "week": 0,
+      "province_code": "TH00",
+      "province_name": "ประเทศไทย",
+      "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15",
+      "commod": "ข้าว",
+      "subcommod": "ข้าวหอมมะลิ",
+      "value": "15886.99",
+      "unit": "บาท/ตัน"
+    }
+  ],
+  "filters": {
+    "product_name": "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15"
+  },
+  "pagination": {
+    "limit": 100,
+    "offset": 0,
+    "page": 1,
+    "count": 8,
+    "total": 189
+  }
+}
