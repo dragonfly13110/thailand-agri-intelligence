@@ -659,8 +659,13 @@ export const LDD_PGS_REGISTRY = {
   resourceKey: 'ldd_pgs_program_progress',
   sourceId: 'ldd',
   sourceName: 'กรมพัฒนาที่ดิน (Land Development Department)',
+  /** CKAN package the register names; the source URL uses it. */
   datasetId: 'ord02',
+  /** CKAN resource id the register names. */
   resourceId: '2feb3230-cf86-4560-95f5-93e58270a7d8',
+  /** D1 keys the crawler mints and the numeric writer stores under (see `ldd-pgs-progress.ts`). */
+  warehouseDatasetId: 'ldd:ord02',
+  warehouseResourceId: 'ldd:ord02:2feb3230-cf86-4560-95f5-93e58270a7d8',
   sourceUrl: 'https://lddcatalog.ldd.go.th/dataset/ord02',
   projectTitle: 'โครงการพัฒนากลุ่มเกษตรกรผู้ผลิตเกษตรอินทรีย์ด้วยระบบการรับรองแบบมีส่วนร่วม PGS',
   licenseName: 'Creative Commons Attribution Non-Commercial No-Derivs',

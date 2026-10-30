@@ -7,17 +7,22 @@ import math
 import unittest
 
 from tadih.ldd_pgs_progress import (
+    CANONICAL_DATASET_ID,
+    CANONICAL_RESOURCE_ID,
     DICTIONARY_RESOURCE_ID,
     IDENTITY_FIELD,
     MEASURES,
     PAGE_LIMIT,
     RESOURCE_ID,
+    SOURCE_DATASET_ID,
     SOURCE_FIELDS,
     FISCAL_YEAR_FIELD,
     STAGE_FIELD,
     LddPgsDataError,
+    canonical_ldd_pgs_key,
     fetch_ldd_pgs_progress,
     normalize_ldd_pgs_progress,
+    resolve_ldd_pgs_key,
     source_url,
     RESOURCE_METADATA_URL,
 )
@@ -133,6 +138,18 @@ class LddPgsProgressNormaliseTests(unittest.TestCase):
         self.assertTrue(DICTIONARY_RESOURCE_ID)
         self.assertTrue(RESOURCE_METADATA_URL.endswith(RESOURCE_ID))
 
+    def test_source_url_is_percent_encoded_so_http_clients_accept_it(self):
+        from urllib.parse import parse_qs, urlsplit
+
+        url = source_url()
+        self.assertTrue(url.isascii())
+        self.assertNotIn(" ", url)
+        query = parse_qs(urlsplit(url).query)
+        self.assertEqual(query["resource_id"], [RESOURCE_ID])
+        self.assertEqual(query["limit"], [str(PAGE_LIMIT)])
+        self.assertEqual(query["fields"], [",".join(SOURCE_FIELDS)])
+        self.assertEqual(query["sort"], ["_id asc"])
+
         with self.assertRaises(LddPgsDataError):
             normalize_ldd_pgs_progress(payload([record(1)], resource_id="other-resource"),
                                        retrieved_at=RETRIEVED_AT)
@@ -196,6 +213,49 @@ class LddPgsProgressNormaliseTests(unittest.TestCase):
         self.assertEqual(batch["source_revision"], "hash:ldd-hash-1")
         self.assertEqual(batch["records_fetched"], 2)
         self.assertEqual(batch["request_urls"], requested)
+
+
+class LddPgsIdentityTests(unittest.TestCase):
+    """One CKAN package, one D1 key: the crawler's stable id is the canonical form."""
+
+    def test_the_literal_keys_are_what_the_catalog_crawler_mints(self):
+        # Pins this lane's mirror to the shared rule without editing shared code:
+        # if hub_catalog_sync changes how it mints ids, this fails loudly.
+        from tadih.hub_catalog_sync import _stable_id
+
+        self.assertEqual(CANONICAL_DATASET_ID, _stable_id("ldd", SOURCE_DATASET_ID))
+        self.assertEqual(CANONICAL_RESOURCE_ID, _stable_id("ldd", SOURCE_DATASET_ID, RESOURCE_ID))
+        self.assertEqual(CANONICAL_DATASET_ID, "ldd:ord02")
+        self.assertEqual(
+            CANONICAL_RESOURCE_ID,
+            "ldd:ord02:2feb3230-cf86-4560-95f5-93e58270a7d8",
+        )
+
+    def test_ckan_and_stable_id_forms_resolve_to_the_same_canonical_key(self):
+        resource = resolve_ldd_pgs_key(RESOURCE_ID)
+        self.assertEqual(resource, resolve_ldd_pgs_key(CANONICAL_RESOURCE_ID))
+        self.assertEqual(resource["kind"], "resource")
+        self.assertEqual(resource["canonical"], CANONICAL_RESOURCE_ID)
+        self.assertEqual(resource["sourceId"], RESOURCE_ID)
+
+        dataset = resolve_ldd_pgs_key(SOURCE_DATASET_ID)
+        self.assertEqual(dataset, resolve_ldd_pgs_key(CANONICAL_DATASET_ID))
+        self.assertEqual(dataset["kind"], "dataset")
+        self.assertEqual(dataset["canonical"], CANONICAL_DATASET_ID)
+
+        self.assertEqual(canonical_ldd_pgs_key(RESOURCE_ID, kind="resource"), CANONICAL_RESOURCE_ID)
+        self.assertEqual(canonical_ldd_pgs_key(CANONICAL_RESOURCE_ID, kind="resource"), CANONICAL_RESOURCE_ID)
+        self.assertEqual(canonical_ldd_pgs_key(SOURCE_DATASET_ID, kind="dataset"), CANONICAL_DATASET_ID)
+
+    def test_other_ids_and_the_wrong_kind_are_refused(self):
+        for unknown in ("", "7f508d88-3c31-4cad-b95a-68ca0ce89356", "ldd:ord02:", None):
+            with self.assertRaises(LddPgsDataError) as caught:
+                resolve_ldd_pgs_key(unknown)  # type: ignore[arg-type]
+            self.assertEqual(caught.exception.args[0], "LDD_PGS_KEY_UNKNOWN")
+
+        with self.assertRaises(LddPgsDataError) as caught:
+            canonical_ldd_pgs_key(RESOURCE_ID, kind="dataset")
+        self.assertEqual(caught.exception.args[0], "LDD_PGS_KEY_KIND_MISMATCH")
 
 
 if __name__ == "__main__":

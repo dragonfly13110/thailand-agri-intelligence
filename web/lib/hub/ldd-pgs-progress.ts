@@ -21,8 +21,38 @@ import type { D1ObservationFilters, D1ObservationRow } from './d1-numeric-reposi
  */
 
 export const LDD_PGS_SOURCE_ID = 'ldd';
-export const LDD_PGS_RESOURCE_ID = '2feb3230-cf86-4560-95f5-93e58270a7d8';
-export const LDD_PGS_DATASET_ID = 'ord02';
+
+/**
+ * Two id forms name one resource: the CKAN ids the register records, and the
+ * stable keys the metadata crawler mints for D1 (`_stable_id(source_id, …)`).
+ * The writer stores rows under the stable form, so this reader queries it; the
+ * CKAN ids stay the provenance shown on the page and in the source URL.
+ */
+export const LDD_PGS_CKAN_DATASET_ID = 'ord02';
+export const LDD_PGS_CKAN_RESOURCE_ID = '2feb3230-cf86-4560-95f5-93e58270a7d8';
+export const LDD_PGS_DATASET_ID = 'ldd:ord02';
+export const LDD_PGS_RESOURCE_ID = 'ldd:ord02:2feb3230-cf86-4560-95f5-93e58270a7d8';
+
+export type LddPgsKeyKind = 'dataset' | 'resource';
+
+export type LddPgsResolvedKey = {
+  kind: LddPgsKeyKind;
+  /** The key the warehouse stores and queries by. */
+  canonical: string;
+  /** The CKAN identifier this key came from. */
+  ckanId: string;
+};
+
+/** Resolve either id form (CKAN or crawler-stable) to the one warehouse key. */
+export function resolveLddPgsKey(value: string): LddPgsResolvedKey | null {
+  if (value === LDD_PGS_CKAN_DATASET_ID || value === LDD_PGS_DATASET_ID) {
+    return { kind: 'dataset', canonical: LDD_PGS_DATASET_ID, ckanId: LDD_PGS_CKAN_DATASET_ID };
+  }
+  if (value === LDD_PGS_CKAN_RESOURCE_ID || value === LDD_PGS_RESOURCE_ID) {
+    return { kind: 'resource', canonical: LDD_PGS_RESOURCE_ID, ckanId: LDD_PGS_CKAN_RESOURCE_ID };
+  }
+  return null;
+}
 
 const MAX_LDD_PGS_ROWS = 5_000;
 const SOURCE_YEAR_LABEL = /^พ\.ศ\. (\d{4})$/;
@@ -75,6 +105,7 @@ export type LddPgsValueRow = {
 export type LddPgsNotAvailableReason = { code: string; message: string };
 
 export type LddPgsData = {
+  /** Warehouse key the rows were read by; `LDD_PGS_CKAN_RESOURCE_ID` is the source id. */
   resourceId: string;
   datasetId: string;
   sourceId: string;
@@ -147,6 +178,10 @@ function availabilityFor(meta: ApiMeta, rowCount: number): ApiMeta['availability
 export function buildLddPgsEnvelope(sourceRows: D1ObservationRow[], sourceMeta: ApiMeta): LddPgsEnvelope {
   const rows: LddPgsValueRow[] = [];
   for (const row of sourceRows) {
+    if (resolveLddPgsKey(row.resourceId)?.kind !== 'resource') {
+      throw new HubRequestError(503, 'LDD_PGS_RESOURCE_MISMATCH',
+        'พบแถวที่ไม่ได้อยู่ใต้รหัสทรัพยากร PGS ที่หน้านี้อ่าน');
+    }
     const measure = measureFor(row.metricId);
     if (!measure) {
       // A metric this page does not know must never be rendered as a known one.

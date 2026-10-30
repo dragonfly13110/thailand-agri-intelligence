@@ -7,13 +7,23 @@ D1 database is never contacted and never written by this lane.
 import copy
 import io
 import json
+import re
 import tempfile
 from contextlib import redirect_stderr
 from pathlib import Path
 import unittest
 
 from tadih.catalog import load_resource_licenses
-from tadih.ldd_pgs_progress import RESOURCE_ID, normalize_ldd_pgs_progress, RESOURCE_METADATA_URL, source_url
+from tadih.ldd_pgs_progress import (
+    CANONICAL_DATASET_ID,
+    CANONICAL_RESOURCE_ID,
+    RESOURCE_ID,
+    SOURCE_DATASET_ID,
+    normalize_ldd_pgs_progress,
+    RESOURCE_METADATA_URL,
+    resolve_ldd_pgs_key,
+    source_url,
+)
 from tadih.ldd_pgs_progress_d1 import (
     ADAPTER_VERSION,
     RESOURCE_KEY,
@@ -24,6 +34,29 @@ from tadih.ldd_pgs_progress_d1 import (
 from tadih.observations import ObservationWriteError
 from tests.test_ldd_pgs_progress import RETRIEVED_AT, payload, record
 from tests.test_observations import SqliteD1Mock
+
+WEB_READER = Path(__file__).resolve().parents[1] / "web/lib/hub/ldd-pgs-progress.ts"
+
+#: The reader's own joins (``observationFrom`` in d1-numeric-repository.ts).
+READER_QUERY = (
+    "SELECT o.row_key AS rowKey,r.resource_id AS resourceId,d.dataset_id AS datasetId "
+    "FROM observations o "
+    "JOIN resources r ON r.resource_id=o.resource_id AND r.active_run_id=o.run_id "
+    "JOIN sync_runs run ON run.run_id=o.run_id AND run.resource_id=o.resource_id "
+    "AND run.kind='numeric' AND run.status IN ('succeeded','partial') "
+    "JOIN datasets d ON d.dataset_id=r.dataset_id "
+    "WHERE r.resource_id=? AND r.access_status='approved_public' "
+    "AND r.project_publication_approved=1 AND d.dataset_id=?"
+)
+
+
+def reader_constant(name: str) -> str:
+    """The id the page actually queries by, read from the TypeScript reader."""
+    source = WEB_READER.read_text(encoding="utf-8")
+    matched = re.search(rf"^export const {name} = '([^']+)';$", source, re.MULTILINE)
+    if not matched:
+        raise AssertionError(f"{name} must be a literal constant in {WEB_READER}")
+    return matched.group(1)
 
 
 def ldd_registry_row(**change):
@@ -102,7 +135,10 @@ class LddPgsAdapterTests(unittest.TestCase):
 
         self.assertEqual(summary["mode"], "dry_run")
         self.assertFalse(summary["written"])
-        self.assertEqual(summary["resourceId"], RESOURCE_ID)
+        self.assertEqual(summary["resourceId"], CANONICAL_RESOURCE_ID)
+        self.assertEqual(summary["datasetId"], CANONICAL_DATASET_ID)
+        self.assertEqual(summary["sourceResourceId"], RESOURCE_ID)
+        self.assertEqual(summary["sourceDatasetId"], SOURCE_DATASET_ID)
         self.assertEqual(summary["resourceKey"], RESOURCE_KEY)
         self.assertEqual(summary["adapterVersion"], ADAPTER_VERSION)
         self.assertEqual(summary["sourceYearLabelsBe"], [2566])
@@ -199,7 +235,7 @@ class LddPgsAdapterTests(unittest.TestCase):
         self.assertNotIn("percent", json.dumps(dimensions, ensure_ascii=False).lower())
 
         resource = client.one("SELECT access_status, project_publication_approved, grain, metadata "
-                              "FROM resources WHERE resource_id=?", [RESOURCE_ID])
+                              "FROM resources WHERE resource_id=?", [CANONICAL_RESOURCE_ID])
         self.assertEqual(resource["access_status"], "approved_public")
         self.assertEqual(resource["project_publication_approved"], 1)
         self.assertIn("reporting unit", resource["grain"])
@@ -247,6 +283,95 @@ class LddPgsAdapterTests(unittest.TestCase):
             summary = run(["--dry-run"], fetcher=self.fetcher,
                           registry_path=self.registry(copy.deepcopy(row)))
             self.assertFalse(summary["written"])
+
+
+class LddPgsStoredKeyTests(unittest.TestCase):
+    """The writer's key and the page's query key are the same string, offline."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.registry_path = Path(self.temp.name) / "resources.json"
+        self.requested = []
+        row = ldd_registry_row(unresolved=[])
+        self.registry_path.write_text(
+            json.dumps({"automatic_approval": False, "resources": [row]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        self.registry = str(self.registry_path)
+
+    def tearDown(self):
+        SqliteD1Mock.close_all()
+        self.temp.cleanup()
+
+    def fetcher(self, url):
+        self.requested.append(url)
+        if url == RESOURCE_METADATA_URL:
+            return {"success": True, "result": {"id": RESOURCE_ID, "hash": "ldd-resource-hash"}}
+        return payload([record(1), record(2, "สุพรรณบุรี"), record(3, "นครนายก")])
+
+    def test_writer_key_equals_reader_query_key(self):
+        self.assertEqual(CANONICAL_RESOURCE_ID, reader_constant("LDD_PGS_RESOURCE_ID"))
+        self.assertEqual(CANONICAL_DATASET_ID, reader_constant("LDD_PGS_DATASET_ID"))
+        self.assertEqual(RESOURCE_ID, reader_constant("LDD_PGS_CKAN_RESOURCE_ID"))
+        self.assertEqual(SOURCE_DATASET_ID, reader_constant("LDD_PGS_CKAN_DATASET_ID"))
+        # The canonical form is the crawler's, so the catalog row and the rows
+        # the page reads cannot drift apart.
+        self.assertEqual(resolve_ldd_pgs_key(RESOURCE_ID)["canonical"], reader_constant("LDD_PGS_RESOURCE_ID"))
+
+    def test_write_then_reader_query_returns_the_row(self):
+        client = SqliteD1Mock()
+        summary = run(["--write"], client=client, fetcher=self.fetcher, registry_path=self.registry)
+        self.assertTrue(summary["written"])
+        self.assertEqual(summary["published"]["resource_id"], CANONICAL_RESOURCE_ID)
+
+        stored_ids = {row["resource_id"] for row in client.rows("SELECT DISTINCT resource_id FROM observations")}
+        self.assertEqual(stored_ids, {CANONICAL_RESOURCE_ID},
+                         "rows must not be parked under the native CKAN id")
+        self.assertNotIn(RESOURCE_ID, stored_ids)
+
+        resource = client.one(
+            "SELECT dataset_id, source_resource_id FROM resources WHERE resource_id=?",
+            [CANONICAL_RESOURCE_ID],
+        )
+        self.assertEqual(resource["dataset_id"], CANONICAL_DATASET_ID)
+        self.assertEqual(resource["source_resource_id"], RESOURCE_ID,
+                         "the source's own id stays recorded in the catalog row")
+
+        found = client.rows(READER_QUERY, [reader_constant("LDD_PGS_RESOURCE_ID"),
+                                           reader_constant("LDD_PGS_DATASET_ID")])
+        self.assertEqual(len(found), 24)
+        self.assertEqual({row["resourceId"] for row in found}, {CANONICAL_RESOURCE_ID})
+        self.assertEqual({row["datasetId"] for row in found}, {CANONICAL_DATASET_ID})
+
+    def test_a_crawled_catalog_row_neither_blocks_nor_duplicates_the_write(self):
+        """Run order must not matter: the metadata crawl may already own the row."""
+        client = SqliteD1Mock()
+        client.execute(
+            "INSERT INTO sources (source_id, source_name, base_url, connector_kind, status, "
+            "metadata_access_status) VALUES ('ldd', 'LDD', 'https://lddcatalog.ldd.go.th', "
+            "'ckan', 'enabled', 'metadata_only')",
+        )
+        client.execute(
+            "INSERT INTO datasets (dataset_id, source_id, source_dataset_id, title, source_url, "
+            "metadata_access_status) VALUES (?, 'ldd', ?, 'ord02', 'https://lddcatalog.ldd.go.th/dataset/ord02', "
+            "'metadata_only')",
+            [CANONICAL_DATASET_ID, SOURCE_DATASET_ID],
+        )
+        client.execute(
+            "INSERT INTO resources (resource_id, dataset_id, source_resource_id, name, resource_url, "
+            "access_status, project_publication_approved) VALUES (?, ?, ?, 'PGS', "
+            "'https://lddcatalog.ldd.go.th/dataset/ord02', 'approved_public', 1)",
+            [CANONICAL_RESOURCE_ID, CANONICAL_DATASET_ID, RESOURCE_ID],
+        )
+
+        summary = run(["--write"], client=client, fetcher=self.fetcher, registry_path=self.registry)
+
+        self.assertTrue(summary["written"])
+        self.assertEqual(client.one("SELECT count(*) AS n FROM resources")["n"], 1,
+                         "one CKAN resource must stay exactly one row")
+        self.assertEqual(client.one("SELECT count(*) AS n FROM datasets")["n"], 1)
+        self.assertEqual(len(client.rows(READER_QUERY, [reader_constant("LDD_PGS_RESOURCE_ID"),
+                                                        reader_constant("LDD_PGS_DATASET_ID")])), 24)
 
 
 if __name__ == "__main__":

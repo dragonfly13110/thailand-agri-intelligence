@@ -29,13 +29,30 @@ import math
 from decimal import Decimal, InvalidOperation
 import re
 from typing import Any, Mapping
+from urllib.parse import quote, urlencode
 
 from .ingestion import fetch_json
 
 
+SOURCE_ID = "ldd"
 RESOURCE_ID = "2feb3230-cf86-4560-95f5-93e58270a7d8"
 DICTIONARY_RESOURCE_ID = "186d7cee-2443-4fc7-8a77-c7b7d574ea77"
 SOURCE_DATASET_ID = "ord02"
+
+#: The metadata crawler (``hub_catalog_sync._stable_id``) mints the catalog keys,
+#: so numeric rows have to be stored under those same keys: a native-id row and a
+#: stable-id resource row would be two resources for one CKAN package and collide
+#: on ``resources UNIQUE (dataset_id, source_resource_id)``.
+CANONICAL_DATASET_ID = "ldd:ord02"
+CANONICAL_RESOURCE_ID = "ldd:ord02:2feb3230-cf86-4560-95f5-93e58270a7d8"
+
+_LDD_KEYS: dict[str, tuple[str, str, str]] = {
+    SOURCE_DATASET_ID: ("dataset", CANONICAL_DATASET_ID, SOURCE_DATASET_ID),
+    CANONICAL_DATASET_ID: ("dataset", CANONICAL_DATASET_ID, SOURCE_DATASET_ID),
+    RESOURCE_ID: ("resource", CANONICAL_RESOURCE_ID, RESOURCE_ID),
+    CANONICAL_RESOURCE_ID: ("resource", CANONICAL_RESOURCE_ID, RESOURCE_ID),
+}
+
 PROJECT_TITLE = (
     "โครงการพัฒนากลุ่มเกษตรกรผู้ผลิตเกษตรอินทรีย์ด้วยระบบการรับรองแบบมีส่วนร่วม PGS"
 )
@@ -65,17 +82,45 @@ MEASURES: tuple[tuple[str, str, str, str, bool], ...] = (
 SOURCE_FIELDS = ("_id", IDENTITY_FIELD, FISCAL_YEAR_FIELD, STAGE_FIELD,
                  *(field for field, _, _, _, _ in MEASURES))
 MEASURE_BY_FIELD = {field: (measure, unit, kind, whole) for field, measure, unit, kind, whole in MEASURES}
-RESOURCE_URL = (
-    DATASTORE_ENDPOINT
-    + "?resource_id=" + RESOURCE_ID
-    + "&limit=" + str(PAGE_LIMIT)
-    + "&fields=" + ",".join(SOURCE_FIELDS)
-    + "&sort=_id%20asc"
+RESOURCE_URL = DATASTORE_ENDPOINT + "?" + urlencode(
+    {
+        "resource_id": RESOURCE_ID,
+        "limit": PAGE_LIMIT,
+        "fields": ",".join(SOURCE_FIELDS),
+        "sort": "_id asc",
+    },
+    quote_via=quote,
 )
 
 
 class LddPgsDataError(ValueError):
     """The reviewed LDD PGS resource changed shape or cannot be normalised safely."""
+
+
+def _stable_id(source_id: str, *parts: str) -> str:
+    """Mirror of ``hub_catalog_sync._stable_id``; a test pins the two together."""
+    components = (source_id, *parts)
+    if all(re.fullmatch(r"[A-Za-z0-9._~-]{1,180}", part) for part in components):
+        return ":".join(components)
+    raw = "\0".join(components).encode("utf-8", "replace")
+    return f"{source_id}:sha256:{hashlib.sha256(raw).hexdigest()}"
+
+
+def resolve_ldd_pgs_key(value: str) -> dict[str, str]:
+    """Map either id form (CKAN source id or D1 stable id) onto one canonical key."""
+    try:
+        kind, canonical, ckan_id = _LDD_KEYS[value]
+    except (KeyError, TypeError) as exc:
+        raise LddPgsDataError("LDD_PGS_KEY_UNKNOWN") from exc
+    return {"kind": kind, "canonical": canonical, "sourceId": ckan_id}
+
+
+def canonical_ldd_pgs_key(value: str, *, kind: str) -> str:
+    """Resolve ``value`` to the D1 key and refuse it when it names the other kind."""
+    resolved = resolve_ldd_pgs_key(value)
+    if resolved["kind"] != kind:
+        raise LddPgsDataError("LDD_PGS_KEY_KIND_MISMATCH")
+    return resolved["canonical"]
 
 
 def source_url() -> str:

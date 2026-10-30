@@ -14,9 +14,11 @@ import sys
 from typing import Any, Mapping, Sequence
 
 from .ldd_pgs_progress import (
+    CANONICAL_DATASET_ID,
     PROJECT_TITLE,
     RESOURCE_ID,
     SOURCE_DATASET_ID,
+    canonical_ldd_pgs_key,
     fetch_ldd_pgs_progress,
 )
 from .observations import (
@@ -38,12 +40,15 @@ RESOURCE_GRAIN = (
     "reporting unit (verbatim, source-labelled) x Buddhist fiscal-year label x "
     "PGS group stage; one value per published target/result column"
 )
+# ``dataset_id`` is the crawler's stable key; the CKAN ids stay on the row so it
+# matches the crawled package and keeps the source identity.
 CATALOG = {
     "source_name": "Land Development Department",
     "base_url": BASE_URL,
     "connector_kind": "api",
     "category": "land_use",
-    "dataset_id": SOURCE_DATASET_ID,
+    "dataset_id": CANONICAL_DATASET_ID,
+    "source_dataset_id": SOURCE_DATASET_ID,
     "dataset_title": DATASET_TITLE,
     "dataset_description": (
         "แผนและผลการดำเนินงานโครงการ PGS ตามหน่วยงานผู้รายงาน ต้นทางเผยแพร่ค่าเป้าหมายและ"
@@ -51,6 +56,7 @@ CATALOG = {
     ),
     "dataset_source_url": BASE_URL + "/dataset/" + SOURCE_DATASET_ID,
     "resource_format": "JSON",
+    "source_resource_id": RESOURCE_ID,
     "grain": RESOURCE_GRAIN,
     "attribution_url": BASE_URL + "/dataset/" + SOURCE_DATASET_ID,
 }
@@ -71,6 +77,17 @@ MEASURE_LOOKUP = {measure: (field, unit, kind) for measure, field, unit, kind in
 
 class LddPgsAdapterError(ValueError):
     """Adapter invocation or review-manifest error."""
+
+
+def _canonical_resource(resource: Mapping[str, Any]) -> dict[str, Any]:
+    """Rewrite the registry row's CKAN ids to the D1 keys the crawler and page use."""
+    canonical = dict(resource)
+    try:
+        canonical["dataset_id"] = canonical_ldd_pgs_key(resource["dataset_id"], kind="dataset")
+        canonical["resource_id"] = canonical_ldd_pgs_key(resource["resource_id"], kind="resource")
+    except (KeyError, TypeError) as exc:
+        raise LddPgsAdapterError("LDD_PGS_REGISTRY_ID_MISSING") from exc
+    return canonical
 
 
 def parser() -> argparse.ArgumentParser:
@@ -152,7 +169,8 @@ def run(argv: Sequence[str] | None = None, *, client: Any = None, fetcher: Any =
 
     # Approval is verified before contacting the source so a revoked resource
     # never costs a request and never reaches the writer.
-    resource = load_approved_resource(RESOURCE_KEY, registry_path=registry_path or args.registry)
+    registry_row = load_approved_resource(RESOURCE_KEY, registry_path=registry_path or args.registry)
+    resource = _canonical_resource(registry_row)
     if batch is None:
         batch = fetch_ldd_pgs_progress() if fetcher is None else fetch_ldd_pgs_progress(fetcher=fetcher)
     observations, row_dimensions = _adapt_rows(batch, resource["license_status"])
@@ -186,6 +204,10 @@ def run(argv: Sequence[str] | None = None, *, client: Any = None, fetcher: Any =
         "resourceId": resource["resource_id"],
         "resourceKey": RESOURCE_KEY,
         "datasetId": resource.get("dataset_id"),
+        # The register keeps the CKAN ids; D1 stores the crawler's keys above so
+        # the catalog row, the numeric run and the page all name one resource.
+        "sourceResourceId": registry_row["resource_id"],
+        "sourceDatasetId": registry_row["dataset_id"],
         "publicationAuthorization": resource.get("publication_authorization"),
         "derivationAllowed": bool((resource.get("publication_authorization") or {}).get("derivation_allowed")),
         "sourceLicenseStatus": resource.get("license_status"),

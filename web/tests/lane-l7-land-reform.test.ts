@@ -67,6 +67,9 @@ const landReformRoute = await import('../app/api/v1/land-reform/route.ts');
 const http = await import('../lib/hub/http.ts');
 
 const APPROVED_RESOURCE_ID = '2feb3230-cf86-4560-95f5-93e58270a7d8';
+const CKAN_DATASET_ID = 'ord02';
+const WAREHOUSE_DATASET_ID = 'ldd:ord02';
+const WAREHOUSE_RESOURCE_ID = 'ldd:ord02:2feb3230-cf86-4560-95f5-93e58270a7d8';
 const PENDING_ZONING_RESOURCE_ID = '7f508d88-3c31-4cad-b95a-68ca0ce89356';
 const PENDING_ZONING_RESOURCE_KEY = 'ldd_rice_zoning_provincial';
 const HUB_ORIGIN = 'http://hub.local';
@@ -75,12 +78,12 @@ type ObservationRow = Record<string, unknown>;
 
 function pgsRow(overrides: Partial<ObservationRow> & { rowKey: string }): ObservationRow {
   return {
-    resourceId: APPROVED_RESOURCE_ID,
+    resourceId: WAREHOUSE_RESOURCE_ID,
     runId: 'run-ldd-pgs-1',
     runStatus: 'succeeded',
     seriesKey: 'ldd-pgs:1:pgs_target_groups',
     sourceId: 'ldd',
-    datasetId: 'ord02',
+    datasetId: WAREHOUSE_DATASET_ID,
     adapterVersion: 'ldd-pgs-progress/1.0.0',
     payloadSha256: 'a'.repeat(64),
     sourceRetrievedAt: '2026-10-30T01:00:00Z',
@@ -451,11 +454,12 @@ test('the reader only ever asks for the approved PGS resource id', async () => {
   const deps = fakeDeps({ rows: [pgsRow({ rowKey: 'a' })] });
   await reader.loadLddPgsEnvelope(deps.readerDeps);
 
-  assert.equal(deps.calls[0].id, 'ord02', 'the register read is scoped to the ord02 package');
-  assert.equal(deps.calls[0].resourceId, APPROVED_RESOURCE_ID);
+  assert.equal(deps.calls[0].id, WAREHOUSE_DATASET_ID,
+    'the register read uses the dataset key the catalog actually stores');
+  assert.equal(deps.calls[0].resourceId, WAREHOUSE_RESOURCE_ID);
   const filters = deps.observationFilters();
   assert.equal(filters.length, 1);
-  assert.deepEqual(filters[0], { sourceId: 'ldd', resourceId: APPROVED_RESOURCE_ID });
+  assert.deepEqual(filters[0], { sourceId: 'ldd', resourceId: WAREHOUSE_RESOURCE_ID });
   const serialized = JSON.stringify(deps.calls);
   assert.ok(!serialized.includes(PENDING_ZONING_RESOURCE_ID), 'the pending zoning id was requested');
   assert.ok(!serialized.includes('lpd'), 'the pending zoning package was requested');
@@ -562,6 +566,52 @@ test('filters keep applying to the simulation half only', async () => {
 test('the weather/hub http wrapper still reports errors instead of inventing data', async () => {
   assert.equal(typeof http.jsonData, 'function');
   assert.equal(typeof reader.loadLddPgsEnvelope, 'function');
-  assert.equal(reader.LDD_PGS_RESOURCE_ID, APPROVED_RESOURCE_ID);
+  assert.equal(reader.LDD_PGS_RESOURCE_ID, WAREHOUSE_RESOURCE_ID);
   assert.equal(reader.LDD_PGS_SOURCE_ID, 'ldd');
+});
+
+// ---------------------------------------------------------------------------
+// 6. one identity: the CKAN register ids and the crawler's D1 keys agree
+// ---------------------------------------------------------------------------
+
+test('CKAN ids and crawler stable ids resolve to the same canonical key', () => {
+  const resource = { kind: 'resource', canonical: WAREHOUSE_RESOURCE_ID, ckanId: APPROVED_RESOURCE_ID };
+  const dataset = { kind: 'dataset', canonical: WAREHOUSE_DATASET_ID, ckanId: CKAN_DATASET_ID };
+
+  assert.deepEqual(reader.resolveLddPgsKey(APPROVED_RESOURCE_ID), resource);
+  assert.deepEqual(reader.resolveLddPgsKey(WAREHOUSE_RESOURCE_ID), resource);
+  assert.deepEqual(reader.resolveLddPgsKey(CKAN_DATASET_ID), dataset);
+  assert.deepEqual(reader.resolveLddPgsKey(WAREHOUSE_DATASET_ID), dataset);
+  assert.equal(reader.resolveLddPgsKey(PENDING_ZONING_RESOURCE_ID), null,
+    'an id outside this resource never resolves to the PGS key');
+  assert.equal(reader.resolveLddPgsKey(''), null);
+});
+
+test('the reader queries the exact resource key the Python writer stores', () => {
+  // Cross-language contract: the writer module is the other half of this id.
+  const python = readFileSync(new URL('../../src/tadih/ldd_pgs_progress.py', import.meta.url), 'utf8');
+  const literal = (name: string) => {
+    const matched = new RegExp(`^${name} = "([^"]+)"$`, 'm').exec(python);
+    assert.ok(matched, `${name} must be a literal constant in ldd_pgs_progress.py`);
+    return matched[1];
+  };
+  assert.equal(reader.LDD_PGS_RESOURCE_ID, literal('CANONICAL_RESOURCE_ID'));
+  assert.equal(reader.LDD_PGS_DATASET_ID, literal('CANONICAL_DATASET_ID'));
+  assert.equal(reader.LDD_PGS_CKAN_RESOURCE_ID, literal('RESOURCE_ID'));
+  assert.equal(reader.LDD_PGS_CKAN_DATASET_ID, literal('SOURCE_DATASET_ID'));
+});
+
+test('the registry panel keeps the CKAN ids and names the warehouse keys beside them', () => {
+  assert.equal(landReform.LDD_PGS_REGISTRY.resourceId, APPROVED_RESOURCE_ID);
+  assert.equal(landReform.LDD_PGS_REGISTRY.datasetId, CKAN_DATASET_ID);
+  assert.equal(landReform.LDD_PGS_REGISTRY.warehouseResourceId, reader.LDD_PGS_RESOURCE_ID);
+  assert.equal(landReform.LDD_PGS_REGISTRY.warehouseDatasetId, reader.LDD_PGS_DATASET_ID);
+});
+
+test('a row under the native CKAN form names the same resource as the stored key', async () => {
+  const deps = fakeDeps({ rows: [pgsRow({ rowKey: 'native', resourceId: APPROVED_RESOURCE_ID })] });
+  const envelope = await reader.loadLddPgsEnvelope(deps.readerDeps);
+  assert.equal(envelope.data.rowCount, 1);
+  assert.equal(envelope.data.resourceId, WAREHOUSE_RESOURCE_ID);
+  assert.deepEqual(deps.observationFilters(), [{ sourceId: 'ldd', resourceId: WAREHOUSE_RESOURCE_ID }]);
 });
