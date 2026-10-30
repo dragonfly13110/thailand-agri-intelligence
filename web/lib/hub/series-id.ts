@@ -9,20 +9,21 @@
  * unambiguous.
  */
 
-// Keep IDs inside the existing dynamic route's 600-character limit. The
-// reversible ID fails closed when source identity cannot fit; it is never
+// Real Thai identities (long product/metric/grain labels plus province names)
+// need about 650 base64 characters, so the dynamic route accepts up to 1000.
+// The reversible ID fails closed when source identity cannot fit; it is never
 // truncated or silently replaced with a weaker key.
-export const MAX_SERIES_ID_LENGTH = 600;
+export const MAX_SERIES_ID_LENGTH = 1_000;
 const V2_PREFIX = 'v2.';
 const LEGACY_V2_MARKER = 'tadih-series-v2';
 const MAX_DIMENSION_DEPTH = 16;
 const MAX_DIMENSION_NODES = 2_048;
 const MAX_DIMENSION_STRING_LENGTH = MAX_SERIES_ID_LENGTH;
 
-// Keep in sync with observations.py's volatile dimension key policy. These
-// fields describe retrieval or revision events, not a distinct measurement
-// series. Period labels are also excluded: the grain belongs in seriesKey,
-// while each row's actual label belongs to the observation.
+// Dimension keys that never identify a distinct measurement series: retrieval
+// stamps (see observations.py VOLATILE_DIMENSION_KEYS), period labels whose
+// grain already lives in seriesKey, source pointers/annotations, and keys that
+// only repeat a first-class observation column (location, metric, unit, grain).
 export const NON_SERIES_DIMENSION_KEYS = new Set([
   'sourcetimestamp',
   'releaseat',
@@ -34,10 +35,58 @@ export const NON_SERIES_DIMENSION_KEYS = new Set([
   'generatedat',
   'fetchedat',
   'sourceyearbe',
+  'sourceyearbuddhist',
   'sourceyearlabel',
+  'sourceyearlabelconvention',
+  'sourceyearlabelorigin',
   'sourceperiodlabel',
   'periodlabel',
+  'periodconvention',
   'yearlabel',
+  'year',
+  'month',
+  'sourcemonth',
+  'sourcemonthlabel',
+  'observedatsourceict',
+  'observationdateict',
+  'reportdate',
+  'batchdate',
+  'sourcerowid',
+  'requesturl',
+  'regionsource',
+  'livestockareasource',
+  'sourcelabel',
+  'reportingunitsourcelabel',
+  'sourceprovincelabel',
+  'provincecrosswalkmethod',
+  'sourcestatus',
+  'spatialsupport',
+  'datakind',
+  'measure',
+  'priceunit',
+  'scope',
+  'sourcegrain',
+  'seriesgrain',
+  'sourcefield',
+  'providerunit',
+  'unitevidence',
+  'unitstatus',
+  'network',
+  'stationcode',
+  'stationnameth',
+  'stationnameen',
+  'provincenameth',
+  'locationid',
+  'locationcode',
+  'locationkind',
+  'locationname',
+  'provincecode',
+  'cropcode',
+  'cropname',
+  'calibrationdifferencepp',
+  'calibrationstatus',
+  'calibrationtolerancepp',
+  'reportedpercentstorage',
 ]);
 
 export type SeriesIdentity = {

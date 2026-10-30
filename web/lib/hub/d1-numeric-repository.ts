@@ -12,7 +12,7 @@ import {
   SeriesIdError,
   type SeriesIdentity,
 } from './series-id';
-import { d1SeriesDimensionsMatchExpression, d1SeriesDimensionsSignatureExpression } from './series-sql';
+import { d1DimensionsSignatureExpression, d1SeriesDimensionsSignatureExpression } from './series-sql';
 import type { ApiMeta, HubObservation, HubSeries } from './types';
 
 type Row = Record<string, unknown>;
@@ -70,7 +70,7 @@ function seriesIdentity(row: Row): SeriesIdentity {
     };
   } catch (error) {
     if (error instanceof SeriesIdError && error.code === 'SERIES_ID_TOO_LONG') {
-      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 600 ตัวอักษร');
+      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 1,000 ตัวอักษร');
     }
     if (error instanceof SeriesIdError && error.code === 'SERIES_NUMERIC_PRECISION') {
       throw new HubRequestError(422, 'SERIES_NUMERIC_PRECISION', 'ข้อมูลมิติมีตัวเลขที่ JavaScript เก็บค่าเดิมไม่ได้');
@@ -89,7 +89,7 @@ function seriesIdForRow(row: Row): string {
     return encodeSeriesId(identity);
   } catch (error) {
     if (error instanceof SeriesIdError && error.code === 'SERIES_ID_TOO_LONG') {
-      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 600 ตัวอักษร');
+      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 1,000 ตัวอักษร');
     }
     throw new HubRequestError(500, 'SERIES_IDENTITY_INVALID', 'มิติของอนุกรมสร้างรหัสไม่ได้');
   }
@@ -195,7 +195,7 @@ function d1ObservationIdentityCte(baseWhere: string) {
     'SELECT ranked_rows.*,MAX(identity_rank) OVER (PARTITION BY resource_id,series_key) AS identity_count FROM ranked_rows) ';
 }
 
-function addD1SeriesIdentity(conditions: string[], values: unknown[], identity: SeriesIdentity) {
+function addD1SeriesColumns(conditions: string[], values: unknown[], identity: SeriesIdentity) {
   const columns: Array<[string, string | null]> = [
     ['r.resource_id', identity.resourceId], ['o.series_key', identity.seriesKey],
     ['r.grain', identity.sourceGrain], ['o.product', identity.product], ['o.grade', identity.grade],
@@ -209,9 +209,14 @@ function addD1SeriesIdentity(conditions: string[], values: unknown[], identity: 
     conditions.push(column + ' IS ?');
     values.push(value);
   }
-  conditions.push(d1SeriesDimensionsMatchExpression());
-  values.push(JSON.stringify(identity.dimensions));
-  values.push(JSON.stringify(identity.dimensions));
+}
+
+// D1 rejects any expression tree deeper than 100 nodes. The filtered dimension
+// signature is ~94 deep, so it must be selected in a derived table and compared
+// outside the 16-column identity WHERE; comparing it inline fails with
+// SQLITE_ERROR 7500 on every v2 series ID.
+function d1DimensionSignatureMatch(): string {
+  return 'dimension_signature=' + d1DimensionsSignatureExpression('json(?)');
 }
 
 function number(value: unknown): number | null {
@@ -265,13 +270,14 @@ async function parseFilters(url: URL, values: unknown[], includeResource: boolea
   return conditions;
 }
 
-function observationSelect() {
+function observationSelect(extraColumns = '') {
   return "SELECT o.row_key AS rowKey,r.resource_id || '|' || o.series_key AS seriesId," +
     'o.period_start AS periodStart,o.period_end AS periodEnd,o.period_label AS periodLabel,' +
     'o.location_code AS locationCode,o.location_kind AS locationKind,o.location_name AS locationName,' +
     'o.province_code AS provinceCode,o.crop_code AS cropCode,o.crop_name AS cropName,' +
     'o.metric_id AS metricId,o.metric_name AS metricName,o.product,o.grade,o.market,o.unit,o.value,' +
-    'o.dimensions,o.quality_status AS qualityStatus,o.source_row_ref AS sourceRowRef' + observationFrom;
+    'o.dimensions,o.quality_status AS qualityStatus,o.source_row_ref AS sourceRowRef' +
+    (extraColumns ? ',' + extraColumns : '') + observationFrom;
 }
 
 async function observationStats(where: string, values: unknown[]) {
@@ -283,6 +289,23 @@ async function observationStats(where: string, values: unknown[]) {
       "WHEN count(*)>0 THEN 'succeeded' ELSE NULL END AS numericStatus " +
       observationFrom + 'WHERE ' + where,
     values
+  );
+  return rows[0] ?? {};
+}
+
+async function observationStatsForSeries(where: string, values: unknown[], expectedSignature: string) {
+  const rows = await queryD1<Row>(
+    'SELECT count(*) AS total,max(period_end) AS dataAsOf,max(source_updated_at) AS sourceUpdatedAt,' +
+      'max(source_retrieved_at) AS sourceRetrievedAt,' +
+      'CASE WHEN count(DISTINCT run_id)=1 THEN max(coalesce(payload_sha256,run_id)) ELSE NULL END AS datasetVersion,' +
+      "CASE WHEN max(CASE WHEN run_status='partial' THEN 1 ELSE 0 END)=1 THEN 'partial' " +
+      "WHEN count(*)>0 THEN 'succeeded' ELSE NULL END AS numericStatus FROM (" +
+      'SELECT o.period_end AS period_end,r.source_updated_at AS source_updated_at,' +
+      'run.source_retrieved_at AS source_retrieved_at,run.run_id AS run_id,' +
+      'run.payload_sha256 AS payload_sha256,run.status AS run_status,' +
+      d1SeriesDimensionsSignatureExpression() + ' AS dimension_signature' + observationFrom +
+      'WHERE ' + where + ') WHERE ' + d1DimensionSignatureMatch(),
+    [...values, expectedSignature, expectedSignature],
   );
   return rows[0] ?? {};
 }
@@ -444,13 +467,16 @@ export async function listD1SeriesObservations(id: string, url: URL) {
     );
     identity = seriesIdentity(rows[0] ?? {});
   }
+  const expectedSignature = JSON.stringify(identity.dimensions);
   const visibleConditions = [publicConditions];
   const visibleValues: unknown[] = [];
-  addD1SeriesIdentity(visibleConditions, visibleValues, identity);
+  addD1SeriesColumns(visibleConditions, visibleValues, identity);
   const visible = await queryD1<Row>(
-    'SELECT s.source_id AS sourceId,s.freshness_days AS freshnessDays,run.status AS numericStatus' + observationFrom +
-      'WHERE ' + visibleConditions.join(' AND ') + ' LIMIT 1',
-    visibleValues,
+    'SELECT sourceId,freshnessDays,numericStatus FROM (' +
+      'SELECT s.source_id AS sourceId,s.freshness_days AS freshnessDays,run.status AS numericStatus,' +
+      d1SeriesDimensionsSignatureExpression() + ' AS dimension_signature' + observationFrom +
+      'WHERE ' + visibleConditions.join(' AND ') + ') WHERE ' + d1DimensionSignatureMatch() + ' LIMIT 1',
+    [...visibleValues, expectedSignature, expectedSignature],
   );
   if (!visible.length) throw new HubRequestError(404, 'SERIES_NOT_FOUND', 'ไม่พบชุดข้อมูลนี้');
   const numericStatus = text(visible[0].numericStatus) === 'partial' ? 'partial' : 'succeeded';
@@ -460,18 +486,20 @@ export async function listD1SeriesObservations(id: string, url: URL) {
 
   const values: unknown[] = [];
   const conditions = [publicConditions];
-  addD1SeriesIdentity(conditions, values, identity);
+  addD1SeriesColumns(conditions, values, identity);
   const from = parseDate(url, 'from');
   const to = parseDate(url, 'to');
   if (from && to && from > to) throw new HubRequestError(400, 'INVALID_QUERY', 'ช่วงวันที่ไม่ถูกต้อง');
   if (from) { conditions.push('o.period_end>=?'); values.push(from); }
   if (to) { conditions.push('o.period_start<=?'); values.push(to); }
   const where = conditions.join(' AND ');
-  const stats = await observationStats(where, values);
+  const stats = await observationStatsForSeries(where, values, expectedSignature);
   const total = Number(stats.total ?? 0);
   const rows = await queryD1<Row>(
-    observationSelect() + 'WHERE ' + where + ' ORDER BY o.period_end DESC NULLS LAST,o.row_key LIMIT ? OFFSET ?',
-    [...values, page.pageSize, (page.page - 1) * page.pageSize]
+    'SELECT * FROM (' + observationSelect(d1SeriesDimensionsSignatureExpression() + ' AS dimension_signature') +
+      ' WHERE ' + where + ') WHERE ' + d1DimensionSignatureMatch() +
+      ' ORDER BY periodEnd DESC NULLS LAST,rowKey LIMIT ? OFFSET ?',
+    [...values, expectedSignature, expectedSignature, page.pageSize, (page.page - 1) * page.pageSize]
   );
   return jsonData(rows.map(row => ({ ...mapD1ObservationSafely(row), seriesId: id })), {
     meta: numericMeta(info, stats, total > 0), pagination: { ...page, total },

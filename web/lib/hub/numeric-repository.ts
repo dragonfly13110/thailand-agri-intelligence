@@ -62,7 +62,7 @@ function seriesIdentity(row: Row): SeriesIdentity {
     };
   } catch (error) {
     if (error instanceof SeriesIdError && error.code === 'SERIES_ID_TOO_LONG') {
-      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 600 ตัวอักษร');
+      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 1,000 ตัวอักษร');
     }
     if (error instanceof SeriesIdError && error.code === 'SERIES_NUMERIC_PRECISION') {
       throw new HubRequestError(422, 'SERIES_NUMERIC_PRECISION', 'ข้อมูลมิติมีตัวเลขที่ JavaScript เก็บค่าเดิมไม่ได้');
@@ -81,7 +81,7 @@ function seriesIdForRow(row: Row): string {
     return encodeSeriesId(identity);
   } catch (error) {
     if (error instanceof SeriesIdError && error.code === 'SERIES_ID_TOO_LONG') {
-      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 600 ตัวอักษร');
+      throw new HubRequestError(422, 'SERIES_ID_TOO_LONG', 'มิติของอนุกรมยาวเกินขอบเขตรหัส 1,000 ตัวอักษร');
     }
     throw new HubRequestError(500, 'SERIES_IDENTITY_INVALID', 'มิติของอนุกรมสร้างรหัสไม่ได้');
   }

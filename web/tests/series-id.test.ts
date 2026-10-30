@@ -160,6 +160,87 @@ test('semantic dimension keys are canonical while retrieval and period labels do
   assert.notEqual(first, changedSemanticValue);
 });
 
+test('period fields and observation timestamps never split a monthly price series', () => {
+  const paddyDimensions = {
+    spatialSupport: 'national', locationKind: 'country', locationName: 'ประเทศไทย',
+    provinceCode: 'TH00', dataKind: 'official', measure: 'monthly_jasmine_paddy_price',
+    priceUnit: 'บาท/ตัน', sourceGrain: 'product x calendar month x country average',
+    scope: 'national_average', sourceYearBuddhist: 2554, sourceMonth: '01',
+    sourcePeriodLabel: '01/2554', sourceYearLabel: '2554', year: '2554', month: '01',
+    observedAtSourceIct: '2011-01-31T00:00:00+07:00', observationDateIct: '2011-01-31',
+    reportDate: '2011-01-31', batchDate: '2011-01-31',
+    periodConvention: 'Gregorian calendar month from Buddhist-Era year + calendar month (CE = BE - 543)',
+  };
+  const paddy = identity({
+    resourceId: 'oae-paddy-price-monthly',
+    seriesKey: 'monthly_jasmine_paddy_price:monthly:national:บาท/ตัน',
+    sourceGrain: 'monthly',
+    product: 'ข้าวหอมมะลิ 105',
+    unit: 'บาท/ตัน',
+    locationId: 'TH00',
+    locationCode: 'TH00',
+    locationKind: 'country',
+    locationName: 'ประเทศไทย',
+    provinceCode: 'TH00',
+    metricId: 'monthly_jasmine_paddy_price',
+    metricName: 'ราคาข้าวเปลือกเจ้าหอมมะลิ 105',
+    dimensions: paddyDimensions,
+  });
+  const laterMonth = identity({
+    ...paddy,
+    dimensions: {
+      ...paddyDimensions, sourceYearBuddhist: 2569, sourceMonth: '09',
+      sourcePeriodLabel: '09/2569', sourceYearLabel: '2569', year: '2569', month: '09',
+      observedAtSourceIct: '2026-09-30T00:00:00+07:00', observationDateIct: '2026-09-30',
+      reportDate: '2026-09-30', batchDate: '2026-09-30',
+    },
+  });
+
+  const encoded = encodeSeriesId(paddy);
+  assert.equal(encoded, encodeSeriesId(laterMonth));
+  assert.ok(encoded.length <= MAX_SERIES_ID_LENGTH);
+  const decoded = decodeSeriesId(encoded);
+  assert.equal(decoded.kind, 'v2');
+  if (decoded.kind !== 'v2') assert.fail('expected v2 identity');
+  assert.deepEqual(decoded.identity.dimensions, {});
+});
+
+test('DLD province annotations stay part of the same series and inside the route limit', () => {
+  const cattleDimensions = {
+    spatialSupport: 'province', dataKind: 'official', measure: 'beef_cattle_count',
+    sourceYearBe: 2564, referenceYearConvention: 'unverified', regionSource: 'ภาคกลาง',
+    livestockAreaSource: 'ปศุสัตว์เขต 1', sourceLabel: 'กรมปศุสัตว์',
+  };
+  const cattle = identity({
+    resourceId: 'd3667ca5-5982-4c9e-9b0d-04e729dbe31b',
+    seriesKey: 'beef_cattle_count:source_year_label:province:ตัว',
+    sourceGrain: 'source_year_label',
+    product: 'จำนวนโคเนื้อ รายจังหวัด กรมปศุสัตว์',
+    unit: 'ตัว',
+    locationId: 'dld:province:10',
+    locationCode: '10',
+    locationKind: 'province',
+    locationName: 'กรุงเทพมหานคร',
+    provinceCode: '10',
+    metricId: 'beef_cattle_count',
+    metricName: 'จำนวนโคเนื้อ',
+    dimensions: cattleDimensions,
+  });
+  const otherRegionLabel = identity({
+    ...cattle,
+    dimensions: { ...cattleDimensions, regionSource: 'ภาคเหนือ', livestockAreaSource: 'ปศุสัตว์เขต 5' },
+  });
+
+  const encoded = encodeSeriesId(cattle);
+  assert.equal(encoded, encodeSeriesId(otherRegionLabel));
+  assert.ok(encoded.length <= MAX_SERIES_ID_LENGTH,
+    'real Thai province identity must fit the existing route limit');
+  const decoded = decodeSeriesId(encoded);
+  assert.equal(decoded.kind, 'v2');
+  if (decoded.kind !== 'v2') assert.fail('expected v2 identity');
+  assert.deepEqual(decoded.identity.dimensions, { referenceYearConvention: 'unverified' });
+});
+
 test('different products, grades, markets, locations, crops, metrics, or source grains produce different IDs', () => {
   const base = identity();
   const variants: Partial<SeriesIdentity>[] = [
@@ -212,7 +293,7 @@ test('versioned IDs are reversible up to the route limit and refuse longer sourc
   assert.deepEqual(decodeSeriesId(nearLimit), {
     kind: 'v2', identity: identity({
       product: 'x'.repeat(low),
-      dimensions: { dataKind: 'official', yearBasis: 'unspecified' },
+      dimensions: { yearBasis: 'unspecified' },
     }),
   });
 
@@ -224,7 +305,7 @@ test('versioned IDs are reversible up to the route limit and refuse longer sourc
     () => decodeSeriesId('x'.repeat(MAX_SERIES_ID_LENGTH + 1)),
     (error: unknown) => error instanceof SeriesIdError && error.code === 'SERIES_ID_TOO_LONG',
   );
-  assert.equal(MAX_SERIES_ID_LENGTH, 600, 'the ID bound matches the existing route parser');
+  assert.equal(MAX_SERIES_ID_LENGTH, 1_000, 'the ID bound matches the dynamic route parser');
 });
 
 test('malformed or non-canonical v2 encodings fail closed', () => {

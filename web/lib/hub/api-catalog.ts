@@ -370,7 +370,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     notes: [
       'นำ id จากผลลัพธ์ไปใช้กับ /api/v1/series/{id}/observations โดยตรง; กลุ่มที่แยกจาก legacy key ใช้รหัส v2 แบบ URL-safe',
       'รหัสเดิม resourceId|seriesKey ยังอ่านได้เมื่อชี้ชุดมิติเดียว; ถ้ากำกวมจะตอบ 409 AMBIGUOUS_SERIES_ID',
-      'ID จำกัด 600 ตัวอักษร; identity ที่ยาวเกินตอบ 422 SERIES_ID_TOO_LONG โดยไม่ตัดรายการให้ดูเหมือนครบ',
+      'ID จำกัด 1,000 ตัวอักษร; identity ที่ยาวเกินตอบ 422 SERIES_ID_TOO_LONG โดยไม่ตัดรายการให้ดูเหมือนครบ',
       'ถ้ายังไม่มีอนุกรมที่เผยแพร่ได้ จะได้ data: [] พร้อม availability empty หรือ metadata_only',
     ],
   },
@@ -410,7 +410,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     ],
     notes: [
       'ใช้ ID ที่ endpoint series ส่งกลับ; ID legacy กำกวมจะตอบ 409 AMBIGUOUS_SERIES_ID',
-      'ID ยาวเกิน 600 ตัวอักษรหรือรูปแบบไม่ถูกต้อง → 400 INVALID_ID',
+      'ID ยาวเกิน 1,000 ตัวอักษรหรือรูปแบบไม่ถูกต้อง → 400 INVALID_ID',
       'อ่านเฉพาะแถวที่ resource อนุมัติให้เผยแพร่; series ที่ไม่มีแถวเผยแพร่ได้ → 404 SERIES_NOT_FOUND',
       'ถ้ายังไม่มีแถวที่เผยแพร่ได้ จะได้ data: [] พร้อม availability empty หรือ metadata_only',
       'from/to ผิดรูปแบบหรือ from มากกว่า to → 400 INVALID_QUERY',

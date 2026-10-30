@@ -13,12 +13,17 @@ function excludedDimensionKeys(): string {
   return [...NON_SERIES_DIMENSION_KEYS].sort().map(sqlString).join(',');
 }
 
+function stripPunctuation(expression: string, characters: string[]): string {
+  if (characters.length === 0) return expression;
+  if (characters.length === 1) return `replace(${expression},${sqlString(characters[0])},'')`;
+  const middle = Math.floor(characters.length / 2);
+  return stripPunctuation(stripPunctuation(expression, characters.slice(0, middle)), characters.slice(middle));
+}
+
 function d1DimensionKey(keyExpression: string): string {
-  const stripped = sqlitePunctuation.reduce(
-    (expression, character) => `replace(${expression},${sqlString(character)},'')`,
-    keyExpression,
-  );
-  return `lower(${stripped})`;
+  // A balanced replace tree keeps this under D1's 100-node expression depth;
+  // the equivalent left-nested replace chain fails with SQLITE_ERROR 7500.
+  return `lower(${stripPunctuation(keyExpression, sqlitePunctuation)})`;
 }
 
 /**

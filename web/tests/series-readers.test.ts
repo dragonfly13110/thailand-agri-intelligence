@@ -348,7 +348,7 @@ test('D1 groups by complete identity, emits v2 only for ambiguous legacy keys, a
   assert.equal(overflowResult.pagination.total, 1_001);
   assert.equal(overflowResult.data.length, 1, 'a page after the export cap reports the final row without truncating total');
 
-  const longDimensions = JSON.stringify({ semanticNote: 'x'.repeat(500) });
+  const longDimensions = JSON.stringify({ semanticNote: 'x'.repeat(900) });
   const addLongRow = sqlite.prepare(`INSERT INTO observations VALUES
     ('resource-1','run-1',?,'long:monthly:province:kg',NULL,NULL,NULL,'province:10','10','province','Bangkok','10',
       'rice','Rice','count','Count',?,'A',NULL,'kg',1,?,'good',?)`);
@@ -361,7 +361,7 @@ test('D1 groups by complete identity, emits v2 only for ambiguous legacy keys, a
   );
 
   await assert.rejects(
-    () => listD1SeriesObservations('x'.repeat(601), new URL('https://hub.test/api/v1/series/x/observations')),
+    () => listD1SeriesObservations('x'.repeat(1_001), new URL('https://hub.test/api/v1/series/x/observations')),
     (error: unknown) => (error as { status?: number }).status === 400,
   );
 
@@ -660,9 +660,9 @@ test('Postgres uses the same identity dimensions and null-safe, bound v2 lookup 
   assert.equal(exactQuery.values[0], 'resource-1');
   assert.equal(exactQuery.values[1], 'price:source_year_label:unspecified:THB/kg');
   assert.equal(exactQuery.values[2], 'source-year-label');
-  assert.equal(exactQuery.values.at(-1), '{"dataKind":"official","season":"wet"}');
+  assert.equal(exactQuery.values.at(-1), '{"season":"wet"}');
   assert.equal(exactQuery.sql.includes('Bangkok market'), false);
-  assert.equal(exactQuery.sql.includes('{"dataKind":"official","season":"wet"}'), false);
+  assert.equal(exactQuery.sql.includes('{"season":"wet"}'), false);
   const observationQuery = pgCalls.find(call => call.sql.startsWith('SELECT o.row_key AS "rowKey"'));
   assert.ok(observationQuery?.sql.includes('o.dimensions::text AS dimensions'),
     'Postgres observation pages preserve raw JSON number lexemes until validation');
