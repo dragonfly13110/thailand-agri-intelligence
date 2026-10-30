@@ -88,10 +88,11 @@ def run(argv: Sequence[str] | None = None, *, client: Any = None, fetcher: Any =
     rows, row_dimensions = _adapt_snapshot(snapshot, resource["license_status"])
     retrieved_at = _iso_retrieved(snapshot)
     coverage = {
-        "mode": "source_resource_page",
+        "mode": "source_resource_pages",
         "sourceRowsReceived": len(snapshot.records),
         "upstreamTotalRows": snapshot.source_total,
-        "pageFollowed": False,
+        "pagesFetched": snapshot.pages_fetched,
+        "pageFollowed": snapshot.pages_fetched > 1,
         "scope": "national_average",
         "periodConvention": "Gregorian calendar month from Buddhist-Era year + calendar month (CE = BE - 543)",
     }
@@ -142,6 +143,7 @@ def run(argv: Sequence[str] | None = None, *, client: Any = None, fetcher: Any =
         "dataKind": "official",
         "sourceRowsReceived": len(snapshot.records),
         "upstreamTotalRows": snapshot.source_total,
+        "pagesFetched": snapshot.pages_fetched,
         "observedMonthRange": [months[0], months[-1]] if months else [],
         "missingValues": sum(record.value is None for record in snapshot.records),
         "retrievedAt": retrieved_at,

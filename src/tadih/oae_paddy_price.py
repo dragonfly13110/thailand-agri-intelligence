@@ -14,20 +14,34 @@ import re
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 SOURCE_ID = "oae"
 DATASET_ID = "93ac1a96-7933-4653-a21e-91b0c42a8216"
 RESOURCE_ID = "4570daca-e727-4036-bde9-35fd84d0ffd4"
-SOURCE_RESOURCE_URL = (
-    "https://agriapi.nabc.go.th/api/monthly-prices/product?product_name="
-    "%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%80%E0%B8%9B%E0%B8%A5%E0%B8%B7%E0%B8%AD"
-    "%E0%B8%81%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%AB%E0%B8%AD%E0%B8%A1%E0%B8%A1"
-    "%E0%B8%B0%E0%B8%A5%E0%B8%B4%20%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%8A%E0%B8%B7"
-    "%E0%B9%89%E0%B8%99%2015&page=1"
+MAX_PAGES = 10
+_PRODUCT_NAME_ENCODED = (
+    "%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%80%E0%B8%9B"
+    "%E0%B8%A5%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2"
+    "%E0%B8%AB%E0%B8%AD%E0%B8%A1%E0%B8%A1%E0%B8%B0%E0%B8%A5%E0%B8%B4%20%E0%B8%84"
+    "%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%8A%E0%B8%B7%E0%B9%89%E0%B8%99%2015"
 )
+_SOURCE_PAGE_PREFIX = (
+    "https://agriapi.nabc.go.th/api/monthly-prices/product?product_name="
+    + _PRODUCT_NAME_ENCODED
+    + "&page="
+)
+
+
+def source_url_for_page(page_no: int) -> str:
+    if isinstance(page_no, bool) or not isinstance(page_no, int) or not 1 <= page_no <= MAX_PAGES:
+        raise ValueError("OAE paddy price page is outside the reviewed range")
+    return f"{_SOURCE_PAGE_PREFIX}{page_no}"
+
+
+SOURCE_RESOURCE_URL = source_url_for_page(1)
 PRODUCT_NAME = "ข้าวเปลือกเจ้าหอมมะลิ ความชื้น 15"
 UNIT = "บาท/ตัน"
 PROVINCE_CODE = "TH00"
@@ -67,10 +81,12 @@ class OAEPaddyPriceSnapshot:
     content_sha256: str
     records: tuple[OAEPaddyPriceRecord, ...]
     source_total: int | None  # upstream pagination.total, reported but not followed
+    pages_fetched: int = 1
+    page_urls: tuple[str, ...] = ()
 
 
 def _validate_source_url(source_url: str) -> None:
-    if not isinstance(source_url, str) or source_url != SOURCE_RESOURCE_URL:
+    if not isinstance(source_url, str):
         raise ValueError("unreviewed OAE paddy price resource URL")
     parsed = urlparse(source_url)
     try:
@@ -81,13 +97,17 @@ def _validate_source_url(source_url: str) -> None:
             or parsed.hostname != _ALLOWED_HOST or port is not None
             or parsed.username is not None or parsed.password is not None
             or parsed.path != "/api/monthly-prices/product"
-            or parsed.params or parsed.fragment
-            or parsed.query != (
-                "product_name=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%80%E0%B8%9B"
-                "%E0%B8%A5%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2"
-                "%E0%B8%AB%E0%B8%AD%E0%B8%A1%E0%B8%A1%E0%B8%B0%E0%B8%A5%E0%B8%B4%20%E0%B8%84"
-                "%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%8A%E0%B8%B7%E0%B9%89%E0%B8%99%2015&page=1"
-            )):
+            or parsed.params or parsed.fragment):
+        raise ValueError("unreviewed OAE paddy price resource URL")
+    try:
+        query = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True)
+    except ValueError as exc:
+        raise ValueError("unreviewed OAE paddy price resource URL") from exc
+    if (set(query) != {"product_name", "page"}
+            or query["product_name"] != [PRODUCT_NAME]
+            or len(query["page"]) != 1
+            or not re.fullmatch(r"[1-9][0-9]?", query["page"][0])
+            or not 1 <= int(query["page"][0]) <= MAX_PAGES):
         raise ValueError("unreviewed OAE paddy price resource URL")
 
 
@@ -95,8 +115,10 @@ class _RejectNabcRedirects(HTTPRedirectHandler):
     """Never let urllib follow the pinned NABC endpoint to another host."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if req.full_url != SOURCE_RESOURCE_URL:
-            raise ValueError("redirect request from an unreviewed NABC URL")
+        try:
+            _validate_source_url(req.full_url)
+        except ValueError as exc:
+            raise ValueError("redirect request from an unreviewed NABC URL") from exc
         # This fixed endpoint has no reviewed redirect contract; refuse before following.
         raise ValueError("NABC redirect rejected before following")
 
@@ -201,10 +223,10 @@ def normalize_oae_paddy_price_json(
     )
 
 
-def _read_bounded(response, *, max_bytes: int) -> bytes:
+def _read_bounded(response, *, max_bytes: int, expected_url: str) -> bytes:
     if response.getcode() != 200:
         raise ValueError("OAE paddy price source returned a non-200 response")
-    if response.geturl() != SOURCE_RESOURCE_URL:
+    if response.geturl() != expected_url:
         raise ValueError("redirect outside exact OAE paddy price resource")
     media_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
     if media_type not in {"application/json", "text/json", "application/octet-stream"}:
@@ -223,13 +245,59 @@ def _read_bounded(response, *, max_bytes: int) -> bytes:
     return content
 
 
+def _decode_page(content: bytes) -> dict:
+    try:
+        payload = json.loads(content.decode("utf-8-sig"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid OAE paddy price JSON") from exc
+    if not isinstance(payload, dict) or payload.get("success") is not True:
+        raise ValueError("OAE paddy price payload is not a successful envelope")
+    if not isinstance(payload.get("data"), list):
+        raise ValueError("OAE paddy price payload has no data list")
+    return payload
+
+
 def fetch_oae_paddy_price_snapshot(*, opener=None) -> OAEPaddyPriceSnapshot:
-    """Fetch one bounded page of the pinned monthly resource and timestamp its retrieval."""
+    """Fetch every bounded page of the pinned monthly resource and timestamp the retrieval."""
     open_request = _open_oae_request if opener is None else opener
-    _validate_source_url(SOURCE_RESOURCE_URL)
-    request = Request(SOURCE_RESOURCE_URL, headers={"Accept": "application/json", "User-Agent": _USER_AGENT})
-    with open_request(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-        content = _read_bounded(response, max_bytes=MAX_JSON_BYTES)
-    snapshot = normalize_oae_paddy_price_json(content, source_url=SOURCE_RESOURCE_URL)
+    pages: list[tuple[str, bytes, list]] = []
+    total: int | None = None
+    digest = hashlib.sha256()
+    page_no = 1
+    while True:
+        url = source_url_for_page(page_no)
+        request = Request(url, headers={"Accept": "application/json", "User-Agent": _USER_AGENT})
+        with open_request(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+            content = _read_bounded(response, max_bytes=MAX_JSON_BYTES, expected_url=url)
+        payload = _decode_page(content)
+        pagination = payload.get("pagination")
+        page_total = pagination.get("total") if isinstance(pagination, dict) else None
+        if page_total is not None:
+            if isinstance(page_total, bool) or not isinstance(page_total, int) or page_total < 0:
+                raise ValueError("OAE paddy price pagination total is invalid")
+            if total is None:
+                total = page_total
+            elif page_total != total:
+                raise ValueError("OAE paddy price pagination total changed between pages")
+        pages.append((url, content, payload["data"]))
+        digest.update(content)
+        collected = sum(len(rows) for _url, _content, rows in pages)
+        if total is None or collected >= total:
+            break
+        if page_no >= MAX_PAGES:
+            raise ValueError("OAE paddy price page count exceeds the reviewed bound")
+        page_no += 1
+
+    combined: dict = {"success": True, "data": [row for _u, _c, rows in pages for row in rows]}
+    if total is not None:
+        combined["pagination"] = {"total": total}
+    combined_content = json.dumps(combined, ensure_ascii=False).encode("utf-8")
+    snapshot = normalize_oae_paddy_price_json(combined_content, source_url=SOURCE_RESOURCE_URL)
     # Parser-only snapshots have no retrieval event; live fetch stamps it after the read.
-    return replace(snapshot, retrieved_at=datetime.now(timezone.utc))
+    return replace(
+        snapshot,
+        retrieved_at=datetime.now(timezone.utc),
+        content_sha256=digest.hexdigest(),
+        pages_fetched=len(pages),
+        page_urls=tuple(url for url, _content, _rows in pages),
+    )

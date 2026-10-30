@@ -46,6 +46,15 @@ def page(rows, *, total=189):
     ).encode("utf-8")
 
 
+def numbered_page(rows, *, number, total, limit=2):
+    return json.dumps(
+        {"success": True, "data": rows,
+         "pagination": {"limit": limit, "offset": (number - 1) * limit, "page": number,
+                        "count": len(rows), "total": total}},
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
 def jasmine_row(year_th, month, value, **change):
     base = {
         "year_th": year_th, "month": month, "week": 0, "province_code": "TH00",
@@ -62,7 +71,7 @@ class NormalizeTests(unittest.TestCase):
 
         self.assertEqual(snapshot.source_id, SOURCE_ID)
         self.assertEqual(snapshot.resource_id, RESOURCE_ID)
-        self.assertEqual(snapshot.source_total, 189)
+        self.assertEqual(snapshot.source_total, 8)
         self.assertIsNone(snapshot.retrieved_at)
         self.assertEqual(snapshot.content_sha256, hashlib.sha256(FIXTURE_BYTES).hexdigest())
         by_month = {record.gregorian_month: record for record in snapshot.records}
@@ -144,7 +153,39 @@ class FetchTests(unittest.TestCase):
         self.assertEqual([url for url, _ in calls], [SOURCE_RESOURCE_URL])
         self.assertIsNotNone(snapshot.retrieved_at)
         self.assertEqual(len(snapshot.records), 8)
-        self.assertEqual(snapshot.source_total, 189)
+        self.assertEqual(snapshot.source_total, 8)
+
+    def test_fetch_follows_pages_until_the_reported_total_is_reached(self):
+        second_url = SOURCE_RESOURCE_URL.replace("&page=1", "&page=2")
+        responses = [
+            FakeResponse(numbered_page([jasmine_row(2569, "09", "1"), jasmine_row(2569, "08", "2")],
+                                       number=1, total=3)),
+            FakeResponse(numbered_page([jasmine_row(2569, "07", "3")], number=2, total=3),
+                         url=second_url),
+        ]
+        calls = []
+
+        def opener(request, *, timeout):
+            calls.append(request.full_url)
+            return responses.pop(0)
+
+        snapshot = fetch_oae_paddy_price_snapshot(opener=opener)
+
+        self.assertEqual(calls, [SOURCE_RESOURCE_URL, second_url])
+        self.assertEqual([record.gregorian_month for record in snapshot.records],
+                         ["2026-09", "2026-08", "2026-07"])
+        self.assertEqual(snapshot.source_total, 3)
+        self.assertEqual(snapshot.pages_fetched, 2)
+
+    def test_fetch_fails_closed_when_the_total_never_arrives(self):
+        def opener(request, *, timeout):
+            return FakeResponse(
+                numbered_page([jasmine_row(2569, "09", "1")], number=1, total=15),
+                url=request.full_url,
+            )
+
+        with self.assertRaisesRegex(ValueError, "page"):
+            fetch_oae_paddy_price_snapshot(opener=opener)
 
     def test_fetch_rejects_non_200(self):
         class Bad(io.BytesIO):

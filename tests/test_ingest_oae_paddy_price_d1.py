@@ -39,7 +39,8 @@ class FakeResponse(io.BytesIO):
         return self.status
 
 
-def page(rows, *, total=189):
+def page(rows, *, total=None):
+    total = len(rows) if total is None else total
     return json.dumps(
         {"success": True, "data": rows, "pagination": {"limit": 100, "offset": 0, "page": 1,
                                                         "count": len(rows), "total": total}},
@@ -117,7 +118,7 @@ class OaePaddyPriceAdapterTests(unittest.TestCase):
         self.assertEqual(summary["sourceLicenseStatus"], "approved_public")
         self.assertEqual(summary["commercialUseConfirmed"], False)
         self.assertEqual(summary["sourceRowsReceived"], 8)
-        self.assertEqual(summary["upstreamTotalRows"], 189)
+        self.assertEqual(summary["upstreamTotalRows"], 8)
         self.assertEqual(summary["missingValues"], 0)
         self.assertEqual(summary["observedMonthRange"], ["2018-06", "2026-09"])
         self.assertEqual(summary["adapterVersion"], ADAPTER_VERSION)
