@@ -1,5 +1,6 @@
 import 'server-only';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -40,7 +41,12 @@ export const REVIEWED_CACHE_FIRST_YEAR = 2016;
 export const REVIEWED_CACHE_LAST_YEAR = 2025;
 
 const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
-const DEFAULT_ROOT = fileURLToPath(new URL('../../../data/local/raw/open_meteo/', import.meta.url));
+// Resolved at runtime: `new URL(..., import.meta.url)` makes the bundler try to
+// resolve the gitignored data/local directory and breaks the whole route.
+const DEFAULT_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../data/local/raw/open_meteo',
+);
 
 export type CacheDay = {
   date: string;
