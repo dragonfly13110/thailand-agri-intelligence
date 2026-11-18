@@ -1,3 +1,21 @@
+## เปลี่ยน hotspot-5y เป็น GISTDA ล้วน 2022–2026 + อำเภอ/ตำบล/หมู่บ้าน (DuckDB เฉพาะเครื่อง · 0 D1 writes) — 18 พ.ย. 2026
+
+- เพิ่ม `hotspot-5y/download_boundaries.py` ดึงขอบเขต ปภ. (DDPM) เข้า `hotspot-5y/data/boundaries/`: `ddpm_amphoe.geojson` (**926 อำเภอ**, `1.41 MB`) และ `ddpm_tambon.geojson` (**7,658 ตำบล**, `5.42 MB`, gitignored)
+- ดึง GISTDA STAC VIIRS ไทยครบ 5 ปีใหม่ (`--force`) รวมฟิลด์หมู่บ้านใกล้เคียง (`village`, `moo_1`, `name_1`, `v_dist`, `v_direct`) ผ่าน `download_gistda_viirs.py` (**2022-01-01 ถึง 2026-11-17**: 1,752 วัน รวม **1,278,326 จุด**)
+- ปรับ `hotspot-5y/build_db.py`, `analyze.py`, `tests/test_hotspot_5y.py`, `README.md`: ฐาน `hotspot-5y/data/hotspot_5y.duckdb` (`373.8 MB`) รวม `dim_province` (77), `dim_amphoe` (**926**), `dim_tambon` (**7,658**), `hotspots` (**1,278,326 จุด**, จับคู่จังหวัด/อำเภอ/ตำบล 100% + ชื่อหมู่บ้านใกล้เคียง **1,270,115 จุด / 66,730 หมู่บ้าน** ใน `v_village_5y_summary` + ปักธง `is_suspected_static` ที่ซ้ำพิกัด ≥25 วัน = 7,324 จุด) + `gistda_burn_scar` (**79,435 แปลง**) + `gistda_burn_freq` (**79,088 แปลง**)
+- หมายเหตุสำคัญของข้อมูล: (1) ปี 2022–2023 มีเฉพาะดาวเทียม `N`, ปี 2024 เพิ่ม `N20`/`N21`/`1`, ปี 2025–2026 มีครบ `N+N20+N21` — มี view แยกเทียบเฉพาะ `satellite='N'`; (2) `village`/`v_dist` คือหมู่บ้านที่อยู่ใกล้จุดความร้อนมากที่สุดจาก GISTDA (ไม่ใช่ทำเนียบจุดกลาง 7.5 หมื่นหมู่บ้านแยกต่างหาก)
+- ตรวจรับ: `.venv\Scripts\python.exe -X utf8 -m unittest hotspot-5y/tests/test_hotspot_5y.py -v` ผ่าน 5/5 (1.793s); ออกรายงาน `amphoe_ranking_5y.csv`, `tambon_ranking_5y.csv`, `village_top_5y.csv`, `province_ranking_5y.csv`, `hotspot_landuse_5y.csv`, `summary_5y.json` ครบที่ `hotspot-5y/data/output/`; ยังไม่ commit
+
+## ตรวจระบบแบบอ่านอย่างเดียว — 18 พ.ย. 2026 · 0 D1 writes
+
+- เจ้าของงานถามว่ามีข้อมูลอะไร/มาจากไหน; อ่านเอกสารแล้ว probe D1 จริงแบบ read-only (~73k rows_read, ไม่มี write)
+- **auth**: `CF_D1_TOKEN` ใน env ยัง 401; `npx wrangler whoami` (ใน web/) ต่ออายุ OAuth แล้ว `connect_d1_client()` ใช้ได้โดย override `CF_D1_TOKEN=` (ค่าว่าง) — ไม่ได้แก้ `.env`
+- **D1 สด**: observations 15,930 แถว / 12 resources — RID อ่างรายวัน 6,264 (25–31 ต.ค.) · Open-Meteo ERA5 5,681 (31 ส.ค.–24 ต.ค.) · TMD ฝนรายเดือน 2,370 (ม.ค.–ก.ย. 2026) · TMD รายวัน agro 624 + WeatherToday 24 + synop 24 (26 ต.ค.) · DLD โคเนื้อ 385 · OAE ราคาหอมมะลิ 289 (2011–ก.ย. 2026) · CPD สหกรณ์ 234 · GISTDA น้ำท่วม 21 · OAE ส่งออก 11 · CHIRPS 3
+- **NWP**: 2 runs / 440 snapshots / 33,880 province values · **locations** 830 (อ่าง 461, จังหวัด 157, สถานี 131, กริด 80, ประเทศ 1)
+- **catalog**: 18 sources / 1,251 datasets / 3,789 resources (approved 12)
+- sync numeric ล่าสุด 31 ต.ค. — ไม่มี refresh ~18 วัน; ชุดใหญ่ DOAE ยังอยู่ local (DuckDB ~141,699 latest obs ตามบัญชี 24 ต.ค.) ไม่ได้ขึ้น D1
+- ไม่แก้โค้ด/ไม่ commit; งานต่อที่ยังค้างเดิม: refresh รายชุด, ตัดสินใจ DOAE เกินเพดาน, deploy, CI secrets
+
 ## แก้ SERIES_ID_TOO_LONG + D1 depth 100 ของ series API — 30 ต.ค. 2026 · ยังไม่ commit
 
 - **สาเหตุ 1 (รหัสยาว)**: writer เก็บฟิลด์เวลา/แหล่งที่มาไว้ใน `dimensions` ทุกเดือน/ปีจึงถูกนับเป็น identity คนละตัว; ตัด period/stamp/provenance และคีย์ที่ซ้ำคอลัมน์หลักออกจาก `NON_SERIES_DIMENSION_KEYS`; Thai identity จริงยังยาว ~654–930 ตัวอักษร จึงขยาย `MAX_SERIES_ID_LENGTH` 600 → 1,000 (ยัง fail-closed เมื่อเกิน)

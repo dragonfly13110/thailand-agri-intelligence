@@ -1,3 +1,15 @@
+## เปลี่ยน hotspot-5y เป็น GISTDA ล้วน 2022–2026 + อำเภอ/ตำบล/หมู่บ้าน (DuckDB เฉพาะเครื่อง · 0 D1 writes) — 18 พ.ย. 2026
+
+- ดึงขอบเขตอำเภอ/ตำบลจาก ปภ. (`download_boundaries.py` → 926 อำเภอ / 7,658 ตำบล) และดึง GISTDA STAC VIIRS ไทยครบ 5 ปีใหม่รวม `village`, `v_dist`, `v_direct` (`2022-01-01..2026-11-17`: 1,752 วัน / **1,278,326 จุด**)
+- ปรับ `build_db.py`, `analyze.py`, `tests/test_hotspot_5y.py`: เพิ่มตาราง `dim_amphoe` / `dim_tambon` + view สรุปอำเภอ/ตำบล/หมู่บ้าน (`v_amphoe_5y_summary`, `v_tambon_5y_summary`, `v_village_5y_summary` = 66,730 หมู่บ้าน จากจุดที่มีชื่อหมู่บ้าน 1,270,115 จุด) และส่งออก CSV/JSON เพิ่ม; ทดสอบออฟไลน์ผ่าน 5/5 (1.793s)
+
+## ตรวจระบบแบบอ่านอย่างเดียว — 18 พ.ย. 2026
+
+- probe D1 จริง read-only (~73k rows_read, 0 writes): observations 15,930 แถว / 12 resources (RID 6,264 · Open-Meteo 5,681 · TMD ฝนเดือน 2,370 + รายวัน 672 · DLD 385 · OAE ราคา 289 + ส่งออก 11 · CPD 234 · GISTDA 21 · CHIRPS 3); NWP 33,880 province values; locations 830; catalog 18 sources / 1,251 datasets / 3,789 resources (approved 12)
+- auth: env token ยัง 401; ต่ออายุ wrangler OAuth ด้วย `npx wrangler whoami` แล้วใช้ `CF_D1_TOKEN=` override
+- ข้อมูลล่าสุดใน D1 คือ 31 ต.ค. (ค้าง ~18 วัน ไม่มี refresh); ชุด DOAE ใหญ่ยังอยู่ local/DuckDB
+- รายละเอียดที่ [HANDOFF.md](../HANDOFF.md); ไม่แก้โค้ด ไม่ commit
+
 ## แก้ series API: SERIES_ID_TOO_LONG + D1 depth 100 — 30 ต.ค. 2026
 
 - ตัด period/stamp/provenance ออกจาก dimension signature; ขยายเพดาน series id 600 → 1,000; id จริงของ DLD 678 และ CPD 925 ตัวผ่าน
