@@ -7,6 +7,7 @@ import {
   buildStatusPanel,
   filterSources,
   formatTimeBangkok,
+  lastFetchLabel,
   mergeSourcePages,
   readApiError,
   registryLabel,
@@ -16,6 +17,7 @@ import {
   type MergedSources,
   type RunStatusTone,
 } from '@/lib/hub/data-status';
+import { buildNwpStatusView, type NwpStatusView } from '@/lib/hub/data-status-nwp';
 import { Icon } from './icon';
 
 const PAGE_SIZE = 100;
@@ -31,6 +33,11 @@ type DetailState =
   | { kind: 'loading' }
   | { kind: 'error'; error: ApiErrorView }
   | { kind: 'ready'; source: SourceStatus; meta: ApiResponse<SourceStatus>['meta'] };
+
+type NwpState =
+  | { kind: 'loading' }
+  | { kind: 'error'; error: ApiErrorView }
+  | { kind: 'ready'; view: NwpStatusView | null };
 
 const TONE_STYLE: Record<RunStatusTone, { background: string; color: string }> = {
   succeeded: { background: 'var(--accent-soft)', color: 'var(--forest)' },
@@ -183,6 +190,16 @@ function SourceDetail({ state, sourceName, onRetry }: { state: DetailState; sour
             {panel.lastSuccessfulSync.unknown && <span className="null-value"> · ยังไม่ทราบ (ไม่มีบันทึกครั้งที่สำเร็จในทะเบียน)</span>}
           </dd>
         </div>
+        {!panel.lastFetch.unknown && (panel.lastFetch.partial || panel.lastSuccessfulSync.unknown) && (
+          <div>
+            <dt>ดึงข้อมูลล่าสุด (รวมรอบบางส่วน)</dt>
+            <dd>
+              {panel.lastFetch.text}
+              {panel.lastFetch.partial && <>{' '}<ToneBadge tone="partial" label="เสร็จบางส่วน" /></>}
+              {panel.lastFetch.partial && <span className="null-value"> · ข้อมูลอาจไม่ครบทุกพื้นที่หรือช่วงเวลา</span>}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>{panel.apiReadAt.label}</dt>
           <dd>{panel.apiReadAt.text}</dd>
@@ -267,6 +284,26 @@ export function DataStatusDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailState>({ kind: 'idle' });
   const [detailAttempt, setDetailAttempt] = useState(0);
+  const [nwp, setNwp] = useState<NwpState>({ kind: 'loading' });
+  const [nwpAttempt, setNwpAttempt] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    setNwp({ kind: 'loading' });
+    void fetchEnvelope<{ runs: unknown }>('/api/v1/nwp/runs', controller.signal).then(result => {
+      if (!active || controller.signal.aborted) return;
+      setNwp(
+        result.ok
+          ? { kind: 'ready', view: buildNwpStatusView(result.payload.data) }
+          : { kind: 'error', error: result.error },
+      );
+    });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [nwpAttempt]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -382,33 +419,39 @@ export function DataStatusDashboard() {
                       <th scope="col">แหล่งข้อมูล</th>
                       <th scope="col">รหัส</th>
                       <th scope="col">สถานะตามทะเบียน</th>
-                      <th scope="col">ดึงสำเร็จล่าสุด</th>
+                      <th scope="col">ดึงล่าสุด</th>
                       <th scope="col">เลือก</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {search.matched.map(row => (
-                      <tr key={row.id}>
-                        <td>{row.name}</td>
-                        <td>{row.id}</td>
-                        <td>
-                          <span className={'badge ' + (REGISTRY_TONE[row.status] ?? 'neutral')}>
-                            {registryLabel(row.status)}
-                          </span>
-                        </td>
-                        <td>{formatTimeBangkok(row.lastSuccessAt).text}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="button secondary"
-                            aria-pressed={row.id === selectedId}
-                            onClick={() => setSelectedId(row.id)}
-                          >
-                            ดูสถานะงาน
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {search.matched.map(row => {
+                      const lastFetch = lastFetchLabel(row);
+                      return (
+                        <tr key={row.id}>
+                          <td>{row.name}</td>
+                          <td>{row.id}</td>
+                          <td>
+                            <span className={'badge ' + (REGISTRY_TONE[row.status] ?? 'neutral')}>
+                              {registryLabel(row.status)}
+                            </span>
+                          </td>
+                          <td>
+                            {lastFetch.text}
+                            {lastFetch.partial && <><br /><ToneBadge tone="partial" label="เสร็จบางส่วน" /></>}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="button secondary"
+                              aria-pressed={row.id === selectedId}
+                              onClick={() => setSelectedId(row.id)}
+                            >
+                              ดูสถานะงาน
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -423,6 +466,95 @@ export function DataStatusDashboard() {
                 </ul>
               </details>
             )}
+          </>
+        )}
+      </section>
+
+      <section className="local-data" aria-labelledby="data-status-nwp">
+        <div className="real-data-heading">
+          <div>
+            <h2 id="data-status-nwp">พยากรณ์ NWP ล่าสุด (TMD HPC)</h2>
+            <p>
+              รอบพยากรณ์กริด 3 กม. ที่เผยแพร่แล้ว อ่านจาก <code>/api/v1/nwp/runs</code> โดยตรง
+              เพราะทะเบียน <code>sources</code> ไม่มีแถวของ NWP
+            </p>
+          </div>
+          <div className="data-status-actions">
+            <Link href="/nwp" className="text-link">
+              เปิดหน้าพยากรณ์ NWP<Icon name="arrow" size={17} />
+            </Link>
+            <button type="button" className="button secondary" onClick={() => setNwpAttempt(value => value + 1)}>
+              ลองอ่านใหม่<Icon name="arrow" size={17} />
+            </button>
+          </div>
+        </div>
+
+        {nwp.kind === 'loading' && (
+          <p className="loading-state" role="status" aria-busy="true">
+            กำลังอ่านสถานะรอบ NWP จากคลังกลาง…
+          </p>
+        )}
+        {nwp.kind === 'error' && (
+          <p className="data-empty" role="alert">
+            อ่านสถานะ NWP ไม่สำเร็จ: {nwp.error.message} · รหัสสถานะ {nwp.error.code}
+          </p>
+        )}
+        {nwp.kind === 'ready' && !nwp.view && (
+          <p className="data-empty" role="status">
+            ยังไม่มีรอบ NWP ที่พร้อมใช้งานในคลังกลาง จึงยังไม่แสดงวันหรือตัวเลขใด
+          </p>
+        )}
+        {nwp.kind === 'ready' && nwp.view && (
+          <>
+            <div className="data-count">
+              <span>
+                สถานะรอบ:{' '}
+                <ToneBadge
+                  tone={nwp.view.statusLabel === 'พร้อมใช้งาน' ? 'succeeded' : 'partial'}
+                  label={nwp.view.statusLabel}
+                />
+              </span>
+              <span>
+                สิทธิ์: <span className="badge neutral">{nwp.view.licenseLabel}</span>
+              </span>
+            </div>
+            <dl className="metadata-table">
+              <div>
+                <dt>รหัสรอบ</dt>
+                <dd>{nwp.view.runId}</dd>
+              </div>
+              <div>
+                <dt>เริ่มพยากรณ์ (init)</dt>
+                <dd>{formatTimeBangkok(nwp.view.initAt).text}</dd>
+              </div>
+              <div>
+                <dt>ดึงเข้า Hub เมื่อ</dt>
+                <dd>{formatTimeBangkok(nwp.view.retrievedAt).text}</dd>
+              </div>
+              <div>
+                <dt>ก้าวเวลาที่เผยแพร่</dt>
+                <dd>{nwp.view.leadHoursLabel}</dd>
+              </div>
+              <div>
+                <dt>ตัวแปร</dt>
+                <dd>{nwp.view.variableLabels.join(' · ')}</dd>
+              </div>
+              <div>
+                <dt>หน่วย</dt>
+                <dd>{nwp.view.unitLabel}</dd>
+              </div>
+            </dl>
+            <p className="area-note">
+              <Icon name="info" size={16} /> ตัวเลขในหน้านี้เป็นสถานะรอบพยากรณ์ ไม่ใช่ค่าตรวจวัด
+              ค่าพยากรณ์รายจังหวัดอยู่ใน{' '}
+              <Link href="/nwp" className="text-link">
+                หน้า NWP
+              </Link>{' '}
+              และแท็บพยากรณ์ของ{' '}
+              <Link href="/early-warning" className="text-link">
+                เตือนภัยน้ำ
+              </Link>
+            </p>
           </>
         )}
       </section>

@@ -1,12 +1,10 @@
 import React from 'react';
-import type { WaterPayload, WaterReservoirRecord, WaterSourceMetadata } from '@/lib/hub/water-data';
+import type { WaterPayload, WaterSourceMetadata } from '@/lib/hub/water-data';
 import { WATER_FALLBACK_WARNINGS, WATER_WARNINGS } from '@/lib/hub/water-data';
 import type { WaterRunProvenance } from '@/lib/hub/water-repository';
 import { Icon } from './icon';
+import { WaterReservoirTable } from './water-reservoir-table';
 import styles from './water-dashboard.module.css';
-
-/** Rows shown in the on-page table; the API paginates the same set. */
-const TABLE_ROWS = 25;
 
 interface WaterDashboardProps {
   metadata: WaterSourceMetadata;
@@ -23,52 +21,6 @@ interface WaterDashboardProps {
 function formatNumber(value: number | null | undefined, maxDigits = 2): string {
   if (value === null || value === undefined) return '—';
   return value.toLocaleString('en-US', { maximumFractionDigits: maxDigits });
-}
-
-function gaugeColor(percent: number | null): string {
-  if (percent === null) return '#c3d0c0';
-  if (percent < 30) return '#c62828';
-  if (percent < 60) return '#ef6c00';
-  if (percent > 100) return '#1565c0';
-  return '#2e7d32';
-}
-
-function ReservoirRow({ record }: { record: WaterReservoirRecord }) {
-  const percent = record.storagePercent;
-  return (
-    <tr>
-      <td className={styles.reservoirName}>
-        {record.name ?? record.reservoirId}
-        <div style={{ fontSize: 12, color: '#687d5c', fontWeight: 400 }}>
-          {record.reservoirId}
-          {record.region ? ` · ${record.region}` : ''}
-        </div>
-      </td>
-      <td className={styles.numRight}>{formatNumber(record.volumeMcm, 3)}</td>
-      <td className={styles.numRight}>{record.volumeUnit ?? '—'}</td>
-      <td className={styles.numRight}>{record.capacityMcm === null ? '—' : formatNumber(record.capacityMcm, 3)}</td>
-      <td>
-        <div className={styles.gaugeWrap}>
-          <div className={styles.gaugeTrack}>
-            <div
-              className={styles.gaugeFill}
-              style={{
-                width: `${percent === null ? 0 : Math.min(100, Math.max(0, percent))}%`,
-                background: gaugeColor(percent),
-              }}
-            />
-          </div>
-          <span className={styles.numRight} style={{ minWidth: 66 }}>
-            {percent === null ? '—' : `${formatNumber(percent)}%`}
-          </span>
-        </div>
-      </td>
-      <td className={styles.numRight}>
-        {record.reportedPercentStorage === null ? '—' : formatNumber(record.reportedPercentStorage)}
-      </td>
-      <td className={styles.numRight}>{record.qualityStatus ?? '—'}</td>
-    </tr>
-  );
 }
 
 /**
@@ -197,43 +149,27 @@ export function WaterDashboard({ metadata, payload, provenance }: WaterDashboard
         </div>
       </div>
 
-      <div className={styles.tableCard}>
-        <div className={styles.tableHeadRow}>
-          <span className={styles.tableCount}>
-            {hasNumbers
-              ? `อ่างที่สัดส่วนน้ำต่ำสุด ${Math.min(TABLE_ROWS, records.length)} จาก ${formatNumber(records.length, 0)} อ่าง`
-              : 'รายการอ่างเก็บน้ำ'}
-          </span>
-          <span style={{ fontSize: 12, color: '#687d5c' }}>หน่วยปริมาตร MCM · เรียงจากสัดส่วนน้ำน้อยไปมาก</span>
-        </div>
-        <div className={styles.tableResponsive}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">อ่างเก็บน้ำ</th>
-                <th scope="col">ปริมาตร (MCM)</th>
-                <th scope="col">หน่วย</th>
-                <th scope="col">ความจุ</th>
-                <th scope="col">สัดส่วนน้ำ</th>
-                <th scope="col">% จากต้นทาง</th>
-                <th scope="col">คุณภาพ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {hasNumbers ? (
-                records.slice(0, TABLE_ROWS).map((record) => <ReservoirRow key={record.reservoirId} record={record} />)
-              ) : (
+      {hasNumbers ? (
+        <WaterReservoirTable records={records} />
+      ) : (
+        <div className={styles.tableCard}>
+          <div className={styles.tableHeadRow}>
+            <span className={styles.tableCount}>รายการอ่างเก็บน้ำ</span>
+          </div>
+          <div className={styles.tableResponsive}>
+            <table className={styles.table}>
+              <tbody>
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', color: '#687d5c', padding: '22px 12px' }}>
                     ยังไม่มีแถวตัวเลขที่เผยแพร่ได้ในคลังข้อมูลกลาง — รายการจะเพิ่มขึ้นเองเมื่อรอบ sync เขียนสำเร็จใต้{' '}
                     <code>active_run_id</code>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.tableCard}>
         <div className={styles.tableHeadRow}>

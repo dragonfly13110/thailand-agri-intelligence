@@ -451,7 +451,7 @@ test('nwp routes: the grid route returns the stored grid with a truthful access 
   const data = body.data as Record<string, unknown>;
   assert.equal(data.runId, RUN_ID);
   assert.equal(data.variable, 'p24h');
-  assert.equal(data.unit, null);
+  assert.equal(data.unit, 'mm', 'p24h is confirmed from TMD even while the run row still says pending');
   assert.equal(data.method, 'block_mean_0.15deg');
   assert.equal((data.mean as unknown[]).length, 4);
   assert.equal((data.mean as unknown[])[1], null);
@@ -615,7 +615,7 @@ test('nwp routes: an oversized grid payload is a 500 NWP_PAYLOAD_TOO_LARGE', asy
   assert.equal(errorCode(body), 'NWP_PAYLOAD_TOO_LARGE');
 });
 
-test('nwp routes: provinces retain numeric values and null units while pending units suppress risk levels', async () => {
+test('nwp routes: provinces publish a TMD-confirmed unit and compute risk from the internal bands', async () => {
   const state: FakeState = {
     run: runRow(),
     snapshot: snapshotRow({ unit: 'mm' }),
@@ -656,11 +656,11 @@ test('nwp routes: provinces retain numeric values and null units while pending u
     const data = body.data as Record<string, unknown>;
     assert.equal(data.method, 'max_within_25km');
     assert.equal(data.radiusKm, 25);
-    assert.equal(data.unit, null);
+    assert.equal(data.unit, 'mm');
     const provinces = data.provinces as Array<Record<string, unknown>>;
     assert.equal(provinces.length, 2);
     assert.equal(provinces[0].provinceCode, '73');
-    assert.equal(provinces[0].riskLevel, null);
+    assert.equal(provinces[0].riskLevel, 'high', '62.4 mm is above the internal high band');
     assert.equal(provinces[0].value, 62.4, 'numeric values remain available');
     assert.equal(provinces[0].cellCount, 18, 'the cell count comes from the snapshot quality document');
     assert.equal(provinces[0].distanceKm, 3.2);
@@ -672,6 +672,59 @@ test('nwp routes: provinces retain numeric values and null units while pending u
   } finally {
     nwpData.setNwpThresholdsForTests(undefined);
   }
+});
+
+test('nwp routes: a TMD-confirmed variable publishes its unit and risk even while the run row says pending', async () => {
+  const state: FakeState = {
+    run: runRow(),
+    snapshot: snapshotRow({ unit: null }),
+    provinces: [
+      {
+        runId: RUN_ID,
+        variable: 'p24h',
+        validAt: VALID_AT,
+        provinceCode: '73',
+        provinceName: 'นครปฐม',
+        value: 62.4,
+        method: 'max_within_25km',
+        radiusKm: 25,
+        distanceKm: 3.2,
+        riskLevel: null,
+      },
+    ],
+  };
+
+  nwpData.setNwpThresholdsForTests(THRESHOLDS);
+  try {
+    const grid = await withRunner(fakeRunner(state), () =>
+      call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+    );
+    assert.equal((grid.body.data as Record<string, unknown>).unit, 'mm');
+
+    const provinces = await withRunner(fakeRunner(state), () =>
+      call(provincesRoute.GET, '/api/v1/nwp/provinces?runId=' + RUN_ID + '&variable=p24h&validAt=' + VALID_AT),
+    );
+    const provinceData = provinces.body.data as Record<string, unknown>;
+    assert.equal(provinceData.unit, 'mm');
+    const rows = provinceData.provinces as Array<Record<string, unknown>>;
+    assert.equal(rows[0].riskLevel, 'high', '62.4 mm is above the internal high band');
+  } finally {
+    nwpData.setNwpThresholdsForTests(undefined);
+  }
+});
+
+test('nwp routes: temperature is labelled °C and an unconfirmed wind variable stays unlabelled', async () => {
+  const t2m = await withRunner(
+    fakeRunner({ run: runRow(), snapshot: snapshotRow({ variable: 't2m', unit: null }) }),
+    () => call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=t2m&validAt=' + VALID_AT),
+  );
+  assert.equal((t2m.body.data as Record<string, unknown>).unit, '°C');
+
+  const wind = await withRunner(
+    fakeRunner({ run: runRow(), snapshot: snapshotRow({ variable: 'ws10m', unit: null }) }),
+    () => call(gridRoute.GET, '/api/v1/nwp/grid?runId=' + RUN_ID + '&variable=ws10m&validAt=' + VALID_AT),
+  );
+  assert.equal((wind.body.data as Record<string, unknown>).unit, null);
 });
 
 test('nwp routes: a province unit is exposed only after confirmation and only from the snapshot', async () => {

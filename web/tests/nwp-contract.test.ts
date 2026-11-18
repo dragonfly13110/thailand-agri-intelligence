@@ -99,11 +99,13 @@ test('nwp contract: isNwpVariable accepts only the allowlist', () => {
   }
 });
 
-test('nwp contract: unit map stays null until TMD confirms official units', () => {
-  assert.deepEqual(Object.keys(types.NWP_VARIABLE_UNITS_PENDING).sort(), [...types.NWP_VARIABLES].sort());
+test('nwp contract: the unit map covers every variable and keeps wind unlabelled', () => {
+  assert.deepEqual(Object.keys(types.NWP_VARIABLE_UNITS).sort(), [...types.NWP_VARIABLES].sort());
   for (const variable of types.NWP_VARIABLES) {
-    assert.equal(types.NWP_VARIABLE_UNITS_PENDING[variable], null, variable);
+    const evidence = types.NWP_UNIT_EVIDENCE[variable];
+    assert.equal(types.NWP_VARIABLE_UNITS[variable], evidence.status === 'confirmed' ? evidence.unit : null, variable);
   }
+  assert.equal(types.NWP_VARIABLE_UNITS.ws10m, null);
 });
 
 /* ------------------------------------------------------------------ */

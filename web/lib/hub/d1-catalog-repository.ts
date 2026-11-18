@@ -124,7 +124,9 @@ export async function listD1Sources(url: URL) {
   const rows = await queryD1<Row>(
     'SELECT s.source_id AS id, s.source_name AS name, s.base_url AS baseUrl, s.status AS status, ' +
       's.freshness_days AS freshnessDays, ' +
-      '(SELECT max(r.completed_at) FROM sync_runs r WHERE r.source_id = s.source_id AND r.status = "succeeded") AS lastSuccessAt ' +
+      '(SELECT max(r.completed_at) FROM sync_runs r WHERE r.source_id = s.source_id AND r.status = "succeeded") AS lastSuccessAt, ' +
+      '(SELECT max(r.completed_at) FROM sync_runs r WHERE r.source_id = s.source_id AND r.status IN ("succeeded", "partial")) AS lastFetchAt, ' +
+      '(SELECT r.status FROM sync_runs r WHERE r.source_id = s.source_id AND r.status IN ("succeeded", "partial") AND r.completed_at IS NOT NULL ORDER BY r.completed_at DESC, r.started_at DESC LIMIT 1) AS lastFetchStatus ' +
       'FROM sources s' +
       where +
       ' ORDER BY s.source_name, s.source_id LIMIT ? OFFSET ?',
@@ -137,6 +139,8 @@ export async function listD1Sources(url: URL) {
     baseUrl: String(row.baseUrl),
     status: row.status as HubSource['status'],
     lastSuccessAt: date(row.lastSuccessAt),
+    lastFetchAt: date(row.lastFetchAt),
+    lastFetchStatus: text(row.lastFetchStatus) as SourceRun['status'] | null,
   }));
 
   const metadataStatuses = await latestMetadataStatuses();
@@ -357,6 +361,8 @@ export async function getD1SourceStatus(id: string) {
       's.freshness_days AS freshnessDays, ' +
       '(SELECT run.status FROM sync_runs run WHERE run.source_id = s.source_id AND run.kind = "metadata" ORDER BY run.started_at DESC LIMIT 1) AS metadataStatus, ' +
       '(SELECT max(run.completed_at) FROM sync_runs run WHERE run.source_id = s.source_id AND run.status = "succeeded") AS lastSuccessAt, ' +
+      '(SELECT max(run.completed_at) FROM sync_runs run WHERE run.source_id = s.source_id AND run.status IN ("succeeded", "partial")) AS lastFetchAt, ' +
+      '(SELECT run.status FROM sync_runs run WHERE run.source_id = s.source_id AND run.status IN ("succeeded", "partial") AND run.completed_at IS NOT NULL ORDER BY run.completed_at DESC, run.started_at DESC LIMIT 1) AS lastFetchStatus, ' +
       '(SELECT run.status FROM sync_runs run WHERE run.source_id = s.source_id ORDER BY run.started_at DESC LIMIT 1) AS latestStatus ' +
       'FROM sources s ' +
       'WHERE s.source_id = ? AND s.metadata_access_status IN ("approved_public", "metadata_only")',
@@ -385,6 +391,8 @@ export async function getD1SourceStatus(id: string) {
     baseUrl: String(row.baseUrl),
     status: row.status as HubSource['status'],
     lastSuccessAt: date(row.lastSuccessAt),
+    lastFetchAt: date(row.lastFetchAt),
+    lastFetchStatus: text(row.lastFetchStatus) as SourceRun['status'] | null,
     latestStatus: text(row.latestStatus) as SourceRun['status'] | null,
     recentRuns: runs.map((run) => ({
       runId: String(run.runId),

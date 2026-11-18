@@ -16,6 +16,7 @@ export type StatusPanel = {
   };
   latestVisibleRun: { statusLabel: string; errorCode: string | null; startedAt: LabeledTime; completedAt: LabeledTime };
   lastSuccessfulSync: { text: string; unknown: boolean };
+  lastFetch: LabeledTime & { partial: boolean };
   apiReadAt: { label: string; text: string };
   readIsNotFreshnessNote: string;
   fallback: { mode: boolean; note: string };
@@ -86,6 +87,27 @@ export function formatTimeBangkok(value?: string | null): LabeledTime {
   return { text: formatted, unknown: false };
 }
 
+export type LastFetchInput = {
+  lastSuccessAt: string | null;
+  lastFetchAt?: string | null;
+  lastFetchStatus?: SourceRun['status'] | null;
+};
+
+/** A partial run did write data, so its time is shown, but it never counts as a full success. */
+export function lastFetchLabel(source: LastFetchInput): LabeledTime & { partial: boolean } {
+  const successMs = source.lastSuccessAt ? Date.parse(source.lastSuccessAt) : NaN;
+  const fetchMs = source.lastFetchAt ? Date.parse(source.lastFetchAt) : NaN;
+  const status = source.lastFetchStatus;
+  const fetchWins =
+    (status === 'succeeded' || status === 'partial') &&
+    Number.isFinite(fetchMs) &&
+    (!Number.isFinite(successMs) || fetchMs >= successMs);
+  return {
+    ...formatTimeBangkok(fetchWins ? source.lastFetchAt : source.lastSuccessAt),
+    partial: fetchWins && status === 'partial',
+  };
+}
+
 /** Read and written counts stay attached to their own run; kinds and units are never merged. */
 export function runRecordsLines(runs: readonly SourceRun[]): string[] {
   return runs.map(run =>
@@ -129,6 +151,7 @@ export function buildStatusPanel(detail: SourceStatus, responseMeta?: Partial<Ap
       completedAt: formatTimeBangkok(latest?.completedAt ?? null),
     },
     lastSuccessfulSync: lastSuccess,
+    lastFetch: lastFetchLabel(detail),
     apiReadAt: {
       label: 'เวลาที่ Hub API อ่านข้อมูล',
       text: formatTimeBangkok(responseMeta?.retrievedAt ?? null).text,

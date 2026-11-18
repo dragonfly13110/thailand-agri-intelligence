@@ -271,9 +271,11 @@ function expectedYear(year: number) {
 test('cache tier serves a real 2016-2025 overview with exact per-year aggregates', async () => {
   await withTempRoot(async (root) => {
     for (let year = 2016; year <= 2025; year += 1) await writeCachePartition(root, year);
+    // annualExtract: null disables the shipped annual tier so this test keeps
+    // measuring the reviewed daily cache, not whichever tier covers more years.
     const overview = await climateData.buildClimateHistoryOverview(
       { provinceCode: '73', startYear: 2016, endYear: 2025 },
-      { storeReader: emptyReader, cacheRoot: root },
+      { storeReader: emptyReader, cacheRoot: root, annualExtract: null },
     );
     assert.equal(overview.dataKind, 'real');
     assert.equal(overview.sample, false);
@@ -313,6 +315,7 @@ test('cache tier serves a real 2016-2025 overview with exact per-year aggregates
     // Baseline/trends/notables come only from the nine complete years.
     assert.equal(overview.baseline.tmeanNormalC, null);
     assert.ok(overview.baseline.tmaxNormalC !== null);
+    assert.equal(overview.baseline.tminNormalC, null, 'this snapshot publishes no tmin rows');
     assert.ok(Number.isFinite(overview.baseline.rainfallNormalMm as number));
     assert.equal(overview.trends.tmeanPerDecadeC, null);
     for (const notable of overview.notableYears) {
@@ -336,10 +339,10 @@ test('cache tier serves a real 2016-2025 overview with exact per-year aggregates
 
 test('D1 published-batch tier serves the 2026 days honestly (partial year, null kept)', async () => {
   await withTempRoot(async (root) => {
-    // Empty cache root: every year is rejected as missing, store tier must win.
+    // Empty cache root and no annual tier: the store batch must win.
     const overview = await climateData.buildClimateHistoryOverview(
       { provinceCode: '73', startYear: 2017, endYear: 2026 },
-      { storeReader: fakeReader(batch2026Rows), cacheRoot: root },
+      { storeReader: fakeReader(batch2026Rows), cacheRoot: root, annualExtract: null },
     );
     assert.equal(overview.dataKind, 'real');
     assert.equal(overview.scope.tier, 'd1_published_batch');
@@ -367,7 +370,7 @@ test('D1 published-batch tier serves the 2026 days honestly (partial year, null 
 
     // No complete year exists, so every annual-summary field stays null.
     assert.deepEqual(overview.baseline, {
-      tmeanNormalC: null, tmaxNormalC: null, rainfallNormalMm: null, hotDaysNormal: null,
+      tmeanNormalC: null, tmaxNormalC: null, tminNormalC: null, rainfallNormalMm: null, hotDaysNormal: null,
     });
     assert.deepEqual(overview.notableYears, []);
     for (const value of Object.values(overview.trends)) assert.equal(value, null);
@@ -399,14 +402,14 @@ test('tier selection: equal year counts prefer the governed D1 batch; store outa
       }));
     const tie = await climateData.buildClimateHistoryOverview(
       { provinceCode: '73', startYear: 2015, endYear: 2024 },
-      { storeReader: fakeReader(storeRows), cacheRoot: root },
+      { storeReader: fakeReader(storeRows), cacheRoot: root, annualExtract: null },
     );
     assert.equal(tie.dataKind, 'real');
     assert.equal(tie.scope.tier, 'd1_published_batch', '1 store year vs 1 cache year -> governed store wins');
 
     const outage = await climateData.buildClimateHistoryOverview(
       { provinceCode: '73', startYear: 2015, endYear: 2024 },
-      { storeReader: throwingReader as never, cacheRoot: root },
+      { storeReader: throwingReader as never, cacheRoot: root, annualExtract: null },
     );
     assert.equal(outage.dataKind, 'real');
     assert.equal(outage.scope.tier, 'reviewed_cache_point', 'D1 errors must degrade to cache, never to fabricated numbers');
@@ -424,7 +427,7 @@ test('a corrupt cache partition is rejected with a reason and never served', asy
 
     const overview = await climateData.buildClimateHistoryOverview(
       { provinceCode: '73', startYear: 2015, endYear: 2024 },
-      { storeReader: emptyReader, cacheRoot: root },
+      { storeReader: emptyReader, cacheRoot: root, annualExtract: null },
     );
     assert.equal(overview.dataKind, 'empty', 'nothing verifiable -> honest empty branch');
     assert.equal(overview.sample, false);
@@ -432,9 +435,11 @@ test('a corrupt cache partition is rejected with a reason and never served', asy
   });
 });
 
-test('route keeps the pinned empty contract for a province with no reviewed point', async () => {
+test('route keeps the pinned empty contract outside every real tier', async () => {
+  // 2005-2014 ends before the annual extract begins (2016) and the D1 batch
+  // only holds October 2026, so no tier can answer this window with data.
   const response = await climateRoute.GET(
-    new Request(new URL('/api/v1/climate-history?provinceCode=10&startYear=2005&endYear=2024', HUB_ORIGIN)),
+    new Request(new URL('/api/v1/climate-history?provinceCode=10&startYear=2005&endYear=2014', HUB_ORIGIN)),
   );
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');

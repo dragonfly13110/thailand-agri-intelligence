@@ -9,6 +9,7 @@ import {
   type PublishedObservationReader,
 } from './climate-history-store';
 import { readReviewedEra5Cache, type ReviewedEra5CacheRead } from './climate-history-cache';
+import { readReviewedAnnualExtract } from './climate-history-annual';
 
 /**
  * Climate history statistics (10-20 year windows, 77 provinces) for
@@ -16,12 +17,13 @@ import { readReviewedEra5Cache, type ReviewedEra5CacheRead } from './climate-his
  *
  * Governance rules kept from SYSTEM_DESIGN.md / agents.md:
  * - Every number emitted by `buildClimateHistoryOverview` is a REAL ERA5 value,
- *   read either from the active published D1 batch of
- *   `open_meteo_thailand_era5_archive` (approved_public, CC BY 4.0) or from the
- *   five reviewed full-calendar-year snapshots the existing ingest already
- *   fetched (2016-2025, daily rainfall / Tmax / ET0 at one grid point each).
- *   When neither holds rows for the requested province and window the response
- *   is the honest `dataKind:'empty'` branch — never a generated statistic.
+ *   read from one of three never-merged tiers: the active published D1 batch of
+ *   `open_meteo_thailand_era5_archive` (approved_public, CC BY 4.0), the five
+ *   reviewed full-calendar-year daily snapshots the existing ingest fetched
+ *   (2016-2025), or the reviewed annual extract built from one 10-year daily
+ *   request per province centroid (2016-2025, all 77 provinces). When none holds
+ *   rows for the requested province and window the response is the honest
+ *   `dataKind:'empty'` branch — never a generated statistic.
  * - One response describes exactly ONE grid cell (0.25° ERA5, ~27 km). Values
  *   are never merged across cells and are never provincial averages; the 77
  *   province codes are a coordinate registry, not a coverage claim.
@@ -79,7 +81,7 @@ export type ClimateYearStats = {
 
 export type ClimateNotableYear = {
   year: number;
-  reason: 'hottest' | 'driest' | 'wettest' | 'most_hot_days' | 'longest_dry_spell';
+  reason: 'hottest' | 'coldest' | 'driest' | 'wettest' | 'most_hot_days' | 'longest_dry_spell';
   labelTh: string;
   value: number;
   unit: '°C' | 'mm' | 'วัน';
@@ -107,7 +109,7 @@ type ClimateHistoryOverviewBase = {
 };
 
 type ClimateHistoryNumericSummary = {
-  baseline: { tmeanNormalC: number; rainfallNormalMm: number; hotDaysNormal: number };
+  baseline: { tmeanNormalC: number; tminNormalC: number; rainfallNormalMm: number; hotDaysNormal: number };
   years: ClimateYearStats[];
   trends: {
     tmeanPerDecadeC: number;
@@ -122,7 +124,7 @@ type ClimateHistoryNumericSummary = {
 };
 
 type ClimateHistoryEmptySummary = {
-  baseline: { tmeanNormalC: null; rainfallNormalMm: null; hotDaysNormal: null };
+  baseline: { tmeanNormalC: null; tminNormalC: null; rainfallNormalMm: null; hotDaysNormal: null };
   years: [];
   trends: {
     tmeanPerDecadeC: null;
@@ -160,7 +162,7 @@ export type ClimateRealYearStats = {
 };
 
 export type ClimateHistoryScope = {
-  tier: 'd1_published_batch' | 'reviewed_cache_point';
+  tier: 'd1_published_batch' | 'reviewed_cache_point' | 'reviewed_annual_extract';
   gridPoint: {
     areaLabelTh: string;
     requestedLatitude: number;
@@ -192,7 +194,7 @@ export type ClimateHistoryProvenance = {
   license: string;
   attribution: string;
   attributionUrl: string;
-  readThrough: 'd1_active_numeric_run' | 'reviewed_local_snapshot';
+  readThrough: 'd1_active_numeric_run' | 'reviewed_local_snapshot' | 'reviewed_annual_extract';
   runId: string | null;
   runStatus: string | null;
   runCount: number;
@@ -211,7 +213,13 @@ export type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
       dataKind: 'real';
       sample: false;
       years: ClimateRealYearStats[];
-      baseline: { tmeanNormalC: number | null; tmaxNormalC: number | null; rainfallNormalMm: number | null; hotDaysNormal: number | null };
+      baseline: {
+        tmeanNormalC: number | null;
+        tmaxNormalC: number | null;
+        tminNormalC: number | null;
+        rainfallNormalMm: number | null;
+        hotDaysNormal: number | null;
+      };
       trends: {
         tmeanPerDecadeC: number | null;
         tmaxPerDecadeC: number | null;
@@ -285,10 +293,10 @@ const REGION_RAINFALL_BASE_MM: Record<ClimateRegion, number> = {
 /* Province centroid registry (copied from src/tadih/open_meteo.py)     */
 /* ------------------------------------------------------------------ */
 
-type ProvinceCentroid = { nameEn: string; lat: number; lon: number; region: ClimateRegion };
+export type ProvinceCentroid = { nameEn: string; lat: number; lon: number; region: ClimateRegion };
 
 /** 77-province reference grid points; a registry, never a coverage claim. */
-const PROVINCE_CENTROIDS: Record<string, ProvinceCentroid> = {
+export const PROVINCE_CENTROIDS: Record<string, ProvinceCentroid> = {
   '10': { nameEn: 'Bangkok', lat: 13.7563, lon: 100.5018, region: 'central' },
   '11': { nameEn: 'Samut Prakan', lat: 13.5991, lon: 100.5998, region: 'central' },
   '12': { nameEn: 'Nonthaburi', lat: 13.8621, lon: 100.5144, region: 'central' },
@@ -643,7 +651,9 @@ function edgeFiveYearMean(values: Array<number | null>, fromStart: boolean): num
  * counted when every day in it was published with rainfall < 1 mm.
  */
 function drySpellStats(records: RealDayRecord[]): { longest: number | null; events5d: number | null } {
-  const published = records.filter((record) => record.precip !== undefined);
+  // A published-but-null rainfall day proves nothing about dryness; only numeric
+  // days count, so an all-null year stays null instead of claiming 0 dry days.
+  const published = records.filter((record) => typeof record.precip === 'number');
   if (!published.length) return { longest: null, events5d: null };
   const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
   let run = 0;
@@ -774,7 +784,28 @@ export type ClimateHistoryReadOptions = {
   storeReader?: PublishedObservationReader;
   /** Overrides the reviewed-snapshot root; production uses data/local/raw/open_meteo. */
   cacheRoot?: string;
+  /** Injected for tests; production defaults to the bundled reviewed annual extract. */
+  annualExtract?: unknown;
 };
+
+export type ClimateTier = 'd1_published_batch' | 'reviewed_cache_point' | 'reviewed_annual_extract';
+
+/**
+ * Never merge tiers: the tier holding the most years wins. Ties go to the
+ * governed D1 batch, then to the annual extract (all four variables), and only
+ * then to the daily cache (rainfall/Tmax/ET0, so tmean/tmin stay null).
+ */
+export function selectClimateTier(input: {
+  storeYears: number;
+  cacheYears: number;
+  annualYears: number;
+}): ClimateTier | null {
+  const best = Math.max(input.storeYears, input.cacheYears, input.annualYears);
+  if (best <= 0) return null;
+  if (input.storeYears === best) return 'd1_published_batch';
+  if (input.annualYears === best) return 'reviewed_annual_extract';
+  return 'reviewed_cache_point';
+}
 
 export async function buildClimateHistoryOverview(params: {
   provinceCode: string;
@@ -835,17 +866,33 @@ export async function buildClimateHistoryOverview(params: {
     cacheRead = null;
   }
 
+  const annualRead = (() => {
+    try {
+      return readReviewedAnnualExtract(
+        provinceCode,
+        startYear,
+        endYear,
+        options.annualExtract === undefined ? {} : { extract: options.annualExtract },
+      );
+    } catch {
+      return null;
+    }
+  })();
+  const annual = annualRead && annualRead.status === 'ok' ? annualRead : null;
+  const annualYears = annual ? annual.years.length : 0;
+
   const store = storeRead ? normalizeStoreRead(storeRead) : null;
   const storeYears = store ? store.byYear.size : 0;
   const cacheYears = cacheRead ? cacheRead.years.length : 0;
+  const tier = selectClimateTier({ storeYears, cacheYears, annualYears });
 
-  if (storeYears === 0 && cacheYears === 0) {
+  if (!tier) {
     return {
       ...base,
       yearsWithData: 0,
       dataKind: 'empty',
       sample: false,
-      baseline: { tmeanNormalC: null, rainfallNormalMm: null, hotDaysNormal: null },
+      baseline: { tmeanNormalC: null, tminNormalC: null, rainfallNormalMm: null, hotDaysNormal: null },
       years: [],
       trends: {
         tmeanPerDecadeC: null,
@@ -860,30 +907,78 @@ export async function buildClimateHistoryOverview(params: {
     };
   }
 
-  // Never merge tiers: serve the tier that actually holds more years in the
-  // window (D1 published batch wins ties because it is the governed store).
-  const useStore = storeYears > 0 && storeYears >= cacheYears;
-  const byYear = useStore ? store!.byYear : normalizeCacheRead(cacheRead!);
-  const years = [...byYear.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([year, records]) => aggregateRealYear(year, records));
-
   const windowYears: number[] = [];
   for (let year = startYear; year <= endYear; year += 1) windowYears.push(year);
-  const yearsMissing = windowYears.filter((year) => !byYear.has(year));
 
+  let years: ClimateRealYearStats[];
+  let yearsMissing: number[];
   const allDates: string[] = [];
-  for (const records of byYear.values()) {
-    for (const record of records) allDates.push(record.date);
+  let dailyRowsRead: number;
+  if (tier === 'reviewed_annual_extract' && annual) {
+    const annualRows = annual.years;
+    const present = new Set(annualRows.map((row) => row.year));
+    years = annualRows;
+    yearsMissing = windowYears.filter((year) => !present.has(year));
+    dailyRowsRead = annual.province.dailyRows;
+  } else {
+    const byYear = tier === 'd1_published_batch' ? store!.byYear : normalizeCacheRead(cacheRead!);
+    years = [...byYear.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([year, records]) => aggregateRealYear(year, records));
+    yearsMissing = windowYears.filter((year) => !byYear.has(year));
+    for (const records of byYear.values()) {
+      for (const record of records) allDates.push(record.date);
+    }
+    allDates.sort((a, b) => a.localeCompare(b));
+    dailyRowsRead = allDates.length;
   }
-  allDates.sort((a, b) => a.localeCompare(b));
-  const dailyRowsRead = allDates.length;
 
   let scope: ClimateHistoryScope;
   let provenance: ClimateHistoryProvenance;
   let dataAsOf: string | null;
 
-  if (useStore && storeRead) {
+  if (tier === 'reviewed_annual_extract' && annual) {
+    const province = annual.province;
+    scope = {
+      tier: 'reviewed_annual_extract',
+      gridPoint: {
+        areaLabelTh: `จุดศูนย์กลางจังหวัด${nameTh}`,
+        requestedLatitude: province.requestedLatitude,
+        requestedLongitude: province.requestedLongitude,
+        providerGridLatitude: province.providerGridLatitude,
+        providerGridLongitude: province.providerGridLongitude,
+        resolutionDeg: CLIMATE_HISTORY_SOURCE.gridResolutionDeg,
+        support: 'grid_point',
+      },
+      yearsWithData: years.length,
+      yearsMissing,
+      firstDayWithData: province.firstDay,
+      lastDayWithData: province.lastDay,
+      dailyRowsRead,
+      rowsCapped: false,
+      variablesPublished: ['t2m_mean_c', 't2m_max_c', 't2m_min_c', 'precip_mm'],
+      variablesNotPublishedHere: [],
+      grainNoteTh: 'ค่าสรุปรายปีจากข้อมูล ERA5 รายวันจริงของจุดกริดเดียวที่ผ่านการตรวจสอบแล้ว (annual extract 2016–2025) — หนึ่งจุดกริดต่อจังหวัด ไม่ใช่ค่าเฉลี่ยทั้งจังหวัด',
+      rejectedCacheYears: cacheRead ? cacheRead.rejected : [],
+    };
+    provenance = {
+      sourceId: 'open_meteo',
+      resourceId: ERA5_ARCHIVE_RESOURCE_ID,
+      license: CLIMATE_HISTORY_SOURCE.license,
+      attribution: CLIMATE_HISTORY_SOURCE.attribution,
+      attributionUrl: CLIMATE_HISTORY_SOURCE.attributionUrl,
+      readThrough: 'reviewed_annual_extract',
+      runId: null,
+      runStatus: null,
+      runCount: 0,
+      payloadSha256: null,
+      sourceRetrievedAt: province.retrievedAt,
+      cacheChecksums: [province.dailySha256],
+      cacheRetrievedAtFirst: province.retrievedAt,
+      cacheRetrievedAtLast: province.retrievedAt,
+    };
+    dataAsOf = province.retrievedAt;
+  } else if (tier === 'd1_published_batch' && storeRead && store) {
     const published = ERA5_CLIMATE_METRICS.filter((metric) => store!.metricSeen.has(metric));
     scope = {
       tier: 'd1_published_batch',
@@ -981,6 +1076,7 @@ export async function buildClimateHistoryOverview(params: {
   const baseline = {
     tmeanNormalC: roundOrNull(meanKnown(complete.map((row) => row.tmeanC).filter((v): v is number => v !== null)), 2),
     tmaxNormalC: roundOrNull(meanKnown(complete.map((row) => row.tmaxMeanC).filter((v): v is number => v !== null)), 2),
+    tminNormalC: roundOrNull(meanKnown(complete.map((row) => row.tminMeanC).filter((v): v is number => v !== null)), 2),
     rainfallNormalMm: roundOrNull(meanKnown(complete.map((row) => row.rainfallTotalMm).filter((v): v is number => v !== null)), 1),
     hotDaysNormal: roundOrNull(meanKnown(complete.map((row) => row.hotDays38C).filter((v): v is number => v !== null)), 1),
   };
@@ -1009,6 +1105,18 @@ export async function buildClimateHistoryOverview(params: {
       value: hottest.value,
       unit: '°C',
       normalC: hasTmean ? baseline.tmeanNormalC : baseline.tmaxNormalC,
+      normalMm: null,
+    });
+  }
+  const coldest = extremeRealRow(complete, (row) => row.tminMeanC, 'min');
+  if (coldest) {
+    notableYears.push({
+      year: coldest.row.year,
+      reason: 'coldest',
+      labelTh: 'อุณหภูมิต่ำสุดเฉลี่ยต่ำที่สุด',
+      value: coldest.value,
+      unit: '°C',
+      normalC: baseline.tminNormalC,
       normalMm: null,
     });
   }
@@ -1081,7 +1189,9 @@ export function climateHistoryMetaWarnings(overview: ClimateHistoryOverview): st
   if (overview.dataKind !== 'real') return [...CLIMATE_HISTORY_WARNINGS];
   const warnings: string[] = [
     `ทุกค่ามาจากข้อมูล ERA5 จริงของจุดกริดเดียว (0.25° ≈ 27 กม.) ไม่ใช่อุณหภูมิหรือฝนเฉลี่ยทั้งจังหวัด และไม่ใช่ค่าจากสถานีวัด`,
-    'รหัส 77 จังหวัดเป็นทะเบียนพิกัดอ้างอิง ไม่ได้หมายความว่ามีข้อมูลครอบคลุมทุกจังหวัด',
+    overview.scope.tier === 'reviewed_annual_extract'
+      ? 'รหัส 77 จังหวัดเป็นทะเบียนพิกัดอ้างอิง · annual extract นี้มีค่าครบทั้ง 77 จุด เฉพาะปี 2016–2025 และแต่ละจุดเป็นค่าจุดกริดเดียว ไม่ใช่ค่าเฉลี่ยทั้งจังหวัด'
+      : 'รหัส 77 จังหวัดเป็นทะเบียนพิกัดอ้างอิง ไม่ได้หมายความว่ามีข้อมูลครอบคลุมทุกจังหวัด',
   ];
   if (overview.scope.tier === 'reviewed_cache_point') {
     warnings.push('ชุดนี้อ่านจาก snapshot รายจุดที่ตรวจสอบแล้วซึ่ง ingest ดึงมาเก็บไว้จริง (CC BY 4.0) ไม่ใช่ numeric run ที่เผยแพร่ใน D1');
@@ -1089,6 +1199,9 @@ export function climateHistoryMetaWarnings(overview: ClimateHistoryOverview): st
   }
   if (overview.scope.tier === 'd1_published_batch') {
     warnings.push(`ค่าอ่านจาก numeric run ที่เผยแพร่ใน D1 (สถานะ run: ${overview.provenance.runStatus ?? 'ไม่ทราบ'}) — ครอบคลุมเฉพาะวันที่ runนั้นมีจริง ไม่ใช่ทั้งช่วงปีที่เลือก`);
+  }
+  if (overview.scope.tier === 'reviewed_annual_extract') {
+    warnings.push('ชุดนี้เป็นค่าสรุปรายปีที่คำนวณจากข้อมูล ERA5 รายวันจริงของจุดกริดเดียว (annual extract) ไม่ใช่ค่าเฉลี่ยทั้งจังหวัด และไม่ใช่ค่าจากสถานีวัด');
   }
   if (overview.scope.yearsMissing.length) {
     warnings.push(`ช่วงปีที่ไม่มีแถวข้อมูลเผยแพร่จริง: ${overview.scope.yearsMissing.join(', ')} — ปีที่ขาดไม่ถูกแทนด้วยค่าประมาณใด ๆ`);
@@ -1166,6 +1279,7 @@ export async function buildClimateHistorySampleOverview(params: {
 
   const baseline = {
     tmeanNormalC: round(tmeanNormal, 1),
+    tminNormalC: round(meanOf(cores.map((core) => core.tminMeanC)), 1),
     rainfallNormalMm: round(rainfallNormal, 0),
     hotDaysNormal: round(meanOf(hotDaysSeries), 1),
   };
@@ -1183,6 +1297,7 @@ export async function buildClimateHistorySampleOverview(params: {
   };
 
   const hottest = extremeRow(years, (row) => row.tmeanC, 'max');
+  const coldest = extremeRow(years, (row) => row.tminMeanC, 'min');
   const mostHotDays = extremeRow(years, (row) => row.hotDays38C, 'max');
   const driest = extremeRow(years, (row) => row.rainfallTotalMm, 'min');
   const wettest = extremeRow(years, (row) => row.rainfallTotalMm, 'max');
@@ -1197,6 +1312,17 @@ export async function buildClimateHistorySampleOverview(params: {
       value: hottest.tmeanC,
       unit: '°C',
       normalC: baseline.tmeanNormalC,
+      normalMm: null,
+    });
+  }
+  if (coldest && coldest.tminMeanC !== null) {
+    notableYears.push({
+      year: coldest.year,
+      reason: 'coldest',
+      labelTh: 'อุณหภูมิต่ำสุดเฉลี่ยต่ำที่สุด',
+      value: coldest.tminMeanC,
+      unit: '°C',
+      normalC: baseline.tminNormalC,
       normalMm: null,
     });
   }

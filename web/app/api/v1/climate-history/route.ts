@@ -57,9 +57,10 @@ function climateMeta(overview: ClimateHistoryOverview): Partial<ApiMeta> {
 /**
  * GET /api/v1/climate-history?provinceCode=73&startYear=2016&endYear=2025
  *
- * Serves real ERA5 values read through the governed D1 publication path or the
- * reviewed local snapshots the existing ingest already fetched; one response
- * always describes exactly one 0.25° grid point. When neither holds rows for
+ * Serves real ERA5 values read through the governed D1 publication path, the
+ * reviewed local snapshots the existing ingest already fetched, or the reviewed
+ * 77-province annual extract (2016-2025); one response always describes exactly
+ * one 0.25° grid point. When none of the tiers holds rows for
  * the province/window the endpoint returns the pinned empty overview and never
  * publishes generated climate values. `validateClimateHistoryQuery` preserves
  * the 400 INVALID_QUERY rules.

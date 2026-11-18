@@ -33,6 +33,8 @@ export interface NwpHeatmapProps {
   ny: number;
   variableLabel: string;
   unitLabel?: string | null;
+  /** The unit label comes from TMD's published documentation, not a guess. */
+  unitConfirmed?: boolean;
   /** Colour + lead the tooltip with `max` instead of `mean`. */
   valuesAreMax?: boolean;
   /** Desired desktop plot height in px (plot width follows the projection). */
@@ -206,6 +208,7 @@ export function NwpHeatmap({
   ny,
   variableLabel,
   unitLabel = null,
+  unitConfirmed = false,
   valuesAreMax = false,
   height = DEFAULT_PLOT_HEIGHT,
   thresholds = null,
@@ -626,7 +629,12 @@ export function NwpHeatmap({
                   </div>
                 ) : null}
                 <div className={styles.tooltipNote}>
-                  {MODEL_NOTE} · {unitLabel ? `หน่วยที่ระบุ ${unitLabel} (รอการยืนยัน)` : 'หน่วยรอการยืนยัน'}
+                  {MODEL_NOTE} ·{' '}
+                  {unitLabel
+                    ? unitConfirmed
+                      ? `หน่วย ${unitLabel} (ยืนยันจาก TMD)`
+                      : `หน่วยที่ระบุ ${unitLabel} (รอการยืนยัน)`
+                    : 'หน่วยรอการยืนยัน'}
                 </div>
               </div>
             ) : null}
@@ -680,7 +688,9 @@ export function NwpHeatmap({
       </p>
 
       <div className={styles.legend} role="group" aria-label="คำอธิบายสีและช่วงค่าของกริด">
-        <p className={styles.legendTitle}>ค่าพยากรณ์ (หน่วยรอการยืนยัน)</p>
+        <p className={styles.legendTitle}>
+          ค่าพยากรณ์ ({unitLabel ? `หน่วย ${unitLabel}` : 'หน่วยรอการยืนยัน'})
+        </p>
         {scale.bands.map((band) => (
           <span key={`band-${band.index}`} className={styles.legendItem}>
             <span
@@ -699,7 +709,8 @@ export function NwpHeatmap({
         </span>
         {unitLabel ? (
           <span className={styles.legendUnit}>
-            หน่วยที่ระบุในข้อมูล: {unitLabel} — ยังรอการยืนยันจากต้นทาง
+            หน่วย {unitLabel} —{' '}
+            {unitConfirmed ? 'ยืนยันจากหน้าเผยแพร่ TMD' : 'ยังรอการยืนยันจากต้นทาง'}
           </span>
         ) : null}
       </div>

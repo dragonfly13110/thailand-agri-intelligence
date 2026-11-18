@@ -10,7 +10,8 @@
 - `download_gistda.py` — ดาวน์โหลดร่องรอยพื้นที่เผาไหม้ (`burn-scar`) และพื้นที่เผาไหม้ซ้ำซาก (`burn-freq`) จาก GISTDA API Gateway
 - `build_db.py` — นำเข้าขอบเขตจังหวัด/อำเภอ/ตำบล, จุดความร้อน VIIRS 5 ปี (พร้อมชื่อหมู่บ้านใกล้เคียง) และ burn-scar/burn-freq ลง DuckDB, แยกประเภทพื้นที่/ดาวเทียม และปักธงจุดความร้อนถาวรที่ซ้ำพิกัดเดิมเกิน 25 วัน
 - `analyze.py` — รันสรุปรายปี, ประเภทพื้นที่/พืช, ฤดูกาลรายเดือน, อันดับจังหวัด/อำเภอ/ตำบล/หมู่บ้าน และส่งออก CSV/JSON ไปที่ `data/output/`
-- `tests/test_hotspot_5y.py` — ชุดทดสอบการทำงานแบบออฟไลน์
+- `map_data.py`, `map_template.py`, `build_interactive_map.py` — รวมข้อมูล Hotspot 5 ปี + อากาศ ERA5 + น้ำท่วมซ้ำ HII สร้างแผนที่โต้ตอบไฟล์ HTML เดี่ยว `data/output/hotspot_5y_interactive_map.html`
+- `tests/test_hotspot_5y.py`, `tests/test_interactive_map.py` — ชุดทดสอบการทำงานแบบออฟไลน์
 
 ## วิธีใช้งาน (รันจากรากโปรเจกต์)
 
@@ -21,4 +22,5 @@
 .venv\Scripts\python.exe hotspot-5y\download_gistda.py --dataset burn-freq --centroid-only
 .venv\Scripts\python.exe hotspot-5y\build_db.py
 .venv\Scripts\python.exe hotspot-5y\analyze.py
+.venv\Scripts\python.exe hotspot-5y\build_interactive_map.py
 ```

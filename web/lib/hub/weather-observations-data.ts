@@ -107,7 +107,7 @@ export const WEATHER_OBSERVATIONS_SOURCE: WeatherObservationsSourceMetadata = {
     'ต้นทางระบุหน่วยใน payload แต่ยังไม่มีการยืนยันหน่วยอย่างเป็นทางการ จึงแสดง unit_status=pending_official_confirmation และ unit=null ตามกฎห้ามเดาหน่วย',
     'แถวสถานีไม่มี province_code ทางการในชั้น numeric (รหัสจังหวัดอยู่ใน dimensions ที่ adapter map จากทะเบียนสถานี) จึงใช้เป็นป้ายกำกับเท่านั้น ไม่ใช่ค่าเฉลี่ยจังหวัด',
     'สถานีไม่ใช่จังหวัด: ค่าสถิติใน summary คำนวณข้ามสถานีที่รายงานในวันนั้น ไม่ได้ครอบคลุม 77 จังหวัด และห้ามตีความว่าจังหวัดที่ไม่มีสถานีคือไม่มีฝน',
-    'ERA5 เป็นข้อมูล reanalysis (dataKind=estimated) ไม่ใช่ค่าตรวจวัด มีเฉพาะจังหวัดที่ถูกดึงเข้าคลังแล้ว (ปัจจุบันจุดกริดเดียว) จึงแสดงเป็นบล็อกแยก',
+    'ERA5 เป็นข้อมูล reanalysis (dataKind=estimated) ไม่ใช่ค่าตรวจวัด — archive ของผู้ให้บริการล่าช้าหลายวัน ค่าล่าสุดจึงไม่ใช่วันปัจจุบัน; เผยแพร่เป็นรายจุดกริดศูนย์กลางจังหวัดเท่าที่มีในคลังแต่ละรอบ แต่ละจุดไม่ใช่ค่าเฉลี่ยจังหวัด จึงแสดงเป็นบล็อกแยก',
   ],
 };
 
@@ -436,6 +436,28 @@ function summarise(stations: WeatherStationRecord[]): WeatherObservationSummary 
     windiest: pickExtreme(stations, 'wind_speed_ms', (left, right) => left - right),
     stationsReportingRainfall: reportingRainfall,
     stationsWithMissingRainfall: missingRainfall,
+  };
+}
+
+export type ReanalysisWeekSummary = {
+  rainMm: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  dayCount: number;
+  rainComplete: boolean;
+};
+
+/** A short window or a missing day yields null, so a partial week is never read as a dry week. */
+export function summarizeReanalysisWeek(record: WeatherReanalysisRecord): ReanalysisWeekSummary | null {
+  const last7 = record.days.slice(-7);
+  if (!last7.length) return null;
+  const rainComplete = last7.length === 7 && last7.every((day) => day.precipMm !== null);
+  return {
+    rainMm: rainComplete ? last7.reduce((sum, day) => sum + (day.precipMm as number), 0) : null,
+    startDate: last7[0]?.date ?? null,
+    endDate: last7[last7.length - 1]?.date ?? null,
+    dayCount: last7.length,
+    rainComplete,
   };
 }
 

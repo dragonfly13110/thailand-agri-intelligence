@@ -1,6 +1,6 @@
 import 'server-only';
 import { queryD1 } from './d1';
-import { listD1Observations, D1_OBSERVATION_ROW_LIMIT, type D1ObservationRow } from './d1-numeric-repository';
+import { listD1ObservationRows, D1_OBSERVATION_ROW_LIMIT, type D1ObservationRow } from './d1-numeric-repository';
 import {
   ERA5_RESOURCE_URL,
   TMD_STATION_RESOURCES,
@@ -39,24 +39,23 @@ const RESOURCE_ENTRIES: [string, { network: string; label: string }][] = [
 const RESOURCE_META = new Map<string, { network: string; label: string }>(RESOURCE_ENTRIES);
 
 /**
- * Collect every published row of one weather resource.
- *
- * Two guards shape this loop. The shared reader caps a call at
- * `D1_OBSERVATION_ROW_LIMIT`, so pages are followed until the reported total is
- * collected, and an empty page stops the walk even if the total disagrees. The
- * metric split and the province match are done in JavaScript because the reader's
- * `metricId`/`provinceCode` filters reject ids containing `_` (defect #7) and
- * because the province of a TMD station row lives in `dimensions`, never in
- * `observations.province_code`. Filters are passed as values, never interpolated.
+ * Collect the published rows of one weather resource, scoped to one province when
+ * the caller asked for one. Pages are followed until one comes back short: asking
+ * the shared reader for a batch total would re-scan the whole resource per page.
+ * The province scope travels into SQL as the `dimensions.provinceCode` value the
+ * adapters write, because grid and station rows deliberately leave the numeric
+ * `province_code` column empty; `buildWeatherObservations` still applies its own
+ * province match. Filters are passed as values, never interpolated.
  */
-async function listResourceRows(resourceUrl: string): Promise<D1ObservationRow[]> {
+async function listResourceRows(resourceUrl: string, provinceCode: string | null): Promise<D1ObservationRow[]> {
+  const filters = provinceCode
+    ? { resourceId: resourceUrl, dimensionProvinceCode: provinceCode }
+    : { resourceId: resourceUrl };
   const rows: D1ObservationRow[] = [];
-  let offset = 0;
   for (let guard = 0; guard < 40; guard += 1) {
-    const batch = await listD1Observations({ resourceId: resourceUrl }, { limit: D1_OBSERVATION_ROW_LIMIT, offset });
-    rows.push(...batch.rows);
-    offset += batch.rows.length;
-    if (!batch.rows.length || offset >= batch.total) return rows;
+    const page = await listD1ObservationRows(filters, { limit: D1_OBSERVATION_ROW_LIMIT, offset: rows.length, cache: true });
+    rows.push(...page);
+    if (page.length < D1_OBSERVATION_ROW_LIMIT) return rows;
   }
   return rows;
 }
@@ -107,7 +106,9 @@ export async function readWeatherSnapshot(
   const date = options.date ?? null;
 
   const resourceUrls = [...RESOURCE_META.keys()];
-  const perResource = await Promise.all(resourceUrls.map(async (url) => [url, await listResourceRows(url)] as const));
+  const perResource = await Promise.all(
+    resourceUrls.map(async (url) => [url, await listResourceRows(url, provinceCode)] as const),
+  );
   const batches = perResource
     .map(([url, rows]) => toBatch(url, rows))
     .filter((batch) => batch.observationRows > 0);

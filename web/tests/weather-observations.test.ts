@@ -262,6 +262,63 @@ test('empty batch yields the metadata-only body without numeric sentinels', () =
   assert.equal(body.source.licenseStatus, 'approved_public', 'the register is approved; only the batch is missing');
 });
 
+test('ERA5 limitation names the real grid scope instead of a single point', () => {
+  const limitations = weather.WEATHER_OBSERVATIONS_SOURCE.limitations.join(' | ');
+  assert.equal(limitations.includes('จุดกริดเดียว'), false, 'a single-point claim is false now that every province centroid is published');
+  assert.match(limitations, /จุดกริดศูนย์กลางจังหวัด/);
+  assert.match(limitations, /ไม่ใช่ค่าเฉลี่ยจังหวัด/);
+  assert.match(limitations, /ล่าช้า/, 'readers must be told the archive lags behind today');
+});
+
+test('the visible ERA5 block carries the archive-lag caveat, not only the empty state', () => {
+  const panel = readFileSync(new URL('../components/weather-observations-panel.tsx', import.meta.url), 'utf8');
+  const block = panel.slice(panel.indexOf('function ReanalysisBlock'), panel.indexOf('function ProvenanceList'));
+  assert.match(block, /ล่าช้า/);
+});
+
+test('province overview surfaces the published ERA5 week through the shared helper', () => {
+  const component = readFileSync(new URL('../components/province-agri-overview.tsx', import.meta.url), 'utf8');
+  assert.match(component, /\/api\/v1\/weather\/observations/, 'province pages must read the published ERA5 batch');
+  assert.match(component, /summarizeReanalysisWeek/, 'the seven-day rule belongs to the shared helper, not a local copy');
+  assert.equal(component.includes('function ReanalysisWeekCard'), true, 'the province ERA5 card is missing');
+  const card = component.slice(component.indexOf('function ReanalysisWeekCard'));
+  assert.match(card, /ฝนสะสม 7 วัน/);
+  assert.match(card, /ค่าประมาณ/, 'a reanalysis value must be labelled as an estimate, not a station reading');
+});
+
+test('province week summary counts rain only across a complete seven-day window', () => {
+  const day = (date: string, precipMm: number | null) => ({
+    date, precipMm, t2mMeanC: null, t2mMaxC: null, t2mMinC: null, rh2mPct: null, windSpeedMs: null,
+  });
+  const record = (days: ReturnType<typeof day>[]) => ({
+    provinceCode: '73', provinceNameTh: 'นครปฐม', locationCode: 'open-meteo:era5:73',
+    gridLatitude: 14, gridLongitude: 100, providerModel: 'era5', dataKind: 'estimated' as const,
+    unitStatus: null, days, missingValueCount: 0,
+  });
+  const week = ['2026-10-18', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24'];
+
+  const full = weather.summarizeReanalysisWeek(record(week.map((d) => day(d, 4))));
+  assert.equal(full?.rainMm, 28);
+  assert.equal(full?.startDate, '2026-10-18');
+  assert.equal(full?.endDate, '2026-10-24');
+  assert.equal(full?.dayCount, 7);
+  assert.equal(full?.rainComplete, true);
+
+  const sixDays = weather.summarizeReanalysisWeek(record(week.slice(0, 6).map((d) => day(d, 4))));
+  assert.equal(sixDays?.rainMm, null, 'six days cannot be read as a seven-day total');
+  assert.equal(sixDays?.rainComplete, false);
+
+  const gap = weather.summarizeReanalysisWeek(record(week.map((d, i) => day(d, i === 3 ? null : 4))));
+  assert.equal(gap?.rainMm, null, 'a missing day must break the total, not count as zero');
+  assert.equal(gap?.rainComplete, false);
+
+  const eight = weather.summarizeReanalysisWeek(record([day('2026-10-17', 99), ...week.map((d) => day(d, 4))]));
+  assert.equal(eight?.rainMm, 28, 'only the last seven days are summed');
+  assert.equal(eight?.startDate, '2026-10-18');
+
+  assert.equal(weather.summarizeReanalysisWeek(record([])), null, 'no days means no summary, never a zero total');
+});
+
 test('repository and route stay server-only and read the warehouse, not the upstream', () => {
   const repository = readFileSync(new URL('../lib/hub/weather-repository.ts', import.meta.url), 'utf8');
   const route = readFileSync(new URL('../app/api/v1/weather/observations/route.ts', import.meta.url), 'utf8');

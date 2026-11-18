@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-10-31T15:05:00",
+  "packages": 321,
+  "resources": 326,
+  "access": {
+    "json_datastore": 214,
+    "json_url": 37,
+    "none": 24,
+    "xlsx_url": 13,
+    "csv_url": 13,
+    "other": 25
+  },
+  "license_risk": {
+    "medium": 220,
+    "high": 106
+  },
+  "license_flag": {
+    "open_label_no_url": 220,
+    "unspecified": 79,
+    "non_commercial": 25,
+    "no_derivs": 2
+  },
+  "quality_flags": {
+    "large": 4,
+    "license_unknown": 79,
+    "no_time": 60,
+    "license_restricted": 27,
+    "no_geography": 76,
+    "transposed_header": 3,
+    "no_measure": 56,
+    "wide_format": 10,
+    "dictionary_only": 7,
+    "file_only": 88,
+    "unusable": 24
+  },
+  "isopen_false": 326,
+  "shortlist": {
+    "core": 30,
+    "caution_license": 5,
+    "support": 1
+  },
+  "best_apis": {
+    "total": 37,
+    "S": 7,
+    "A": 24,
+    "B": 6
+  },
+  "excluded": {
+    "exclude": 8,
+    "watch": 7
+  },
+  "freshness_probe": {
+    "tested": 214,
+    "by_year_ce": {
+      "2017": 2,
+      "2018": 1,
+      "2019": 6,
+      "2020": 1,
+      "2021": 3,
+      "2022": 6,
+      "2023": 22,
+      "2024": 34,
+      "2025": 64,
+      "2026": 5,
+      "2033": 1,
+      "2070": 1,
+      "unknown": 68
+    },
+    "year_2025_or_newer": 71,
+    "year_2024": 34,
+    "year_2023_or_older": 41,
+    "year_unknown": 68,
+    "anomalous_year_gt_2026": 2
+  },
+  "format_probe": {
+    "entries": 82,
+    "tested": 45,
+    "datastore_search_ok": 45,
+    "csv_dump_ok": 45,
+    "file_url_ok": 41,
+    "file_url_total": 45,
+    "direct_json_ok": 37
+  },
+  "direct_api_probe": {
+    "json_tests": 39,
+    "json_ok": 37,
+    "file_tests": 5,
+    "file_ok": 5
+  },
+  "env_api_probe": {
+    "tested": 13,
+    "ok": 12,
+    "not_ready": [
+      "dwr_rainfall"
+    ],
+    "not_configured": [
+      "tmd_station_observations"
+    ],
+    "meteostat_active_stations": 4,
+    "meteostat_probed_stations": 12,
+    "generated_at": "2026-10-31T16:24:10+07:00"
+  },
+  "needs_api_key": 11,
+  "api_keys_redacted": true
+}

@@ -34,6 +34,8 @@
 
 .bannerContent {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .bannerHeader {
@@ -47,6 +49,8 @@
 .bannerBadge {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: 6px;
   font-size: 11px;
   font-weight: 700;

@@ -28,6 +28,9 @@ export type HubSource = {
   baseUrl: string;
   status: 'enabled' | 'deferred' | 'needs_access' | 'unavailable';
   lastSuccessAt: string | null;
+  // Latest run that wrote data, including partial coverage; never a failed or running run.
+  lastFetchAt?: string | null;
+  lastFetchStatus?: SourceRun['status'] | null;
 };
 
 export type DatasetSummary = {

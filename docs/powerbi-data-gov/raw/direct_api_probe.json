@@ -1,0 +1,2557 @@
+{
+ "generated_at": "2026-10-31T07:48:00+00:00",
+ "note": "No API keys used. URLs with credential placeholders are excluded.",
+ "json_tests": [
+  {
+   "group": "nabc",
+   "label": "daily prices by date",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/date?date=2026-10-30",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 21968,
+   "ms": 449,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 58,
+     "total": 58
+    },
+    "row_count": 58,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "ข้าวหอมมะลิ",
+     "product_name": "ข้าวเปลือกเจ้าหอมมะลิ 105",
+     "market_name": "ท่าข้าว ธ.ก.ส.",
+     "province": "ขอนแก่น",
+     "day_price": 17000,
+     "unit": "บาท/ตัน"
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily rice jasmine 105",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%80%E0%B8%9B%E0%B8%A5%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%AB%E0%B8%AD%E0%B8%A1%E0%B8%A1%E0%B8%B0%E0%B8%A5%E0%B8%B4+105&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 36636,
+   "ms": 141,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 4059
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "ข้าวหอมมะลิ",
+     "product_name": "ข้าวเปลือกเจ้าหอมมะลิ 105",
+     "market_name": "โรงสีราษีพาณิชย์ศรีสะเกษ",
+     "province": "ศรีสะเกษ",
+     "day_price": 17243,
+     "unit": "บาท/ตัน"
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily maize 14.5%",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%82%E0%B8%9E%E0%B8%94%E0%B9%80%E0%B8%A5%E0%B8%B5%E0%B9%89%E0%B8%A2%E0%B8%87%E0%B8%AA%E0%B8%B1%E0%B8%95%E0%B8%A7%E0%B9%8C+%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%8A%E0%B8%B7%E0%B9%89%E0%B8%99+14.5%25&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 41237,
+   "ms": 160,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 3025
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "ข้าวโพดเลี้ยงสัตว์",
+     "product_name": "ข้าวโพดเลี้ยงสัตว์ ความชื้น 14.5%",
+     "market_name": "ร้านใจงามการเกษตร",
+     "province": "น่าน",
+     "day_price": 8.9,
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily palm oil",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B8%9C%E0%B8%A5%E0%B8%9B%E0%B8%B2%E0%B8%A5%E0%B9%8C%E0%B8%A1%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B8%A1%E0%B8%B1%E0%B8%99%E0%B8%97%E0%B8%B1%E0%B9%89%E0%B8%87%E0%B8%97%E0%B8%B0%E0%B8%A5%E0%B8%B2%E0%B8%A2+%E0%B8%99%E0%B8%99.+%3E+15+%E0%B8%81%E0%B8%81.+%E0%B8%82%E0%B8%B6%E0%B9%89%E0%B8%99%E0%B9%84%E0%B8%9B&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 43596,
+   "ms": 143,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 3838
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-29",
+     "day": "29",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "ปาล์มน้ำมัน",
+     "product_name": "ผลปาล์มน้ำมันทั้งทะลาย นน. > 15 กก. ขึ้นไป",
+     "market_name": "บริษัท วิจิตรภัณฑ์สวนปาล์ม จำกัด",
+     "province": "ชุมพร",
+     "day_price": 7.8,
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily hog",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B8%AA%E0%B8%B8%E0%B8%81%E0%B8%A3%E0%B8%9E%E0%B8%B1%E0%B8%99%E0%B8%98%E0%B8%B8%E0%B9%8C%E0%B8%9C%E0%B8%AA%E0%B8%A1+%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B8%AB%E0%B8%99%E0%B8%B1%E0%B8%81+100+%E0%B8%81%E0%B8%81.+%E0%B8%82%E0%B8%B6%E0%B9%89%E0%B8%99%E0%B9%84%E0%B8%9B&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 35980,
+   "ms": 145,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 1039
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "สุกร",
+     "product_name": "สุกรพันธุ์ผสม น้ำหนัก 100 กก. ขึ้นไป",
+     "market_name": "ศิริปุณย์ฟาร์ม",
+     "province": "ฉะเชิงเทรา",
+     "day_price": 70,
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily broiler",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B9%84%E0%B8%81%E0%B9%88%E0%B8%A3%E0%B8%B8%E0%B9%88%E0%B8%99%E0%B8%9E%E0%B8%B1%E0%B8%99%E0%B8%98%E0%B8%B8%E0%B9%8C%E0%B9%80%E0%B8%99%E0%B8%B7%E0%B9%89%E0%B8%AD&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 33607,
+   "ms": 141,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 1338
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "ไก่",
+     "product_name": "ไก่รุ่นพันธุ์เนื้อ",
+     "market_name": "บริษัท เจริญโภคภัณฑ์ จำกัด",
+     "province": "ชลบุรี",
+     "day_price": 42,
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily egg size 4",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B9%84%E0%B8%82%E0%B9%88%E0%B9%84%E0%B8%81%E0%B9%88+%E0%B9%80%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C+4&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 31984,
+   "ms": 138,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 677
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "ไข่ไก่",
+     "product_name": "ไข่ไก่ เบอร์ 4",
+     "market_name": "นายสมาน ทองดี",
+     "province": "นครราชสีมา",
+     "day_price": 433.33,
+     "unit": "บาท/ร้อยฟอง"
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "daily cassava root",
+   "url": "https://agriapi.nabc.go.th/api/daily-prices/product?product_name=%E0%B8%AB%E0%B8%B1%E0%B8%A7%E0%B8%A1%E0%B8%B1%E0%B8%99%E0%B8%AA%E0%B8%B3%E0%B8%9B%E0%B8%B0%E0%B8%AB%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%AA%E0%B8%94+%28%E0%B9%81%E0%B8%9B%E0%B9%89%E0%B8%87+30%25%29&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 37707,
+   "ms": 143,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 1807
+    },
+    "row_count": 100,
+    "first": {
+     "data_date": "2026-10-30",
+     "day": "30",
+     "month": "10",
+     "year_th": "2569",
+     "product_category": "มันสำปะหลัง",
+     "product_name": "หัวมันสำปะหลังสด (แป้ง 30%)",
+     "market_name": "บริษัท สำปะหลังพัฒนา จำกัด",
+     "province": "ระยอง",
+     "day_price": 4.3,
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "data_date",
+     "day",
+     "month",
+     "year_th",
+     "product_category",
+     "product_name",
+     "market_name",
+     "province",
+     "day_price",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "weekly Oct 2026",
+   "url": "https://agriapi.nabc.go.th/api/weekly-prices/year-month?year_th=2569&month=10",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 31186,
+   "ms": 125,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 168
+    },
+    "row_count": 100,
+    "first": {
+     "year_th": 2569,
+     "month": "10",
+     "week": 4,
+     "province_code": "TH00",
+     "province_name": "ประเทศไทย",
+     "product_name": "มันสำปะหลังสดเชื้อแป้ง 25%",
+     "commod": "มันสำปะหลัง",
+     "subcommod": "มันสำปะหลัง",
+     "value": "3.59",
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "year_th",
+     "month",
+     "week",
+     "province_code",
+     "province_name",
+     "product_name",
+     "commod",
+     "subcommod",
+     "value",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "weekly year 2026",
+   "url": "https://agriapi.nabc.go.th/api/weekly-prices/year-month?year_th=2569",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 31052,
+   "ms": 213,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 1842
+    },
+    "row_count": 100,
+    "first": {
+     "year_th": 2569,
+     "month": "10",
+     "week": 4,
+     "province_code": "TH00",
+     "province_name": "ประเทศไทย",
+     "product_name": "โคพันธุ์ลูกผสม ขนาดเล็ก",
+     "commod": "โคเนื้อ",
+     "subcommod": "โคพันธุ์ลูกผสม",
+     "value": "15560.63",
+     "unit": "บาท/ตัว"
+    },
+    "fields": [
+     "year_th",
+     "month",
+     "week",
+     "province_code",
+     "province_name",
+     "product_name",
+     "commod",
+     "subcommod",
+     "value",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "monthly Sep 2026",
+   "url": "https://agriapi.nabc.go.th/api/monthly-prices/year-month?year_th=2569&month=9",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 13387,
+   "ms": 132,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 43,
+     "total": 43
+    },
+    "row_count": 43,
+    "first": {
+     "year_th": 2569,
+     "month": "09",
+     "week": 0,
+     "province_code": "TH00",
+     "province_name": "ประเทศไทย",
+     "product_name": "กระบือ ขนาดกลาง",
+     "commod": "กระบือ",
+     "subcommod": "กระบือ",
+     "value": "27142.19",
+     "unit": "บาท/ตัว"
+    },
+    "fields": [
+     "year_th",
+     "month",
+     "week",
+     "province_code",
+     "province_name",
+     "product_name",
+     "commod",
+     "subcommod",
+     "value",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "monthly year 2026",
+   "url": "https://agriapi.nabc.go.th/api/monthly-prices/year-month?year_th=2569",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 31197,
+   "ms": 200,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 387
+    },
+    "row_count": 100,
+    "first": {
+     "year_th": 2569,
+     "month": "09",
+     "week": 0,
+     "province_code": "TH00",
+     "province_name": "ประเทศไทย",
+     "product_name": "สุกรมีชีวิต น้ำหนักเกิน 100 กก.",
+     "commod": "สุกร",
+     "subcommod": "สุกร",
+     "value": "70.32",
+     "unit": "บาท/กก."
+    },
+    "fields": [
+     "year_th",
+     "month",
+     "week",
+     "province_code",
+     "province_name",
+     "product_name",
+     "commod",
+     "subcommod",
+     "value",
+     "unit"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production rice 2025",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7&year=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 28460,
+   "ms": 110,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 78,
+     "total": 78
+    },
+    "row_count": 78,
+    "first": {
+     "year_th": "2568",
+     "year_crop": "2568",
+     "province_code": "TH81",
+     "province_name": "กระบี่",
+     "variety": "พืชไร่",
+     "commod": "ข้าว",
+     "subcommod": "ข้าวนาปรัง",
+     "season": "2",
+     "area_plant": 74,
+     "area_harvest": 74,
+     "production": 34,
+     "yield_plant": 459,
+     "yield_harvest": 459,
+     "status_code": "OS",
+     "data_date": null,
+     "api_type": 3
+    },
+    "fields": [
+     "year_th",
+     "year_crop",
+     "province_code",
+     "province_name",
+     "variety",
+     "commod",
+     "subcommod",
+     "season",
+     "area_plant",
+     "area_harvest",
+     "production",
+     "yield_plant",
+     "yield_harvest",
+     "status_code",
+     "data_date",
+     "api_type"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production rice 2024",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7&year=2567",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 36424,
+   "ms": 115,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 100,
+     "total": 157
+    },
+    "row_count": 100,
+    "first": {
+     "year_th": "2567",
+     "year_crop": "2567/68",
+     "province_code": "TH81",
+     "province_name": "กระบี่",
+     "variety": "พืชไร่",
+     "commod": "ข้าว",
+     "subcommod": "ข้าวนาปี",
+     "season": "1",
+     "area_plant": 6269,
+     "area_harvest": 6243,
+     "production": 1953,
+     "yield_plant": 312,
+     "yield_harvest": 313,
+     "status_code": "OS",
+     "data_date": null,
+     "api_type": 3
+    },
+    "fields": [
+     "year_th",
+     "year_crop",
+     "province_code",
+     "province_name",
+     "variety",
+     "commod",
+     "subcommod",
+     "season",
+     "area_plant",
+     "area_harvest",
+     "production",
+     "yield_plant",
+     "yield_harvest",
+     "status_code",
+     "data_date",
+     "api_type"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production cassava 2025",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%A1%E0%B8%B1%E0%B8%99%E0%B8%AA%E0%B8%B3%E0%B8%9B%E0%B8%B0%E0%B8%AB%E0%B8%A5%E0%B8%B1%E0%B8%87&year=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 167,
+   "ms": 111,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 0,
+     "total": 0
+    },
+    "row_count": 0,
+    "first": null
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production maize 2025",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B9%82%E0%B8%9E%E0%B8%94%E0%B9%80%E0%B8%A5%E0%B8%B5%E0%B9%89%E0%B8%A2%E0%B8%87%E0%B8%AA%E0%B8%B1%E0%B8%95%E0%B8%A7%E0%B9%8C&year=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 188,
+   "ms": 129,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 0,
+     "total": 0
+    },
+    "row_count": 0,
+    "first": null
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production rubber 2025",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%A2%E0%B8%B2%E0%B8%87%E0%B8%9E%E0%B8%B2%E0%B8%A3%E0%B8%B2&year=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 155,
+   "ms": 130,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 0,
+     "total": 0
+    },
+    "row_count": 0,
+    "first": null
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production oil palm 2025",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%9B%E0%B8%B2%E0%B8%A5%E0%B9%8C%E0%B8%A1%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B8%A1%E0%B8%B1%E0%B8%99&year=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 167,
+   "ms": 128,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 0,
+     "total": 0
+    },
+    "row_count": 0,
+    "first": null
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production durian 2025",
+   "url": "https://agriapi.nabc.go.th/api/production/search?commod=%E0%B8%97%E0%B8%B8%E0%B9%80%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%99&year=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 26073,
+   "ms": 131,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "filters",
+     "pagination"
+    ],
+    "pagination": {
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "count": 72,
+     "total": 72
+    },
+    "row_count": 72,
+    "first": {
+     "year_th": "2568",
+     "year_crop": "2568",
+     "province_code": "TH81",
+     "province_name": "กระบี่",
+     "variety": "พืชสวน",
+     "commod": "ทุเรียน",
+     "subcommod": "ทุเรียน",
+     "season": "0",
+     "area_plant": 17508,
+     "area_harvest": 5518,
+     "production": 4037,
+     "yield_plant": null,
+     "yield_harvest": 732,
+     "status_code": "OS",
+     "data_date": null,
+     "api_type": 3
+    },
+    "fields": [
+     "year_th",
+     "year_crop",
+     "province_code",
+     "province_name",
+     "variety",
+     "commod",
+     "subcommod",
+     "season",
+     "area_plant",
+     "area_harvest",
+     "production",
+     "yield_plant",
+     "yield_harvest",
+     "status_code",
+     "data_date",
+     "api_type"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "land use 2024",
+   "url": "https://agriapi.nabc.go.th/api/land-use/data?year_th=2567",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 14442,
+   "ms": 110,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "total": 77,
+     "limit": 100,
+     "offset": 0,
+     "page": 1
+    },
+    "row_count": 77,
+    "first": {
+     "year_th": "2567",
+     "province_code": "TH10",
+     "province_name": "กรุงเทพมหานคร",
+     "rice_fields": 91529,
+     "field_crop": 0,
+     "perennial_tree": 8255,
+     "vegetable_flower": 9847,
+     "other": 107210
+    },
+    "fields": [
+     "year_th",
+     "province_code",
+     "province_name",
+     "rice_fields",
+     "field_crop",
+     "perennial_tree",
+     "vegetable_flower",
+     "other"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "production index monthly 2025",
+   "url": "https://agriapi.nabc.go.th/api/production-index-month/product?year_th=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 37179,
+   "ms": 117,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "total": 356,
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "totalPages": 4,
+     "currentPage": 1
+    },
+    "row_count": 100,
+    "first": {
+     "year_th": "2568",
+     "month": "12",
+     "product_sector": "ภาคเกษตรกรรม",
+     "product_category": "หมวดพืชผลสำคัญ",
+     "product_group": "กลุ่มไม้ผล",
+     "commod": "ลำไย",
+     "product_name": "ลำไย",
+     "production_index": 290.913788406831,
+     "data_date": "2026-08-06T17:00:00.000Z"
+    },
+    "fields": [
+     "year_th",
+     "month",
+     "product_sector",
+     "product_category",
+     "product_group",
+     "commod",
+     "product_name",
+     "production_index",
+     "data_date"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "price index monthly 2026",
+   "url": "https://agriapi.nabc.go.th/api/price-index-month/product?year_th=2569",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 38977,
+   "ms": 127,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "total": 280,
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "totalPages": 3,
+     "currentPage": 1
+    },
+    "row_count": 100,
+    "first": {
+     "year_th": "2569",
+     "month": "08",
+     "product_sector": "ภาคเกษตรกรรม",
+     "product_category": "หมวดพืชผลสำคัญ",
+     "product_group": "กลุ่มไม้ผล",
+     "commod": "มังคุด",
+     "product_name": "มังคุด คละ",
+     "price_index": 117.045219030732,
+     "data_date": "2026-09-06T17:00:00.000Z"
+    },
+    "fields": [
+     "year_th",
+     "month",
+     "product_sector",
+     "product_category",
+     "product_group",
+     "commod",
+     "product_name",
+     "price_index",
+     "data_date"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "price index yearly 2025",
+   "url": "https://agriapi.nabc.go.th/api/price-index-year/product?year_th=2568",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 13291,
+   "ms": 122,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "total": 35,
+     "limit": 100,
+     "offset": 0,
+     "page": 1,
+     "totalPages": 1,
+     "currentPage": 1
+    },
+    "row_count": 35,
+    "first": {
+     "year_th": "2568",
+     "product_sector": "ภาคเกษตรกรรม",
+     "product_category": "หมวดพืชผลสำคัญ",
+     "product_group": "กลุ่มธัญพืชและพืชอาหาร",
+     "commod": "ข้าวเปลือก",
+     "product_name": "ข้าวเปลือก",
+     "price_index": 145.796671913857,
+     "data_date": "2026-01-06T17:00:00.000Z"
+    },
+    "fields": [
+     "year_th",
+     "product_sector",
+     "product_category",
+     "product_group",
+     "commod",
+     "product_name",
+     "price_index",
+     "data_date"
+    ]
+   }
+  },
+  {
+   "group": "nabc",
+   "label": "basic info 2024",
+   "url": "https://agriapi.nabc.go.th/api/basic-info/data?year_th=2567&page=1",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 1251,
+   "ms": 106,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "pagination"
+    ],
+    "pagination": {
+     "total": 4,
+     "limit": 100,
+     "offset": 0,
+     "page": 1
+    },
+    "row_count": 4,
+    "first": {
+     "year_th": "2567",
+     "year_crop": "2566/67",
+     "category": "ข้อมูลพื้นฐาน",
+     "subcatagory": "ขนาดครัวเรือน",
+     "list": "ขนาดครัวเรือน",
+     "value": 3.66,
+     "unit": "คน/ครัวเรือน",
+     "data_date": "2025-05-19T17:00:00.000Z"
+    },
+    "fields": [
+     "year_th",
+     "year_crop",
+     "category",
+     "subcatagory",
+     "list",
+     "value",
+     "unit",
+     "data_date"
+    ]
+   }
+  },
+  {
+   "group": "rid",
+   "label": "large dams latest",
+   "url": "https://app.rid.go.th/reservoir/api/dam/public",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 12100,
+   "ms": 239,
+   "summary": {
+    "keys": [
+     "document",
+     "date",
+     "total",
+     "data"
+    ],
+    "date": "2026-10-31",
+    "total": 35,
+    "row_count": 6,
+    "first": {
+     "region": "ภาคเหนือ",
+     "dam": [
+      {
+       "id": "100104",
+       "name": "เขื่อนแม่กวงอุดมธารา",
+       "owner": "กรมชลประทาน",
+       "capacity": 295,
+       "storage": 263,
+       "active_storage": 249,
+       "dead_storage": 14,
+       "volume": 179.52,
+       "percent_storage": 68.26,
+       "inflow": 0.33,
+       "outflow": 0.49
+      },
+      {
+       "id": "100105",
+       "name": "เขื่อนกิ่วลม",
+       "owner": "กรมชลประทาน",
+       "capacity": 106.22,
+       "storage": 106.22,
+       "active_storage": 102.67,
+       "dead_storage": 3.55,
+       "volume": 94.68,
+       "percent_storage": 89.14,
+       "inflow": 1.5,
+       "outflow": 1.42
+      },
+      {
+       "id": "100106",
+       "name": "เขื่อนกิ่วคอหมา",
+       "owner": "กรมชลประทาน",
+       "capacity": 208.6,
+       "storage": 170,
+       "active_storage": 163.8,
+       "dead_storage": 6.2,
+       "volume": 161.38,
+       "percent_storage": 94.93,
+       "inflow": null,
+       "outflow": 0.4
+      },
+      {
+       "id": "100107",
+       "name": "เขื่อนแควน้อยบำรุงแดน",
+       "owner": "กรมชลประทาน",
+       "capacity": 1080,
+       "storage": 939,
+       "active_storage": 896,
+       "dead_storage": 43,
+       "volume": 811.8,
+       "percent_storage": 86.45,
+       "inflow": 2.14,
+       "outflow": 0.86
+      },
+      {
+       "id": "100108",
+       "name": "เขื่อนแม่มอก",
+       "owner": "กรมชลประทาน",
+       "capacity": 110,
+       "storage": 110,
+       "active_storage": 94.1,
+       "dead_storage": 15.9,
+       "volume": 96.77,
+       "percent_storage": 87.97,
+       "inflow": 0.03,
+       "outflow": 0.1
+      },
+      {
+       "id": "200101",
+       "name": "เขื่อนภูมิพล",
+       "owner": "การไฟฟ้า",
+       "capacity": 13462,
+       "storage": 13462,
+       "active_storage": 9662,
+       "dead_storage": 3800,
+       "volume": 9591.44,
+       "percent_storage": 71.25,
+       "inflow": 12.95,
+       "outflow": 10
+      },
+      {
+       "id": "200102",
+       "name": "เขื่อนสิริกิติ์",
+       "owner": "การไฟฟ้า",
+       "capacity": 10508,
+       "storage": 9510,
+       "active_storage": 6660,
+       "dead_storage": 2850,
+       "volume": 7736.79,
+       "percent_storage": 81.35,
+       "inflow": 9.07,
+       "outflow": 20.03
+      },
+      {
+       "id": "200103",
+       "name": "เขื่อนแม่งัดสมบูรณ์ชล",
+       "owner": "กรมชลประทาน",
+       "capacity": 323,
+       "storage": 265,
+       "active_storage": 253,
+       "dead_storage": 12,
+       "volume": 258.38,
+       "percent_storage": 97.5,
+       "inflow": 0.63,
+       "outflow": 0.29
+      }
+     ]
+    },
+    "fields": [
+     "region",
+     "dam"
+    ]
+   }
+  },
+  {
+   "group": "rid",
+   "label": "large dams 2026-10-30",
+   "url": "https://app.rid.go.th/reservoir/api/dam/public/2026-10-30",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 12109,
+   "ms": 236,
+   "summary": {
+    "keys": [
+     "document",
+     "date",
+     "total",
+     "data"
+    ],
+    "date": "2026-10-30",
+    "total": 35,
+    "row_count": 6,
+    "first": {
+     "region": "ภาคเหนือ",
+     "dam": [
+      {
+       "id": "100104",
+       "name": "เขื่อนแม่กวงอุดมธารา",
+       "owner": "กรมชลประทาน",
+       "capacity": 295,
+       "storage": 263,
+       "active_storage": 249,
+       "dead_storage": 14,
+       "volume": 179.68,
+       "percent_storage": 68.32,
+       "inflow": 0.332,
+       "outflow": 0.492
+      },
+      {
+       "id": "100105",
+       "name": "เขื่อนกิ่วลม",
+       "owner": "กรมชลประทาน",
+       "capacity": 106.22,
+       "storage": 106.22,
+       "active_storage": 102.67,
+       "dead_storage": 3.55,
+       "volume": 94.6,
+       "percent_storage": 89.06,
+       "inflow": 1.5,
+       "outflow": 1.42
+      },
+      {
+       "id": "100106",
+       "name": "เขื่อนกิ่วคอหมา",
+       "owner": "กรมชลประทาน",
+       "capacity": 208.6,
+       "storage": 170,
+       "active_storage": 163.8,
+       "dead_storage": 6.2,
+       "volume": 161.78,
+       "percent_storage": 95.16,
+       "inflow": 0.21,
+       "outflow": 0.48
+      },
+      {
+       "id": "100107",
+       "name": "เขื่อนแควน้อยบำรุงแดน",
+       "owner": "กรมชลประทาน",
+       "capacity": 1080,
+       "storage": 939,
+       "active_storage": 896,
+       "dead_storage": 43,
+       "volume": 810.53,
+       "percent_storage": 86.32,
+       "inflow": 2.34,
+       "outflow": 0.86
+      },
+      {
+       "id": "100108",
+       "name": "เขื่อนแม่มอก",
+       "owner": "กรมชลประทาน",
+       "capacity": 110,
+       "storage": 110,
+       "active_storage": 94.1,
+       "dead_storage": 15.9,
+       "volume": 96.84,
+       "percent_storage": 88.04,
+       "inflow": 0.1,
+       "outflow": 0.1
+      },
+      {
+       "id": "200101",
+       "name": "เขื่อนภูมิพล",
+       "owner": "การไฟฟ้า",
+       "capacity": 13462,
+       "storage": 13462,
+       "active_storage": 9662,
+       "dead_storage": 3800,
+       "volume": 9588.84,
+       "percent_storage": 71.23,
+       "inflow": 13.2,
+       "outflow": 10
+      },
+      {
+       "id": "200102",
+       "name": "เขื่อนสิริกิติ์",
+       "owner": "การไฟฟ้า",
+       "capacity": 10508,
+       "storage": 9510,
+       "active_storage": 6660,
+       "dead_storage": 2850,
+       "volume": 7748.51,
+       "percent_storage": 81.48,
+       "inflow": 11.37,
+       "outflow": 19.99
+      },
+      {
+       "id": "200103",
+       "name": "เขื่อนแม่งัดสมบูรณ์ชล",
+       "owner": "กรมชลประทาน",
+       "capacity": 323,
+       "storage": 265,
+       "active_storage": 253,
+       "dead_storage": 12,
+       "volume": 258.05,
+       "percent_storage": 97.38,
+       "inflow": 0.55,
+       "outflow": 0.22
+      }
+     ]
+    },
+    "fields": [
+     "region",
+     "dam"
+    ]
+   }
+  },
+  {
+   "group": "rid",
+   "label": "medium reservoirs latest",
+   "url": "https://app.rid.go.th/reservoir/api/reservoir/public",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 116107,
+   "ms": 524,
+   "summary": {
+    "keys": [
+     "document",
+     "date",
+     "total",
+     "data"
+    ],
+    "date": "2026-10-31",
+    "total": 461,
+    "row_count": 6,
+    "first": {
+     "region": "ภาคเหนือ",
+     "reservoir": [
+      {
+       "id": "rsv01",
+       "name": "อ่างเก็บน้ำห้วยแม่ออน",
+       "storage": 4.53,
+       "dead_storage": 0.8,
+       "volume": 3.217,
+       "percent_storage": 71.02,
+       "inflow": 0.038,
+       "outflow": 0.049
+      },
+      {
+       "id": "rsv02",
+       "name": "อ่างเก็บน้ำแม่จอกหลวง",
+       "storage": 1.1,
+       "dead_storage": 0.1,
+       "volume": 1.102,
+       "percent_storage": 100.18,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv03",
+       "name": "อ่างเก็บน้ำห้วยมะนาว",
+       "storage": 4.3,
+       "dead_storage": 0.1,
+       "volume": 3.746,
+       "percent_storage": 87.12,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv04",
+       "name": "อ่างเก็บน้ำห้วยโป่งจ้อ",
+       "storage": 2.772,
+       "dead_storage": 0.05,
+       "volume": 1.994,
+       "percent_storage": 71.93,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv05",
+       "name": "อ่างเก็บน้ำแม่ตูบ",
+       "storage": 39,
+       "dead_storage": 0.5,
+       "volume": 26.5,
+       "percent_storage": 67.95,
+       "inflow": 0.027,
+       "outflow": 0.129
+      },
+      {
+       "id": "rsv06",
+       "name": "อ่างเก็บน้ำแม่โก๋น",
+       "storage": 5.53,
+       "dead_storage": 0.32,
+       "volume": 5.542,
+       "percent_storage": 100.22,
+       "inflow": 0.039,
+       "outflow": 0.044
+      },
+      {
+       "id": "rsv07",
+       "name": "อ่างเก็บน้ำห้วยเดื่อ",
+       "storage": 4.276,
+       "dead_storage": 0.283,
+       "volume": 4.231,
+       "percent_storage": 98.95,
+       "inflow": null,
+       "outflow": 0.019
+      },
+      {
+       "id": "rsv08",
+       "name": "อ่างเก็บน้ำแม่แหลงหลวง",
+       "storage": 3.641,
+       "dead_storage": 0.127,
+       "volume": 2.12,
+       "percent_storage": 58.23,
+       "inflow": 0.006,
+       "outflow": 0.009
+      },
+      {
+       "id": "rsv09",
+       "name": "อ่างเก็บน้ำแม่ข้อน",
+       "storage": 4.08,
+       "dead_storage": 0.35,
+       "volume": 3.992,
+       "percent_storage": 97.84,
+       "inflow": 0.009,
+       "outflow": null
+      },
+      {
+       "id": "rsv10",
+       "name": "อ่างเก็บน้ำสันหนอง",
+       "storage": 1.45,
+       "dead_storage": 0.35,
+       "volume": 1.382,
+       "percent_storage": 95.31,
+       "inflow": 0.049,
+       "outflow": 0.052
+      },
+      {
+       "id": "rsv11",
+       "name": "อ่างเก็บน้ำแม่ทะลบหลวง",
+       "storage": 15.3,
+       "dead_storage": 2.3,
+       "volume": 15.315,
+       "percent_storage": 100.1,
+       "inflow": 0.047,
+       "outflow": 0.047
+      },
+      {
+       "id": "rsv531",
+       "name": "อ่างเก็บน้ำ แม่สะลวม",
+       "storage": 16.24,
+       "dead_storage": 0.55,
+       "volume": 13.938,
+       "percent_storage": 85.83,
+       "inflow": 0.073,
+       "outflow": 0.018
+      },
+      {
+       "id": "rsv13",
+       "name": "อ่างเก็บน้ำแม่ตีบ",
+       "storage": 10,
+       "dead_storage": 0.5,
+       "volume": 7.543,
+       "percent_storage": 75.43,
+       "inflow": null,
+       "outflow": 0.026
+      },
+      {
+       "id": "rsv14",
+       "name": "อ่างเก็บน้ำแม่สาน",
+       "storage": 16,
+       "dead_storage": 0.26,
+       "volume": 11.177,
+       "percent_storage": 69.86,
+       "inflow": null,
+       "outflow": 0.016
+      },
+      {
+       "id": "rsv15",
+       "name": "อ่างเก็บน้ำแม่ธิ",
+       "storage": 5,
+       "dead_storage": 0.15,
+       "volume": 2.822,
+       "percent_storage": 56.44,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv16",
+       "name": "อ่างเก็บน้ำแม่เมย",
+       "storage": 3.6,
+       "dead_storage": 0.02,
+       "volume": 2.267,
+       "percent_storage": 62.97,
+       "inflow": null,
+       "outflow": 0.02
+      },
+      {
+       "id": "rsv19",
+       "name": "อ่างเก็บน้ำห้วยช้าง",
+       "storage": 6.3,
+       "dead_storage": 0.3,
+       "volume": 5.936,
+       "percent_storage": 94.22,
+       "inflow": 0.015,
+       "outflow": null
+      },
+      {
+       "id": "rsv20",
+       "name": "อ่างเก็บน้ำแม่ต๊าก",
+       "storage": 9,
+       "dead_storage": 1.45,
+       "volume": 7.92,
+       "percent_storage": 88,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv21",
+       "name": "อ่างเก็บน้ำแม่สรวย",
+       "storage": 73,
+       "dead_storage": 3,
+       "volume": 63.506,
+       "percent_storage": 86.99,
+       "inflow": 0.231,
+       "outflow": 0.044
+      },
+      {
+       "id": "rsv483",
+       "name": "อ่างเก็บน้ำดอยงู",
+       "storage": 7.37,
+       "dead_storage": 1.34,
+       "volume": 7.882,
+       "percent_storage": 106.95,
+       "inflow": 0.071,
+       "outflow": 0.036
+      },
+      {
+       "id": "rsv22",
+       "name": "อ่างเก็บน้ำแม่ทะ",
+       "storage": 2.54,
+       "dead_storage": 0.24,
+       "volume": 1.641,
+       "percent_storage": 64.61,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv23",
+       "name": "อ่างเก็บน้ำแม่อาบ",
+       "storage": 7.56,
+       "dead_storage": 0.54,
+       "volume": 4.265,
+       "percent_storage": 56.42,
+       "inflow": null,
+       "outflow": 0.025
+      },
+      {
+       "id": "rsv24",
+       "name": "อ่างเก็บน้ำแม่ทาน",
+       "storage": 13.6,
+       "dead_storage": 1.36,
+       "volume": 12.214,
+       "percent_storage": 89.81,
+       "inflow": 0.002,
+       "outflow": 0.024
+      },
+      {
+       "id": "rsv25",
+       "name": "อ่างเก็บน้ำห้วยสมัย",
+       "storage": 1.2,
+       "dead_storage": 0.16,
+       "volume": 0.944,
+       "percent_storage": 78.67,
+       "inflow": null,
+       "outflow": 0.041
+      },
+      {
+       "id": "rsv26",
+       "name": "อ่างเก็บน้ำแม่พริก",
+       "storage": 4.2,
+       "dead_storage": 0.4,
+       "volume": 3.668,
+       "percent_storage": 87.33,
+       "inflow": null,
+       "outflow": 0.004
+      },
+      {
+       "id": "rsv27",
+       "name": "อ่างเก็บน้ำแม่เลียงพัฒนา",
+       "storage": 6.9,
+       "dead_storage": 0.8,
+       "volume": 6.034,
+       "percent_storage": 87.45,
+       "inflow": 0.018,
+       "outflow": 0.007
+      },
+      {
+       "id": "rsv29",
+       "name": "อ่างเก็บน้ำแม่ทรายคำ",
+       "storage": 1.248,
+       "dead_storage": 0.138,
+       "volume": 0.71,
+       "percent_storage": 56.89,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv30",
+       "name": "อ่างเก็บน้ำห้วยหลวงวังวัว",
+       "storage": 1.61,
+       "dead_storage": 0.15,
+       "volume": 0.942,
+       "percent_storage": 58.51,
+       "inflow": 0.002,
+       "outflow": 0.002
+      },
+      {
+       "id": "rsv31",
+       "name": "อ่างเก็บน้ำห้วยแม่ค่อม",
+       "storage": 1.356,
+       "dead_storage": 0.16,
+       "volume": 0.999,
+       "percent_storage": 73.67,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv32",
+       "name": "อ่างเก็บน้ำแม่ต๋ำน้อย",
+       "storage": 1,
+       "dead_storage": 0.07,
+       "volume": 0.812,
+       "percent_storage": 81.2,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv33",
+       "name": "อ่างเก็บน้ำแม่เฟือง",
+       "storage": 1.132,
+       "dead_storage": 0.178,
+       "volume": 0.818,
+       "percent_storage": 72.26,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv34",
+       "name": "อ่างเก็บน้ำแม่ไฮ",
+       "storage": 1.225,
+       "dead_storage": 0.115,
+       "volume": 0.937,
+       "percent_storage": 76.49,
+       "inflow": 0.018,
+       "outflow": 0.019
+      },
+      {
+       "id": "rsv35",
+       "name": "อ่างเก็บน้ำแม่ธิ",
+       "storage": 1.59,
+       "dead_storage": 0.105,
+       "volume": 1.14,
+       "percent_storage": 71.7,
+       "inflow": 0.01,
+       "outflow": 0.011
+      },
+      {
+       "id": "rsv36",
+       "name": "อ่างเก็บน้ำห้วยแม่งอน",
+       "storage": 1.28,
+       "dead_storage": 0.116,
+       "volume": 0.97,
+       "percent_storage": 75.78,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv37",
+       "name": "อ่างเก็บน้ำแม่ต๋ำตอนล่าง",
+       "storage": 2.54,
+       "dead_storage": 0.691,
+       "volume": 1.586,
+       "percent_storage": 62.44,
+       "inflow": 0.001,
+       "outflow": 0.004
+      },
+      {
+       "id": "rsv38",
+       "name": "อ่างเก็บน้ำแม่วะ",
+       "storage": 5.9,
+       "dead_storage": 0.95,
+       "volume": 4.357,
+       "percent_storage": 73.85,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv39",
+       "name": "อ่างเก็บน้ำแม่ล้อหัก",
+       "storage": 1.336,
+       "dead_storage": 0.048,
+       "volume": 0.985,
+       "percent_storage": 73.73,
+       "inflow": null,
+       "outflow": 0.004
+      },
+      {
+       "id": "rsv40",
+       "name": "อ่างเก็บน้ำแม่ทก",
+       "storage": 1.113,
+       "dead_storage": 0.054,
+       "volume": 0.83,
+       "percent_storage": 74.57,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv41",
+       "name": "อ่างเก็บน้ำแม่เรียง",
+       "storage": 1.12,
+       "dead_storage": 0.338,
+       "volume": 1.012,
+       "percent_storage": 90.36,
+       "inflow": null,
+       "outflow": 0.014
+      },
+      {
+       "id": "rsv42",
+       "name": "อ่างเก็บน้ำห้วยหลวง",
+       "storage": 1.26,
+       "dead_storage": 0.17,
+       "volume": 1.082,
+       "percent_storage": 85.87,
+       "inflow": 0.001,
+       "outflow": 0.005
+      },
+      {
+       "id": "rsv43",
+       "name": "อ่างเก็บน้ำแม่กึ๊ด",
+       "storage": 1.3,
+       "dead_storage": 0.16,
+       "volume": 1.244,
+       "percent_storage": 95.69,
+       "inflow": null,
+       "outflow": 0.004
+      },
+      {
+       "id": "rsv44",
+       "name": "อ่างเก็บน้ำห้วยเกี๋ยง",
+       "storage": 11.6,
+       "dead_storage": 0.6,
+       "volume": 8.086,
+       "percent_storage": 69.71,
+       "inflow": 0.069,
+       "outflow": 0.075
+      },
+      {
+       "id": "rsv45",
+       "name": "อ่างเก็บน้ำแม่ปอน",
+       "storage": 1.81,
+       "dead_storage": 0.151,
+       "volume": 1.199,
+       "percent_storage": 66.24,
+       "inflow": 0.021,
+       "outflow": 0.022
+      },
+      {
+       "id": "rsv46",
+       "name": "อ่างเก็บน้ำห้วยแม่ยาว",
+       "storage": 3.48,
+       "dead_storage": 0.28,
+       "volume": 2.093,
+       "percent_storage": 60.14,
+       "inflow": 0.034,
+       "outflow": 0.035
+      },
+      {
+       "id": "rsv47",
+       "name": "อ่างเก็บน้ำแม่ไพร",
+       "storage": 3.2,
+       "dead_storage": 0.13,
+       "volume": 2.406,
+       "percent_storage": 75.19,
+       "inflow": 0.012,
+       "outflow": 0.014
+      },
+      {
+       "id": "rsv48",
+       "name": "อ่างเก็บน้ำห้วยแม่สัน",
+       "storage": 3.525,
+       "dead_storage": 0.04,
+       "volume": 2.56,
+       "percent_storage": 72.62,
+       "inflow": 0.06,
+       "outflow": 0.062
+      },
+      {
+       "id": "rsv478",
+       "name": "อ่างเก็บน้ำแม่พริก (ผาวิ่งชู้)",
+       "storage": 36.48,
+       "dead_storage": 5.84,
+       "volume": 20.389,
+       "percent_storage": 55.89,
+       "inflow": null,
+       "outflow": 0.045
+      },
+      {
+       "id": "rsv479",
+       "name": "อ่างเก็บน้ำแม่ฟ้า",
+       "storage": 19.92,
+       "dead_storage": 1.1,
+       "volume": 18.402,
+       "percent_storage": 92.38,
+       "inflow": 0.035,
+       "outflow": 0.052
+      },
+      {
+       "id": "rsv523",
+       "name": "อ่างเก็บน้ำแม่อ้อน 2",
+       "storage": 19.1,
+       "dead_storage": 0.5,
+       "volume": 10.94,
+       "percent_storage": 57.28,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv532",
+       "name": "อ่างเก็บน้ำ แม่อาง",
+       "storage": 3.122,
+       "dead_storage": 0.099,
+       "volume": 2.281,
+       "percent_storage": 73.06,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv550",
+       "name": "อ่างเก็บน้ำ แม่นึง",
+       "storage": 9.197,
+       "dead_storage": 0.663,
+       "volume": 4.662,
+       "percent_storage": 50.69,
+       "inflow": 0.016,
+       "outflow": 0.001
+      },
+      {
+       "id": "rsv49",
+       "name": "อ่างเก็บน้ำห้วยแฮต",
+       "storage": 5,
+       "dead_storage": 0.54,
+       "volume": 3.716,
+       "percent_storage": 74.32,
+       "inflow": 0.003,
+       "outflow": 0.071
+      },
+      {
+       "id": "rsv50",
+       "name": "อ่างเก็บน้ำน้ำแหง",
+       "storage": 13,
+       "dead_storage": 2.87,
+       "volume": 12.545,
+       "percent_storage": 96.5,
+       "inflow": 0.104,
+       "outflow": 0.067
+      },
+      {
+       "id": "rsv51",
+       "name": "อ่างเก็บน้ำน้ำพงษ์",
+       "storage": 1.49,
+       "dead_storage": 0.37,
+       "volume": 0.879,
+       "percent_storage": 58.99,
+       "inflow": 0.018,
+       "outflow": 0.012
+      },
+      {
+       "id": "rsv52",
+       "name": "อ่างเก็บน้ำห้วยน้ำฮิ",
+       "storage": 6,
+       "dead_storage": 0.4,
+       "volume": 5.791,
+       "percent_storage": 96.52,
+       "inflow": 0.007,
+       "outflow": 0.028
+      },
+      {
+       "id": "rsv533",
+       "name": "อ่างเก็บน้ำ น้ำริม",
+       "storage": 3.99,
+       "dead_storage": 0.67,
+       "volume": 3.66,
+       "percent_storage": 91.73,
+       "inflow": 0.051,
+       "outflow": 0.1
+      },
+      {
+       "id": "rsv534",
+       "name": "อ่างเก็บน้ำ ห้วยชื่น",
+       "storage": 1.166,
+       "dead_storage": 0.047,
+       "volume": 0.904,
+       "percent_storage": 77.53,
+       "inflow": 0.003,
+       "outflow": 0.007
+      },
+      {
+       "id": "rsv551",
+       "name": "อ่างเก็บน้ำ ห้วยสีพัน",
+       "storage": 1.18,
+       "dead_storage": 0.2,
+       "volume": 1.072,
+       "percent_storage": 90.85,
+       "inflow": 0.002,
+       "outflow": null
+      },
+      {
+       "id": "rsv552",
+       "name": "อ่างเก็บน้ำ ห้วยยาง",
+       "storage": 1.99,
+       "dead_storage": 0.4,
+       "volume": 1.596,
+       "percent_storage": 80.2,
+       "inflow": 0.006,
+       "outflow": null
+      },
+      {
+       "id": "rsv553",
+       "name": "อ่างเก็บน้ำ น้ำแก่น",
+       "storage": 3.66,
+       "dead_storage": 0.44,
+       "volume": 2.535,
+       "percent_storage": 69.26,
+       "inflow": 0.005,
+       "outflow": null
+      },
+      {
+       "id": "rsv53",
+       "name": "อ่างเก็บน้ำแม่ต๋ำ",
+       "storage": 41.5,
+       "dead_storage": 2.5,
+       "volume": 23.042,
+       "percent_storage": 55.52,
+       "inflow": 0.035,
+       "outflow": null
+      },
+      {
+       "id": "rsv54",
+       "name": "อ่างเก็บน้ำแม่ปืม",
+       "storage": 50.32,
+       "dead_storage": 1.65,
+       "volume": 28.994,
+       "percent_storage": 57.62,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv480",
+       "name": "อ่างเก็บน้ำแม่ใจ",
+       "storage": 3,
+       "dead_storage": 1.1,
+       "volume": 2.561,
+       "percent_storage": 85.37,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv522",
+       "name": "อ่างเก็บน้ำแม่จุน",
+       "storage": 9.604,
+       "dead_storage": 0,
+       "volume": 9.041,
+       "percent_storage": 94.14,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv55",
+       "name": "อ่างเก็บน้ำคลองตรอน",
+       "storage": 59,
+       "dead_storage": 6,
+       "volume": 51.666,
+       "percent_storage": 87.57,
+       "inflow": 0.051,
+       "outflow": 0.379
+      },
+      {
+       "id": "rsv450",
+       "name": "อ่างเก็บน้ำห้วยแม่เฉย",
+       "storage": 4,
+       "dead_storage": 0.27,
+       "volume": 2.699,
+       "percent_storage": 67.47,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv518",
+       "name": "อ่างเก็บน้ำห้วยน้ำรี",
+       "storage": 73.7,
+       "dead_storage": 5.03,
+       "volume": 32.23,
+       "percent_storage": 43.73,
+       "inflow": 0.484,
+       "outflow": 0.166
+      },
+      {
+       "id": "rsv56",
+       "name": "อ่างเก็บน้ำห้วยป่าบง",
+       "storage": 1.4,
+       "dead_storage": 0.02,
+       "volume": 0.748,
+       "percent_storage": 53.43,
+       "inflow": null,
+       "outflow": 0.002
+      },
+      {
+       "id": "rsv57",
+       "name": "อ่างเก็บน้ำคลองน้ำไหล",
+       "storage": 38.5,
+       "dead_storage": 0.75,
+       "volume": 38.694,
+       "percent_storage": 100.5,
+       "inflow": null,
+       "outflow": 0.4
+      },
+      {
+       "id": "rsv511",
+       "name": "อ่างเก็บน้ำคลองไพร",
+       "storage": 14.358,
+       "dead_storage": 0.031,
+       "volume": 12.47,
+       "percent_storage": 86.85,
+       "inflow": null,
+       "outflow": 0.02
+      },
+      {
+       "id": "rsv554",
+       "name": "อ่างเก็บน้ำ คลองน้ำขาว",
+       "storage": 11.22,
+       "dead_storage": 0.178,
+       "volume": 7.96,
+       "percent_storage": 70.94,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv58",
+       "name": "อ่างเก็บน้ำแม่มาน",
+       "storage": 18.75,
+       "dead_storage": 4.25,
+       "volume": 11.462,
+       "percent_storage": 61.13,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv59",
+       "name": "อ่างเก็บน้ำแม่สอง",
+       "storage": 65.8,
+       "dead_storage": 6,
+       "volume": 62.32,
+       "percent_storage": 94.71,
+       "inflow": 0.16,
+       "outflow": 0.334
+      },
+      {
+       "id": "rsv60",
+       "name": "อ่างเก็บน้ำแม่ถาง",
+       "storage": 30.62,
+       "dead_storage": 2,
+       "volume": 16.2,
+       "percent_storage": 52.91,
+       "inflow": null,
+       "outflow": 0.074
+      },
+      {
+       "id": "rsv61",
+       "name": "อ่างเก็บน้ำแม่คำปอง",
+       "storage": 6.76,
+       "dead_storage": 0.25,
+       "volume": 6.76,
+       "percent_storage": 100,
+       "inflow": 0.253,
+       "outflow": 0.253
+      },
+      {
+       "id": "rsv464",
+       "name": "อ่างเก็บน้ำแม่สาย",
+       "storage": 10.5,
+       "dead_storage": 1.4,
+       "volume": 10.405,
+       "percent_storage": 99.1,
+       "inflow": 0.03,
+       "outflow": 0.014
+      },
+      {
+       "id": "rsv62",
+       "name": "อ่างเก็บน้ำคลองข้างใน",
+       "storage": 9,
+       "dead_storage": 0.34,
+       "volume": 3.798,
+       "percent_storage": 42.2,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv63",
+       "name": "อ่างเก็บน้ำห้วยท่าแพ",
+       "storage": 58,
+       "dead_storage": 8.8,
+       "volume": 57.727,
+       "percent_storage": 99.53,
+       "inflow": 0.212,
+       "outflow": 0.008
+      },
+      {
+       "id": "rsv64",
+       "name": "อ่างเก็บน้ำห้วยแม่สูง",
+       "storage": 12.45,
+       "dead_storage": 1.04,
+       "volume": 12.45,
+       "percent_storage": 100,
+       "inflow": 0.041,
+       "outflow": 0.041
+      },
+      {
+       "id": "rsv490",
+       "name": "อ่างเก็บน้ำห้วยทรวง",
+       "storage": 8,
+       "dead_storage": 0.4,
+       "volume": 7.19,
+       "percent_storage": 89.88,
+       "inflow": 0.02,
+       "outflow": null
+      },
+      {
+       "id": "rsv494",
+       "name": "อ่างเก็บน้ำแม่กองค่าย",
+       "storage": 13,
+       "dead_storage": 0.58,
+       "volume": 13.215,
+       "percent_storage": 101.65,
+       "inflow": 0.065,
+       "outflow": 0.065
+      },
+      {
+       "id": "rsv536",
+       "name": "อ่างเก็บน้ำ ห้วยไร่",
+       "storage": 7.33,
+       "dead_storage": 0.14,
+       "volume": 6.214,
+       "percent_storage": 84.77,
+       "inflow": 0.022,
+       "outflow": null
+      },
+      {
+       "id": "rsv537",
+       "name": "อ่างเก็บน้ำ ห้วยแม่สำ",
+       "storage": 4.93,
+       "dead_storage": 0.36,
+       "volume": 4.089,
+       "percent_storage": 82.94,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv65",
+       "name": "อ่างเก็บน้ำห้วยแม่สอด",
+       "storage": 5.5,
+       "dead_storage": 0.434,
+       "volume": 4.256,
+       "percent_storage": 77.38,
+       "inflow": 0.133,
+       "outflow": null
+      },
+      {
+       "id": "rsv66",
+       "name": "อ่างเก็บน้ำห้วยลึก",
+       "storage": 5.8,
+       "dead_storage": 0.1,
+       "volume": 5.65,
+       "percent_storage": 97.41,
+       "inflow": 0.001,
+       "outflow": 0.001
+      },
+      {
+       "id": "rsv486",
+       "name": "อ่างเก็บน้ำห้วยแม่ท้อ",
+       "storage": 63,
+       "dead_storage": 3.5,
+       "volume": 60.846,
+       "percent_storage": 96.58,
+       "inflow": 0.168,
+       "outflow": 0.168
+      },
+      {
+       "id": "rsv535",
+       "name": "อ่างเก็บน้ำ แม่สอดตอนบน",
+       "storage": 13.222,
+       "dead_storage": 0.51,
+       "volume": 12.423,
+       "percent_storage": 93.96,
+       "inflow": 0.065,
+       "outflow": 0.071
+      },
+      {
+       "id": "rsv387",
+       "name": "อ่างเก็บน้ำห้วยน้ำลาด",
+       "storage": 1.2,
+       "dead_storage": 0.12,
+       "volume": 0.522,
+       "percent_storage": 43.5,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv388",
+       "name": "อ่างเก็บน้ำห้วยใหญ่(ไพศาลี)",
+       "storage": 11.87,
+       "dead_storage": 1.03,
+       "volume": 12.124,
+       "percent_storage": 102.14,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv485",
+       "name": "อ่างเก็บน้ำคลองโพธิ์",
+       "storage": 86.06,
+       "dead_storage": 6,
+       "volume": 70,
+       "percent_storage": 81.34,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv519",
+       "name": "อ่างเก็บน้ำห้วยน้ำคับ",
+       "storage": 1.315,
+       "dead_storage": 0.246,
+       "volume": 1.316,
+       "percent_storage": 100.08,
+       "inflow": null,
+       "outflow": null
+      },
+      {
+       "id": "rsv520",
+       "name": "อ่างเก็บน้ำห้วยน้ำจวง",
+       "storage": 1.6,
+       "dead_storage": 0.11,
+       "volume": 1.601,
+       "percent_storage": 100.06,
+       "inflow": null,
+       "outflow": null
+      }
+     ]
+    },
+    "fields": [
+     "region",
+     "reservoir"
+    ]
+   }
+  },
+  {
+   "group": "dwr",
+   "label": "rainfall",
+   "url": "https://api.dwr.go.th/twsapi/public/v1.0/Rainfall",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 1825529,
+   "ms": 2325,
+   "summary": {
+    "keys": [
+     "metadata",
+     "timeSeriesObservation"
+    ]
+   }
+  },
+  {
+   "group": "dwr",
+   "label": "medium water resources",
+   "url": "https://api.dwr.go.th/twsapi/public/v1.0/MediumSizeWaterResources",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 118950,
+   "ms": 801,
+   "summary": {
+    "keys": [
+     "metadata",
+     "timeSeriesObservation"
+    ]
+   }
+  },
+  {
+   "group": "cad",
+   "label": "cooperative all",
+   "url": "https://dataservice.cad.go.th/CAD_DATA_CKAN/coopall",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 7634,
+   "ms": 425,
+   "summary": {
+    "type": "list"
+   }
+  },
+  {
+   "group": "cad",
+   "label": "cooperative members",
+   "url": "https://dataservice.cad.go.th/CAD_DATA_CKAN/cad_coop_member",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 7632,
+   "ms": 380,
+   "summary": {
+    "type": "list"
+   }
+  },
+  {
+   "group": "cad",
+   "label": "account balance",
+   "url": "https://dataservice.cad.go.th/CAD_DATA_CKAN/account_balance",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 31850,
+   "ms": 373,
+   "summary": {
+    "type": "list"
+   }
+  },
+  {
+   "group": "cad",
+   "label": "operation",
+   "url": "https://dataservice.cad.go.th/CAD_DATA_CKAN/operation",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 63776,
+   "ms": 448,
+   "summary": {
+    "type": "list"
+   }
+  },
+  {
+   "group": "cad",
+   "label": "asset",
+   "url": "https://dataservice.cad.go.th/CAD_DATA_CKAN/asset",
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 154516,
+   "ms": 523,
+   "summary": {
+    "type": "list"
+   }
+  },
+  {
+   "group": "acfs",
+   "label": "daily warning",
+   "url": "https://apiwarning.acfs.go.th/api/v1.0/publish/content-daily-warning",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 5817,
+   "ms": 268,
+   "summary": {
+    "keys": [
+     "success",
+     "status",
+     "message",
+     "data"
+    ]
+   }
+  },
+  {
+   "group": "tmd",
+   "label": "climate monthly",
+   "url": "https://data.tmd.go.th/api/TMDClimateMonthly/v1/",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 471569,
+   "ms": 587,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "message"
+    ],
+    "row_count": 60,
+    "first": {
+     "content": "เดือนกันยายนปีนี้ บริเวณประเทศไทยมีฝนตกหนาแน่นเกือบตลอดเดือน จากอิทธิพลของร่องมรสุมที่พาดผ่านบริเวณประเทศไทยตอนบนเกือบตลอดเดือน โดยในช่วงต้นเดือนและกลางเดือนร่องมรุสมพาดผ่านบริเวณภาคเหนือและภาคตะวันออกเฉียงเหนือตอนบนเป็นส่วนใหญ่ มีบางช่วงที่เลื่อนลงมาพาดผ่านภาคกลางตอนล่าง ภาคใต้ตอนบน และภาคตะวันออก ส่วนในช่วงปลายเดือนร่องมรสุมได้พาดผ่านบริเวณภาคกลางและภาคตะวันออก โดยพาดเข้าสู่หย่อมความกดอากาศต่ำกำลังแรงบริเวณทะเลจีนใต้ตอนกลาง ซึ่งต่อมาหย่อมความกดอากาศต่ำนี้ได้เคลื่อนเข้ามาปกคลุมชายฝั่งประเทศเวียดนามตอนล่างและประเทศกัมพูชา ก่อนจะเคลื่อนเข้าปกคลุมประเทศไทยบริเวณภาคตะวันออก ภาคกลางตอนล่าง รวมทั้งกรุงเทพมหานครและปริมณฑล ในช่วงวันที่ 24-26 กันยายน จากนั้นได้เคลื่อนไปปกคลุมด้านตะวันตกของภาคกลาง และเคลื่อนออกไปปกคลุมชายฝั่งประเทศเมียนมาและอ่าวมะตะบัน ประกอบกับมรสุมตะวันตกเฉียงใต้กำลังปานกลางถึงค่อนข้างแรงพัดปกคลุมทะเลอันดามัน ประเทศไทย และอ่าวไทยเกือบตลอดเดือน ลักษณะดังกล่าวทำให้บริเวณประเทศไทยตอนบนมีฝนตกหนาแน่นเกือบตลอดเดือน โดยเฉพาะในช่วงปลายเดือนมีฝนตกหนาแน่นเป็นบริเวณกว้างบริเวณภาคกลางและภาคตะวันออก และมีฝนตกหนักถึงหนักมากต่อเนื่อง ส่งผลให้เกิดน้ำท่วมในหลายพื้นที่ โดยเฉพาะกรุงเทพมหานครและจังหวัดสมุทรปราการ ซึ่งมีฝนตกต่อเนื่องและตรวจวัดปริมาณฝนสะสมในช่วง 48 ชั่วโมงได้มากกว่า 200 มิลลิเมตร ทำให้บางพื้นที่เกิดน้ำท่วมขังเป็นเวลานาน โดยปริมาณฝนรวมตลอดเดือนในเดือนนี้สูงกว่าค่าปกติในเกือบทุกภาคของประเทศ โดยเฉพาะภาคกลางและภาคตะวันออกมีปริมาณฝนสูงกว่าค่าปกติร้อยละ 65 และ 69 ตามลำดับ นอกจากนี้มีบางพื้นที่มีปริมาณสูงสุดใน 1 วัน และปริมาณฝนรวมตลอดเดือนสูงกว่าสถิติเดิมที่เคยตรวจวัดได้ เมื่อพิจารณาภาพรวมของปริมาณฝนทั้งประเทศพบว่า ปริมาณฝนรวมเฉลี่ยสูงกว่าค่าปกติร้อยละ 24 ส่วนอุณหภูมิเฉลี่ยทั้งประเทศของเดือนนี้สูงกว่าค่าปกติ 0.2 องศาเซลเซียส สำหรับรายละเอียดต่างๆ มีดังนี้",
+     "title": "ข้อมูลสรุปลักษณะอากาศรายเดือนกันยายน 2569 ",
+     "description": null,
+     "alt": "ข้อมูลสรุปลักษณะอากาศรายเดือนกันยายน 2569 ",
+     "url": "https://www.tmd.go.th/media/climate/climate-monthly/กนยายน-2569-1.pdf",
+     "contentdate": "2026-09-30 15:48:00.0000000"
+    },
+    "fields": [
+     "content",
+     "title",
+     "description",
+     "alt",
+     "url",
+     "contentdate"
+    ]
+   }
+  },
+  {
+   "group": "tmd",
+   "label": "agromet forecast 7 days",
+   "url": "https://data.tmd.go.th/api/TMDForecastAgromet7days/v1/",
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "bytes": 14318,
+   "ms": 237,
+   "summary": {
+    "keys": [
+     "success",
+     "data",
+     "message"
+    ],
+    "row_count": 22,
+    "first": {
+     "title": "30 ตุลาคม - 5 พฤศจิกายน 2569",
+     "type": "พยากรณ์อากาศเกษตร 7 วันข้างหน้า",
+     "description": null,
+     "alt": "30 ตุลาคม - 5 พฤศจิกายน 2569",
+     "url": "https://www.tmd.go.th/media/agro/7day/2569/agronews_87_69.pdf",
+     "contentdate": "2026-10-30 13:50:00.0000000"
+    },
+    "fields": [
+     "title",
+     "type",
+     "description",
+     "alt",
+     "url",
+     "contentdate"
+    ]
+   }
+  },
+  {
+   "group": "oae",
+   "label": "old api host",
+   "url": "https://data.oae.go.th/api/v1/oae-price-month-products/commod?commod=%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7&page=1",
+   "error": "URLError: <urlopen error [Errno 11001] getaddrinfo failed>",
+   "ms": 15
+  },
+  {
+   "group": "ecert",
+   "label": "rice GAP status",
+   "url": "https://e-cert.ricethailand.go.th/API.php?STANDARD=GAPSTAT",
+   "error": "URLError: <urlopen error [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond>",
+   "ms": 21073
+  }
+ ],
+ "file_tests": [
+  {
+   "group": "dft",
+   "label": "export CSV Apr 2026",
+   "url": "https://gdcatalog.dft.go.th/dataset/2849f42a-cd08-4769-a29d-3e1fd180407d/resource/9baa430b-f40f-4f63-8861-598e309dfd1b/download/total-apr26.csv",
+   "status": 200,
+   "content_type": "text/csv",
+   "content_range": null,
+   "last_modified": "Tue, 12 May 2026 03:49:39 GMT",
+   "prefix": "﻿ปี,เดือน,ชื่อฟอร์ม,HS CODE,ชื่อสินค้า,มูลค่าการส่งออก (USD),ชื่อประเทศ,Port of Discharge\r\n2026,4,FORM C/O ทั่วไป,481940,PAPER BAG,\"54,096\",U.S.A.,NEW YORK\r\n2026,4,FORM D (ATIGA),060313,FRESH ORCHID CUT FLOWERS,160,PHILIPPINES,MANILA\r\n2026,4,FORM D (ATIGA),550320,POLYESTER STAPLE FIBER,\"18,210.11\",PHILIPPINES,MANILA NORTH HARBOUR\r\n2026,4,FORM E,760200, Recycling Materials for Cast ",
+   "ms": 1103
+  },
+  {
+   "group": "dft",
+   "label": "border trade Sep 2026",
+   "url": "https://gdcatalog.dft.go.th/dataset/c6d19948-6c7f-4e94-9960-656ecd4d717d/resource/405f4a0e-5bfa-44f5-be10-c0e32517ea91/download/untitled.csv",
+   "status": 200,
+   "content_type": "text/csv",
+   "content_range": null,
+   "last_modified": "Mon, 19 Oct 2026 04:14:56 GMT",
+   "prefix": "﻿ประเทศ,มูลค่ารวม(กันยายน69),มูลค่าสะสม,ส่งออก(กันยายน69),ส่งออกสะสม,นำเข้า(กันยายน69),นำเข้าสะสม,ดุลการค้า(กันยายน69),ดุลการค้าสะสม\r\nมาเลเซีย,\"39,972.35 \",\"307,350.95 \",\"18,741.43 \",\"150,709.49 \",\"21,230.93 \",\"156,641.46 \",\"-2,489.50 \",\"-5,931.97 \"\r\nลาว,\"24,538",
+   "ms": 411
+  },
+  {
+   "group": "dft",
+   "label": "transit trade Sep 2026",
+   "url": "https://gdcatalog.dft.go.th/dataset/cfb2839e-9ada-462c-9ff4-643f7d534adc/resource/005fc85b-517c-4fe4-9d8d-eddbc48b4fdb/download/untitled.csv",
+   "status": 200,
+   "content_type": "text/csv",
+   "content_range": null,
+   "last_modified": "Mon, 19 Oct 2026 04:13:07 GMT",
+   "prefix": "﻿ประเทศ,มูลค่ารวม(กันยายน69),มูลค่าสะสม,ส่งออก(กันยายน69),ส่งออกสะสม,นำเข้า(กันยายน69),นำเข้าสะสม,ดุลการค้า(กันยายน69),ดุลการค้าสะสม\r\nจีน,\"59,365.18 \",\"585,833.57 \",\"17,879.47 \",\"283,753.09 \",\"41,485.71 \",\"302,080.47 \",\"-23,606.24 \",\"-18,327.38 \"\r\nสิงคโปร์,\"37,0",
+   "ms": 124
+  },
+  {
+   "group": "fisheries",
+   "label": "import export CSV",
+   "url": "https://dataset.fisheries.go.th/import_export.csv",
+   "status": 206,
+   "content_type": "application/octet-stream",
+   "content_range": "bytes 0-2000/20432648",
+   "last_modified": "Fri, 30 Oct 2026 23:00:47 GMT",
+   "prefix": "﻿\"year\",\"month\",\"heading11\",\"countryID\",\"countryNameTH\",\"weight\",\"quantity\",\"price\",\"tradeflow\",\"productDetailEN\",\"fishName\",\"productDetailTH\",\"ETL_DATE\"\r\n\"2569\",\"1\",\"01062000002\",\"MV\",\"มัลดีฟส์\",\"1\",\"150\",\"750\",\"2\",\"Turtles and snapping turtles live\",\"เต่า\",\"เต่าและตะพาบน้ำมีชีวิต\",\"2026-10-31 06:00:06\"\r\n\"2569\",\"1\",\"01062000002\",\"IN\",\"อินเดีย\",\"160\",\"21\",\"88528\",\"2\",\"Turtles and snapping turtles live\",\"เต่",
+   "ms": 66
+  },
+  {
+   "group": "fisheries",
+   "label": "product group CSV",
+   "url": "http://dataset.fisheries.go.th/exim_detialed_group.csv",
+   "status": 206,
+   "content_type": "application/octet-stream",
+   "content_range": "bytes 0-2000/527529",
+   "last_modified": "Tue, 20 Oct 2026 09:59:26 GMT",
+   "prefix": "﻿\"mainGroup\",\"TH_Description_Name\",\"HS_FisheriesID\",\"Tradeflow\",\"ETL_DATE\"\r\n\"3.1 ปลาสด แช่เย็น แช่แข็ง (รวมตับและไข่)\",\"ปลาอลาสกาพอลลัค สด แช่เย็น\",\"03025500000\",\"การนำเข้า\",\"10/1/2026 2:00:00 AM\"\r\n\"3.2 เนื้อปลาสด แช่เย็น แช่แข็ง\",\"เนื้อปลาไนล์เพิร์ช แบบฟิเล สด แช",
+   "ms": 26
+  }
+ ]
+}

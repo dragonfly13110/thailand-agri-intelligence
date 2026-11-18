@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { summarizeReanalysisWeek, type WeatherReanalysisRecord } from '@/lib/hub/weather-observations-data';
 import { Icon } from './icon';
 import styles from './province-agri-overview.module.css';
 
@@ -9,16 +10,16 @@ import styles from './province-agri-overview.module.css';
  *
  * Everything shown is read live from the hub API v1 in the browser:
  * - `GET /api/v1/weather?provinceCode=…` (forecast 7 days, cumulative rainfall, advisories)
- * - `GET /api/v1/water/reservoirs` (RID medium-reservoir summary + region/risk lists)
+ * - `GET /api/v1/water/reservoirs` (RID medium-reservoir region summary)
+ * - `GET /api/v1/weather/observations?provinceCode=…` (published ERA5 reanalysis days)
  *
- * The client never imports the server-only data modules; types below mirror the
- * JSON contract of those routes like `weather-dashboard.tsx` does. While the TMD
- * resource licence is pending the weather API returns deterministic sample
- * values flagged `sample: true` plus `meta.warnings`; those warnings are always
- * rendered so a pending value can never be mistaken for published data. Water
- * numbers are region-level (`medium_reservoirs_daily`): the province is mapped
- * onto an RID region through the weather payload's `location.regionLabel` and
- * the card repeats that a region row is never province-level coverage.
+ * The client never imports the repository; the only module import is the pure
+ * seven-day helper so the "no partial week totals" rule exists in one place.
+ * Types below mirror the JSON contract of those routes like
+ * `weather-dashboard.tsx` does. Water
+ * numbers are RID-region grain: the province is matched to one region by the
+ * exact `location.regionLabel` from the weather payload, and no national or
+ * other-region value ever stands in for a missing match.
  */
 
 /* ---------------------- client-side type mirrors ---------------------- */
@@ -93,14 +94,30 @@ type WaterSourceMetadata = {
   limitations: string[];
 };
 
-type WaterMetadataPayload = {
+type WaterRegionSummary = {
+  region: string;
+  reservoirCount: number;
+  volumeMcm: number | null;
+  storageMcm: number | null;
+  percent: number | null;
+};
+
+type WaterSummary = {
+  reportDate: string | null;
+  reservoirCount: number;
+  totalVolumeMcm: number | null;
+  totalCapacityMcm: number | null;
+  regionSummaries: WaterRegionSummary[];
+};
+
+type WaterPayload = {
   source: WaterSourceMetadata;
-  reservoirs: [];
-  summary: null;
+  reservoirs: unknown[];
+  summary: WaterSummary | null;
 };
 
 type WaterEnvelope = {
-  data: WaterMetadataPayload;
+  data: WaterPayload;
   pagination: { page: number; pageSize: number; total: number };
   meta: {
     availability: string;
@@ -110,6 +127,11 @@ type WaterEnvelope = {
     dataAsOf: string | null;
     warnings: string[];
   };
+};
+
+type ObservationsEnvelope = {
+  data: { reanalysis: WeatherReanalysisRecord[] };
+  meta: { availability: string; warnings: string[] };
 };
 
 /* ---------------------- label maps (presentation only) ---------------------- */
@@ -199,16 +221,20 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
   const [attempt, setAttempt] = useState(0);
   const [weatherState, setWeatherState] = useState<SectionState>({ phase: 'loading' });
   const [waterState, setWaterState] = useState<SectionState>({ phase: 'loading' });
+  const [era5State, setEra5State] = useState<SectionState>({ phase: 'loading' });
   const [weather, setWeather] = useState<WeatherPayload | null>(null);
   const [weatherWarnings, setWeatherWarnings] = useState<string[]>([]);
   const [water, setWater] = useState<WaterEnvelope | null>(null);
+  const [era5, setEra5] = useState<WeatherReanalysisRecord | null>(null);
 
   const retry = () => {
     setWeatherState({ phase: 'loading' });
     setWaterState({ phase: 'loading' });
+    setEra5State({ phase: 'loading' });
     setWeather(null);
     setWeatherWarnings([]);
     setWater(null);
+    setEra5(null);
     setAttempt((value) => value + 1);
   };
 
@@ -230,18 +256,30 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
     const waterPromise = fetch('/api/v1/water/reservoirs?pageSize=1', { signal, headers })
       .then((response) => readJson<WaterEnvelope>(response))
       .then((envelope) => {
-        // Frozen metadata-only contract: data.source + reservoirs: [] + summary: null.
+        // Two honest shapes: metadata-only (summary null, reservoirs []) or a
+        // published batch whose summary always carries regionSummaries.
         if (!envelope?.data?.source?.sourceName || !Array.isArray(envelope.data.reservoirs) ||
-          envelope.data.summary !== null || !envelope.meta) {
-          throw new Error('รูปแบบ metadata น้ำต้นทุนไม่ถูกต้อง');
+          (envelope.data.summary !== null && !Array.isArray(envelope.data.summary?.regionSummaries)) ||
+          !envelope.meta) {
+          throw new Error('รูปแบบข้อมูลน้ำต้นทุนไม่ถูกต้อง');
         }
         return envelope;
       });
 
-    void Promise.allSettled([weatherPromise, waterPromise]).then((settled) => {
-      const [weatherResult, waterResult] = settled as [
+    const era5Promise = fetch('/api/v1/weather/observations?provinceCode=' + encodeURIComponent(provinceCode) + '&pageSize=1',
+      { signal, headers })
+      .then((response) => readJson<ObservationsEnvelope>(response))
+      .then((envelope) => {
+        // An empty reanalysis array is an honest "no published batch", not an error.
+        if (!Array.isArray(envelope?.data?.reanalysis)) throw new Error('รูปแบบข้อมูล ERA5 ไม่ถูกต้อง');
+        return envelope.data.reanalysis[0] ?? null;
+      });
+
+    void Promise.allSettled([weatherPromise, waterPromise, era5Promise]).then((settled) => {
+      const [weatherResult, waterResult, era5Result] = settled as [
         PromiseSettledResult<WeatherEnvelope>,
         PromiseSettledResult<WaterEnvelope>,
+        PromiseSettledResult<WeatherReanalysisRecord | null>,
       ];
       if (signal.aborted) return;
 
@@ -259,6 +297,13 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
       } else {
         setWaterState({ phase: 'error', message: messageOf(waterResult.reason, 'โหลด metadata น้ำต้นทุนจาก API ไม่สำเร็จ') });
       }
+
+      if (era5Result.status === 'fulfilled') {
+        setEra5(era5Result.value);
+        setEra5State({ phase: 'ready' });
+      } else {
+        setEra5State({ phase: 'error', message: messageOf(era5Result.reason, 'โหลดค่าประมาณ ERA5 จาก API ไม่สำเร็จ') });
+      }
     });
 
     return () => controller.abort();
@@ -266,14 +311,16 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
 
   const weatherReady = weatherState.phase === 'ready' && weather;
   const waterReady = waterState.phase === 'ready' && water;
+  const era5Ready = era5State.phase === 'ready';
   const sampleMode = weatherReady && weather.sample === true;
-  const allLoading = weatherState.phase === 'loading' && waterState.phase === 'loading';
+  const allLoading = weatherState.phase === 'loading' && waterState.phase === 'loading'
+    && era5State.phase === 'loading';
 
   return <section className={styles.section} aria-labelledby="province-agri-heading">
     <div className={styles.header}>
       <div>
         <h2 id="province-agri-heading">สถานการณ์การเกษตรในจังหวัด{provinceName}</h2>
-        <p>สถานะข้อมูลพยากรณ์และน้ำต้นทุน — อ่านจาก `/api/v1/weather` และ `/api/v1/water/reservoirs`</p>
+        <p>สถานะข้อมูลพยากรณ์ ค่าประมาณสภาพอากาศย้อนหลัง และน้ำต้นทุน — อ่านจาก `/api/v1/weather`, `/api/v1/weather/observations` และ `/api/v1/water/reservoirs`</p>
       </div>
       {sampleMode && <span className="badge pending"><Icon name="lock" size={13}/>ข้อมูลตัวอย่าง (ยังรอตรวจสิทธิ์)</span>}
     </div>
@@ -296,12 +343,16 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
             {weatherState.phase === 'error' &&
               <ErrorBox title="เปิดข้อมูลพยากรณ์ไม่ได้" message={weatherState.message} onRetry={retry}/>}
             {weatherReady && <WeatherCards weather={weather}/>}
+            {era5State.phase === 'loading' && <LoadingSkeleton compact/>}
+            {era5State.phase === 'error' &&
+              <ErrorBox title="เปิดค่าประมาณสภาพอากาศย้อนหลังไม่ได้" message={era5State.message} onRetry={retry}/>}
+            {era5Ready && <ReanalysisWeekCard record={era5} provinceName={provinceName}/>}
           </div>
           <div className={styles.column}>
             {waterState.phase === 'loading' && <LoadingSkeleton compact/>}
             {waterState.phase === 'error' &&
               <ErrorBox title="เปิดสรุปน้ำต้นทุนไม่ได้" message={waterState.message} onRetry={retry}/>}
-            {waterReady && <WaterCards water={water}/>}
+            {waterReady && <WaterCards water={water} regionLabel={weather?.location.regionLabel ?? null}/>}
           </div>
         </div>}
   </section>;
@@ -312,8 +363,8 @@ export function ProvinceAgriOverview({ provinceCode, provinceName }: {
 function WeatherCards({ weather }: { weather: WeatherPayload }) {
   if (!weather.days.length || !weather.cumulative) {
     return <section className={styles.card} aria-label="สถานะข้อมูลพยากรณ์" role="status">
-      <h3>ยังไม่มีพยากรณ์ที่เผยแพร่ได้</h3>
-      <p>ข้อมูลพยากรณ์ TMD HPC แยกอยู่ที่ <a href="/nwp">หน้าพยากรณ์ TMD HPC</a></p>
+      <h3>ยังไม่มีพยากรณ์รายสถานีที่เผยแพร่ได้</h3>
+      <p>พยากรณ์รายสถานียังไม่มี batch ที่อนุมัติ — พยากรณ์กริด TMD HPC NWP 72 ชั่วโมง (อนุมัติแล้ว) อยู่ที่ <a href="/nwp">หน้าพยากรณ์ TMD HPC</a></p>
     </section>;
   }
 
@@ -389,44 +440,99 @@ function advisorySeverityClass(severity: AdvisorySeverity): string {
     : severity === 'medium' ? styles.advisoryMedium : styles.advisoryLow;
 }
 
-/* ---------------------- water view (metadata only while pending) ---------------------- */
+/* ---------------------- reanalysis view (province grid point, estimated) ---------------------- */
 
-function WaterCards({ water }: {
+function ReanalysisWeekCard({ record, provinceName }: {
+  record: WeatherReanalysisRecord | null;
+  provinceName: string;
+}) {
+  const week = record ? summarizeReanalysisWeek(record) : null;
+
+  if (!record || !week) {
+    return <section className={styles.card} aria-label="ค่าประมาณสภาพอากาศย้อนหลัง" role="status">
+      <h3>ยังไม่มีค่าประมาณ ERA5 ของจังหวัด{provinceName}ที่เผยแพร่ได้</h3>
+      <p>จุดกริดศูนย์กลางจังหวัดยังไม่อยู่ในรอบตัวเลขที่อนุมัติ จึงไม่แสดงฝนสะสมแทนค่าที่ขาด — ดูจังหวัดอื่นที่มีข้อมูลได้ที่ <a href="/weather">หน้าอากาศ</a></p>
+    </section>;
+  }
+
+  return <section className={styles.card} aria-label="ค่าประมาณสภาพอากาศย้อนหลังเจ็ดวันจาก ERA5">
+    <div className={styles.cardHead}>
+      <div>
+        <span className={styles.eyebrow}>ERA5 · ค่าประมาณจากแบบจำลอง</span>
+        <h3>ฝนสะสม 7 วันย้อนหลังของจุดกริดจังหวัด{provinceName}</h3>
+        <p>จุดกริด {fmtCoord(record.gridLatitude)} / {fmtCoord(record.gridLongitude)} · โมเดล {record.providerModel ?? 'ไม่ระบุ'}</p>
+      </div>
+      <a className="text-link" href="/weather">ตาราง ERA5 ทุกจังหวัด<Icon name="arrow" size={16}/></a>
+    </div>
+
+    <dl className={styles.todayMetrics}>
+      <div>
+        <dt>ฝนสะสม 7 วัน (ค่าประมาณ)</dt>
+        <dd>{week.rainComplete ? fmtNumber(week.rainMm) + ' มม.' : 'ยังไม่ครบ 7 วัน'}</dd>
+      </div>
+      <div><dt>วันที่นับได้ในหน้าต่าง</dt><dd>{fmtNumber(week.dayCount, 0)} / 7 วัน</dd></div>
+      <div><dt>ค่าที่ขาดในทั้งชุด</dt><dd>{fmtNumber(record.missingValueCount, 0)} ช่อง</dd></div>
+      <div><dt>ช่วงวันที่</dt><dd>{thaiDateLabel(week.startDate)} – {thaiDateLabel(week.endDate)}</dd></div>
+    </dl>
+
+    <p className={styles.grainNote}>
+      ค่าประมาณจากแบบจำลองรายจุดกริด ไม่ใช่ค่าตรวจวัดจากสถานี และไม่ใช่ค่าเฉลี่ยทั้งจังหวัด ·
+      ERA5 archive ล่าช้าหลายวัน ช่วงวันที่ข้างบนจึงอาจไม่ใช่วันนี้ ·
+      {week.rainComplete
+        ? 'หน้าต่างนี้ครบ 7 วัน ตัวเลขจึงรวมได้ครบทุกรอบ'
+        : 'หน้าต่างนี้ไม่ครบ 7 วัน หรือมีวันที่ยังไม่มีค่า ระบบไม่รวมบางส่วนแล้วเรียกว่ายอด 7 วัน'}
+    </p>
+  </section>;
+}
+
+function fmtCoord(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return 'ไม่ระบุ';
+  return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 4 }).format(value);
+}
+
+/* ---------------------- water view (region grain, never province) ---------------------- */
+
+function WaterCards({ water, regionLabel }: {
   water: WaterEnvelope;
+  regionLabel: string | null;
 }) {
   const { data, meta } = water;
   const source = data?.source;
+  const summary = data.summary;
+  const region = summary && regionLabel
+    ? summary.regionSummaries.find((row) => row.region === regionLabel) ?? null
+    : null;
 
-  return <section className={styles.card} aria-label="สถานะสิทธิ์ข้อมูลน้ำต้นทุน">
+  return <section className={styles.card} aria-label="สรุปน้ำต้นทุนระดับกลุ่มภาค">
     <div className={styles.cardHead}>
       <div>
         <span className={styles.eyebrow}>น้ำต้นทุน · อ่างเก็บน้ำขนาดกลาง</span>
         <h3>{source?.datasetName ?? 'รายงานสถานการณ์อ่างเก็บน้ำขนาดกลาง'}</h3>
-        <p>{source?.sourceName ?? 'กรมชลประทาน (RID)'} · ทะเบียนสิทธิ์: {source?.licenseStatus ?? 'pending'}</p>
+        <p>
+          {source?.sourceName ?? 'กรมชลประทาน (RID)'} ·{' '}
+          {summary ? `ข้อมูลจริง · รายงานวันที่ ${thaiDateLabel(summary.reportDate)}` : 'ยังไม่มีชุดข้อมูลที่เผยแพร่ได้'}
+        </p>
       </div>
       <a className="text-link" href="/water">ดูรายละเอียด<Icon name="arrow" size={16}/></a>
     </div>
 
-    <aside
-      role="status"
-      aria-label="สถานะสิทธิ์ข้อมูล"
-      style={{
-        background: '#fff8e1',
-        border: '1px solid #ffe082',
-        borderRadius: 8,
-        padding: '12px 16px',
-        color: '#6d4f00',
-        fontSize: 13,
-        lineHeight: 1.6,
-        margin: '12px 0',
-      }}
-    >
-      <strong>ยังไม่เปิดเผยตัวเลขจากรายงานอ่างเก็บน้ำ</strong>
-      <div>
-        ทะเบียนสิทธิ์ราย resource ระบุรายงานอ่างเก็บน้ำขนาดกลางของกรมชลประทานเป็น <code>pending</code>{' '}
-        จึงไม่แสดงความจุ ปริมาตร หรือเปอร์เซ็นต์ในหน้านี้จนกว่าจะมีหลักฐานสิทธิ์และ active approved batch
-      </div>
-    </aside>
+    {!summary && <p className={styles.grainNote}>
+      ยังไม่มีรอบข้อมูลอ่างเก็บน้ำที่เผยแพร่ได้ในคลังกลาง ขณะนี้จึงไม่แสดงความจุ ปริมาตร หรือเปอร์เซ็นต์
+    </p>}
+
+    {summary && !region && <p className={styles.grainNote}>
+      ไม่พบกลุ่มภาคของกรมชลประทานที่ตรงกับป้าย “{regionLabel ?? 'ไม่ทราบภาค'}” ในรายงานรอบนี้
+      ระบบจึงไม่เติมค่าจากยอดรวมประเทศหรือภาคอื่นแทน — ดูภาพรวมได้ที่หน้า /water
+    </p>}
+
+    {summary && region && <>
+      <dl className={styles.todayMetrics}>
+        <div><dt>อ่างที่รายงาน · {region.region}</dt><dd>{fmtNumber(region.reservoirCount, 0)}</dd></div>
+        <div><dt>ปริมาณน้ำ (ล้าน ลบ.ม.)</dt><dd>{fmtNumber(region.volumeMcm)}</dd></div>
+        <div><dt>ความจุที่รายงาน (ล้าน ลบ.ม.)</dt><dd>{fmtNumber(region.storageMcm)}</dd></div>
+        <div><dt>สัดส่วนน้ำ</dt><dd>{fmtPercent(region.percent)}</dd></div>
+      </dl>
+    </>}
 
     {meta?.warnings && meta.warnings.length > 0 && (
       <ul style={{ fontSize: 12, color: 'var(--text-muted, #666)', paddingLeft: 18, margin: '8px 0' }}>
@@ -435,7 +541,7 @@ function WaterCards({ water }: {
     )}
 
     <p className={styles.grainNote}>
-      ระดับข้อมูล: {source?.grain ?? 'reservoir × report_date'} · ตรวจสิทธิ์ล่าสุด: {source?.licenseReviewedAt ?? '2026-10-25'} ·{' '}
+      ระดับข้อมูล: {source?.grain ?? 'reservoir × report_date'} · ยอดนี้เป็นของกลุ่มภาค ไม่ใช่ค่าของจังหวัด และไม่ใช่ coverage รายจังหวัด ·{' '}
       {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noreferrer">ต้นทาง: กรมชลประทาน</a>}
     </p>
   </section>;

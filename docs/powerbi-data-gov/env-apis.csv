@@ -1,0 +1,15 @@
+service,agency,data,freshness_evidence,format,credential,powerbi_method,status,best_use,caveat
+GISTDA Flood 7 Days,GISTDA,น้ำท่วม 7 วัน,updated 2026-10-30 18:06 UTC; images 26–29 Oct 2026,GeoJSON,api_key query,proxy,use_now_with_proxy,แผนที่และพื้นที่น้ำท่วม,10 polygons ใน 2 จังหวัด; rice_area=0; ห้ามบวก polygon
+TMD NWP,TMD,พยากรณ์รายวัน,2026-10-31 และ 2026-11-01,JSON,Bearer token,proxy,use_now_with_proxy,พยากรณ์ 7 วัน,1 call = 1 วัน; Cloudflare บล็อก Python urllib
+DWR Small Water,DWR,แหล่งน้ำขนาดเล็ก 302 แถว,RSS pubDate 2026-10-31 01:00 GMT,JSON,ไม่ต้องใช้,direct,use_now,น้ำเสริมรายวัน,ไม่มีคอลัมน์วันที่วัด
+DWR Medium Water,DWR,แหล่งน้ำขนาดกลาง 95 แถว,RSS pubDate 2026-10-31 01:00 GMT,JSON,ไม่ต้องใช้,direct,use_with_check,น้ำเสริมรายวัน,ไม่มีคอลัมน์วันที่วัด; ตรวจค่าจริงก่อนใช้
+DWR Rainfall,DWR,ฝน 0 แถว,RSS pubDate 2026-10-31 แต่ data ว่าง,JSON,ไม่ต้องใช้,direct,not_ready,ยังใช้ไม่ได้,feed ว่างในรอบที่ทดสอบ
+Meteostat Daily,Meteostat,สถานีอากาศรายวัน,2026-10-31 (4 จาก 12 สถานี),JSON,X-RapidAPI-Key,proxy,use_now_with_proxy,อากาศระดับสถานี,8 สถานีตอบ 200 แต่ data ว่าง
+Open-Meteo Forecast,Open-Meteo,พยากรณ์ 7 วัน,ถึง 2026-11-06,JSON,ไม่ต้องใช้,direct,use_now,พยากรณ์/ฝนรายวัน,ค่ากริด ~27 กม. ไม่ใช่ค่าเฉลี่ยจังหวัด
+Open-Meteo Archive,Open-Meteo,ย้อนหลัง 30 วัน,ถึง 2026-10-30,JSON,ไม่ต้องใช้,direct,use_now,ฝนย้อนหลัง,ค่ากริด ไม่ใช่สถานี
+OpenD,DGA,แคตตาล็อก 480 รายการสำหรับ doae,2026-10-31,JSON,api-key header,proxy หรือ snapshot,use_with_retry,แคตตาล็อกและ historical,ตอบ 502 เป็นครั้งคราว; ต้อง retry
+data.go.th,DGA,แคตตาล็อก 5752 รายการสำหรับ เกษตร,2026-10-31,JSON,ไม่ต้องใช้,direct หรือ snapshot,use_now,historical และแคตตาล็อก,มีสำเนาซ้ำจำนวนมาก
+DOAE Public CKAN,DOAE,ไฟล์ชุดข้อมูลสาธารณะ,2026-10-31,JSON/CSV,ไม่ต้องใช้,direct หรือ snapshot,use_now,historical,ไม่ใช่ข้อมูล realtime
+CDSE,ESA/EU,ภาพ Sentinel,2026-10-31 token ใช้งานได้,imagery,client credentials,pipeline,not_direct,ภาพ/ตัวชี้วัดเชิงพื้นที่,ต้อง preprocessing ก่อนเข้า BI
+PPSF,DOAE,เว็บรายงาน,2026-10-31 หน้า login ตอบ 200,HTML,username/password,manual,not_ready,manual only,ไม่มี API ที่ประกาศ
+TMD Station Observations,TMD,ค่าสถานีตรวจวัด,—,JSON,TMD_API_UID/TMD_API_UKEY ไม่มีใน .env,not_configured,not_ready,สถานีจริง,ยังดึงไม่ได้จนกว่าจะมี credential

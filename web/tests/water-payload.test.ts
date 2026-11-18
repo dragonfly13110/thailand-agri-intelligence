@@ -213,6 +213,35 @@ test('no publishable numeric row yields null instead of an empty zeroed summary'
   assert.equal(water.buildWaterPayload([row({ locationId: 'rsvA', metricId: 'unknown_metric' })]), null);
 });
 
+test('region summaries sum only that region and never fill a gap with zero', () => {
+  const payload = water.buildWaterPayload([
+    row({ locationId: 'rsvA', value: 20, dimensions: { region: 'ภาคกลาง' } }),
+    row({ locationId: 'rsvA', metricId: water.RID_METRIC_CAPACITY, value: 100, dimensions: { region: 'ภาคกลาง' } }),
+    row({ locationId: 'rsvB', value: 30, dimensions: { region: 'ภาคกลาง' } }),
+    row({ locationId: 'rsvC', value: null, dimensions: { region: 'ภาคเหนือ' } }),
+    row({ locationId: 'rsvC', metricId: water.RID_METRIC_CAPACITY, value: 60, dimensions: { region: 'ภาคเหนือ' } }),
+    row({ locationId: 'rsvD', value: 99, dimensions: {} }),
+  ]);
+  assert.ok(payload);
+  const regions = payload.summary?.regionSummaries ?? [];
+  assert.deepEqual(regions.map((item) => item.region), ['ภาคกลาง', 'ภาคเหนือ']);
+  assert.deepEqual(regions[0], {
+    region: 'ภาคกลาง',
+    reservoirCount: 2,
+    volumeMcm: 50,
+    storageMcm: 100,
+    percent: 50,
+  });
+  assert.deepEqual(regions[1], {
+    region: 'ภาคเหนือ',
+    reservoirCount: 1,
+    volumeMcm: null,
+    storageMcm: 60,
+    percent: null,
+  });
+  assert.equal(payload.summary?.reservoirCount, 4, 'the unlabelled reservoir stays in the national total only');
+});
+
 test('unknown volume units are flagged instead of inherited from the sample', () => {
   const payload = water.buildWaterPayload([
     row({ locationId: 'rsvA', unit: null }),
@@ -227,7 +256,7 @@ test('the repository layer keeps the public filters that gate the numbers', () =
   const source = readFileSync(new URL('../lib/hub/water-repository.ts', import.meta.url), 'utf8');
   assert.equal(source.includes('server-only'), true, 'water repository must be server-only');
   assert.equal(
-    source.includes('listD1Observations'),
+    source.includes('listD1ObservationRows'),
     true,
     'water repository must read through the governed numeric repository',
   );

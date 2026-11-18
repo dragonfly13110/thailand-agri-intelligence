@@ -1,3 +1,20 @@
+## เช็กเทียบรอยเผา GISTDA vs ตามรอยเผา + ตรวจครบเตรียม push `main` — 19 พ.ย. 2026
+
+- ยืนยันข้อจำกัดรอยเผา GISTDA (`disaster.gistda.or.th/fire` + API): ปัจจุบันเปิดเฉพาะรอบ `11–20 พ.ค. 2569` (หน้าเว็บมี `Jan/Feb/Mar/May 2569`) และเผาซ้ำ 4 ปี (`2017, 2023–2025`); ส่วนข้อมูลตามฤดูฝุ่น 3 ฤดู (`2567–2569`) แยกพืช 20 ม. เป็นของระบบตามรอยเผา (`tamroypao.hii.or.th`, สสน.+วช.+ม.เกษตรฯ)
+- ตรวจรับงานค้างทั้งหมดก่อน commit/push เข้า `main`: สแกนความลับ 102 รายการไม่พบ key/token หลุด (คืน `web/next-env.d.ts` กลับ HEAD), `web` `npm run test` **456/456**, `npm run typecheck` OK, `npm run build:vinext` `Build complete`, `tests/test_era5_annual_extract.py` **9/9**, `hotspot-5y/tests/test_interactive_map.py` **8/8**, `0` D1 writes
+
+## สร้าง Interactive Map แยกอิสระ (`hotspot_5y_interactive_map.html`) — 18 พ.ย. 2026
+
+- สร้างชุดสคริปต์และหน้าเว็บแผนที่โต้ตอบแบบไฟล์เดียวออฟไลน์ (`hotspot-5y/build_interactive_map.py`, `hotspot-5y/map_data.py`, `hotspot-5y/map_template.py`, `hotspot-5y/tests/test_interactive_map.py`, `hotspot-5y/README.md`, สเปก/แผนใน `docs/superpowers/`) ผลิต `hotspot-5y/data/output/hotspot_5y_interactive_map.html` (`5.46 MB`, gitignored) ครบ `77` จังหวัด / `928` อำเภอ / `7,660` ตำบล พร้อม `cube=191,520`, `grid=293,943`, `static=143`, `villages=919` เชื่อมอากาศ ERA5 (`77` จว., `2026`=`null`), รอยเผา GISTDA (`57/77` และ `53/77` จว.) และความถี่น้ำท่วม 17 ปี HII (`6,434` ตำบล, `null` สำหรับภูเก็ต/ระนองและนอกเขต) โดยไม่แตะ `web/` และ `0` D1 writes; รัน `test_interactive_map.py` ผ่าน `8/8` (`3.064s`) และ Playwright Headless Chrome ผ่านทุกขั้นตอนด้วย `0` console/page errors
+
+## ดึง `hotspot_5y.duckdb` จาก Google Drive + รันสรุปรายงาน — 18 พ.ย. 2026
+
+- ดาวน์โหลด `hotspot_5y.duckdb` (`391,917,568` bytes, gitignored) จาก Google Drive (`hotspot-5y-gistda`) มาที่ `hotspot-5y/data/hotspot_5y.duckdb` ครบตรงต้นฉบับ (1,278,326 จุด · 2022-01-01..2026-11-17 · 77 จังหวัด / 926 อำเภอ / 7,658 ตำบล) และรัน `hotspot-5y/analyze.py` สร้างรายงาน 8 ไฟล์ที่ `hotspot-5y/data/output/` เรียบร้อย; พบ 2/5 เทสต์ใน `test_hotspot_5y.py` error เรื่องขาดคอลัมน์ `PROV_NAM_E` ใน `data/local/geography/ddpm_province.geojson` บนเครื่องนี้ (กระทบเฉพาะตอน rebuild DB); 0 D1 writes
+
+## Pull `origin/main` (`894fae1`) พร้อมรักษางานค้าง 31 ต.ค. — 18 พ.ย. 2026
+
+- ดึง `894fae1` (`9c14ed3..894fae1` fast-forward) โดย stash เฉพาะ `HANDOFF.md`/`docs/progress.md` ชั่วคราวแล้วรวมบันทึก 18 พ.ย. + 31 ต.ค. ครบ; งานแก้ค้าง 48 ไฟล์ + 22 รายการจาก 31 ต.ค. อยู่ครบ (0 D1 writes, ไม่ commit/push)
+
 ## เปลี่ยน hotspot-5y เป็น GISTDA ล้วน 2022–2026 + อำเภอ/ตำบล/หมู่บ้าน (DuckDB เฉพาะเครื่อง · 0 D1 writes) — 18 พ.ย. 2026
 
 - ดึงขอบเขตอำเภอ/ตำบลจาก ปภ. (`download_boundaries.py` → 926 อำเภอ / 7,658 ตำบล) และดึง GISTDA STAC VIIRS ไทยครบ 5 ปีใหม่รวม `village`, `v_dist`, `v_direct` (`2022-01-01..2026-11-17`: 1,752 วัน / **1,278,326 จุด**)
@@ -9,6 +26,48 @@
 - auth: env token ยัง 401; ต่ออายุ wrangler OAuth ด้วย `npx wrangler whoami` แล้วใช้ `CF_D1_TOKEN=` override
 - ข้อมูลล่าสุดใน D1 คือ 31 ต.ค. (ค้าง ~18 วัน ไม่มี refresh); ชุด DOAE ใหญ่ยังอยู่ local/DuckDB
 - รายละเอียดที่ [HANDOFF.md](../HANDOFF.md); ไม่แก้โค้ด ไม่ commit
+
+## 31 ต.ค. 2026 · หน้าจังหวัดทั้ง 77 แสดงฝนสะสม 7 วันจาก ERA5 จริง
+
+- เพิ่ม helper `summarizeReanalysisWeek()` ใน `web/lib/hub/weather-observations-data.ts` และการ์ด `ReanalysisWeekCard` ใน `web/components/province-agri-overview.tsx` ที่อ่าน `/api/v1/weather/observations?provinceCode=…` เป็นสัญญาณที่สามของ `Promise.allSettled`
+- กฎคุณภาพ: รวมฝนเฉพาะหน้าต่าง 7 วันที่ครบ 7 วันและไม่มีวันว่าง มิฉะนั้นแสดง "ยังไม่ครบ 7 วัน" ไม่แสดง 0 · ป้าย "ค่าประมาณจากแบบจำลอง" แยกจากค่าตรวจวัดสถานี
+- หลักฐาน: เทสต์ใหม่ 2 ตัวแดงก่อนเขียว · web 445/445 · typecheck 0 error · `build:vinext` Build complete · API จังหวัด 73 = 7 วัน 2026-10-18→10-24 ฝนสะสม 21.1 มม. missing 0 · Chrome headless 1440/390 การ์ดขึ้นจริง ไม่ล้นแนวนอน
+- ค้าง: `readWeatherSnapshot` ยังกรองจังหวัดใน JS ทำให้แต่ละรีเควสต์อ่าน ~3.2k แถว (ควร push filter ลง SQL) · ช่อง "ช่วงวันที่" ตัดบรรทัดบน 390px
+
+## ค่าสรุปรายปี ERA5 ครบ 77 จังหวัดบน /climate-history (annual extract) — 31 ต.ค. 2026
+
+- ช่องว่าง: หน้าอ่านข้อมูลจริงได้แค่ 5 จุด snapshot และ 42 แถว D1 ของนครปฐม → 72 จังหวัดขึ้น empty และจุด snapshot ไม่มี tmean/tmin
+- ทำ: สร้าง `scripts/build_era5_annual_extract.py` + `src/tadih/era5_annual_extract.py` ดึง ERA5 archive รายวัน 2016–2025 ต่อจุดกลางจังหวัด 77 จุด (4 ตัวแปร) สรุปเป็นรายปีด้วยกติกาเดียวกับ `aggregateRealYear`; เขียน bundle `web/data/climate-history/era5-annual-2016-2025.json` (77 จังหวัด · 770 province-years · 398,159 bytes · sha256 `ab9e65ca…30c3fe`); checkpoint ต่อจังหวัดทำให้รันข้าม 429 ได้โดยไม่เริ่มใหม่
+- Web: reader `web/lib/hub/climate-history-annual.ts` ตรวจทั้ง envelope แบบ fail-closed (schema/licence/timezone/พิกัด/วันครบปี/sha256) และ memoize; เพิ่ม tier `reviewed_annual_extract` โดยไม่ผสม tier — เลือกปีมากสุด, เสมอ D1 > annual > cache; annual เผยแพร่ 4 ตัวแปร (tmean/tmax/tmin/ฝน) จึงชนะ cache ที่มี 3 ตัวแปรเมื่อปีเท่ากัน; หน้าจอ/API/ข้อความอธิบายชี้ที่มาของ tier ใหม่
+- แก้บั๊กตอนรัน: `assemble_extract` รับ mapping แต่สคริปต์ส่ง list ทำให้เรียง key ไม่ได้ → เปลี่ยนสคริปต์เก็บ dict ตามรหัสจังหวัด; และแก้ fixture เทสต์ที่ขาด `daily_sha256_basis` กับ type narrowing
+- ต่อยอด: เพิ่ม `tminNormalC` ใน baseline จริง (จากปีที่ครบปฏิทิน) และการ์ดที่ 5 “อุณหภูมิต่ำสุดเฉลี่ยรายปี” ให้ตัวแปรที่ 4 มองเห็นจริง; คำเตือน 77 รหัสแยกตาม tier (annual = ครบทั้ง 77 จุด เฉพาะ 2016–2025), แก้ note ตัวกรองที่ยังบอกว่ามีจริง 5 จังหวัด, stat grid เป็น auto-fit; เทสต์แดงก่อนเขียนและอัปเดตสัญญา empty baseline; full suite 441/441 · typecheck 0 · build complete · Chrome headless 1440/390 (device emulation) ไม่ล้น เห็น tmin 25.4 °C
+- ต่อยอด tmin รอบที่ 2: เพิ่มแถว “อุณหภูมิต่ำสุดเฉลี่ยต่ำที่สุด” ในตารางปีผิดปกติจาก `tminMeanC` ของปีที่ครบปฏิทิน (min) เทียบ baseline tmin — เทสต์แดงก่อน (`coldest` ไม่มี), ตารางเดิมเรนเดอร์ได้ทั่วไปจึงไม่ต้องแก้; DOM จริงแสดงปี 2565 24.9 °C vs ค่าปกติ 25.4 °C (−0.4 °C) และแถวเดิมครบ; full suite 441/441 · typecheck 0 · build complete
+- ตรวจ sweep 32 เส้นทาง (อ่านเท่านั้น): 200 ครบ ยกเว้น `/provinces` ที่ไม่มี route/ไม่มีลิงก์; “ยังไม่มีข้อมูล” ใน `/weather` `/early-warning` `/crop-evidence` เป็นค่าว่างจริงตามจังหวัด/แหล่ง; คำว่า “ตัวอย่าง” ใน `/livestock` `/cooperatives` `/soil` เป็นคำอธิบายชุดตัวอย่างจริง; ไม่พบหน้าที่มีข้อมูลจริงแต่ขึ้นว่าง
+- หลักฐาน: web tests 441/441 · `npm run typecheck` 0 · `npm run build:vinext` Build complete · Python `tests.test_era5_annual_extract` 9/9 · API จริงจังหวัด 10 (2016–2025): `dataKind real`, tier annual, 10 ปี, baseline 28.88 °C / 1,243.8 มม., `dataAsOf 2026-10-31T08:49:15Z`, datasetVersion = daily sha256 `7774865e…` · Playwright 1440 scrollWidth 1425 = clientWidth, 390 375 = 375, h1=1, console error 0, จังหวัดเริ่มต้น 73 และสลับไปกรุงเทพฯ แสดงค่าจริง (ปี 2023 วันร้อนจัด 6 วัน, ค่าปกติ 28.9 °C)
+- ขอบเขต: annual มีเฉพาะ 2016–2025; ช่วงที่เลือกกว้างกว่านั้นจะรายงานปีที่ขาดตามจริง; D1 2026 (1 ปี) แพ้ annual เมื่อช่วงปีมีปีที่ annual ครอบมากกว่า; เป็นจุดกริดเดียว ไม่ใช่ค่าเฉลี่ยจังหวัด
+- ไม่เขียน D1 รอบนี้ (อ่านอย่างเดียว) · ไม่ commit/push/deploy · dev ปิด · `web/next-env.d.ts` คืน HEAD
+
+## แสดงเวลาดึงจริงของ CHIRPS/GISTDA (รอบ partial) — 31 ต.ค. 2026
+
+- `/data-status` นับเฉพาะรอบ `succeeded` ทำให้ CHIRPS/GISTDA ขึ้น "ยังไม่ทราบ" ทั้งที่รอบจริงเป็น `partial` และมีข้อมูลถึง 27/31 ต.ค.; เพิ่ม `lastFetchAt`/`lastFetchStatus` ใน API แหล่งข้อมูล + helper `lastFetchLabel` แสดงเวลาและป้าย "เสร็จบางส่วน" โดยไม่ตีความเป็นสำเร็จเต็ม
+- รายละเอียดยังคง "ดึงข้อมูลสำเร็จล่าสุด = ยังไม่ทราบ" และเพิ่มบรรทัด "ดึงข้อมูลล่าสุด (รวมรอบบางส่วน)" ให้แยกความหมาย
+- `data-status.test.ts` 27/27 · full web 433/433 · typecheck 0 · build complete · Playwright 1440/390 ไม่ล้น console error 0
+- อ่าน D1 เท่านั้น ไม่เขียน; ไม่ commit/push; dev ปิด, next-env คืน HEAD
+
+## เพิ่มสถานะรอบ NWP จริงใน `/data-status` — 31 ต.ค. 2026
+
+- `/data-status` เดิมอ่านแค่ `sources`/`sync_runs` จึงไม่เห็น NWP ที่อยู่ใน `nwp_runs`; เพิ่ม section อ่าน `/api/v1/nwp/runs` ตรง ๆ แสดงรุ่นใหม่สุดที่ใช้ได้ (ข้าม failed/เวลาเสีย), สิทธิ์, init/เวลาดึง, ก้าวเวลา, ตัวแปร, หน่วยที่ยังรอ TMD ยืนยัน
+- ย่อก้าวเวลาต่อเนื่อง `0–72 ชั่วโมง (ทุก 1 ชม.)`; แถวบนมือถือลด 195px → 48px; ชุดไม่ต่อเนื่องยังแสดงรายการ
+- TDD `data-status-nwp.test.ts` 5/5 · full web 431/431 · tsc 0 · `build:vinext` complete · Playwright localhost:3100: รุ่นจริง `tmd_hpc_d02_2026103018`, 1440/390 ไม่ล้น, h1=1, console error 0
+- อ่าน D1 1 ครั้ง/เปิดหน้า ไม่เขียน D1; ไม่ commit/push; dev ปิด, `web/next-env.d.ts` คืน HEAD
+
+## ปิดช่อง D1 ของ /areas + ซ่อมการ์ดน้ำรายจังหวัด — 30 ต.ค. 2026
+
+- `/api/v1/areas/[provinceCode]` เพิ่ม dispatch ไป D1 (`listD1AreaEvidence`) — สัญญาเดียวกับ Postgres, เทสต์ใหม่แดงก่อนเขียนแล้วเขียว; `/areas/73` แสดง CPD (3 หลักฐาน) + DLD โคเนื้อ (5 หลักฐาน) จาก D1 จริง
+- `/api/v1/water/reservoirs` เปลี่ยนเป็น `data.summary` แต่หน้า `/areas/[provinceCode]` ยังใช้สัญญาเดิม → การ์ดน้ำ error; เพิ่ม `regionSummaries` ใน payload (RID 6 ภาค, บวกเฉพาะค่าที่รายงาน, ขาดเป็น null) และแก้ `/areas/compare` ให้อ่าน `data.summary.regionSummaries`
+- ตรวจสด: ภาคกลาง 28 อ่าง · 375.3/419.4 ล้าน ลบ.ม. · 89.5% · 26 ต.ค. 2569; compare 73/10 แสดงค่าภาคเดียวกัน ไม่มี error
+- web tests 395/395 · `npx tsc --noEmit` 0 error; ยังไม่ commit/push
+- หน้า sample-only 10 หน้า + DOAE/DLD 4 ชนิด/LDD/MODIS ยังติดสิทธิ์/เพดาน D1 ตาม runbook
 
 ## แก้ series API: SERIES_ID_TOO_LONG + D1 depth 100 — 30 ต.ค. 2026
 
@@ -497,3 +556,105 @@
 - **ยืนยันบนจอ**: `/livestock` 385 แถว 77 จังหวัด ยอด 9,541,765 ตัว · `/trade` 11 ระเบียน (ข้าว 182,444 ล้านบาท) · `/prices` 18 รายการราคาวัน
 - **บั๊กใหม่**: `/api/v1/livestock/beef-cattle` + `/api/v1/datasets/{id}/series` → 422 `SERIES_ID_TOO_LONG` เพราะ time fields อยู่ใน `dimensions` และ v2 id ยาวเกิน 600 (รายละเอียดใน HANDOFF)
 - **ค้าง**: ยังไม่ commit; DOAE/LDD/MODIS/DLD อีก 5 ชุดยังติดบล็อกเดิม
+
+## NWP units from TMD publications + watchlist ordering (31 ต.ค. 2026)
+
+- **Unit evidence (read-only, 31 Oct)**: TMD HPC pages publish variable definitions ([download](https://hpc.tmd.go.th/download)), °C/%/mm display on [meteogram](https://hpc.tmd.go.th/meteogram), and wind in m/s on [products](https://hpc.tmd.go.th/products). Added `NWP_UNIT_EVIDENCE`/`NWP_VARIABLE_UNITS`/`publishedUnitFor` in `web/lib/hub/nwp-types.ts`: p1h/p24h=mm, t2m=°C (source K−273.15), rhum=%, ws10m=null (source columns swapped).
+- **API**: `/api/v1/nwp/grid` (t2m) returns `unit:"°C"`; `/api/v1/nwp/provinces` (p24h) returns `unit:"mm"` and 77 rows with normal 46 / watch 20 / high 8 / severe 3. Run row still `unitStatus=pending_official_confirmation` because TMD has not confirmed definitions in writing.
+- **UI `/nwp`**: watchlist table + advisory cards sorted severe→normal (previously lowest risk first, hiding high/severe); stale "unit pending" copy replaced in dashboard, heatmap legend/tooltip, page footer, and API catalog notes. Desktop 1440 and mobile 390 checked live; no console errors.
+- **Tests**: NWP files 51/51, `npx tsc --noEmit` exit 0; full web suite result recorded in HANDOFF.
+- **Pending**: normalizer still writes `unit: null` for future snapshots; decide whether ingest or web fills confirmed units. No commit/push.
+
+## D1 active-resource audit (31 ต.ค. 2026, read-only)
+
+- 12 resources have active numeric runs and live rows: TMD monthly rainfall 2,358 · RID reservoirs 1,383 · DLD beef cattle 385 · WeatherTodayByAgro 272 · CPD 234 · OAE paddy price 189 · Open-Meteo ERA5 42 · WeatherToday V2 24 · Synop 24 · OAE exports 11 · CHIRPS 3 · GISTDA flood 3.
+- DLD dairy/swine/poultry/duck dry-runs still return `RESOURCE_NOT_APPROVED`: unresolved calendar-vs-fiscal year convention in the registry; the source CSV carries no date definition. Not a licence block.
+- TMD daily weather dry-run returns `TMD_CREDENTIALS_MISSING` (UID/UKEY absent); existing published rows remain, but refresh needs owner-provided credentials.
+- No D1 writes, no commit/push.
+
+## DLD year-convention evidence + livestock copy fix + NWP 1440 QA (31 ต.ค. 2026)
+
+- **DLD year (read-only)**: หนังสือ [ข้อมูลจำนวนปศุสัตว์ ในประเทศไทย ปี 2568](https://ict.dld.go.th/images/stories/regist/book/e-Regist%202568.pdf) 144 หน้า — คำนำบอกแหล่งข้อมูล (สำรวจปศุสัตว์ + e-Regist โดยสำนักงานปศุสัตว์จังหวัด/อำเภอ), ตาราง 3-1 หน้า 32 ระบุโคนมปี 2568 = 560,551 ตัว; **ไม่ระบุปีปฏิทิน/ปีงบประมาณและไม่มีวันที่อ้างอิง** → ข้อค้างของ DLD 4 ชนิดยังอยู่ คง fail-closed
+- **`web/lib/hub/livestock-data.ts`**: การ์ดช่องว่างและ note 4 ทรัพยากรเคยอ้างว่า writer ขาดสิทธิ์จากเจ้าของโครงการ — ทะเบียนจริงมี `project_owner_instruction` + `project_publication_approved` ครบทั้ง 5; แก้ให้ระบุสาเหตุจริง (ความหมายคอลัมน์ year + เงื่อนไขสัญญาอนุญาตต้นทาง) และระบุว่าโคเนื้อเผยแพร่แล้ว 385 แถว
+- **ตรวจหน้า**: `/livestock` 1440×900 ไม่ล้น (scrollWidth 1425), ยอดโคเนื้อจริง 9,541,765 ตัว, ข้อความเก่าหายทั้ง 5 จุด, console 0 error; 390×844 scrollWidth 375 · `/nwp` 1440×900 ตารางเริ่ม 161/116.9/107/80 มม. (เสี่ยงสูงมาก→สูง), legend "หน่วย mm", 0 error; 390×844 ไม่ล้น
+- **Tests**: `lane-l1-livestock` 9/9 · ไม่มีการเขียน D1/commit/push · dev server ปิด, `next-env.d.ts` คืน HEAD
+
+## Copy/สิทธิ์ audit ทุกหน้า + full suite (31 ต.ค. 2026)
+
+- ตรวจข้อความที่อ้างสถานะสิทธิ์/สาเหตุบล็อกของ `/cooperatives`, `/land-reform`, `/crop-evidence`, `/weather`, `/water`, `/trade`, `/food-safety`, `/monthly-rainfall` เทียบ `config/resource_licenses.json` — ตรงทุกหน้า ไม่ต้องแก้เพิ่ม (CAMELS/CPD แยกส่วน, ALRO pending, LDD PGS No-Derivs + `source_license_verified=false`, ทบก.01/ผลตรวจภาคสนามไม่ยืนยัน, OAE ส่งออกใช้คำสั่งเจ้าของโครงการแต่สัญญาต้นทางยังไม่ยืนยัน, DOAE อายุยาวมีข้อค้างแถวซ้ำ 5 กลุ่ม/ค่าติดลบ 3 แถว)
+- 10 หน้าตัวอย่างยังไม่มีแหล่งอนุมัติ (ทุกแหล่ง `pending`); ใน 12 ชุด `approved_public` + unresolved 0 แสดงบนหน้าเว็บแล้ว 11 ชุด เหลือ DOAE อายุสั้น 2023 (178,987 แถว เกินเพดาน 100k — runbook ห้าม `--write` จนกว่าเจ้าของจะเลือก)
+- full web suite 402/402 · `npx tsc --noEmit` exit 0 · ไม่เขียน D1/commit/push · dev server ปิด
+
+## QA หน้าเว็บจริง 12 หน้า + API health (31 ต.ค. 2026)
+
+- Playwright desktop 1440: `/water`, `/prices`, `/climate-history`, `/monthly-rainfall`, `/crop-evidence`, `/cooperatives`, `/land-reform`, `/satellite`, `/areas/73`, `/areas/compare`, `/data-status`, `/open-data` = 200 ทุกหน้า · console error 0 · overflow 0
+- ข้อความ "ตัวอย่าง/ยังไม่มีข้อมูล" ทุกจุดเป็นคำชี้แจงที่ถูกต้อง (CAMELS และ ALRO เป็น sample; พยากรณ์ 7 วันรอข้อมูลอนุมัติ; CPD 234 ระเบียนจริง; LDD PGS จริง)
+- API ข้อมูลจริง: water 25 อ่าง · weather observations 25 สถานี · monthly rainfall 25 สถานี · climate-history 10 ปี approved_public · NWP 77 จังหวัด unit mm · CPD 234 · satellite ready; 400 ที่พบเฉพาะเมื่อไม่ใส่พารามิเตอร์บังคับ
+- ไม่เขียน D1/commit/push · dev server ปิด · `web/next-env.d.ts` คืน HEAD
+
+## รีเฟรช GISTDA + ซ่อมชื่อจังหวัด/ตารางจริง/ล้นมือถือ (31 ต.ค. 2026)
+
+- รีเฟรช `web/data/gistda_flood_7days.json` จาก GISTDA จริง (ไม่เขียน D1): 31 ต.ค. 2026, 10 polygon, 2 จังหวัด, 134.25 ไร่ — อุดรธานี 118.53, สกลนคร 15.72; ของเดิม 25 ต.ค. (สุโขทัย 374.81) สำรองนอก repo
+- เจอต้นทางส่งรหัสจังหวัด 41 พร้อมชื่อ Udon Thani 5 แถวและ Sakon Nakhon 4 แถว, รหัส 47 พร้อมชื่อ Udon Thani 1 แถว → แก้ `satellite-data.ts` ให้เผยแพร่ชื่อเฉพาะเมื่อไม่กำกวม (รหัสเดียวชื่อเดียว และชื่อไม่ซ้ำรหัสอื่น) + ใช้ชื่อไทยจากทะเบียน 77 จังหวัด; API คืนอุดรธานี 118.53/สกลนคร 15.72 ถูกต้อง
+- เพิ่มตาราง "จังหวัดที่ตรวจพบน้ำท่วมจริง" บน `/satellite` ครอบทุกจังหวัด (เดิม 33 จังหวัดตัวอย่างซ่อนอุดรธานีไว้ เห็นแต่ยอดรวม); ซ่อมแบนเนอร์ล้นมือถือ (419→375); เปลี่ยนป้าย KPI ยอดน้ำท่วมจาก "ชุดจังหวัดสาธิต" เป็น "GISTDA snapshot 7 วัน" และกำกับว่าประวัติท่วมซ้ำซากเป็นค่าจำลอง
+- เทสต์ใหม่ `satellite-flood-names.test.ts` 7/7 (แดงก่อนเขียน) · full suite 409/409 · tsc 0 · Playwright 1440/390 ไม่ล้น console 0 · ไม่เขียน D1/commit/push
+- ยืนยันโหมด live: โหลด env จาก root `.env` เข้า dev บนพอร์ต 3100 แล้ว `/api/v1/satellite` คืน `sourceMode=live`, `liveFailureCode=null`, 134.25 ไร่ (เท่า snapshot), ชื่อจังหวัดถูก — dev ปกติที่ไม่ได้ส่ง env จะเห็น `GISTDA_API_KEY_MISSING`; ต้องใส่คีย์ใน env ของ web host
+
+## ตารางอ่างเก็บน้ำครบ 461 อ่างบน /water (31 ต.ค. 2026)
+
+- หน้าเดิมแสดงแค่ 25 จาก 461 อ่างที่อ่านได้ (เรียงน้ำน้อยสุด) ไม่มีทางเข้าถึงแถวที่เหลือ แม้ API จะแบ่งหน้าและคืน total 461 แล้ว
+- เพิ่ม `water-table.ts` (ค้นหา/กรองภาค/แบ่งหน้า) + `water-reservoir-table.tsx` (ค้นหาชื่อ/รหัส, กรอง 6 ภาค, 25 อ่าง/หน้า 19 หน้า, ล้างตัวกรอง) โดยคงลำดับและค่าต้นทางเดิม
+- เทสต์ใหม่ 11/11 (แดงก่อนเขียน) · full suite 420/420 · tsc 0 · Playwright 1440 (461, ค้น 249, ใต้ 44, หน้า 2/19) และ 390 (ไม่ล้น, console 0)
+- ตรวจเพิ่ม 10 หน้าจริง (`/early-warning` `/weather` `/monthly-rainfall` `/climate-history` `/prices` `/trade` `/cooperatives` `/data-status` `/catalog` `/explore`) 200 ทั้งหมด ไม่ล้น h1 เดียว console 0 · ไม่เขียน D1/commit/push
+
+## รีเฟรชข้อมูลจริง RID/GISTDA/ERA5 ลง D1 (31 ต.ค. 2026)
+
+- RID 31 ต.ค.: 461 อ่าง/1,383 แถว (missing 8) → run `6f2dcd0f…` สำเร็จ 1,383 แถว active เปลี่ยน, `period_end=2026-10-31`; ใช้เวลา 11 นาที 24 วินาที
+- GISTDA flood 31 ต.ค.: 10 polygon/2 จังหวัด/6 แถว (อุดรธานี 118.53 ไร่, สกลนคร 15.72) → run `4977f833…` active เปลี่ยน สถานะ partial ตามดีไซน์
+- ERA5: หน้าต่าง 19–25 ต.ค. ของ 11 จุดกริด = 462 แถว missing 0 → run `2f57ec0f…` active เปลี่ยน; แถวเป็นวัน UTC ของเที่ยงคืน ICT จึงเห็นถึง 2026-10-24 (เดิม 19 ต.ค.)
+- TMD รายวันยัง 26 ต.ค. เพราะไม่มี `TMD_API_UID`/`TMD_API_UKEY` — เจ้าของต้องใส่ credential ก่อน
+- ตรวจสด: `/api/v1/water/reservoirs` 31 ต.ค. total 461 · `/early-warning` real_evidence RID+GISTDA 31 ต.ค. · `/weather` ERA5 ถึง 24 ต.ค.; `/water` 19 หน้า ค้น 249 ภาคใต้ 44 หน้า 2 เปลี่ยนแถว, 1440/390 ไม่ล้น console error 0
+- โควตา 1,851 observation rows (~1.9%/วัน); ไม่ commit/push, dev ปิด, `web/next-env.d.ts` คืน HEAD
+
+## ปลดล็อก GISTDA live บน /satellite (31 ต.ค. 2026)
+
+- อาการ: แบนเนอร์ `SNAPSHOT — live call ล้มเหลว (code=GISTDA_API_KEY_MISSING)` ทั้งที่คีย์อยู่ใน `.env` ราก repo
+- สาเหตุ: route เว็บอ่าน `process.env.GISTDA_API_KEY` จาก `web/.env.local` ซึ่งมีแต่คีย์ D1 → เพิ่มคีย์ (gitignored, ไม่พิมพ์ค่า) แล้วรีสตาร์ต dev
+- ผล: `/api/v1/satellite` = `sourceMode live`, liveFailureCode ไม่มี, ดึงสด 12:05:26Z, 10 polygon/2 จังหวัด/134.25 ไร่; snapshot สำรอง 05:57Z วันเดียวกัน
+- ตรวจเพิ่ม: `/prices` จริง (dataAsOf 2026-10-30, 6 สินค้า, ไม่มี marker ตัวอย่าง); `/trade` จริงผ่าน `/api/v1/trade/oae` 11 รายการปี 2568 (run `fdfd5991…` 30 ต.ค. 15:49Z; `/api/v1/trade` เดิม metadata-only ตามดีไซน์); `/monthly-rainfall` batch null เพราะขาด `TMD_API_UID`/`TMD_API_UKEY` — เป็นค่าว่างจริงตามข้อจำกัด
+- ไม่แก้โค้ด/เทสต์, ไม่เขียน D1, ไม่ commit/push; host จริงต้องตั้ง env GISTDA_API_KEY เอง ไม่งั้นถอยไป snapshot จริง
+- สิทธิ์ล่าสุด: ทะเบียน 91 รายการ = approved_public 62 + pending 29 (บันทึกเก่า "8 approved" ล้าสมัย); การเห็นตัวเลขต้องครบ 3 ชั้น = ทะเบียนอนุมัติ + D1 resources flags + active numeric run — DOF อนุมัติ 5 ชุดแต่ D1 มี approved 0 แถว/ไม่มี run และไม่มี writer DOF→D1 → `/food-safety` ยังเป็นตัวอย่างโดยชอบ ต้องสร้าง adapter+publisher ก่อน
+
+## ขยาย ERA5 บน /weather เป็น 77 จุดกริดจังหวัด (31 ต.ค. 2026)
+
+- เดิมมี 11 จุดกริด (รอบ 19–25 ต.ค.) → รัน `--province all --start-date 2026-10-19 --end-date 2026-10-25` ได้ run `3126356b…` = 3,234 แถว (539×6), missing 0, complete, 77 จุด, active เปลี่ยน, ~22 นาที; เลือกช่วงที่ครบ 7 วันเพราะยอดฝนสะสม 7 วันต้องไม่มีวันขาด (จบ 30/26 ต.ค. ขาด 2,310/462 แถว)
+- แก้ limitation ที่ล้าสมัย ("จุดกริดเดียว") และเพิ่มคำเตือน archive ล่าช้าหลายวันในบล็อก ERA5 ที่มองเห็นจริง (เดิมอยู่เฉพาะ state ว่าง) — เทสต์แดงก่อนแก้ทั้งคู่
+- ตรวจ: web 443/443 · typecheck 0 · build complete · API reanalysis 77 จังหวัด 2026-10-18→24 ฝน 7 วันครบ 77/77 station 25 · Chrome headless 1440/390 แสดง 77 แถว มีคำเตือนล่าช้า h1=1 ไม่ล้น
+- โควตา 3,234 rows (~3.2%/วัน); ไม่ commit/push, dev ปิด, `web/next-env.d.ts` คืน HEAD
+
+## รีเฟรชพยากรณ์ NWP เป็นรุ่น 30 ต.ค. 2026 ลง D1 (31 ต.ค. 2026)
+
+- `/nwp` ยังอ่านรุ่น `tmd_hpc_d02_2026102606` (26 ต.ค.) ทั้งที่ TMD HPC มีรุ่น 30 ต.ค. 18Z ให้ดึง
+- pipeline: list → probe 5 ไฟล์ 200 → fetch 314 MB → normalize 220 snapshots → export → publish `--write`; run `tmd_hpc_d02_2026103018` init `2026-10-30T18:00:00Z` = `ready`, license `approved_public`, 1 run + 220 snapshots + 16,940 province values = 17,161 แถว (17.2%/วัน; รวมรอบวัน 19,012 แถว ~19%), ใช้เวลา ~71 นาที
+- API: runs คืนรุ่นใหม่เป็นตัวแรก; p24h 1 พ.ย. = mm · 77 จังหวัด · normal 44/watch 23/high 7/severe 3 (สตูล 108.77, พังงา 103.36, ยะลา 96.44)
+- หน้า `/nwp`: 1440 แสดง `tmd_hpc_d02_2026103018 · 2026-10-30 18:00 UTC`, ตารางเสี่ยงสูงมากก่อน, ไม่ล้น, h1=1; 390 ไม่ล้น (ตารางเลื่อนในกรอบ 307/582); console error เป็น HMR ของ dev เท่านั้น
+- `unit_status` ยัง `pending_official_confirmation` (writer ไม่ฝังหน่วย) แต่เว็บเติมหน่วยยืนยันรายตัวแปร; ไม่แตะ observations/commit/push; dev ปิด, `next-env.d.ts` คืน HEAD
+
+## แสดงพยากรณ์ NWP จริงในแท็บพยากรณ์ /early-warning (31 ต.ค. 2026)
+
+- แท็บพยากรณ์เดิมมีแต่ชุดจำลอง 14 วัน และอ้างว่า "ยังไม่มีแหล่ง forecast ที่ได้สิทธิ์เผยแพร่" ซึ่งผิดเพราะ NWP เป็น `approved_public`
+- เพิ่ม `web/lib/hub/early-warning-nwp.ts` สรุปค่าสูงสุดรายจังหวัดต่อ lead (null ข้าม ไม่นับ 0) + 5 จังหวัดสูงสุด; หน้าเรียก route handler `/api/v1/nwp/*` ตรง ๆ ไม่ hardcode ตัวเลข แล้วแสดงกล่อง NWP จริงก่อนชุดจำลอง; ชุดจำลองติดป้าย "ชุดสาธิตคงที่ ไม่ใช่พยากรณ์ปัจจุบัน"
+- รุ่นปัจจุบันมี p24h 2 ก้าว (+6 และ +30 ชม.) ทั้งคู่ 77 จังหวัด; +6 สูงสุดสระบุรี 148.46 มม. (เสี่ยงสูงมาก) — หน้าแสดงช่วงจริงตามที่เผยแพร่ ไม่เติมก้าวที่ไม่มี
+- เทสต์ใหม่ 6/6 (แดงก่อนเขียน) · full suite 426/426 · tsc 0 · Playwright 1440/390 กล่องจริง 2 การ์ด ไม่ล้น (1425/1425, 375/375) h1=1 console error 0; อ่าน D1 เท่านั้น; ไม่ commit/push; dev ปิด, `next-env.d.ts` คืน HEAD
+- แก้คำอธิบาย `/weather` + empty state + warning API + block จังหวัด ให้ระบุว่าขาดเฉพาะ batch รายสถานี 7 วัน และชี้ NWP 72 ชม. ที่อนุมัติแล้ว; เทสต์รวม 6/6, full suite 426/426, tsc 0, `/weather` 1440/390 ไม่ล้น console error 0
+
+## ลดต้นทุนอ่าน D1 ของหน้าจังหวัด + cache 60 วินาที (31 ต.ค. 2026)
+
+- โควตา D1 free tier อ่านได้ 5 ล้านแถว/วัน ชนแล้ววันนี้: 14:09 UTC query แรก (`count(*) FROM resources`) ผ่าน `rows_read=101` query ถัดไปตอบ error `7500` exceeded row read → งานที่ต้องอ่าน D1 จริง (apply index, dev QA) เลื่อนไปหลัง 00:00 UTC
+- ต้นทุนต่อ 1 หน้าจังหวัดเดิม ~26,000 แถว เพราะ (1) ดึงทรัพยากรอากาศทั้งชุดมากรองจังหวัดใน JavaScript (2) ขอ `count(*)` ทุกหน้า ซึ่งเดินทั้ง batch ซ้ำ
+- แก้: เพิ่ม `dimensionProvinceCode` ใน shared reader (`web/lib/hub/d1-numeric-repository.ts`) เป็น `CAST(json_extract(o.dimensions,'$.provinceCode') AS TEXT)=?` — จังหวัดของแถวกริด/สถานีอยู่ใน `dimensions` โดยเจตนา (คอลัมน์ `province_code` เป็น NULL เพราะไม่ใช่ค่าระดับจังหวัด) และต้อง CAST เพื่อให้อ่านค่าที่ adapter เขียนเป็น JSON number ได้เหมือนตัวกรอง JS เดิม; แยก `listD1ObservationRows()` (แถว+option `cache`) จาก `listD1Observations()` (แถว+total) แล้วให้ weather/water เดินหน้าจนได้หน้าสั้น (เลิก count ต่อหน้า)
+- cache 60 วิแบบ opt-in เฉพาะ walk ของแถวที่เผยแพร่แล้ว (key = SQL+พารามิเตอร์, แชร์ promise ระหว่างคำขอพร้อมกัน, คืน array สำเนา, ตัด entry ที่ล้มเหลว, จำกัด 64 entry) — ยังไม่ memo คำอ่าน catalog/ทะเบียนสิทธิ์ เพราะหน้า `/data-status` และงานรีวิวต้องเห็นการอนุมัติทันที; แถวที่ cache เปลี่ยนได้เฉพาะตอน `resources.active_run_id` สลับ จึงเพี้ยนไม่เกิน 1 นาที
+- บทเรียนระหว่างทาง: เวอร์ชันแรกที่ memo ครอบทุก `queryD1` ทำให้เทสต์ 10 ตัวพัง (เทสต์ reseed fixture ในไฟล์เดียวกันแล้วคาดหวัง fail-closed/ค่าใหม่ ถูกตอบด้วยแถวเก่า) จึงเปลี่ยนเป็น opt-in; `tests/d1-province-scope-index.test.ts` ปรับไปรัน statement ตรง ๆ หลังใส่ index แทนการอ่านผ่านหน้า
+- หลักฐาน: web 456/456 (ใหม่: `d1-read-memo.test.ts` 7, `province-page-d1-read.test.ts` 3, `d1-province-scope-index.test.ts` 1) · typecheck 0 · build complete · query plan บน SQLite จาก DDL จริงเปลี่ยนจาก `sqlite_autoindex_observations_1 (resource_id=? AND run_id=?)` เป็น `observations_province_scope_idx (resource_id=? AND run_id=? AND <expr>=?)` โดยแถวได้เท่าเดิม 42 แถว (`locationCode=['73']`) และเทสต์ pushdown ยืนยัน 0 `count(*)` ต่อหน้า
+- `db/cloudflare/0007_observations_province_scope_idx.sql` เขียน+ทดสอบแล้ว **ยังไม่ apply D1 จริง** (โควตาหมด) · ไม่เขียน D1 · ไม่ commit/push/deploy · `web/next-env.d.ts` คืน HEAD
+- คำสั่งรับต่อ: `cd web && npm run test && npm run typecheck && npm run build:vinext` · หลัง 00:00 UTC apply migration แล้ววัด `meta.rows_read` ของหน้าจังหวัด 1 หน้าก่อน/หลัง (task #32)

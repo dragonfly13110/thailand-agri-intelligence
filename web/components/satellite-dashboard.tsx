@@ -454,6 +454,72 @@ export function SatelliteDashboard({
         )}
       </section>
 
+      {/* จังหวัดที่ตรวจพบจริงทุกจังหวัด — ไม่จำกัดเฉพาะชุด 33 จังหวัดตัวอย่างด้านล่าง */}
+      {floodObservation && floodObservation.provinces.length > 0 && (
+        <section className={styles.limitationsPanel} aria-label="จังหวัดที่ GISTDA ตรวจพบน้ำท่วมจริง">
+          <div className={styles.limitationsTitle}>จังหวัดที่ตรวจพบน้ำท่วมจริง (ทุกจังหวัดในคำขอนี้)</div>
+          <p className={styles.sectionNote}>
+            แสดงครบทุกจังหวัดจาก polygon จริง ไม่จำกัดเฉพาะชุดจังหวัดตัวอย่างด้านล่าง ·
+            ชื่อจังหวัดใช้ทะเบียน 77 จังหวัดของโครงการ (คีย์รหัส DOPA) ·
+            จังหวัดที่ไม่มีแถวคือไม่ถูกตรวจพบในหน้าต่างนี้ ไม่ใช่การยืนยันว่าไม่มีน้ำท่วม
+          </p>
+          <div className={styles.tableCard}>
+            <div className={styles.responsiveTableWrap}>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th scope="col">จังหวัด</th>
+                    <th scope="col">
+                      พื้นที่น้ำท่วม
+                      <span className={styles.unitHint}>หน่วย: ไร่</span>
+                    </th>
+                    <th scope="col">
+                      พื้นที่น้ำท่วม
+                      <span className={styles.unitHint}>หน่วย: ตร.กม.</span>
+                    </th>
+                    <th scope="col">
+                      นาข้าว
+                      <span className={styles.unitHint}>หน่วย: ไร่</span>
+                    </th>
+                    <th scope="col">polygon</th>
+                    <th scope="col">ตำบล</th>
+                    <th scope="col">ดาวเทียม</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...floodObservation.provinces]
+                    .sort((a, b) => b.floodedAreaRai - a.floodedAreaRai)
+                    .map((province) => (
+                      <tr key={province.provinceCode}>
+                        <td>
+                          <div>
+                            <strong>
+                              {province.provinceNameTh
+                                ?? province.provinceNameEn
+                                ?? `รหัส ${province.provinceCode}`}
+                            </strong>
+                          </div>
+                          <span className={styles.unitHint}>รหัส DOPA {province.provinceCode}</span>
+                        </td>
+                        <td className={styles.numericCell}>{nf0.format(province.floodedAreaRai)} ไร่</td>
+                        <td className={styles.numericCell}>{nf.format(province.floodedAreaSqKm)} ตร.กม.</td>
+                        <td className={styles.numericCell}>
+                          {province.riceAreaRai === null
+                            ? 'ไม่ทราบค่า'
+                            : `${nf0.format(province.riceAreaRai)} ไร่`}
+                        </td>
+                        <td className={styles.numericCell}>{nf0.format(province.polygonCount)}</td>
+                        <td className={styles.numericCell}>{nf0.format(province.tambonCount)}</td>
+                        <td>{province.satelliteSources.length ? province.satelliteSources.join(', ') : '—'}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ข้อจำกัดของชุดข้อมูล (SATELLITE_WARNINGS) */}
       {initialWarnings.length > 0 && (
         <section className={styles.limitationsPanel} aria-label="ข้อจำกัดของชุดข้อมูลดาวเทียม">
@@ -470,7 +536,7 @@ export function SatelliteDashboard({
       <section className={styles.kpiGrid} aria-label="สรุปสถานการณ์ภาพรวม">
         <article className={`${styles.kpiCard} ${styles.floodAlert}`}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiLabel}>พื้นที่น้ำท่วมขัง (ชุดจังหวัดสาธิต)</span>
+            <span className={styles.kpiLabel}>พื้นที่น้ำท่วมขัง (GISTDA snapshot 7 วัน)</span>
             <div className={`${styles.kpiIconWrap} ${styles.blue}`}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 2C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-13Z" />
@@ -493,7 +559,7 @@ export function SatelliteDashboard({
           </div>
           <div className={styles.kpiFooter}>
             <span>
-              จังหวัดน้ำท่วมซ้ำซาก <strong>{initialSummary.repeatFloodProvinceCount}</strong> แห่ง
+              จังหวัดน้ำท่วมซ้ำซาก (ประวัติจำลอง) <strong>{initialSummary.repeatFloodProvinceCount}</strong> แห่ง
             </span>
             <span className={`${styles.kpiSubtag} ${styles.tagInfo}`}>แสดงแยกสองหน่วย</span>
           </div>

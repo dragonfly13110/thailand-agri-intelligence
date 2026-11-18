@@ -97,6 +97,10 @@ export function parseProvinces(csv:string): Province[] {
   return rows.sort((a,b)=>a.name.localeCompare(b.name,'th'));
 }
 
+export function getEmbeddedProvinceNames(): Map<string, string> {
+  return new Map(parseProvinces(EMBEDDED_PROVINCES_CSV).map((province) => [province.code, province.name]));
+}
+
 export async function getProvinces(): Promise<Province[]> {
   try {
     const csv = await readFile(join(process.cwd(), 'data', 'provinces.csv'), 'utf8');

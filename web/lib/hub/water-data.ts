@@ -96,9 +96,22 @@ export type WaterReservoirRecord = {
   sourceRowRef: string | null;
 };
 
+export type WaterRegionSummary = {
+  region: string;
+  reservoirCount: number;
+  /** Sum of the volumes the source reported for this region, null when none did. */
+  volumeMcm: number | null;
+  /** Sum of the capacities the source reported for this region, null when none did. */
+  storageMcm: number | null;
+  /** volume/storage of the reported sums; null when either side is missing. Never a province value. */
+  percent: number | null;
+};
+
 export type WaterSummary = {
   reportDate: string | null;
   reservoirCount: number;
+  /** RID-region totals only. Reservoirs without a region stay out; there is no province rollup. */
+  regionSummaries: WaterRegionSummary[];
   /** Sum of published volumes for one report date — not installed capacity. */
   totalVolumeMcm: number | null;
   /** Sum of the capacities the source actually reported for that date. */
@@ -233,9 +246,33 @@ export function buildWaterPayload(rows: WaterObservationInput[]): WaterPayload |
   const percents = reservoirs.map((row) => row.storagePercent).filter((value): value is number => value !== null);
   const capacities = reservoirs.map((row) => row.capacityMcm).filter((value): value is number => value !== null);
 
+  const byRegion = new Map<string, WaterReservoirRecord[]>();
+  for (const record of reservoirs) {
+    if (!record.region) continue;
+    const group = byRegion.get(record.region);
+    if (group) group.push(record);
+    else byRegion.set(record.region, [record]);
+  }
+  const regionSummaries: WaterRegionSummary[] = [...byRegion.entries()]
+    .map(([region, rows]) => {
+      const regionVolumes = rows.map((item) => item.volumeMcm).filter((value): value is number => value !== null);
+      const regionCapacities = rows.map((item) => item.capacityMcm).filter((value): value is number => value !== null);
+      const volume = regionVolumes.length ? round2(regionVolumes.reduce((sum, value) => sum + value, 0)) : null;
+      const storage = regionCapacities.length ? round2(regionCapacities.reduce((sum, value) => sum + value, 0)) : null;
+      return {
+        region,
+        reservoirCount: rows.length,
+        volumeMcm: volume,
+        storageMcm: storage,
+        percent: volume !== null && storage !== null && storage > 0 ? round2((volume / storage) * 100) : null,
+      };
+    })
+    .sort((a, b) => a.region.localeCompare(b.region, 'th'));
+
   const summary: WaterSummary = {
     reportDate,
     reservoirCount: reservoirs.length,
+    regionSummaries,
     totalVolumeMcm: volumes.length ? round2(volumes.reduce((sum, value) => sum + value, 0)) : null,
     // Only the reservoirs whose capacity the source actually reported are in
     // this total, so it is never presented as the installed capacity of the set.

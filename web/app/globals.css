@@ -191,6 +191,8 @@ main{width:100%;max-width:1376px;padding:40px 44px 48px;margin:0 auto;flex:1;out
 .real-data-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .real-data-heading p{font-size:13px;color:var(--muted);margin-top:8px}
 .real-data-heading>.badge{font-size:12px;flex-shrink:0}
+.data-status-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+@media(max-width:760px){.data-status-actions{width:100%}.data-status-actions .button{flex:1}}
 .data-filters{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;padding:18px;background:#f2f5ec;border-radius:6px}
 .data-filters>div{flex:1;min-width:150px}
 .data-filters label{font-size:12px;display:block;margin-bottom:7px}

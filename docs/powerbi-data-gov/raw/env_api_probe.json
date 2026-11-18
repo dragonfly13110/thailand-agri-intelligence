@@ -1,0 +1,315 @@
+{
+  "generated_at": "2026-10-31T16:24:10.833722+07:00",
+  "tests": {
+    "gistda_flood_7days": {
+      "status": 200,
+      "content_type": "application/geo+json",
+      "bytes": 25761,
+      "elapsed_ms": 191,
+      "ok": true,
+      "features": 10,
+      "property_keys": [
+        "_area",
+        "_createdAt",
+        "_createdBy",
+        "_id",
+        "_updatedAt",
+        "_updatedBy",
+        "ap_en",
+        "ap_idn",
+        "ap_tn",
+        "building",
+        "f_area",
+        "file_name",
+        "h3_address",
+        "h3_area",
+        "hospital",
+        "length_road",
+        "mongo_id",
+        "population",
+        "pv_en",
+        "pv_idn"
+      ],
+      "sample_date_values": [
+        "2026-10-30T18:06:45.333Z",
+        "8941696d847ffff"
+      ]
+    },
+    "tmd_nwp_daily_forecast": {
+      "today": {
+        "status": 200,
+        "days": 1,
+        "valid_dates": [
+          "2026-10-31"
+        ],
+        "sample": {
+          "cond": 4,
+          "tc_max": 32.1,
+          "tc_min": 26.55
+        },
+        "location": {
+          "province": "นครปฐม",
+          "lat": 13.819463,
+          "lon": 100.066009,
+          "geocode": "73"
+        }
+      },
+      "tomorrow": {
+        "status": 200,
+        "days": 1,
+        "valid_dates": [
+          "2026-11-01"
+        ],
+        "sample": {
+          "cond": 1,
+          "tc_max": 33.95,
+          "tc_min": 25.14
+        },
+        "location": {
+          "province": "นครปฐม",
+          "lat": 13.819463,
+          "lon": 100.066009,
+          "geocode": "73"
+        }
+      },
+      "ok": true,
+      "calls_needed_for_7_days": 7
+    },
+    "dwr_small_water": {
+      "status": 200,
+      "stderr": "",
+      "ok": true,
+      "rows": 302,
+      "rss_pub_date": "Sat, 31 Oct 2026 01:00:01 GMT",
+      "feed_url": "https://api.dwr.go.th/twsapi/rss/v1/feed/d5b18d99-cc33-449c-80fc-6ebd1eba48be",
+      "fields": [
+        "waterResourcesCode",
+        "waterResourcesName",
+        "waterResourcesSize",
+        "tambon",
+        "amphoe",
+        "province",
+        "latitude",
+        "longitude",
+        "storage",
+        "activeStorage",
+        "outflow"
+      ],
+      "auth_header_status": 200
+    },
+    "dwr_medium_water": {
+      "status": 200,
+      "stderr": "",
+      "ok": true,
+      "rows": 95,
+      "rss_pub_date": "Sat, 31 Oct 2026 01:00:00 GMT",
+      "feed_url": "https://api.dwr.go.th/twsapi/rss/v1/feed/4972c3e0-92f3-4d18-a44d-cbe7e73bdb51",
+      "fields": [
+        "waterResourcesCode",
+        "waterResourcesName",
+        "waterResourcesSize",
+        "tambon",
+        "amphoe",
+        "province",
+        "latitude",
+        "longitude",
+        "storage",
+        "activeStorage",
+        "outflow"
+      ]
+    },
+    "dwr_rainfall": {
+      "status": 200,
+      "stderr": "",
+      "ok": false,
+      "rows": 0,
+      "rss_pub_date": "Sat, 31 Oct 2026 01:00:03 GMT",
+      "feed_url": "https://api.dwr.go.th/twsapi/rss/v1/feed/2630afe0-68d7-496c-8a9d-3526be928b1e",
+      "fields": []
+    },
+    "opend_package_search": {
+      "status": 200,
+      "content_type": "application/json;charset=utf-8",
+      "bytes": 6154,
+      "elapsed_ms": 1187,
+      "ok": true,
+      "count": 480,
+      "attempts": [
+        200
+      ],
+      "top_keys": [
+        "help",
+        "success",
+        "result"
+      ]
+    },
+    "meteostat_daily": {
+      "ok": true,
+      "window": [
+        "2026-10-25",
+        "2026-10-31"
+      ],
+      "active_stations": [
+        "48327",
+        "48381",
+        "48407",
+        "48565"
+      ],
+      "active_count": 4,
+      "total_probed": 12,
+      "stations": {
+        "48455": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48451": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48419": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48425": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48327": {
+          "status": 200,
+          "ok": true,
+          "days": 7,
+          "latest_date": "2026-10-31 00:00:00",
+          "error": null
+        },
+        "48381": {
+          "status": 200,
+          "ok": true,
+          "days": 7,
+          "latest_date": "2026-10-31 00:00:00",
+          "error": null
+        },
+        "48383": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48431": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48407": {
+          "status": 200,
+          "ok": true,
+          "days": 7,
+          "latest_date": "2026-10-31 00:00:00",
+          "error": null
+        },
+        "48475": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48568": {
+          "status": 200,
+          "ok": false,
+          "days": 0,
+          "latest_date": null,
+          "error": null
+        },
+        "48565": {
+          "status": 200,
+          "ok": true,
+          "days": 7,
+          "latest_date": "2026-10-31 00:00:00",
+          "error": null
+        }
+      }
+    },
+    "open_meteo_forecast": {
+      "status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 581,
+      "elapsed_ms": 819,
+      "ok": true,
+      "days": 7,
+      "latest_date": "2026-11-06",
+      "grid": "Asia/Bangkok",
+      "fields": [
+        "time",
+        "precipitation_sum",
+        "temperature_2m_max",
+        "temperature_2m_min"
+      ]
+    },
+    "open_meteo_archive": {
+      "status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 1233,
+      "elapsed_ms": 797,
+      "ok": true,
+      "days": 30,
+      "latest_date": "2026-10-30"
+    },
+    "cdse_token": {
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 1991,
+      "elapsed_ms": 2610,
+      "ok": true,
+      "token_type": "Bearer",
+      "expires_in": 1800,
+      "token_length": 1841
+    },
+    "doae_ckan_public": {
+      "status": 200,
+      "content_type": "application/json;charset=utf-8",
+      "bytes": 10006,
+      "elapsed_ms": 90,
+      "ok": true,
+      "count": 2
+    },
+    "ppsf_login_page": {
+      "status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "bytes": 0,
+      "elapsed_ms": 117,
+      "body": "",
+      "ok": true,
+      "note": "website login; no documented API; not used for automated BI"
+    },
+    "data_go_th": {
+      "status": 200,
+      "content_type": "application/json;charset=utf-8",
+      "bytes": 6631,
+      "elapsed_ms": 2000,
+      "ok": true,
+      "count": 5752
+    }
+  },
+  "configured": {
+    "DOAE_CKAN_API_KEY": false,
+    "TMD_API_UID": false,
+    "TMD_API_UKEY": false,
+    "CDSE_CLIENT_ID": true,
+    "PPSF_USERNAME": true
+  }
+}

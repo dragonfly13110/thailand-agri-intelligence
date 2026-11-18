@@ -75,7 +75,9 @@ async function get(route: { GET: (request: Request) => Promise<Response> }, path
 }
 
 test('climate history API returns a truthful empty overview without generated numbers', async () => {
-  const response = await get(climateRoute, '/api/v1/climate-history?provinceCode=10&startYear=2005&endYear=2024');
+  // 2005-2014 lies before every real tier (annual extract starts 2016), so this
+  // window stays provably empty even after the 77-province bundle ships.
+  const response = await get(climateRoute, '/api/v1/climate-history?provinceCode=10&startYear=2005&endYear=2014');
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
 
@@ -100,6 +102,7 @@ test('climate history API returns a truthful empty overview without generated nu
   assert.deepEqual(body.data.notableYears, []);
   assert.deepEqual(body.data.baseline, {
     tmeanNormalC: null,
+    tminNormalC: null,
     rainfallNormalMm: null,
     hotDaysNormal: null,
   });

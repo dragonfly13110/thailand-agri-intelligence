@@ -196,6 +196,47 @@ function parseSatelliteStamps(sourcesField: string): ParsedSatelliteSource[] {
   return parsed;
 }
 
+/**
+ * ชื่อจังหวัดจะถูกเผยแพร่เมื่อไม่กำกวมเท่านั้น: รหัสเดียวต้องมีชื่อเดียว
+ * และชื่อนั้นต้องไม่ถูกใช้กับรหัสอื่นใน payload เดียวกัน (ต้นทาง GISTDA
+ * ส่งรหัสกับชื่อสลับกันได้) — ไม่งั้นคืน null แทนการหยิบชื่อแถวแรก
+ */
+function resolveProvinceNames(
+  entries: readonly { code: string; nameTh: string; nameEn: string }[],
+): Map<string, { nameTh: string | null; nameEn: string | null }> {
+  const namesByCode = new Map<string, { th: Set<string>; en: Set<string> }>();
+  const codesByName = { th: new Map<string, Set<string>>(), en: new Map<string, Set<string>>() };
+  for (const entry of entries) {
+    const slot = namesByCode.get(entry.code) ?? { th: new Set<string>(), en: new Set<string>() };
+    namesByCode.set(entry.code, slot);
+    for (const [name, names, codes] of [
+      [entry.nameTh, slot.th, codesByName.th],
+      [entry.nameEn, slot.en, codesByName.en],
+    ] as const) {
+      if (!name) continue;
+      names.add(name);
+      const owners = codes.get(name) ?? new Set<string>();
+      owners.add(entry.code);
+      codes.set(name, owners);
+    }
+  }
+
+  const unambiguous = (names: Set<string>, nameOwners: Map<string, Set<string>>, code: string) => {
+    if (names.size !== 1) return null;
+    const [name] = names;
+    return (nameOwners.get(name)?.size ?? 0) === 1 ? name : null;
+  };
+
+  const resolved = new Map<string, { nameTh: string | null; nameEn: string | null }>();
+  for (const [code, slot] of namesByCode) {
+    resolved.set(code, {
+      nameTh: unambiguous(slot.th, codesByName.th, code),
+      nameEn: unambiguous(slot.en, codesByName.en, code),
+    });
+  }
+  return resolved;
+}
+
 function buildFloodDetections(): Map<string, GistdaFloodDetection> {
   type Bucket = {
     records: GistdaFloodRecordRaw[];
@@ -217,6 +258,13 @@ function buildFloodDetections(): Map<string, GistdaFloodDetection> {
   }
 
   const grouped = new Map<string, GistdaFloodDetection>();
+  const feedNames = resolveProvinceNames(
+    floodFeed.records.map((record) => ({
+      code: record.dopa_province_code,
+      nameTh: '',
+      nameEn: record.province_name_en,
+    })),
+  );
   for (const [code, bucket] of scratch) {
     const locationKeys = new Set<string>();
     const locations: {
@@ -245,7 +293,7 @@ function buildFloodDetections(): Map<string, GistdaFloodDetection> {
 
     grouped.set(code, {
       provinceCode: code,
-      provinceNameEn: bucket.records[0]?.province_name_en ?? '',
+      provinceNameEn: feedNames.get(code)?.nameEn ?? '',
       featureCount: bucket.records.length,
       inundatedAreaRai: round2(bucket.sqm / SQM_PER_RAI),
       inundatedAreaSqKm: round2(bucket.sqm / SQM_PER_RAI / 625),
@@ -493,14 +541,23 @@ export function buildFloodObservation(
     retrievedAt: string;
     snapshotRetrievedAt: string;
     liveFailureCode?: string | null;
+    /** ชื่อจังหวัดไทยจากทะเบียน 77 จังหวัดของโครงการ (คีย์ = รหัส DOPA) */
+    provinceNames?: ReadonlyMap<string, string>;
   },
 ): FloodObservationPayload {
   const buckets = new Map<string, ProvinceBucket>();
+  const names = resolveProvinceNames(
+    polygons.map((polygon) => ({
+      code: polygon.provinceCode,
+      nameTh: polygon.provinceNameTh,
+      nameEn: polygon.provinceNameEn,
+    })),
+  );
   for (const polygon of polygons) {
     const bucket = buckets.get(polygon.provinceCode) ?? {
       provinceCode: polygon.provinceCode,
-      provinceNameTh: '',
-      provinceNameEn: '',
+      provinceNameTh: names.get(polygon.provinceCode)?.nameTh ?? '',
+      provinceNameEn: names.get(polygon.provinceCode)?.nameEn ?? '',
       floodAreaSqm: 0,
       riceAreaSqm: 0,
       polygonCount: 0,
@@ -522,8 +579,6 @@ export function buildFloodObservation(
     for (const token of polygon.sceneIds) {
       if (token && !bucket.sceneIds.includes(token)) bucket.sceneIds.push(token);
     }
-    if (!bucket.provinceNameTh) bucket.provinceNameTh = polygon.provinceNameTh;
-    if (!bucket.provinceNameEn) bucket.provinceNameEn = polygon.provinceNameEn;
     buckets.set(polygon.provinceCode, bucket);
   }
 
@@ -543,7 +598,9 @@ export function buildFloodObservation(
     }
     provinces.push({
       provinceCode: code,
-      provinceNameTh: bucket.provinceNameTh || null,
+      provinceNameTh: options.provinceNames
+        ? options.provinceNames.get(code) ?? null
+        : bucket.provinceNameTh || null,
       provinceNameEn: bucket.provinceNameEn || null,
       polygonCount: bucket.polygonCount,
       tambonCount: bucket.tambonCodes.length,

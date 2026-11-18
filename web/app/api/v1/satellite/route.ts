@@ -1,4 +1,5 @@
 import { handleApi, HubRequestError, jsonData, parseText } from '../../../../lib/hub/http';
+import { getEmbeddedProvinceNames } from '../../../../lib/provinces';
 import {
   GISTDA_LIVE_ENDPOINT,
   SATELLITE_GOVERNANCE,
@@ -163,6 +164,7 @@ export async function GET(request: Request) {
 
     let floodObservation: FloodObservationPayload;
     let floodMode: 'live' | 'snapshot';
+    const provinceNames = getEmbeddedProvinceNames();
     if (live.ok) {
       floodMode = 'live';
       floodObservation = buildFloodObservation(live.polygons, {
@@ -170,6 +172,7 @@ export async function GET(request: Request) {
         retrievedAt: live.retrievedAt,
         snapshotRetrievedAt: snapshot.snapshotRetrievedAt,
         liveFailureCode: null,
+        provinceNames,
       });
     } else if (snapshot.polygons.length > 0) {
       floodMode = 'snapshot';
@@ -178,6 +181,7 @@ export async function GET(request: Request) {
         retrievedAt: snapshot.snapshotRetrievedAt,
         snapshotRetrievedAt: snapshot.snapshotRetrievedAt,
         liveFailureCode: live.code,
+        provinceNames,
       });
     } else {
       throw new HubRequestError(

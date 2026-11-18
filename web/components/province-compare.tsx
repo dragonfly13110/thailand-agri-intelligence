@@ -195,7 +195,8 @@ function parseWeatherSnapshot(body: unknown): WeatherSnapshot {
 
 function parseWaterReference(body: unknown): WaterReference {
   const envelope = record(body, 'ข้อมูลน้ำต้นทุน');
-  const summary = record(envelope.summary, 'สรุปน้ำต้นทุน');
+  const data = record(envelope.data, 'ข้อมูลน้ำต้นทุน');
+  const summary = record(data.summary, 'สรุปน้ำต้นทุน');
   if (!Array.isArray(summary.regionSummaries)) {
     throw new Error('รูปแบบสรุปน้ำรายภาคไม่ถูกต้อง');
   }
@@ -204,18 +205,17 @@ function parseWaterReference(body: unknown): WaterReference {
     const row = record(raw, 'แถวสรุปน้ำรายภาค');
     return {
       region: text(row.region, 'ชื่อกลุ่มภาคของน้ำ'),
-      count: requiredNumber(row.count, 'จำนวนอ่างเก็บน้ำ'),
-      storageMcm: requiredNumber(row.storageMcm, 'ความจุเก็บกัก'),
-      volumeMcm: requiredNumber(row.volumeMcm, 'ปริมาณน้ำ'),
-      percent: requiredNumber(row.percent, 'สัดส่วนน้ำ'),
+      count: requiredNumber(row.reservoirCount, 'จำนวนอ่างเก็บน้ำ'),
+      storageMcm: nullableNumber(row.storageMcm, 'ความจุเก็บกัก'),
+      volumeMcm: nullableNumber(row.volumeMcm, 'ปริมาณน้ำ'),
+      percent: nullableNumber(row.percent, 'สัดส่วนน้ำ'),
     };
   });
 
-  const meta = isRecord(envelope.meta) ? envelope.meta : {};
   return {
     rows,
     reportDate: optionalText(summary.reportDate),
-    sourceUrl: optionalText(meta.sourceUrl) ?? RID_SOURCE_URL,
+    sourceUrl: RID_SOURCE_URL,
   };
 }
 

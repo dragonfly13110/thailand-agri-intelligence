@@ -13,7 +13,7 @@ import {
   type SeriesIdentity,
 } from './series-id';
 import { d1DimensionsSignatureExpression, d1SeriesDimensionsSignatureExpression } from './series-sql';
-import type { ApiMeta, HubObservation, HubSeries } from './types';
+import type { ApiMeta, AreaEvidence, HubObservation, HubSeries } from './types';
 
 type Row = Record<string, unknown>;
 type DatasetInfo = { sourceId: string; freshnessDays: number | null; hasNumeric: boolean; numericStatus: 'succeeded' | 'partial' | null };
@@ -525,6 +525,8 @@ export interface D1ObservationFilters {
   metricId?: string;
   provinceCode?: string;
   areaCode?: string;
+  /** Province scoped through `dimensions.provinceCode`, the value grid and station rows actually carry. */
+  dimensionProvinceCode?: string;
   locationKind?: string;
   cropCode?: string;
   /** Inclusive lower bound on the observation period (YYYY-MM-DD). */
@@ -609,6 +611,7 @@ function observationConditions(filters: D1ObservationFilters): { where: string; 
   const cropCode = filterId(filters.cropCode, 'cropCode', 80);
   const locationKind = filterId(filters.locationKind, 'locationKind', 20);
   const provinceCode = filterId(filters.provinceCode || filters.areaCode, 'provinceCode', 2);
+  const dimensionProvinceCode = filterId(filters.dimensionProvinceCode, 'dimensionProvinceCode', 2);
   const from = filterDate(filters.from, 'from');
   const to = filterDate(filters.to, 'to');
   if (from && to && from > to) throw new HubRequestError(400, 'INVALID_QUERY', 'ช่วงวันที่ไม่ถูกต้อง');
@@ -616,11 +619,20 @@ function observationConditions(filters: D1ObservationFilters): { where: string; 
     throw new HubRequestError(400, 'INVALID_QUERY', 'ระดับตำแหน่งที่ไม่รองรับ');
   }
   if (provinceCode && !/^\d{2}$/.test(provinceCode)) throw new HubRequestError(400, 'INVALID_QUERY', 'รหัสจังหวัดไม่ถูกต้อง');
+  if (dimensionProvinceCode && !/^\d{2}$/.test(dimensionProvinceCode)) {
+    throw new HubRequestError(400, 'INVALID_QUERY', 'รหัสจังหวัดไม่ถูกต้อง');
+  }
   if (sourceId) { conditions.push('d.source_id=?'); values.push(sourceId); }
   if (resourceId) { conditions.push('r.resource_id=?'); values.push(resourceId); }
   if (seriesKey) { conditions.push('o.series_key=?'); values.push(seriesKey); }
   if (metricId) { conditions.push('o.metric_id=?'); values.push(metricId); }
   if (provinceCode) { conditions.push('o.province_code=?'); values.push(provinceCode); }
+  // CAST keeps the parity with the JavaScript reader, which also accepts a province
+  // code the adapter wrote as a JSON number.
+  if (dimensionProvinceCode) {
+    conditions.push("CAST(json_extract(o.dimensions,'$.provinceCode') AS TEXT)=?");
+    values.push(dimensionProvinceCode);
+  }
   if (locationKind) { conditions.push('o.location_kind=?'); values.push(locationKind); }
   if (cropCode) { conditions.push('o.crop_code=?'); values.push(cropCode); }
   if (from) { conditions.push('o.period_end>=?'); values.push(from); }
@@ -679,19 +691,112 @@ function mapGenericObservation(row: Row): D1ObservationRow {
   };
 }
 
+const areaCategoryAliases: Record<string, string[]> = {
+  crops: ['crop', 'crops', 'production', 'agriculture'], prices: ['price', 'prices', 'market'],
+  water: ['water', 'weather', 'disaster', 'flood'], land: ['land', 'soil', 'satellite'],
+  fisheries: ['fishery', 'fisheries'], livestock: ['livestock', 'animal'],
+};
+
+function areaCategory(value: unknown): AreaEvidence['category'] {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  for (const [canonical, aliases] of Object.entries(areaCategoryAliases)) {
+    if (aliases.includes(raw)) return canonical;
+  }
+  return null;
+}
+
+/**
+ * D1 sibling of `listDbAreaEvidence`: one row per published dataset that has
+ * observations for the province, never a cross-dataset total.
+ */
+export async function listD1AreaEvidence(provinceCode: string, url: URL) {
+  if (!await isSupportedProvinceCode(provinceCode)) throw new HubRequestError(400, 'INVALID_ID', 'รหัสจังหวัดไม่ถูกต้อง');
+  const page = parsePage(url);
+  const categoryFilter = parseText(url, 'category', 40);
+  if (categoryFilter && !areaCategoryAliases[categoryFilter]) throw new HubRequestError(400, 'INVALID_QUERY', 'หมวดข้อมูลไม่ถูกต้อง');
+  const values: unknown[] = [provinceCode];
+  const conditions = [publicConditions, 'o.province_code=?'];
+  if (categoryFilter) {
+    const aliases = areaCategoryAliases[categoryFilter];
+    conditions.push("lower(coalesce(d.category,'')) IN (" + aliases.map(() => '?').join(',') + ')');
+    values.push(...aliases);
+  }
+  const where = conditions.join(' AND ');
+  const grouped = 'SELECT d.dataset_id' + observationFrom + 'WHERE ' + where + ' GROUP BY d.dataset_id';
+  const total = await countD1('SELECT count(*) AS total FROM (' + grouped + ') evidence', values);
+  const rows = await queryD1<Row>(
+    'SELECT d.dataset_id AS datasetId,d.title AS title,s.source_id AS sourceId,s.source_name AS sourceName,' +
+    'd.category AS category,count(*) AS evidenceCount,' +
+    'CASE WHEN count(DISTINCT r.grain)=1 THEN max(r.grain) ELSE NULL END AS grain,' +
+    'max(o.period_end) AS dataAsOf,max(run.completed_at) AS lastSuccessAt' +
+    observationFrom + 'WHERE ' + where + ' GROUP BY d.dataset_id,s.source_id,s.source_name ' +
+    'ORDER BY d.title,d.dataset_id LIMIT ? OFFSET ?',
+    [...values, page.pageSize, (page.page - 1) * page.pageSize],
+  );
+  const data: AreaEvidence[] = rows.map(row => ({
+    datasetId: String(row.datasetId), title: String(row.title), sourceId: String(row.sourceId),
+    sourceName: String(row.sourceName), category: areaCategory(row.category), evidenceCount: Number(row.evidenceCount),
+    grain: text(row.grain), dataAsOf: text(row.dataAsOf), lastSuccessAt: text(row.lastSuccessAt),
+  }));
+  const sourceIds = [...new Set(data.map(item => item.sourceId))];
+  return jsonData(data, {
+    meta: {
+      availability: data.length ? 'ready' : 'empty', freshness: 'unknown', completeness: data.length ? 'complete' : 'unknown',
+      access: data.length ? 'approved_public' : 'metadata_only', sourceIds, dataAsOf: null, sourceUpdatedAt: null,
+      datasetVersion: null, warnings: [], runtimeMode: 'database',
+    },
+    pagination: { ...page, total },
+  });
+}
+
+/**
+ * Published observation rows change only when a sync run flips `resources.active_run_id`,
+ * at most a few times a day, and this tier never writes D1. A province page reload walked
+ * the same batch again, and D1 bills examined rows - so a few hundred views spent the
+ * whole free-tier daily row-read budget. A caller opts in with `cache: true`; readers that
+ * must see a republish immediately (and catalog and licence reads) never touch the memo.
+ */
+const OBSERVATION_READ_TTL_MS = 60_000;
+const OBSERVATION_READ_MAX_ENTRIES = 64;
+
+const observationReadMemo = new Map<string, { expiresAt: number; rows: Promise<Row[]> }>();
+
+/** One statement against D1, shared by every identical cached walk inside the memo window. */
+function readCachedObservationRows(sql: string, params: unknown[]): Promise<Row[]> {
+  const key = JSON.stringify([sql, params]);
+  const cached = observationReadMemo.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.rows;
+  }
+
+  if (observationReadMemo.size >= OBSERVATION_READ_MAX_ENTRIES) {
+    const oldest = observationReadMemo.keys().next().value;
+    if (oldest !== undefined) observationReadMemo.delete(oldest);
+  }
+
+  const rows = queryD1<Row>(sql, params);
+  observationReadMemo.set(key, { expiresAt: Date.now() + OBSERVATION_READ_TTL_MS, rows });
+  rows.catch(() => {
+    // A failed walk must not stay cached, but a newer attempt owns the key once it has run.
+    if (observationReadMemo.get(key)?.rows === rows) observationReadMemo.delete(key);
+  });
+  return rows;
+}
+
 /**
  * Read published observations for any approved source/metric/province grain.
  * The result is capped at `D1_OBSERVATION_ROW_LIMIT` rows per call.
+ * `cache: true` shares one statement with an identical walk inside the publish window.
  */
-export async function listD1Observations(
+export async function listD1ObservationRows(
   filters: D1ObservationFilters = {},
-  options: { limit?: number; offset?: number } = {}
-): Promise<{ rows: D1ObservationRow[]; total: number }> {
+  options: { limit?: number; offset?: number; cache?: boolean } = {}
+): Promise<D1ObservationRow[]> {
   const { where, values } = observationConditions(filters);
   const requested = Math.trunc(Number(options.limit ?? 100));
   const limit = Math.min(Math.max(Number.isFinite(requested) && requested > 0 ? requested : 100, 1), D1_OBSERVATION_ROW_LIMIT);
   const offset = Math.max(Math.trunc(Number(options.offset ?? 0)) || 0, 0);
-  const rows = await queryD1<Row>(
+  const sql =
     'SELECT o.resource_id AS resourceId,o.run_id AS runId,run.status AS runStatus,' +
       'o.row_key AS rowKey,o.series_key AS seriesKey,d.source_id AS sourceId,d.dataset_id AS datasetId,' +
       'run.adapter_version AS adapterVersion,run.payload_sha256 AS payloadSha256,' +
@@ -701,11 +806,20 @@ export async function listD1Observations(
       'o.location_name AS locationName,o.province_code AS provinceCode,o.crop_code AS cropCode,o.crop_name AS cropName,' +
       'o.metric_id AS metricId,o.metric_name AS metricName,o.product,o.grade,o.market,o.unit,o.value,' +
       'o.dimensions,o.quality_status AS qualityStatus,o.quality,o.source_row_ref AS sourceRowRef' + observationFrom +
-      'WHERE ' + where + ' ORDER BY o.period_end DESC NULLS LAST,o.row_key LIMIT ? OFFSET ?',
-    [...values, limit, offset]
-  );
+      'WHERE ' + where + ' ORDER BY o.period_end DESC NULLS LAST,o.row_key LIMIT ? OFFSET ?';
+  const params = [...values, limit, offset];
+  const rows = options.cache ? await readCachedObservationRows(sql, params) : await queryD1<Row>(sql, params);
+  return rows.map(mapGenericObservation);
+}
+
+export async function listD1Observations(
+  filters: D1ObservationFilters = {},
+  options: { limit?: number; offset?: number; cache?: boolean } = {}
+): Promise<{ rows: D1ObservationRow[]; total: number }> {
+  const { where, values } = observationConditions(filters);
+  const rows = await listD1ObservationRows(filters, options);
   const total = await countD1('SELECT count(*) AS total' + observationFrom + 'WHERE ' + where, values);
-  return { rows: rows.map(mapGenericObservation), total };
+  return { rows, total };
 }
 
 

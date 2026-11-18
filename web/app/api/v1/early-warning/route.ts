@@ -24,8 +24,10 @@ export const dynamic = 'force-dynamic';
  * When no numeric batch is readable (no D1 binding, offline run) the route
  * returns the deterministic simulation envelope instead of mixing real and
  * synthetic rows: `sample: true`, `meta.access = metadata_only`,
- * `dataAsOf: null`, `no-store`. The forward forecast block is always the
- * simulation layer because no approved forecast resource exists yet.
+ * `dataAsOf: null`, `no-store`. The forward forecast block keeps the fixed
+ * simulation for the 14-day horizon; the approved TMD HPC NWP resource
+ * (`approved_public`) covers only 72 hours and is served by `/api/v1/nwp/*`
+ * and the `/early-warning` forecast tab, never folded into these signals.
  *
  * Query: `region`, `risk`, `type=flood|drought`, `source=rid|gistda|tmd`, `q`,
  * and `page`/`pageSize` for the signal list (one measured row = one signal, so

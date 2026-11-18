@@ -53,7 +53,7 @@ type ClimateRealYearStats = {
 
 type ClimateNotableYear = {
   year: number;
-  reason: 'hottest' | 'driest' | 'wettest' | 'most_hot_days' | 'longest_dry_spell';
+  reason: 'hottest' | 'coldest' | 'driest' | 'wettest' | 'most_hot_days' | 'longest_dry_spell';
   labelTh: string;
   value: number;
   unit: '°C' | 'mm' | 'วัน';
@@ -62,7 +62,7 @@ type ClimateNotableYear = {
 };
 
 type ClimateHistoryScope = {
-  tier: 'd1_published_batch' | 'reviewed_cache_point';
+  tier: 'd1_published_batch' | 'reviewed_cache_point' | 'reviewed_annual_extract';
   gridPoint: {
     areaLabelTh: string;
     requestedLatitude: number;
@@ -90,7 +90,7 @@ type ClimateHistoryProvenance = {
   license: string;
   attribution: string;
   attributionUrl: string;
-  readThrough: 'd1_active_numeric_run' | 'reviewed_local_snapshot';
+  readThrough: 'd1_active_numeric_run' | 'reviewed_local_snapshot' | 'reviewed_annual_extract';
   runId: string | null;
   runStatus: string | null;
   runCount: number;
@@ -133,7 +133,7 @@ type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
   | {
   dataKind: 'sample';
   sample: true;
-  baseline: { tmeanNormalC: number; rainfallNormalMm: number; hotDaysNormal: number };
+  baseline: { tmeanNormalC: number; tminNormalC: number; rainfallNormalMm: number; hotDaysNormal: number };
   years: ClimateYearStats[];
   trends: {
     tmeanPerDecadeC: number;
@@ -149,7 +149,7 @@ type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
   | {
   dataKind: 'empty';
   sample: false;
-  baseline: { tmeanNormalC: null; rainfallNormalMm: null; hotDaysNormal: null };
+  baseline: { tmeanNormalC: null; tminNormalC: null; rainfallNormalMm: null; hotDaysNormal: null };
   years: [];
   trends: {
     tmeanPerDecadeC: null;
@@ -165,7 +165,13 @@ type ClimateHistoryOverview = ClimateHistoryOverviewBase & (
   | {
   dataKind: 'real';
   sample: false;
-  baseline: { tmeanNormalC: number | null; tmaxNormalC: number | null; rainfallNormalMm: number | null; hotDaysNormal: number | null };
+  baseline: {
+    tmeanNormalC: number | null;
+    tmaxNormalC: number | null;
+    tminNormalC: number | null;
+    rainfallNormalMm: number | null;
+    hotDaysNormal: number | null;
+  };
   years: ClimateRealYearStats[];
   trends: {
     tmeanPerDecadeC: number | null;
@@ -352,7 +358,7 @@ export function ClimateHistoryDashboard({ provinces }: { provinces: Array<{ code
         </select>
       </div>
       <p className={styles.filterNote}>
-        <Icon name="pin" size={16}/>จังหวัดที่มีข้อมูลจริง ณ จุดกริดที่ตรวจสอบแล้ว: นครปฐม เชียงใหม่ ขอนแก่น อุบลราชธานี สุราษฎร์ธานี · จังหวัดอื่นแสดงสถานะตามข้อมูลที่เผยแพร่จริง
+        <Icon name="pin" size={16}/>ค่าสรุปรายปี ERA5 ครอบคลุมจุดกริดศูนย์กลางครบ 77 จังหวัด ปี 2016–2025 · ช่วงปีหรือจังหวัดที่ D1/snapshot รายวันมีข้อมูลครบกว่าจะใช้ข้อมูลระดับนั้นแทน
       </p>
     </div>
 
@@ -457,7 +463,7 @@ function OverviewView({ value }: { value: Envelope }) {
         </p>
       </div>
       {data.dataKind === 'real'
-        ? <span className="badge neutral"><Icon name="info" size={13}/>ข้อมูลจริงอ่านแล้ว · {data.scope.tier === 'reviewed_cache_point' ? 'snapshot จุดที่ตรวจสอบแล้ว' : 'numeric run ที่เผยแพร่ใน D1'}</span>
+        ? <span className="badge neutral"><Icon name="info" size={13}/>ข้อมูลจริงอ่านแล้ว · {tierLabelTh(data.scope.tier)}</span>
         : <span className="badge pending"><Icon name="lock" size={13}/>รอตรวจสิทธิ์เผยแพร่</span>}
     </section>
 
@@ -469,6 +475,10 @@ function OverviewView({ value }: { value: Envelope }) {
       <li className={styles.statChip}>
         <span>แนวโน้มอุณหภูมิเฉลี่ยรายทศวรรษ</span>
         <strong>{fmtSigned(trends.tmeanPerDecadeC)} °C/ทศวรรษ</strong>
+      </li>
+      <li className={styles.statChip}>
+        <span>อุณหภูมิต่ำสุดเฉลี่ยรายปี (เฉพาะปีที่ครบปฏิทิน)</span>
+        <strong>{fmtNum(baseline.tminNormalC)} °C</strong>
       </li>
       <li className={styles.statChip}>
         <span>วันร้อนจัด (Tmax สูงกว่า 38 °C) เฉลี่ยต่อปี</span>
@@ -536,6 +546,18 @@ function shortHash(value: string | null) {
   return value === null ? '—' : value.slice(0, 12) + '…';
 }
 
+function tierLabelTh(tier: ClimateHistoryScope['tier']): string {
+  if (tier === 'reviewed_annual_extract') return 'ค่าสรุปรายปี 77 จังหวัดที่ตรวจสอบแล้ว';
+  if (tier === 'reviewed_cache_point') return 'snapshot จุดที่ตรวจสอบแล้ว';
+  return 'numeric run ที่เผยแพร่ใน D1';
+}
+
+function tierReadPathTh(tier: ClimateHistoryScope['tier']): string {
+  if (tier === 'reviewed_annual_extract') return 'annual extract รายปีที่ตรวจสอบแล้ว (ERA5 รายวันจริง ปี 2016–2025 ต่อจุดจังหวัด)';
+  if (tier === 'reviewed_cache_point') return 'snapshot รายจุดที่ตรวจสอบแล้วในเครื่อง (ingest Open-Meteo)';
+  return 'numeric run ที่เผยแพร่ใน D1';
+}
+
 function RealDataNotice({ data, meta }: { data: Extract<ClimateHistoryOverview, { dataKind: 'real' }>; meta: Envelope['meta'] }) {
   const { scope } = data;
   return <section className={styles.notice} aria-label="ที่มาและข้อจำกัดของข้อมูลจริงชุดนี้">
@@ -547,7 +569,7 @@ function RealDataNotice({ data, meta }: { data: Extract<ClimateHistoryOverview, 
       <ul>{meta.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
       <p className={styles.noticeSource}>
         <Icon name="external" size={14}/>
-        อ่านผ่าน: {scope.tier === 'reviewed_cache_point' ? 'snapshot รายจุดที่ตรวจสอบแล้วในเครื่อง (ingest Open-Meteo)' : 'numeric run ที่เผยแพร่ใน D1'}
+        อ่านผ่าน: {tierReadPathTh(scope.tier)}
         {' · '}ช่วงวันที่มีข้อมูลจริง: {data.scope.firstDayWithData ?? '—'} ถึง {data.scope.lastDayWithData ?? '—'}
         {' · '}{data.source.attribution} (<a href={data.source.attributionUrl} target="_blank" rel="noreferrer">open-meteo.com</a>)
         {' · '}สัญญาอนุญาต {data.source.license}
@@ -593,7 +615,9 @@ function ScopePanel({ data }: { data: Extract<ClimateHistoryOverview, { dataKind
       readThrough: {provenance.readThrough}
       {provenance.runId !== null && <> · run: {provenance.runId} ({provenance.runStatus ?? 'ไม่ทราบสถานะ'})</>}
       {provenance.payloadSha256 !== null && <> · payload sha256: {shortHash(provenance.payloadSha256)}</>}
-      {provenance.cacheChecksums.length > 0 && <> · snapshot checksums {provenance.cacheChecksums.length} ปี เช่น {shortHash(provenance.cacheChecksums[0] ?? null)}</>}
+      {provenance.cacheChecksums.length > 0 && (scope.tier === 'reviewed_annual_extract'
+        ? <> · daily payload sha256: {shortHash(provenance.cacheChecksums[0] ?? null)}</>
+        : <> · snapshot checksums {provenance.cacheChecksums.length} ปี เช่น {shortHash(provenance.cacheChecksums[0] ?? null)}</>)}
       {' · '}source retrieved: {data.dataAsOf ?? '—'}
       {scope.rejectedCacheYears.length > 0 && <> · พาทิชันไม่ผ่านการตรวจสอบ: {scope.rejectedCacheYears.map((row) => row.year + ' (' + row.reason + ')').join('; ')}</>}
     </p>

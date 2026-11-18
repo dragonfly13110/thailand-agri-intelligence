@@ -206,8 +206,8 @@ function ForecastView({ value }: { value: Envelope }) {
   if (!days.length || !cumulative) {
     return <div className={styles.stateBlock} role="status">
       <Icon name="search" size={30}/>
-      <h2>ยังไม่มีพยากรณ์ที่เผยแพร่ได้สำหรับพื้นที่นี้</h2>
-      <p>ยังไม่มีข้อมูลจากแหล่งพยากรณ์ที่อนุมัติให้เผยแพร่ ลองดูข้อมูล TMD HPC แยกที่ <a href="/nwp">หน้าพยากรณ์ TMD HPC</a></p>
+      <h2>ยังไม่มีพยากรณ์รายสถานีที่เผยแพร่ได้สำหรับพื้นที่นี้</h2>
+      <p>endpoint พยากรณ์ 7 วันรายสถานียังไม่มี batch ที่อนุมัติให้เผยแพร่ — พยากรณ์กริด TMD HPC NWP ไม่เกิน 72 ชั่วโมงที่อนุมัติแล้วดูได้ที่ <a href="/nwp">หน้าพยากรณ์ TMD HPC</a></p>
       {meta.warnings.length > 0 && <ul>{meta.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>}
     </div>;
   }

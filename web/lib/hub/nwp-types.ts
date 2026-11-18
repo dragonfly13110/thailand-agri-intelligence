@@ -11,9 +11,9 @@
  *
  * Governance (must not be relaxed here):
  * - Values are model forecasts, never observations.
- * - `unit` stays `null` / `unitStatus: 'pending_official_confirmation'` until
- *   TMD documentation confirms definitions; licence status follows the exact
- *   resource row in `config/resource_licenses.json`.
+ * - A `unit` is published only when `NWP_UNIT_EVIDENCE` carries the TMD page
+ *   it was checked against; otherwise it stays `null`. Licence status follows
+ *   the exact resource row in `config/resource_licenses.json`.
  * - A grid cell is not a province value and never an official warning.
  */
 
@@ -34,16 +34,68 @@ export const NWP_VARIABLE_LABELS_TH: Record<NwpVariable, string> = {
   ws10m: 'ลม 10 ม.',
 };
 
+export type NwpUnitStatus = 'confirmed' | 'pending';
+
 /**
- * Source units are NOT confirmed yet, so every entry is `null`.
- * Never widen this into guessed units ("mm", "degC", …): the API `unit` field
- * and this map must stay `null` until the official TMD definition is checked.
+ * Unit evidence checked against TMD's own public pages on 2026-10-31.
+ * A `pending` entry keeps `unit` null; never replace it with a guess.
  */
-export const NWP_VARIABLE_UNITS_PENDING: Record<NwpVariable, string | null> = {
-  p1h: null,
-  p24h: null,
-  t2m: null,
-  rhum: null,
+export type NwpUnitEvidence = {
+  unit: string | null;
+  status: NwpUnitStatus;
+  evidenceUrl: string;
+  checkedAt: string;
+  noteTh: string;
+};
+
+const TMD_DOWNLOAD_URL = 'https://hpc.tmd.go.th/download';
+const TMD_PRODUCTS_URL = 'https://hpc.tmd.go.th/products';
+const TMD_METEOGRAM_URL = 'https://hpc.tmd.go.th/meteogram';
+
+export const NWP_UNIT_EVIDENCE: Record<NwpVariable, NwpUnitEvidence> = {
+  p1h: {
+    unit: 'mm',
+    status: 'confirmed',
+    evidenceUrl: TMD_DOWNLOAD_URL,
+    checkedAt: '2026-10-31',
+    noteTh: 'TMD ระบุ “ฝนสะสม 1 ชั่วโมง” และหน้า meteogram แสดงฝนเป็น มม.',
+  },
+  p24h: {
+    unit: 'mm',
+    status: 'confirmed',
+    evidenceUrl: TMD_DOWNLOAD_URL,
+    checkedAt: '2026-10-31',
+    noteTh: 'TMD ระบุ “ฝนสะสม 24 ชั่วโมง” และหน้า meteogram แสดงฝนเป็น มม.',
+  },
+  t2m: {
+    unit: '°C',
+    status: 'confirmed',
+    evidenceUrl: TMD_METEOGRAM_URL,
+    checkedAt: '2026-10-31',
+    noteTh: 'CSV ต้นทางเป็นเคลวิน ระบบแปลง K−273.15 แล้ว; TMD แสดงอุณหภูมิเป็น °C',
+  },
+  rhum: {
+    unit: '%',
+    status: 'confirmed',
+    evidenceUrl: TMD_PRODUCTS_URL,
+    checkedAt: '2026-10-31',
+    noteTh: 'TMD ระบุ “ความชื้นสัมพัทธ์” และ meteogram แสดงค่าเป็น %',
+  },
+  ws10m: {
+    unit: null,
+    status: 'pending',
+    evidenceUrl: TMD_DOWNLOAD_URL,
+    checkedAt: '2026-10-31',
+    noteTh: 'ไฟล์ ws10m ต้นทางมีค่าทิศทางลม (0–360) สลับกับ wd10m จึงระงับจน TMD ยืนยัน',
+  },
+};
+
+/** Published display unit per variable; null means "do not label this number". */
+export const NWP_VARIABLE_UNITS: Record<NwpVariable, string | null> = {
+  p1h: 'mm',
+  p24h: 'mm',
+  t2m: '°C',
+  rhum: '%',
   ws10m: null,
 };
 
@@ -51,10 +103,22 @@ export function isNwpVariable(value: unknown): value is NwpVariable {
   return typeof value === 'string' && (NWP_VARIABLES as readonly string[]).includes(value);
 }
 
-/** Only explicit confirmation statuses enable unit-dependent thresholds. */
-export function isNwpUnitConfirmed(unitStatus: string | null | undefined): boolean {
+export function publishedUnitFor(variable: NwpVariable): string | null {
+  return NWP_VARIABLE_UNITS[variable] ?? null;
+}
+
+/**
+ * A run-level confirmed status wins. Otherwise confirmation is per variable,
+ * because TMD confirmed rain/temperature/humidity while the wind file is still
+ * swapped at source.
+ */
+export function isNwpUnitConfirmed(
+  unitStatus: string | null | undefined,
+  variable?: NwpVariable | null,
+): boolean {
   const value = unitStatus?.trim().toLowerCase();
-  return Boolean(value && (value === 'confirmed' || value.startsWith('confirmed_')));
+  if (value && (value === 'confirmed' || value.startsWith('confirmed_'))) return true;
+  return variable ? NWP_UNIT_EVIDENCE[variable]?.status === 'confirmed' : false;
 }
 
 /* ------------------------------------------------------------------ */
@@ -245,7 +309,7 @@ export const NWP_LEAD_HOURS: number[] = [0, 6, 12, 24, 48, 72];
  */
 export const NWP_WARNINGS: string[] = [
   'ค่าพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด',
-  'หน่วยและนิยามตัวแปรยังรอการยืนยันจากต้นทาง TMD',
+  'หน่วย p1h/p24h (มม.), t2m (°C) และ rhum (%) ยืนยันจากหน้าเผยแพร่ของ TMD; ลม 10 ม. ยังระงับเพราะไฟล์ต้นทางสลับทิศทาง/ความเร็ว',
   'ค่ากริดคือค่าของช่องกริด 0.15° ไม่ใช่ค่าของจังหวัด',
   'ไม่ใช่ประกาศเตือนภัยราชการ ใช้ประกอบการวางแผนเท่านั้น',
 ];

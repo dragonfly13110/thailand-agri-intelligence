@@ -277,8 +277,9 @@ function ReanalysisBlock({ payload }: { payload: WeatherObservationsPayload }) {
       <div className={styles.reanalysisHead}>
         <h3>ชุด reanalysis ERA5 รายวัน (ไม่ใช่ค่าตรวจวัด)</h3>
         <p>
-          ค่าประมาณจากแบบจำลอง (dataKind=estimated) มีเฉพาะจังหวัดที่ถูกดึงเข้าคลังแล้ว
+          ค่าประมาณจากแบบจำลอง (dataKind=estimated) ของจุดกริดศูนย์กลางจังหวัดที่มีในคลัง
           ใช้ดูแนวโน้มย้อนหลังเทียบกันระหว่างวัน ไม่ใช่ตัวเลขจากสถานี และไม่วนไปรวมกับตารางด้านบน
+          · ERA5 archive ของผู้ให้บริการล่าช้าหลายวัน วันที่ล่าสุดในตารางจึงไม่ใช่วันนี้
         </p>
       </div>
       <div className="data-table-scroll">

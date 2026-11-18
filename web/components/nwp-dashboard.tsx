@@ -427,8 +427,11 @@ export function NwpDashboard({
     return activeRun.variables.filter((variable) => variable !== WITHHELD_VARIABLE);
   }, [activeRun]);
 
+  const activeVariable = isNwpVariable(selection.variable) ? selection.variable : null;
+  const unitConfirmed = Boolean(activeRun && isNwpUnitConfirmed(activeRun.unitStatus, activeVariable));
+
   const thresholdsForVariable = useMemo(() => {
-    if (!thresholds || !isNwpUnitConfirmed(activeRun?.unitStatus) || !isNwpVariable(selection.variable)) return null;
+    if (!thresholds || !unitConfirmed || !isNwpVariable(selection.variable)) return null;
     const definition = thresholds.variables?.[selection.variable];
     if (!definition) return null;
     if (
@@ -439,7 +442,7 @@ export function NwpDashboard({
       return null;
     }
     return { watch: definition.watch, high: definition.high, severe: definition.severe };
-  }, [activeRun?.unitStatus, thresholds, selection.variable]);
+  }, [unitConfirmed, thresholds, selection.variable]);
 
   const grid = state.grid;
   const provincesPayload = state.provinces;
@@ -474,7 +477,7 @@ export function NwpDashboard({
       return row.provinceName.toLowerCase().includes(needle);
     });
     return [...filtered].sort((a, b) => {
-      const rank = riskRank(a.riskLevel as RiskLevel | null) - riskRank(b.riskLevel as RiskLevel | null);
+      const rank = riskRank(b.riskLevel as RiskLevel | null) - riskRank(a.riskLevel as RiskLevel | null);
       if (rank !== 0) return rank;
       const left = a.value ?? Number.NEGATIVE_INFINITY;
       const right = b.value ?? Number.NEGATIVE_INFINITY;
@@ -492,7 +495,7 @@ export function NwpDashboard({
   );
 
   const advisoryItems = useMemo(() => {
-    if (!isNwpUnitConfirmed(activeRun?.unitStatus) || !isNwpVariable(selection.variable)) return [];
+    if (!unitConfirmed || !isNwpVariable(selection.variable)) return [];
     const rows = provincesPayload?.provinces ?? [];
     return rows
       .filter((row) => row.riskLevel !== null && row.riskLevel !== 'normal')
@@ -504,15 +507,15 @@ export function NwpDashboard({
       }))
       .filter((item) => item.text !== null)
       .sort((a, b) => {
-        const rank = riskRank(a.level) - riskRank(b.level);
+        const rank = riskRank(b.level) - riskRank(a.level);
         if (rank !== 0) return rank;
         return (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY);
       })
       .slice(0, 6);
-  }, [activeRun?.unitStatus, provincesPayload, selection.variable]);
+  }, [unitConfirmed, provincesPayload, selection.variable]);
 
-  const unitHint = isNwpUnitConfirmed(activeRun?.unitStatus)
-    ? unitFor(isNwpVariable(selection.variable) ? selection.variable : ('p24h' as NwpVariable), thresholds)
+  const unitHint = unitConfirmed
+    ? (grid?.unit ?? unitFor(isNwpVariable(selection.variable) ? selection.variable : ('p24h' as NwpVariable), thresholds))
     : null;
 
   const handleRunChange = (runId: string) => {
@@ -548,7 +551,10 @@ export function NwpDashboard({
           </ul>
           <p className={styles.bannerText}>
             แหล่งข้อมูล: แบบจำลอง NWP ของกรมอุตุนิยมวิทยา (TMD HPC) โดเมน d02 ความละเอียด 3 กม.
-            ลดขนาดเป็นช่องกริด 0.15° — หน่วยและนิยามตัวแปรยังรอการยืนยันจากต้นทาง
+            ลดขนาดเป็นช่องกริด 0.15° —{' '}
+            {unitConfirmed
+              ? 'หน่วยของตัวแปรที่เลือกยืนยันจากหน้าเผยแพร่ TMD (ลม 10 ม. ยังระงับ)'
+              : 'หน่วยของตัวแปรนี้ยังรอการยืนยันจากต้นทาง'}{' '}
             ตัวเลขทุกจุดบนหน้านี้เป็นค่าพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด และไม่ใช่ประกาศเตือนภัยราชการ
           </p>
         </div>
@@ -667,7 +673,7 @@ export function NwpDashboard({
               <span className={styles.kpiLabel}>{valuesAreMax ? 'ค่าสูงสุดที่พบในกริด' : 'ค่าเฉลี่ยสูงสุดที่พบในกริด'}</span>
               <span className={styles.kpiValue}>
                 {gridStats && gridStats.max !== null ? measure(gridStats.max) : NO_DATA}
-                <span className={styles.kpiUnit}>หน่วยรอการยืนยัน</span>
+                <span className={styles.kpiUnit}>{grid?.unit ?? 'หน่วยรอการยืนยัน'}</span>
               </span>
               <p className={styles.kpiNote}>ค่าพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด</p>
             </li>
@@ -685,14 +691,14 @@ export function NwpDashboard({
               <span className={styles.kpiLabel}>จังหวัดที่เข้าเกณฑ์เฝ้าระวัง</span>
               <span className={styles.kpiValue}>
                 {provincesPayload
-                  ? isNwpUnitConfirmed(activeRun?.unitStatus) ? countFmt.format(watchCount) : 'ยังไม่จัดระดับ'
+                  ? unitConfirmed ? countFmt.format(watchCount) : 'ยังไม่จัดระดับ'
                   : NO_DATA}
                 <span className={styles.kpiUnit}>จังหวัด</span>
               </span>
               <p className={styles.kpiNote}>
-                {isNwpUnitConfirmed(activeRun?.unitStatus)
+                {unitConfirmed
                   ? 'เกณฑ์ภายในของระบบ (ยังไม่ใช่เกณฑ์ราชการ)'
-                  : 'หน่วยและนิยามตัวแปรยังรอยืนยัน จึงยังไม่คำนวณจำนวนจังหวัดที่เข้าเกณฑ์'}
+                  : 'หน่วยของตัวแปรนี้ยังรอยืนยัน จึงยังไม่คำนวณจำนวนจังหวัดที่เข้าเกณฑ์'}
               </p>
             </li>
           </ul>
@@ -721,6 +727,7 @@ export function NwpDashboard({
                     ny={grid.ny}
                     variableLabel={variableLabel(selection.variable)}
                     unitLabel={grid.unit}
+                    unitConfirmed={unitConfirmed}
                     valuesAreMax={valuesAreMax}
                     thresholds={thresholdsForVariable}
                     height={640}
@@ -783,7 +790,9 @@ export function NwpDashboard({
                 <table className={styles.table}>
                   <caption>
                     ค่าสูงสุดในรัศมี 25 กม. รอบจุดอ้างอิงจังหวัด ไม่ใช่ค่าเฉลี่ยทั้งจังหวัด —
-                    หน่วยและนิยามตัวแปรยังรอการยืนยันจากต้นทาง TMD
+                    {unitConfirmed && unitHint
+                      ? ` หน่วย ${unitHint} ยืนยันจากหน้าเผยแพร่ TMD`
+                      : ' หน่วยและนิยามตัวแปรยังรอการยืนยันจากต้นทาง TMD'}
                   </caption>
                   <thead>
                     <tr>
@@ -841,13 +850,13 @@ export function NwpDashboard({
               </div>
               {advisoryItems.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <strong>{isNwpUnitConfirmed(activeRun?.unitStatus)
+                  <strong>{unitConfirmed
                     ? 'ไม่พบจังหวัดที่เข้าเกณฑ์เฝ้าระวัง'
                     : 'ยังไม่จัดระดับความเสี่ยงรายจังหวัด'}</strong>
                   <span>
-                    {isNwpUnitConfirmed(activeRun?.unitStatus)
+                    {unitConfirmed
                       ? 'ค่าพยากรณ์ของตัวแปร/เวลาที่เลือกอยู่ต่ำกว่าเกณฑ์เฝ้าระวังทั้งหมด (หรือยังไม่มีข้อมูลในรายการจังหวัด)'
-                      : 'หน่วยและนิยามตัวแปรยังรอยืนยัน จึงยังไม่ใช้เกณฑ์ภายในจัดระดับ'}
+                      : 'หน่วยของตัวแปรนี้ยังรอยืนยัน จึงยังไม่ใช้เกณฑ์ภายในจัดระดับ'}
                   </span>
                 </div>
               ) : (
@@ -868,7 +877,10 @@ export function NwpDashboard({
               <div className={styles.panelHeader}>
                 <h2 className={styles.panelTitle}>คุณภาพและสถานะข้อมูล</h2>
                 <p className={styles.panelNote}>
-                  ตัวเลขทั้งหมดเป็นค่าพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด และหน่วย/นิยามตัวแปรยังรอการยืนยัน
+                  ตัวเลขทั้งหมดเป็นค่าพยากรณ์จากแบบจำลอง ไม่ใช่ค่าตรวจวัด ·{' '}
+                  {unitConfirmed
+                    ? `หน่วยของตัวแปรนี้ (${unitHint ?? '—'}) ยืนยันจากหน้าเผยแพร่ TMD`
+                    : 'หน่วย/นิยามของตัวแปรนี้ยังรอการยืนยัน'}
                 </p>
               </div>
               <dl className={styles.qualityGrid}>
@@ -917,8 +929,8 @@ export function NwpDashboard({
                 <div className={styles.qualityRow}>
                   <dt className={styles.qualityLabel}>สถานะหน่วย</dt>
                   <dd className={styles.qualityValue}>
-                    {activeRun?.unitStatus ?? NO_DATA}
-                    {unitHint ? ` (หน่วยตามเกณฑ์ภายใน: ${unitHint} — รอยืนยัน)` : ''}
+                    {unitConfirmed ? 'ยืนยันจากหน้าเผยแพร่ TMD' : (activeRun?.unitStatus ?? NO_DATA)}
+                    {unitHint ? ` (หน่วยที่ใช้แสดงผล: ${unitHint})` : ''}
                   </dd>
                 </div>
                 <div className={styles.qualityRow}>

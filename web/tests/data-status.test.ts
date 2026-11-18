@@ -149,6 +149,60 @@ test('a null or unreadable timestamp says unknown instead of a made-up date', ()
   assert.equal(status.formatTimeBangkok('').text, 'ยังไม่ทราบ');
 });
 
+test('a partial latest run supplies the last fetched time but stays labelled partial', () => {
+  const partial = status.lastFetchLabel({
+    lastSuccessAt: null,
+    lastFetchAt: '2026-10-31T06:32:18Z',
+    lastFetchStatus: 'partial',
+  });
+  assert.equal(partial.unknown, false);
+  assert.equal(partial.partial, true);
+  assert.ok(partial.text.includes('31 ต.ค.'), partial.text);
+
+  const newerPartial = status.lastFetchLabel({
+    lastSuccessAt: '2026-10-30T01:00:00Z',
+    lastFetchAt: '2026-10-31T06:32:18Z',
+    lastFetchStatus: 'partial',
+  });
+  assert.equal(newerPartial.partial, true);
+  assert.ok(newerPartial.text.includes('31 ต.ค.'), newerPartial.text);
+
+  const successAfterPartial = status.lastFetchLabel({
+    lastSuccessAt: '2026-10-31T09:00:00Z',
+    lastFetchAt: '2026-10-31T06:32:18Z',
+    lastFetchStatus: 'partial',
+  });
+  assert.equal(successAfterPartial.partial, false);
+
+  const failedOnly = status.lastFetchLabel({
+    lastSuccessAt: null,
+    lastFetchAt: '2026-10-31T06:32:18Z',
+    lastFetchStatus: 'failed',
+  });
+  assert.equal(failedOnly.unknown, true);
+  assert.equal(failedOnly.text, 'ยังไม่ทราบ');
+
+  const unknown = status.lastFetchLabel({ lastSuccessAt: null, lastFetchAt: null, lastFetchStatus: null });
+  assert.equal(unknown.unknown, true);
+});
+
+test('a partial-only source exposes its last fetch while keeping last success unknown', () => {
+  const panel = status.buildStatusPanel(
+    {
+      ...source({ lastSuccessAt: null }),
+      lastFetchAt: '2026-10-31T06:32:18Z',
+      lastFetchStatus: 'partial',
+      latestStatus: 'partial',
+      recentRuns: [run({ status: 'partial', completedAt: '2026-10-31T06:32:18Z' })],
+    },
+    meta(),
+  );
+  assert.equal(panel.lastSuccessfulSync.unknown, true);
+  assert.equal(panel.lastFetch.unknown, false);
+  assert.equal(panel.lastFetch.partial, true);
+  assert.ok(panel.lastFetch.text.includes('31 ต.ค.'), panel.lastFetch.text);
+});
+
 test('an empty lastSuccessAt is unknown, not a claim that the source never had data', () => {
   const panel = status.buildStatusPanel(
     { ...source(), latestStatus: 'running', recentRuns: [] },

@@ -1,6 +1,6 @@
 import 'server-only';
 import { queryD1 } from './d1';
-import { listD1Observations, D1_OBSERVATION_ROW_LIMIT, type D1ObservationRow } from './d1-numeric-repository';
+import { listD1ObservationRows, D1_OBSERVATION_ROW_LIMIT, type D1ObservationRow } from './d1-numeric-repository';
 import { RID_RESERVOIR_RESOURCE_URL, buildWaterPayload, type WaterPayload } from './water-data';
 
 /** Run-level provenance of the active numeric batch that produced the rows. */
@@ -32,25 +32,21 @@ const EMPTY_PROVENANCE: WaterRunProvenance = {
 };
 
 /**
- * Reads every published row of the RID reservoir resource.
+ * Reads the published rows of the RID reservoir resource.
  *
- * The shared reader caps one call at `D1_OBSERVATION_ROW_LIMIT`, and a backfilled
- * daily report exceeds that, so the pages are followed until the reported total
- * is collected. The metric split is done in JavaScript: the reader's `metricId`
- * filter rejects ids containing `_` (a LIKE wildcard guard), which would reject
- * `reservoir_volume` itself. Filters are passed as values, never interpolated.
+ * The shared reader caps one call at `D1_OBSERVATION_ROW_LIMIT` and a backfilled
+ * daily report exceeds that, so pages are followed until one comes back short —
+ * asking for the batch total would re-scan the whole resource on every page. The
+ * metric split is done in JavaScript because one reservoir is reported as three
+ * separate metric rows. Filters are passed as values, never interpolated.
  */
 async function listResourceRows(date: string | null): Promise<D1ObservationRow[]> {
+  const filters = { resourceId: RID_RESERVOIR_RESOURCE_URL, ...(date ? { from: date, to: date } : {}) };
   const rows: D1ObservationRow[] = [];
-  let offset = 0;
   for (let guard = 0; guard < 40; guard += 1) {
-    const batch = await listD1Observations(
-      { resourceId: RID_RESERVOIR_RESOURCE_URL, ...(date ? { from: date, to: date } : {}) },
-      { limit: D1_OBSERVATION_ROW_LIMIT, offset }
-    );
-    rows.push(...batch.rows);
-    offset += batch.rows.length;
-    if (!batch.rows.length || offset >= batch.total) return rows;
+    const page = await listD1ObservationRows(filters, { limit: D1_OBSERVATION_ROW_LIMIT, offset: rows.length, cache: true });
+    rows.push(...page);
+    if (page.length < D1_OBSERVATION_ROW_LIMIT) return rows;
   }
   return rows;
 }

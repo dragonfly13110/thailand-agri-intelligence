@@ -12,12 +12,16 @@ import type {
   RiskType,
   DisasterAlertLevel,
 } from '@/lib/hub/early-warning-data';
+import type { EarlyWarningNwpForecast } from '@/lib/hub/early-warning-nwp';
+import { RISK_LABELS_TH, type RiskLevel } from '@/lib/hub/nwp-types';
 import styles from './early-warning-dashboard.module.css';
 
 interface EarlyWarningDashboardProps {
   initialSummary: EarlyWarningSummary;
   initialProvinces: ProvinceRiskItem[];
   initialForecast: SimulationForecastDay[];
+  /** พยากรณ์ฝนจริง 72 ชม. จาก TMD HPC NWP — null เมื่อยังอ่านรอบที่เผยแพร่ไม่ได้ */
+  realForecast?: EarlyWarningNwpForecast | null;
   initialCriticalReservoirs: CriticalReservoir[];
   /** สัญญาณตั้งต้นทีละรายการ พร้อมที่มา (RID / GISTDA / TMD) ของแต่ละตัว */
   initialSignals: RiskAlertItem[];
@@ -93,6 +97,28 @@ function formatMetric(value: number | null, unit: string | null): string {
   return unit ? `${amount} ${unit}` : amount;
 }
 
+function nwpRiskTh(level: string | null): string | null {
+  if (level === 'normal' || level === 'watch' || level === 'high' || level === 'severe') {
+    return RISK_LABELS_TH[level as RiskLevel];
+  }
+  return null;
+}
+
+/** Forecast initialisation/retrieval stamps stay in UTC — the model run is UTC. */
+function formatUtc(iso: string): string {
+  const stamp = Date.parse(iso);
+  if (!Number.isFinite(stamp)) return iso;
+  return `${new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC',
+  }).format(new Date(stamp))} UTC`;
+}
+
 function formatShare(part: number, total: number): string {
   if (!Number.isFinite(total) || total <= 0) return '—';
   return `${Math.round((part / total) * 100)}%`;
@@ -114,6 +140,7 @@ export function EarlyWarningDashboard({
   initialSummary,
   initialProvinces,
   initialForecast,
+  realForecast,
   initialCriticalReservoirs,
   initialSignals,
   initialSources,
@@ -681,8 +708,8 @@ export function EarlyWarningDashboard({
             <path d="M3 3v18h18" />
             <path d="m7 15 5-6 4 3 5-8" />
           </svg>
-          <span>ไทม์ไลน์พยากรณ์ล่วงหน้า 14 วัน (Simulation)</span>
-          <span className={styles.tabCounter}>14 วัน</span>
+          <span>พยากรณ์ล่วงหน้า: NWP จริง 72 ชม. + แบบจำลอง 14 วัน</span>
+          <span className={styles.tabCounter}>{realForecast && realForecast.leads.length > 0 ? '72 ชม. + 14 วัน' : '14 วัน'}</span>
         </button>
 
         <button
@@ -859,7 +886,11 @@ export function EarlyWarningDashboard({
                     ? 'คำนวณจากหลักฐานที่เผยแพร่ (observed_derived)'
                     : 'แบบจำลองสาธิต (simulated)'}
                 </li>
-                <li>ไทม์ไลน์ 14 วัน: แบบจำลองเสมอ (dataKind=modelled) เพราะยังไม่มีแหล่ง forecast ที่ได้สิทธิ์เผยแพร่</li>
+                <li>
+                  พยากรณ์จริง: TMD HPC NWP ล่วงหน้าไม่เกิน 72 ชั่วโมง (แหล่งที่ได้สิทธิ์เผยแพร่แล้ว) ฝนสะสม 24 ชม.รายจังหวัด —
+                  ค่าละเอียดอยู่ในแท็บพยากรณ์และหน้า /nwp
+                </li>
+                <li>ไทม์ไลน์ 14 วัน: แบบจำลองสาธิตชุดคงที่ (dataKind=modelled) ไม่ใช่พยากรณ์ปัจจุบัน และไม่ใช่พยากรณ์ของหน่วยงานใด</li>
                 <li>ค่าความชื้นดิน: แบบจำลองสาธิต — ค่าที่ต้นทางไม่เผยแพร่แสดงเป็น &quot;—&quot;</li>
               </ul>
               <div className={styles.reservoirLinks}>
@@ -1125,9 +1156,71 @@ export function EarlyWarningDashboard({
         </section>
       )}
 
-      {/* TAB CONTENT 2: 14-Day Simulation Forecast Timeline */}
+      {/* TAB CONTENT 2: Real NWP 72 h + 14-Day Simulation Forecast */}
       {activeTab === 'forecast' && (
-        <section className={styles.timelineSection} aria-label="14-Day Simulation Forecast Timeline">
+        <section className={styles.timelineSection} aria-label="Forecast Timeline">
+          {realForecast && realForecast.leads.length > 0 && (
+            <div aria-label="พยากรณ์ฝนจริงจาก TMD HPC NWP 72 ชั่วโมง">
+              <div className={styles.timelineBanner}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <div className={styles.timelineBannerText}>
+                  <strong>
+                    พยากรณ์ฝนจริงจาก TMD HPC NWP (แบบจำลอง) — รอบนี้ครอบคลุม +
+                    {realForecast.leads[0].leadHours} ถึง +
+                    {realForecast.leads[realForecast.leads.length - 1].leadHours} ชั่วโมง (แบบจำลองสูงสุด 72 ชั่วโมง):
+                  </strong>{' '}
+                  ฝนสะสม 24 ชั่วโมงรายจังหวัด — ค่าที่แสดงคือค่าสูงสุดที่พยากรณ์ไว้ในรัศมี 25 กม. รอบจุดอ้างอิงของจังหวัดนั้น
+                  ไม่ใช่ค่าเฉลี่ยทั้งจังหวัดและไม่ใช่ค่าตรวจวัด
+                  <br />
+                  <span className={styles.sectionNote}>
+                    รอบพยากรณ์ {realForecast.runId} · เริ่ม {formatUtc(realForecast.initAt)} · ดึงข้อมูล{' '}
+                    {formatUtc(realForecast.retrievedAt)} · หน่วย มม. ยืนยันจากหน้าเผยแพร่ TMD · ดูกริดและรายชื่อจังหวัดทั้งหมดที่{' '}
+                    <a href="/nwp">/nwp</a>
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.forecastGrid}>
+                {realForecast.leads.map((lead) => (
+                  <article key={lead.validAt} className={styles.dayCard}>
+                    <div className={styles.dayCardTop}>
+                      <div className={styles.dayNumber}>
+                        {lead.leadHours % 24 === 0 ? `D+${lead.leadHours / 24}` : `+${lead.leadHours} ชม.`}
+                      </div>
+                      <span className={styles.sectionNote}>{formatDate(lead.validAt)}</span>
+                    </div>
+
+                    <div className={styles.dayMetricsRow}>
+                      <div className={styles.dayMetricItem}>
+                        <span className={styles.metricKey}>ฝนสะสม 24 ชม. สูงสุดรายจังหวัด</span>
+                        <span className={styles.metricVal}>{formatMeasure(lead.maxMm, 2, ' มม.')}</span>
+                      </div>
+                      <div className={styles.dayMetricItem}>
+                        <span className={styles.metricKey}>จังหวัดที่มีค่าพยากรณ์</span>
+                        <span className={styles.metricVal}>{lead.provincesWithValue} จังหวัด</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.dayFrontText}>
+                      <strong>จังหวัดที่พยากรณ์ฝนมากสุด:</strong>{' '}
+                      {lead.top.length === 0
+                        ? '— (ยังไม่มีค่าที่เผยแพร่ในรอบนี้)'
+                        : lead.top
+                            .map((row) => {
+                              const risk = nwpRiskTh(row.riskLevel);
+                              return `${row.provinceName} ${formatMeasure(row.value, 2, ' มม.')}${risk ? ` (${risk})` : ''}`;
+                            })
+                            .join(' · ')}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className={styles.timelineBanner}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2">
               <circle cx="12" cy="12" r="10" />
@@ -1136,10 +1229,10 @@ export function EarlyWarningDashboard({
             <div className={styles.timelineBannerText}>
               <strong>แบบจำลองแนวโน้มสภาวะอากาศและอุทกภัยเกษตรล่วงหน้า 14 วัน (Simulation Forecast):</strong>{' '}
               วิเคราะห์ความน่าจะเป็นของการเกิดน้ำหลากฉับพลัน ปริมาณน้ำฝนเฉลี่ย และน้ำท่าไหลเข้าอ่างเก็บน้ำ
-              โดยคาดการณ์จุดสูงสุดของมรสุมอยู่ในช่วง <strong>D+1 ถึง D+3 (26-28 ต.ค.)</strong> ก่อนจะคลี่คลายในสัปดาห์ถัดไป
+              จากชุดสาธิตคงที่ (25 ต.ค.–7 พ.ย. 2569) ซึ่งไม่ใช่พยากรณ์ปัจจุบัน — พยากรณ์จริงที่มีสิทธิ์เผยแพร่คือ NWP 72 ชั่วโมงด้านบน
               <br />
               <span className={styles.sectionNote}>
-                ชั้นนี้เป็น dataKind = modelled ทั้งหมด (ยังไม่ใช้ค่าพยากรณ์ของหน่วยงานใด)
+                ชั้นนี้เป็น dataKind = modelled ทั้งหมด (ไม่ใช้ค่าพยากรณ์ของหน่วยงานใด)
                 {isRealEvidence
                   ? ' ใช้ประกอบภาพแนวโน้มเท่านั้น — ค่าตรวจวัดจริงอยู่คนละชั้นกับตารางนี้ ดูที่มาของแต่ละแถวได้ในแท็บ "สัญญาณตั้งต้นและที่มาของข้อมูล"'
                   : ' และไม่ใช่ประกาศเตือนภัยหรือพยากรณ์อย่างเป็นทางการ'}

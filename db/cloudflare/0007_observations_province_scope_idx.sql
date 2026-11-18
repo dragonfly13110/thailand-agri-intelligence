@@ -1,0 +1,23 @@
+-- Thailand Agricultural Data Hub - D1 migration 0007 (province scope index).
+--
+-- Why: a province page asks D1 for one province's published weather rows, and both
+-- the ERA5 grid rows and the TMD station rows carry that province inside
+-- observations.dimensions.provinceCode while the numeric province_code column is
+-- deliberately left empty (a grid point or a station is not a province statistic).
+-- With no index over that expression the engine seeks only as far as
+-- (resource_id, run_id) and then examines every row of the batch: one ERA5 week is
+-- 3,234 rows, so every page view pays for the whole batch and the free tier's
+-- 5,000,000 daily row-read budget runs out after a few hundred views.
+--
+-- Effect: the province expression becomes the third equality term of the seek, so a
+-- province page reads its own rows (about 42 for a seven-day ERA5 window) instead of
+-- the whole batch. The expression has to match the predicate built in
+-- web/lib/hub/d1-numeric-repository.ts exactly, including the CAST, which keeps a
+-- province code that an adapter wrote as a JSON number visible to the same seek.
+--
+-- Cost: building the index walks the table once, and every later observation write
+-- maintains one more index entry. web/tests/d1-province-scope-index.test.ts applies
+-- this file on top of 0001 and 0002 and asserts the query plan, the idempotence of
+-- re-applying it, and that the rows returned do not change.
+CREATE INDEX IF NOT EXISTS observations_province_scope_idx
+    ON observations(resource_id, run_id, CAST(json_extract(dimensions,'$.provinceCode') AS TEXT));

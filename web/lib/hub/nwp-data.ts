@@ -8,8 +8,8 @@
  * Governance rules that this module must never break:
  * - Every number is a MODEL FORECAST, never an observation, and is never
  *   written into the `observations` table.
- * - `unit` stays `null` until TMD confirms units in writing
- *   (`NWP_VARIABLE_UNITS_PENDING` in `./nwp-types`).
+ * - `unit` is published only from `NWP_VARIABLE_UNITS` in `./nwp-types`,
+ *   which records the TMD page each confirmed unit was checked against.
  * - Missing stays `null`: a block without source cells is `null`, never `0`,
  *   and never interpolated.
  * - A grid cell is not a province value. The province number is the maximum
@@ -47,6 +47,7 @@ import {
   NWP_WARNINGS,
   isNwpUnitConfirmed,
   isNwpVariable,
+  publishedUnitFor,
   type NwpBbox,
   type NwpGridResponse,
   type NwpProvinceRow,
@@ -552,6 +553,20 @@ export function resolveAccessStatus(
   return 'metadata_only';
 }
 
+/**
+ * A run-level confirmation keeps the unit stored with the run. Otherwise the
+ * per-variable TMD evidence supplies it, and an unconfirmed variable (wind)
+ * stays null even when the other variables in the same run are confirmed.
+ */
+function resolvePublishedUnit(
+  unitStatus: string | null | undefined,
+  variable: NwpVariable,
+  storedUnit: string | null,
+): string | null {
+  if (isNwpUnitConfirmed(unitStatus)) return storedUnit;
+  return isNwpUnitConfirmed(unitStatus, variable) ? publishedUnitFor(variable) : null;
+}
+
 /* ------------------------------------------------------------------ */
 /* Thresholds                                                          */
 /* ------------------------------------------------------------------ */
@@ -834,7 +849,7 @@ export async function readNwpGrid(
   }
 
   const grid = mapSnapshotRow(snapshot, query);
-  grid.unit = isNwpUnitConfirmed(run.unitStatus) ? snapshot.unit : null;
+  grid.unit = resolvePublishedUnit(run.unitStatus, query.variable, snapshot.unit);
   assertGridPayloadSize(grid);
 
   return {
@@ -901,9 +916,10 @@ export async function readNwpProvinces(
     cellCount: numberOrNull(row.cellCount),
   }));
 
+  const unitConfirmed = isNwpUnitConfirmed(run.unitStatus, query.variable);
   const provinces = mapProvinceRows(rows, {
     variable: query.variable,
-    thresholds: isNwpUnitConfirmed(run.unitStatus) ? thresholds : null,
+    thresholds: unitConfirmed ? thresholds : null,
     qualityCellCounts,
   });
   const warnings = runWarnings();
@@ -918,7 +934,7 @@ export async function readNwpProvinces(
       runId: query.runId,
       variable: query.variable,
       validAt: query.validAt,
-      unit: isNwpUnitConfirmed(run.unitStatus) ? text(snapshot.unit) : null,
+      unit: resolvePublishedUnit(run.unitStatus, query.variable, text(snapshot.unit)),
       method: NWP_METHOD_PROVINCE,
       radiusKm: NWP_PROVINCE_RADIUS_KM,
       provinces,

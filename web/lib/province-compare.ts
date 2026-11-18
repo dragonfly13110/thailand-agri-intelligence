@@ -114,9 +114,9 @@ export type CompareShared = {
 export type RidRegionRow = {
   region: string;
   count: number;
-  storageMcm: number;
-  volumeMcm: number;
-  percent: number;
+  storageMcm: number | null;
+  volumeMcm: number | null;
+  percent: number | null;
 };
 
 /**
