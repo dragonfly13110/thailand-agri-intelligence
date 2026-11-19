@@ -180,6 +180,37 @@ select {
   display: flex; align-items: center; gap: 7px; font-size: 12px; cursor: pointer; user-select: none;
 }
 .check-row input { accent-color: var(--accent); cursor: pointer; }
+.pt-layer-panel {
+  display: none; flex-direction: column; gap: 7px; padding: 9px 10px;
+  border-radius: 9px; background: rgba(15, 23, 42, 0.45); border: 1px solid var(--border);
+  margin: 2px 0 4px;
+}
+html[data-theme="light"] .pt-layer-panel { background: rgba(241, 245, 249, 0.85); }
+.pt-layer-panel.open { display: flex; }
+.pt-sub-title {
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
+  display: flex; justify-content: space-between; align-items: center; gap: 4px 6px; flex-wrap: wrap;
+}
+.pt-mini-btns { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.pt-mini-btn {
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;
+  white-space: nowrap; font-family: inherit;
+}
+.pt-mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+.pt-chip-grid {
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.pt-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3.5px 7.5px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  background: var(--card); border: 1px solid var(--border); color: var(--text);
+  cursor: pointer; user-select: none; transition: opacity .14s, border-color .14s;
+}
+.pt-chip:hover { border-color: var(--accent); }
+.pt-chip input { margin: 0; width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; }
+.pt-chip:has(input:not(:checked)) { opacity: 0.42; }
+.pt-swatch { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .warn-pill {
   font-size: 11px; line-height: 1.4; padding: 7px 9px; border-radius: 8px;
   background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.45);
@@ -457,15 +488,85 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       </div>
 
       <div class="section">
-        <div class="section-title"><span>4. ชั้นข้อมูลซ้อนทับ (เปิด/ปิดจุดไฟ · ประหยัด RAM)</span></div>
-        <label class="check-row" title="วาดจุดความร้อนรายพิกัดในไทยจาก Int32Array โดยใช้ Viewport Culling ไม่กิน RAM เพิ่ม">
+        <div class="section-title"><span>4. ชั้นข้อมูลซ้อนทับ (เปิด/ปิดจุดไฟ · แยกประเภท &amp; รายปี)</span></div>
+        <label class="check-row" title="วาดจุดความร้อนพิกัดดาวเทียมจริง 1,278,326 จุด พร้อมเลือกเปิด/ปิดแยกรายปีและรายประเภทพืช/ป่าไม้">
           <input id="showPointsCheck" type="checkbox" />
-          <span>จุด Hotspot รายพิกัด (ไทย · ประหยัด RAM)</span>
+          <span>จุด Hotspot รายพิกัด (ไทย · 1.28 ล้านจุดจริง)</span>
         </label>
-        <label class="check-row" title="แสดงจุดไฟข้ามแดน 6 ประเทศ (เมียนมา ลาว กัมพูชา เวียดนาม มาเลเซีย 3.17 ล้านจุด บีบอัดลง Int32Array < 0.6 MB RAM)">
+        <div id="thPointsFilterPanel" class="pt-layer-panel">
+          <div class="pt-sub-title">
+            <span>สีของจุดความร้อน</span>
+            <select id="ptColorModeSelect" style="width:auto;padding:2px 6px;font-size:11px;height:24px;">
+              <option value="type" selected>แยกสีตามประเภทพืช / ป่าไม้</option>
+              <option value="year">แยกสีตามปี (2022–2026)</option>
+            </select>
+          </div>
+          <div class="pt-sub-title">
+            <span>เปิด/ปิดรายปี (ค.ศ.)</span>
+            <span class="pt-mini-btns">
+              <button type="button" class="pt-mini-btn" data-pt-act="yr_all">ครบทุกปี</button>
+              <button type="button" class="pt-mini-btn" data-pt-act="yr_2026">เฉพาะ 2026</button>
+            </span>
+          </div>
+          <div class="pt-chip-grid" id="ptYearChips">
+            <label class="pt-chip"><input type="checkbox" data-pt-yr="0" checked /><i class="pt-swatch" style="background:#38bdf8"></i>2022</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-yr="1" checked /><i class="pt-swatch" style="background:#22c55e"></i>2023</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-yr="2" checked /><i class="pt-swatch" style="background:#eab308"></i>2024</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-yr="3" checked /><i class="pt-swatch" style="background:#f97316"></i>2025</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-yr="4" checked /><i class="pt-swatch" style="background:#ef4444"></i>2026</label>
+          </div>
+          <div class="pt-sub-title">
+            <span>เปิด/ปิดรายประเภทพื้นที่ / พืช</span>
+            <span class="pt-mini-btns">
+              <button type="button" class="pt-mini-btn" data-pt-act="type_all">ทุกประเภท</button>
+              <button type="button" class="pt-mini-btn" data-pt-act="type_agri">เฉพาะเกษตร</button>
+              <button type="button" class="pt-mini-btn" data-pt-act="type_forest">เฉพาะป่าไม้</button>
+            </span>
+          </div>
+          <div class="pt-chip-grid" id="ptTypeChips">
+            <label class="pt-chip"><input type="checkbox" data-pt-type="forest" checked /><i class="pt-swatch" style="background:#dc2626"></i>ป่าไม้</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-type="rice" checked /><i class="pt-swatch" style="background:#facc15"></i>นาข้าว</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-type="sugarcane" checked /><i class="pt-swatch" style="background:#ec4899"></i>อ้อย</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-type="corn" checked /><i class="pt-swatch" style="background:#f97316"></i>ข้าวโพด/ไร่หมุนเวียน</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-type="agri_other" checked /><i class="pt-swatch" style="background:#a855f7"></i>เกษตร/ส.ป.ก. อื่น</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-type="other" checked /><i class="pt-swatch" style="background:#38bdf8"></i>ชุมชน/อื่น ๆ</label>
+          </div>
+          <div id="ptThViewCount" style="font-size:10.5px;color:var(--muted);padding-top:2px;border-top:1px dashed var(--border);">กำลังแสดงจุดในหน้าจอ: -</div>
+        </div>
+        <label class="check-row" title="แสดงจุดไฟข้ามแดน 6 ประเทศ (เมียนมา ลาว กัมพูชา เวียดนาม มาเลเซีย 3.17 ล้านจุด)">
           <input id="showTransPointsCheck" type="checkbox" />
           <span>จุดไฟข้ามแดน 6 ประเทศ (3.17 ล้านจุด · GMS)</span>
         </label>
+        <div id="gmsPointsFilterPanel" class="pt-layer-panel">
+          <div class="pt-sub-title">
+            <span>เปิด/ปิดรายประเทศเพื่อนบ้าน</span>
+            <span class="pt-mini-btns">
+              <button type="button" class="pt-mini-btn" data-pt-act="gms_c_all">ทุกประเทศ</button>
+              <button type="button" class="pt-mini-btn" data-pt-act="gms_c_north">เมียนมา+ลาว</button>
+            </span>
+          </div>
+          <div class="pt-chip-grid" id="ptGmsCountryChips">
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-c="1" checked /><i class="pt-swatch" style="background:#ef4444"></i>เมียนมา</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-c="2" checked /><i class="pt-swatch" style="background:#f59e0b"></i>สปป.ลาว</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-c="3" checked /><i class="pt-swatch" style="background:#a855f7"></i>กัมพูชา</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-c="4" checked /><i class="pt-swatch" style="background:#06b6d4"></i>เวียดนาม</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-c="5" checked /><i class="pt-swatch" style="background:#10b981"></i>มาเลเซีย</label>
+          </div>
+          <div class="pt-sub-title">
+            <span>เปิด/ปิดรายปี (2022–2025)</span>
+            <span class="pt-mini-btns">
+              <button type="button" class="pt-mini-btn" data-pt-act="gms_y_all">ครบ 4 ปี</button>
+              <button type="button" class="pt-mini-btn" data-pt-act="gms_y_2025">เฉพาะ 2025</button>
+            </span>
+          </div>
+          <div class="pt-chip-grid" id="ptGmsYearChips">
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-yr="0" checked />2022</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-yr="1" checked />2023</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-yr="2" checked />2024</label>
+            <label class="pt-chip"><input type="checkbox" data-pt-gms-yr="3" checked />2025</label>
+          </div>
+          <div id="ptGmsViewCount" style="font-size:10.5px;color:var(--muted);padding-top:2px;border-top:1px dashed var(--border);">กำลังแสดงจุดในหน้าจอ: -</div>
+        </div>
         <label class="check-row" title="แสดงจุดความร้อนล่าสุด 1–7 วันจาก GISTDA API Gateway (ดาวเทียม VIIRS)">
           <input id="showLive7dCheck" type="checkbox" />
           <span>จุดไฟล่าสุด 1–7 วัน (GISTDA Near-Real-Time)</span>
@@ -721,6 +822,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     showPoints: false,
     showTransPoints: false,
     showLive7d: false,
+    ptColorMode: "type",
+    ptYearMask: [true, true, true, true, true],
+    ptTypes: { forest: true, rice: true, sugarcane: true, corn: true, agri_other: true, other: true },
+    ptGmsCountryMask: [false, true, true, true, true, true],
+    ptGmsYearMask: [true, true, true, true],
     showHeat: false,
     showStatic: false,
     showVillages: false,
@@ -1839,6 +1945,40 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
   }
 
+  function classifyThPointType(lu, crop) {
+    if (crop === 1) return "rice";
+    if (crop === 2) return "sugarcane";
+    if (crop === 3) return "corn";
+    if (lu === 1) return "forest";
+    if (lu === 0) return "agri_other";
+    return "other";
+  }
+
+  // ABGR little-endian colors for Point Types & Years
+  const PT_TYPE_ABGR = {
+    forest:     0xeb2626dc, // #dc2626 red
+    rice:       0xeb15ccfa, // #facc15 yellow
+    sugarcane:  0xeb9948ec, // #ec4899 pink
+    corn:       0xeb1673f9, // #f97316 orange
+    agri_other: 0xebf755a8, // #a855f7 purple
+    other:      0xebf8bd38, // #38bdf8 sky
+  };
+  const PT_TYPE_META = {
+    forest:     { label: "ป่าไม้", col: "#dc2626" },
+    rice:       { label: "นาข้าว", col: "#facc15" },
+    sugarcane:  { label: "อ้อย", col: "#ec4899" },
+    corn:       { label: "ข้าวโพด/ไร่หมุนเวียน", col: "#f97316" },
+    agri_other: { label: "เกษตร/ส.ป.ก. อื่น", col: "#a855f7" },
+    other:      { label: "ชุมชน/พื้นที่อื่น", col: "#38bdf8" },
+  };
+  const PT_YEAR_ABGR = [
+    0xebf8bd38, // 2022: #38bdf8 sky
+    0xeb5ec522, // 2023: #22c55e green
+    0xeb08b3ea, // 2024: #eab308 yellow
+    0xeb1673f9, // 2025: #f97316 orange
+    0xeb4444ef, // 2026: #ef4444 red
+  ];
+
   function drawThaiHotspotPointsOverlay(ctx, w, h, toSx, toSy) {
     ensureExactPointsLoaded("th");
     const pw = Math.max(1, Math.round(w));
@@ -1851,17 +1991,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const imgData = pctx.createImageData(pw, ph);
     const u32 = new Uint32Array(imgData.data.buffer);
     const rad = state.zoom >= 11 ? 3 : state.zoom >= 8.2 ? 2 : 1;
-
-    // ABGR little-endian colors: Agri (#f59e0b), Forest (#dc2626), Other (#fb923c)
-    const COL_AGRI = 0xeb0b9ef5;
-    const COL_FOR  = 0xeb2626dc;
-    const COL_OTH  = 0xde3c92fb;
+    const byYear = state.ptColorMode === "year";
+    const yrMask = state.ptYearMask;
+    const typeMask = state.ptTypes;
 
     lastFilteredExactTh = [];
+    let thDrawnCount = 0;
+    const vcEl = document.getElementById("ptThViewCount");
     if (EXACT_TH_PTS && EXACT_TH_PTS.length) {
-      const yrIdx = state.year === "all" ? -1 : (Number(state.year) - 2022);
       const seaMask = getActiveSeasonMask();
-      const cropFilter = state.crop;
       const satOnlyN = state.sat === "N";
       const exclSt = state.excludeStatic;
       const worldPx = 256 * Math.pow(2, state.zoom);
@@ -1881,21 +2019,19 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         const f = w0 & 2047;
         if (satOnlyN && (f & 1)) continue;
         if (exclSt && ((f >> 10) & 1)) continue;
-        if (yrIdx !== -1 && (((f >> 1) & 7) !== yrIdx)) continue;
+        const yr = (f >> 1) & 7;
+        if (!yrMask[yr]) continue;
         if (!seaMask[(f >> 4) & 3]) continue;
         const lu = (f >> 6) & 3;
         const crop = (f >> 8) & 3;
-        if (cropFilter === "agri" && lu !== 0) continue;
-        if (cropFilter === "forest" && lu !== 1) continue;
-        if (cropFilter === "rice" && crop !== 1) continue;
-        if (cropFilter === "sugarcane" && crop !== 2) continue;
-        if (cropFilter === "corn" && crop !== 3) continue;
+        const pType = classifyThPointType(lu, crop);
+        if (!typeMask[pType]) continue;
 
         const lat = lat4 / 10000, lon = lon4 / 10000;
         const sx = Math.round(toSx(lonToMx(lon)));
         const sy = Math.round(toSy(latToMy(lat)));
         if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
-        const col = lu === 0 ? COL_AGRI : (lu === 1 ? COL_FOR : COL_OTH);
+        const col = byYear ? (PT_YEAR_ABGR[yr] || PT_YEAR_ABGR[4]) : (PT_TYPE_ABGR[pType] || PT_TYPE_ABGR.other);
         if (rad <= 1) {
           u32[sy * pw + sx] = col;
           if (sx + 1 < pw) u32[sy * pw + sx + 1] = col;
@@ -1903,26 +2039,38 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         } else {
           stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
         }
+        thDrawnCount++;
         if (lastFilteredExactTh.length < 3500) {
-          lastFilteredExactTh.push({ sx, sy, lat, lon, lu, yr: 2022 + ((f >> 1) & 7) });
+          lastFilteredExactTh.push({ sx, sy, lat, lon, lu, crop, pType, yr: 2022 + yr });
         }
       }
+      if (vcEl) vcEl.textContent = `กำลังแสดงจุดพิกัดจริงในหน้าจอ: ${formatNum(thDrawnCount)} จุด`;
       pctx.putImageData(imgData, 0, 0);
       ctx.drawImage(ptsCanvas, 0, 0, w, h);
       return;
     }
 
     // Fallback while exact 1.28M point binary is streaming or in offline mode:
-    // Use true centroid coordinates + deterministic organic sub-point scatter (never a uniform grid!)
-    const gridCells = state.computedStats?.gridCells || [];
-    if (!gridCells.length) return;
-    for (let i = 0; i < gridCells.length; i++) {
-      const c = gridCells[i];
-      const baseLon = c.lon, baseLat = c.lat;
-      const col = c.agriCnt >= c.forCnt ? COL_AGRI : COL_FOR;
-      const subPts = Math.min(24, Math.max(1, Math.round(Math.sqrt(c.cnt))));
+    const seaMask = getActiveSeasonMask();
+    const satOnlyN = state.sat === "N";
+    const exclSt = state.excludeStatic;
+    for (let o = 0, i = 0; o < GRID_FLAT.length; o += 4, i++) {
+      const f = GRID_FLAT[o + 2];
+      if (satOnlyN && (f & 1)) continue;
+      if (exclSt && ((f >> 10) & 1)) continue;
+      const yr = (f >> 1) & 7;
+      if (!yrMask[yr]) continue;
+      if (!seaMask[(f >> 4) & 3]) continue;
+      const lu = (f >> 6) & 3;
+      const crop = (f >> 8) & 3;
+      const pType = classifyThPointType(lu, crop);
+      if (!typeMask[pType]) continue;
+      const rawLat = GRID_FLAT[o], rawLon = GRID_FLAT[o + 1], cnt = GRID_FLAT[o + 3];
+      const baseLat = rawLat > 5000 ? rawLat / 10000 : rawLat / 20;
+      const baseLon = rawLon > 5000 ? rawLon / 10000 : rawLon / 20;
+      const col = byYear ? (PT_YEAR_ABGR[yr] || PT_YEAR_ABGR[4]) : (PT_TYPE_ABGR[pType] || PT_TYPE_ABGR.other);
+      const subPts = Math.min(18, Math.max(1, Math.round(Math.sqrt(cnt))));
       for (let k = 0; k < subPts; k++) {
-        // Halton-like deterministic organic scatter around true centroid
         const h1 = ((i * 73856093) ^ (k * 19349663)) & 0xffff;
         const h2 = ((i * 83492791) ^ (k * 53471161)) & 0xffff;
         const dLon = k === 0 ? 0 : ((h1 / 65535 - 0.5) * 0.042);
@@ -1932,7 +2080,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
         stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
       }
+      thDrawnCount += cnt;
     }
+    if (vcEl) vcEl.textContent = PAYLOAD_URL
+      ? `กำลังโหลดพิกัดจริง 1.28 ล้านจุด... (แสดงตัวอย่างในหน้าจอ ${formatNum(thDrawnCount)} จุด)`
+      : `กำลังแสดงในหน้าจอ: ${formatNum(thDrawnCount)} จุด (กลุ่มพิกัด)`;
     pctx.putImageData(imgData, 0, 0);
     ctx.drawImage(ptsCanvas, 0, 0, w, h);
   }
@@ -1951,10 +2103,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const rad = state.zoom >= 10.5 ? 3 : state.zoom >= 7.8 ? 2 : 1;
     // ABGR colors per GMS country: 1=Myanmar (#ef4444), 2=Lao_PDR (#f59e0b), 3=Cambodia (#a855f7), 4=Vietnam (#06b6d4), 5=Malaysia (#10b981)
     const GMS_ABGR = [0, 0xe84444ef, 0xe80b9ef5, 0xe8f755a8, 0xe8d4b606, 0xe881b910];
+    const cMask = state.ptGmsCountryMask;
+    const yMask = state.ptGmsYearMask;
 
     lastFilteredExactGms = [];
+    let gmsDrawnCount = 0;
+    const vcGmsEl = document.getElementById("ptGmsViewCount");
     if (EXACT_GMS_PTS && EXACT_GMS_PTS.length) {
-      const yrIdx = (state.year !== "all" && Number(state.year) <= 2025) ? (Number(state.year) - 2022) : -1;
       const worldPx = 256 * Math.pow(2, state.zoom);
       const lon0 = mxToLon(state.camX - (w / 2 + 12) / worldPx);
       const lon1 = mxToLon(state.camX + (w / 2 + 12) / worldPx);
@@ -1969,9 +2124,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (lon3 < lon3Min || lon3 > lon3Max) continue;
         const lat3 = w0 >> 11;
         if (lat3 < lat3Min || lat3 > lat3Max) continue;
-        const yr = (w0 >> 6) & 3;
-        if (yrIdx !== -1 && yr !== yrIdx) continue;
         const cid = (w0 >> 8) & 7;
+        if (!cMask[cid]) continue;
+        const yr = (w0 >> 6) & 3;
+        if (!yMask[yr]) continue;
         const cnt = w0 & 63;
         const lat = lat3 / 1000, lon = lon3 / 1000;
         const sx = Math.round(toSx(lonToMx(lon)));
@@ -1985,10 +2141,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         } else {
           stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
         }
+        gmsDrawnCount += cnt;
         if (lastFilteredExactGms.length < 3500) {
-          lastFilteredExactGms.push({ sx, sy, lat, lon, cid, tot4y: cnt, y2025: yr === 3 ? cnt : 0, maxFrp: 15 });
+          lastFilteredExactGms.push({ sx, sy, lat, lon, cid, tot4y: cnt, y2025: yr === 3 ? cnt : 0, maxFrp: null, yr: 2022 + yr });
         }
       }
+      if (vcGmsEl) vcGmsEl.textContent = `กำลังแสดงจุดไฟข้ามแดนในหน้าจอ: ${formatNum(gmsDrawnCount)} จุด`;
       pctx.putImageData(imgData, 0, 0);
       ctx.drawImage(ptsCanvas, 0, 0, w, h);
       return;
@@ -1996,10 +2154,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
     if (!TRANS_GRID_FLAT.length) return;
     for (let o = 0, i = 0; o < TRANS_GRID_FLAT.length; o += 6, i++) {
+      const cid = TRANS_GRID_FLAT[o + 2];
+      if (!cMask[cid]) continue;
       const rawLat = TRANS_GRID_FLAT[o], rawLon = TRANS_GRID_FLAT[o + 1];
       const baseLat = rawLat > 5000 ? rawLat / 10000 : rawLat / 20;
       const baseLon = rawLon > 5000 ? rawLon / 10000 : rawLon / 20;
-      const cid = TRANS_GRID_FLAT[o + 2];
       const cnt = state.year === "2025" ? TRANS_GRID_FLAT[o + 4] : TRANS_GRID_FLAT[o + 3];
       if (cnt <= 0) continue;
       const col = GMS_ABGR[cid] || GMS_ABGR[1];
@@ -2014,7 +2173,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
         stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
       }
+      gmsDrawnCount += cnt;
     }
+    if (vcGmsEl) vcGmsEl.textContent = PAYLOAD_URL
+      ? `กำลังโหลดพิกัดจริง 2.63 ล้านจุด... (แสดงตัวอย่างในหน้าจอ ${formatNum(gmsDrawnCount)} จุด)`
+      : `กำลังแสดงในหน้าจอ: ${formatNum(gmsDrawnCount)} จุด`;
     pctx.putImageData(imgData, 0, 0);
     ctx.drawImage(ptsCanvas, 0, 0, w, h);
   }
@@ -2110,13 +2273,25 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         els.tmsLegendChip.innerHTML = `<strong>ชั้นภาพ GISTDA WMS:</strong> <span>${escHtml(wmsNames[state.gistdaWms] || state.gistdaWms)}</span>`;
       } else if (state.showTransPoints || state.showLive7d || state.showPoints) {
         const chips = [];
-        if (state.showPoints) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:50%"></i> จุดไฟไทย (เกษตร/ป่า)</span>`);
-        if (state.showTransPoints) chips.push(
-          `<span><i style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%"></i> เมียนมา</span>`,
-          `<span><i style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:50%"></i> ลาว</span>`,
-          `<span><i style="display:inline-block;width:8px;height:8px;background:#a855f7;border-radius:50%"></i> กัมพูชา</span>`,
-          `<span><i style="display:inline-block;width:8px;height:8px;background:#06b6d4;border-radius:50%"></i> เวียดนาม</span>`
-        );
+        if (state.showPoints) {
+          if (state.ptColorMode === "year") {
+            const yrCols = ["#38bdf8", "#22c55e", "#eab308", "#f97316", "#ef4444"];
+            for (let y = 0; y < 5; y++) {
+              if (state.ptYearMask[y]) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:${yrCols[y]};border-radius:50%"></i> ${2022 + y}</span>`);
+            }
+          } else {
+            for (const [k, meta] of Object.entries(PT_TYPE_META)) {
+              if (state.ptTypes[k]) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:${meta.col};border-radius:50%"></i> ${escHtml(meta.label)}</span>`);
+            }
+          }
+        }
+        if (state.showTransPoints) {
+          for (let cid = 1; cid <= 5; cid++) {
+            if (!state.ptGmsCountryMask[cid]) continue;
+            const gm = GMS_COUNTRY_META[cid];
+            if (gm) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:${gm.col};border-radius:50%"></i> ${escHtml(gm.th)}</span>`);
+          }
+        }
         if (state.showLive7d) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:#ff1e56;border:1px solid #fef08a;border-radius:50%"></i> ล่าสุด 24 ชม. / 7 วัน GISTDA</span>`);
         els.tmsLegendChip.style.display = "inline-flex";
         els.tmsLegendChip.innerHTML = chips.join(" ");
@@ -2188,6 +2363,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               cnt: 1,
               agriCnt: p.lu === 0 ? 1 : 0,
               forCnt: p.lu === 1 ? 1 : 0,
+              pType: p.pType,
               yr: p.yr,
             },
           };
@@ -2826,6 +3002,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     if (pb) pb.classList.toggle("active", !!state.showPoints);
     const tb = document.getElementById("dockTransBtn");
     if (tb) tb.classList.toggle("active", !!state.showTransPoints);
+    const thPanel = document.getElementById("thPointsFilterPanel");
+    if (thPanel) thPanel.classList.toggle("open", !!state.showPoints);
+    const gmsPanel = document.getElementById("gmsPointsFilterPanel");
+    if (gmsPanel) gmsPanel.classList.toggle("open", !!state.showTransPoints);
   }
 
   function refreshAll() {
@@ -2867,6 +3047,76 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     syncControl(els.metricSelect, "metric");
     syncControl(els.levelModeSelect, "levelMode");
     if (els.showPointsCheck) syncControl(els.showPointsCheck, "showPoints", el => el.checked);
+    const ptColorSel = document.getElementById("ptColorModeSelect");
+    if (ptColorSel) {
+      ptColorSel.addEventListener("change", () => {
+        state.ptColorMode = ptColorSel.value || "type";
+        requestDrawMap(true);
+      });
+    }
+    document.querySelectorAll("#ptYearChips input[data-pt-yr]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const yIdx = Number(cb.dataset.ptYr);
+        if (yIdx >= 0 && yIdx < 5) state.ptYearMask[yIdx] = cb.checked;
+        requestDrawMap(true);
+      });
+    });
+    document.querySelectorAll("#ptTypeChips input[data-pt-type]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const tKey = cb.dataset.ptType;
+        if (tKey in state.ptTypes) state.ptTypes[tKey] = cb.checked;
+        requestDrawMap(true);
+      });
+    });
+    document.querySelectorAll("[data-pt-act]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const act = btn.dataset.ptAct;
+        if (act === "yr_all" || act === "yr_2026") {
+          for (let i = 0; i < 5; i++) state.ptYearMask[i] = (act === "yr_all" || i === 4);
+          document.querySelectorAll("#ptYearChips input[data-pt-yr]").forEach(cb => {
+            cb.checked = !!state.ptYearMask[Number(cb.dataset.ptYr)];
+          });
+        } else if (act === "type_all" || act === "type_agri" || act === "type_forest") {
+          for (const k of Object.keys(state.ptTypes)) {
+            if (act === "type_all") state.ptTypes[k] = true;
+            else if (act === "type_forest") state.ptTypes[k] = (k === "forest");
+            else state.ptTypes[k] = (k !== "forest" && k !== "other");
+          }
+          document.querySelectorAll("#ptTypeChips input[data-pt-type]").forEach(cb => {
+            cb.checked = !!state.ptTypes[cb.dataset.ptType];
+          });
+        } else if (act === "gms_c_all" || act === "gms_c_north") {
+          for (let cid = 1; cid <= 5; cid++) {
+            state.ptGmsCountryMask[cid] = (act === "gms_c_all" || cid === 1 || cid === 2);
+          }
+          document.querySelectorAll("#ptGmsCountryChips input[data-pt-gms-c]").forEach(cb => {
+            cb.checked = !!state.ptGmsCountryMask[Number(cb.dataset.ptGmsC)];
+          });
+        } else if (act === "gms_y_all" || act === "gms_y_2025") {
+          for (let y = 0; y < 4; y++) {
+            state.ptGmsYearMask[y] = (act === "gms_y_all" || y === 3);
+          }
+          document.querySelectorAll("#ptGmsYearChips input[data-pt-gms-yr]").forEach(cb => {
+            cb.checked = !!state.ptGmsYearMask[Number(cb.dataset.ptGmsYr)];
+          });
+        }
+        requestDrawMap(true);
+      });
+    });
+    document.querySelectorAll("#ptGmsCountryChips input[data-pt-gms-c]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const cid = Number(cb.dataset.ptGmsC);
+        if (cid >= 1 && cid <= 5) state.ptGmsCountryMask[cid] = cb.checked;
+        requestDrawMap(true);
+      });
+    });
+    document.querySelectorAll("#ptGmsYearChips input[data-pt-gms-yr]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const yIdx = Number(cb.dataset.ptGmsYr);
+        if (yIdx >= 0 && yIdx < 4) state.ptGmsYearMask[yIdx] = cb.checked;
+        requestDrawMap(true);
+      });
+    });
     if (els.showTransPointsCheck) {
       els.showTransPointsCheck.addEventListener("change", () => {
         state.showTransPoints = els.showTransPointsCheck.checked;
@@ -3070,36 +3320,38 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               `, col);
             } else if (ptHit.kind === "th_pt") {
               const c = ptHit.data;
-              const agPct = c.cnt > 0 ? (c.agriCnt * 100 / c.cnt).toFixed(0) : "0";
-              const foPct = c.cnt > 0 ? (c.forCnt * 100 / c.cnt).toFixed(0) : "0";
+              const tMeta = PT_TYPE_META[c.pType] || { label: c.agriCnt >= c.forCnt ? "เกษตร+ส.ป.ก." : "ป่าไม้", col: "#f59e0b" };
               showTooltip(e.clientX, e.clientY, `
                 <div class="tt-head">
                   <div>
-                    <h4 style="color:#f59e0b">พิกัดจุดความร้อนดาวเทียมจริง (ไทย)</h4>
-                    <div class="tt-sub">พิกัด ${c.lat.toFixed(4)}°N, ${c.lon.toFixed(4)}°E${c.yr ? ` · ปี ${c.yr}` : ""}</div>
+                    <h4 style="color:${tMeta.col}">จุดความร้อน: ${escHtml(tMeta.label)}</h4>
+                    <div class="tt-sub">พิกัด ${c.lat.toFixed(4)}°N, ${c.lon.toFixed(4)}°E${c.yr ? ` · ปี ${c.yr} (พ.ศ. ${c.yr + 543})` : ""}</div>
                   </div>
-                  <span class="tt-badge">${formatNum(c.cnt)} จุด</span>
+                  <span class="tt-badge" style="color:${tMeta.col};border-color:${tMeta.col};">${c.yr ? `ปี ${c.yr}` : `${formatNum(c.cnt)} จุด`}</span>
                 </div>
-                <div class="tt-bar"><div style="background:#f59e0b;width:${agPct}%"></div><div style="background:#dc2626;width:${foPct}%"></div></div>
-                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f59e0b"></i>ในพื้นที่เกษตร+ส.ป.ก.</span><span class="tt-v">${formatNum(c.agriCnt)} จุด (${agPct}%)</span></div>
-                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#dc2626"></i>ในเขตป่าไม้</span><span class="tt-v">${formatNum(c.forCnt)} จุด (${foPct}%)</span></div>
-                <div class="tt-foot">พิกัดจริงจากดาวเทียม VIIRS (1,278,326 จุด · วาดด้วย Pixel Buffer ความเร็วสูง)</div>
-              `, "#f59e0b");
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${tMeta.col}"></i>ประเภทพื้นที่ / พืช</span><span class="tt-v">${escHtml(tMeta.label)}</span></div>
+                ${c.yr ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#38bdf8"></i>ปีที่ตรวจพบ</span><span class="tt-v">${c.yr} (พ.ศ. ${c.yr + 543})</span></div>` : ""}
+                <div class="tt-foot">พิกัดจริงจากดาวเทียม VIIRS (1,278,326 จุด · เปิด/ปิดรายปีและรายประเภทได้)</div>
+              `, tMeta.col);
             } else if (ptHit.kind === "gms_pt") {
               const g = ptHit.data;
               const meta = GMS_COUNTRY_META[g.cid] || GMS_COUNTRY_META[1];
+              const isExact = !!g.yr;
               showTooltip(e.clientX, e.clientY, `
                 <div class="tt-head">
                   <div>
                     <h4 style="color:${meta.col}">จุดไฟข้ามแดน: ${escHtml(meta.th)}</h4>
-                    <div class="tt-sub">พิกัด ${g.lat.toFixed(2)}°N, ${g.lon.toFixed(2)}°E (NASA FIRMS VIIRS-SNPP)</div>
+                    <div class="tt-sub">พิกัด ${g.lat.toFixed(isExact ? 3 : 2)}°N, ${g.lon.toFixed(isExact ? 3 : 2)}°E${isExact ? ` · ปี ${g.yr} (พ.ศ. ${g.yr + 543})` : ""} (NASA FIRMS)</div>
                   </div>
-                  <span class="tt-badge" style="color:${meta.col};border-color:${meta.col};">${formatNum(g.tot4y)} จุด</span>
+                  <span class="tt-badge" style="color:${meta.col};border-color:${meta.col};">${isExact ? `ปี ${g.yr}` : `${formatNum(g.tot4y)} จุด`}</span>
                 </div>
-                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${meta.col}"></i>สะสม 4 ปี (2022–2025)</span><span class="tt-v">${formatNum(g.tot4y)} จุด</span></div>
-                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>เฉพาะปี 2025</span><span class="tt-v">${formatNum(g.y2025)} จุด</span></div>
-                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พลังงาน FRP สูงสุด</span><span class="tt-v">${formatNum(g.maxFrp)} MW</span></div>
-                <div class="tt-foot">จากชุดข้อมูลหมอกควันข้ามแดน 6 ประเทศอาเซียน 3.17 ล้านจุด</div>
+                ${isExact
+                  ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${meta.col}"></i>จำนวนจุดไฟ ณ พิกัดนี้ (${g.yr})</span><span class="tt-v">${formatNum(g.tot4y)} จุด</span></div>`
+                  : `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${meta.col}"></i>สะสม 4 ปี (2022–2025)</span><span class="tt-v">${formatNum(g.tot4y)} จุด</span></div>
+                     <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>เฉพาะปี 2025</span><span class="tt-v">${formatNum(g.y2025)} จุด</span></div>`
+                }
+                ${g.maxFrp != null ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พลังงาน FRP สูงสุด</span><span class="tt-v">${formatNum(g.maxFrp)} MW</span></div>` : ""}
+                <div class="tt-foot">จากชุดข้อมูลหมอกควันข้ามแดน 6 ประเทศอาเซียน 2.63 ล้านจุดจริง</div>
               `, meta.col);
             }
           } else {

@@ -369,6 +369,14 @@ html[data-theme="light"] .hz-pm-mod { background: #fef08a; color: #854d0e; }
 html[data-theme="light"] .hz-pm-high { background: #fed7aa; color: #9a3412; }
 html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
 
+@media (max-width: 1540px) {
+  .topbar { padding: 0 12px; gap: 6px; }
+  .badge { font-size: 10px; padding: 2px 6px; }
+  .nav-tab { padding: 5px 10px; font-size: 12px; }
+  .search-wrap { min-width: 135px; max-width: 165px; }
+  .topbar .btn { padding: 5px 9px; font-size: 11.5px; }
+}
+
 @media (max-width: 1080px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .app-body { height: auto; min-height: calc(100vh - 58px); overflow-y: visible; overflow-x: hidden; }
