@@ -48,8 +48,9 @@ MULTI_PAGE_CSS = r"""
 #page-map.active { display: grid; overflow: hidden; animation: none; }
 
 .page-wrap {
-  max-width: 1440px; width: 100%; min-width: 0; margin: 0 auto; padding: 22px 24px 64px;
-  display: flex; flex-direction: column; gap: 18px;
+  max-width: 1880px; width: 100%; min-width: 0; margin: 0 auto;
+  padding: 18px clamp(12px, 1.35vw, 22px) 56px;
+  display: flex; flex-direction: column; gap: 16px;
 }
 .hero-banner {
   background: var(--hero-bg); border: 1px solid var(--border-strong);
@@ -66,7 +67,7 @@ MULTI_PAGE_CSS = r"""
   color: var(--accent); margin-bottom: 6px;
 }
 .hero-title { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.28; }
-.hero-desc { margin: 7px 0 0; font-size: 13.5px; color: var(--muted); max-width: 760px; line-height: 1.6; }
+.hero-desc { margin: 7px 0 0; font-size: 13.5px; color: var(--muted); max-width: 1060px; line-height: 1.6; }
 .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 .story-strip {

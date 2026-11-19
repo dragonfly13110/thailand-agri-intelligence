@@ -4,7 +4,8 @@ from __future__ import annotations
 
 EXPLORER_CSS = r"""
   .explorer-page {
-    max-width: 1440px; width: 100%; min-width: 0; margin: 0 auto; padding: 22px 24px 64px;
+    max-width: 1880px; width: 100%; min-width: 0; margin: 0 auto;
+    padding: 18px clamp(12px, 1.35vw, 22px) 56px;
     display: flex; flex-direction: column; gap: 16px;
   }
   .explorer-card {
