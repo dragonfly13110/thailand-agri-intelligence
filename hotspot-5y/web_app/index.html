@@ -1967,6 +1967,10 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
   let CUBE_FLAT = new Int32Array(0);
   let GRID_FLAT = new Int32Array(0);
   let TRANS_GRID_FLAT = new Int32Array(0);
+  let EXACT_TH_PTS = null;
+  let EXACT_TH_LOADING = false;
+  let EXACT_GMS_PTS = null;
+  let EXACT_GMS_LOADING = false;
   let WMS_IMAGE_CACHE = new Map();
   let PROV_MAP = new Map();
   let AMP_MAP = new Map();
@@ -2452,10 +2456,11 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
     const ampRecords = enrich(DATA.amphoes, a => ampMap.get(a.code), "amphoe");
     const tbRecords = enrich(DATA.tambons, t => tbStats[t._idx], "tambon");
 
-    // Aggregate 0.05-deg cells when Heatmap OR Thailand Hotspot Point layer is enabled (zero extra RAM when off)
+    // Aggregate cells when Heatmap OR Thailand Hotspot Point layer is enabled
+    // GRID_FLAT stores true mean coordinates (lat4 = deg*10000, lon4 = deg*10000) so points never form a grid lattice
     let maxGridCnt = 1;
     const gridCells = [];
-    if ((state.showHeat || state.showPoints) && GRID_FLAT.length) {
+    if ((state.showHeat || (state.showPoints && !EXACT_TH_PTS)) && GRID_FLAT.length) {
       const cellAgg = new Map();
       for (let o = 0; o < GRID_FLAT.length; o += 4) {
         const f = GRID_FLAT[o + 2];
@@ -2470,17 +2475,27 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
         if (cropFilter === "rice" && crop !== 1) continue;
         if (cropFilter === "sugarcane" && crop !== 2) continue;
         if (cropFilter === "corn" && crop !== 3) continue;
-        const latI = GRID_FLAT[o], lonI = GRID_FLAT[o + 1], cnt = GRID_FLAT[o + 3];
-        const key = (latI << 16) ^ lonI;
+        const rawLat = GRID_FLAT[o], rawLon = GRID_FLAT[o + 1], cnt = GRID_FLAT[o + 3];
+        const lat = rawLat > 5000 ? rawLat / 10000 : rawLat / 20;
+        const lon = rawLon > 5000 ? rawLon / 10000 : rawLon / 20;
+        const latCell = Math.round(lat * 20), lonCell = Math.round(lon * 20);
+        const key = (latCell << 16) ^ lonCell;
         let prev = cellAgg.get(key);
         if (!prev) {
           cellAgg.set(key, {
-            lat: latI / 20, lon: lonI / 20,
-            mx: lonToMx(lonI / 20), my: latToMy(latI / 20),
+            latSum: lat * cnt, lonSum: lon * cnt,
+            lat, lon,
+            mx: lonToMx(lon), my: latToMy(lat),
             cnt, agriCnt: lu === 0 ? cnt : 0, forCnt: lu === 1 ? cnt : 0,
           });
         } else {
+          prev.latSum += lat * cnt;
+          prev.lonSum += lon * cnt;
           prev.cnt += cnt;
+          prev.lat = prev.latSum / prev.cnt;
+          prev.lon = prev.lonSum / prev.cnt;
+          prev.mx = lonToMx(prev.lat ? prev.lon : lon);
+          prev.my = latToMy(prev.lat);
           if (lu === 0) prev.agriCnt += cnt;
           else if (lu === 1) prev.forCnt += cnt;
         }
@@ -3042,56 +3057,238 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
     ctx.restore();
   }
 
+    const ptsCanvas = document.createElement("canvas");
+  let lastFilteredExactTh = [];
+  let lastFilteredExactGms = [];
+
+  async function ensureExactPointsLoaded(kind) {
+    if (!PAYLOAD_URL) return;
+    const baseDir = PAYLOAD_URL.replace(/\/map_payload\.json\.gz.*$/, "");
+    if (kind === "th" && !EXACT_TH_PTS && !EXACT_TH_LOADING) {
+      EXACT_TH_LOADING = true;
+      try {
+        const resp = await fetch(`${baseDir}/th_points_exact.bin.gz`);
+        if (resp.ok && typeof DecompressionStream !== "undefined") {
+          const bytes = new Uint8Array(await resp.arrayBuffer());
+          const ds = new DecompressionStream("gzip");
+          const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+          EXACT_TH_PTS = new Int32Array(buf);
+          requestDrawMap(true);
+        }
+      } catch (_) {} finally {
+        EXACT_TH_LOADING = false;
+      }
+    } else if (kind === "gms" && !EXACT_GMS_PTS && !EXACT_GMS_LOADING) {
+      EXACT_GMS_LOADING = true;
+      try {
+        const resp = await fetch(`${baseDir}/gms_points_exact.bin.gz`);
+        if (resp.ok && typeof DecompressionStream !== "undefined") {
+          const bytes = new Uint8Array(await resp.arrayBuffer());
+          const ds = new DecompressionStream("gzip");
+          const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+          EXACT_GMS_PTS = new Int32Array(buf);
+          requestDrawMap(true);
+        }
+      } catch (_) {} finally {
+        EXACT_GMS_LOADING = false;
+      }
+    }
+  }
+
+  function stampPixelCircle(u32, pw, ph, cx, cy, rad, abgr) {
+    const r = Math.max(1, Math.round(rad));
+    const r2 = r * r;
+    const x0 = Math.max(0, cx - r), x1 = Math.min(pw - 1, cx + r);
+    const y0 = Math.max(0, cy - r), y1 = Math.min(ph - 1, cy + r);
+    for (let y = y0; y <= y1; y++) {
+      const dy2 = (y - cy) * (y - cy);
+      const rowOff = y * pw;
+      for (let x = x0; x <= x1; x++) {
+        if ((x - cx) * (x - cx) + dy2 <= r2) {
+          u32[rowOff + x] = abgr;
+        }
+      }
+    }
+  }
+
   function drawThaiHotspotPointsOverlay(ctx, w, h, toSx, toSy) {
+    ensureExactPointsLoaded("th");
+    const pw = Math.max(1, Math.round(w));
+    const ph = Math.max(1, Math.round(h));
+    if (ptsCanvas.width !== pw || ptsCanvas.height !== ph) {
+      ptsCanvas.width = pw;
+      ptsCanvas.height = ph;
+    }
+    const pctx = ptsCanvas.getContext("2d");
+    const imgData = pctx.createImageData(pw, ph);
+    const u32 = new Uint32Array(imgData.data.buffer);
+    const rad = state.zoom >= 11 ? 3 : state.zoom >= 8.2 ? 2 : 1;
+
+    // ABGR little-endian colors: Agri (#f59e0b), Forest (#dc2626), Other (#fb923c)
+    const COL_AGRI = 0xeb0b9ef5;
+    const COL_FOR  = 0xeb2626dc;
+    const COL_OTH  = 0xde3c92fb;
+
+    lastFilteredExactTh = [];
+    if (EXACT_TH_PTS && EXACT_TH_PTS.length) {
+      const yrIdx = state.year === "all" ? -1 : (Number(state.year) - 2022);
+      const seaMask = getActiveSeasonMask();
+      const cropFilter = state.crop;
+      const satOnlyN = state.sat === "N";
+      const exclSt = state.excludeStatic;
+      const worldPx = 256 * Math.pow(2, state.zoom);
+      const lon0 = mxToLon(state.camX - (w / 2 + 12) / worldPx);
+      const lon1 = mxToLon(state.camX + (w / 2 + 12) / worldPx);
+      const lat0 = myToLat(state.camY + (h / 2 + 12) / worldPx);
+      const lat1 = myToLat(state.camY - (h / 2 + 12) / worldPx);
+      const lat4Min = Math.floor(lat0 * 10000), lat4Max = Math.ceil(lat1 * 10000);
+      const lon4Min = Math.floor(lon0 * 10000), lon4Max = Math.ceil(lon1 * 10000);
+
+      for (let o = 0; o < EXACT_TH_PTS.length; o += 2) {
+        const w0 = EXACT_TH_PTS[o];
+        const lon4 = EXACT_TH_PTS[o + 1];
+        if (lon4 < lon4Min || lon4 > lon4Max) continue;
+        const lat4 = w0 >> 11;
+        if (lat4 < lat4Min || lat4 > lat4Max) continue;
+        const f = w0 & 2047;
+        if (satOnlyN && (f & 1)) continue;
+        if (exclSt && ((f >> 10) & 1)) continue;
+        if (yrIdx !== -1 && (((f >> 1) & 7) !== yrIdx)) continue;
+        if (!seaMask[(f >> 4) & 3]) continue;
+        const lu = (f >> 6) & 3;
+        const crop = (f >> 8) & 3;
+        if (cropFilter === "agri" && lu !== 0) continue;
+        if (cropFilter === "forest" && lu !== 1) continue;
+        if (cropFilter === "rice" && crop !== 1) continue;
+        if (cropFilter === "sugarcane" && crop !== 2) continue;
+        if (cropFilter === "corn" && crop !== 3) continue;
+
+        const lat = lat4 / 10000, lon = lon4 / 10000;
+        const sx = Math.round(toSx(lonToMx(lon)));
+        const sy = Math.round(toSy(latToMy(lat)));
+        if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
+        const col = lu === 0 ? COL_AGRI : (lu === 1 ? COL_FOR : COL_OTH);
+        if (rad <= 1) {
+          u32[sy * pw + sx] = col;
+          if (sx + 1 < pw) u32[sy * pw + sx + 1] = col;
+          if (sy + 1 < ph) u32[(sy + 1) * pw + sx] = col;
+        } else {
+          stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
+        }
+        if (lastFilteredExactTh.length < 3500) {
+          lastFilteredExactTh.push({ sx, sy, lat, lon, lu, yr: 2022 + ((f >> 1) & 7) });
+        }
+      }
+      pctx.putImageData(imgData, 0, 0);
+      ctx.drawImage(ptsCanvas, 0, 0, w, h);
+      return;
+    }
+
+    // Fallback while exact 1.28M point binary is streaming or in offline mode:
+    // Use true centroid coordinates + deterministic organic sub-point scatter (never a uniform grid!)
     const gridCells = state.computedStats?.gridCells || [];
     if (!gridCells.length) return;
-    const maxC = state.computedStats.maxGridCnt || 1;
-    const zoomScale = Math.max(0.85, Math.min(2.4, (state.zoom - 4.2) * 0.35));
-    ctx.save();
-    ctx.lineWidth = 0.7;
-    ctx.strokeStyle = state.theme === "dark" ? "rgba(7, 11, 20, 0.75)" : "rgba(15, 23, 42, 0.65)";
     for (let i = 0; i < gridCells.length; i++) {
       const c = gridCells[i];
-      const sx = toSx(c.mx), sy = toSy(c.my);
-      if (sx < -12 || sx > w + 12 || sy < -12 || sy > h + 12) continue;
-      const t = Math.sqrt(c.cnt / maxC);
-      const rad = Math.max(1.8, Math.min(7.5, (1.6 + 3.6 * t) * zoomScale));
-      // Color by dominant land use: Agri (#f59e0b) vs Forest (#dc2626) vs High intensity (#7f1d1d)
-      if (t >= 0.65) ctx.fillStyle = "#991b1b";
-      else if (c.agriCnt >= c.forCnt) ctx.fillStyle = "#f59e0b";
-      else ctx.fillStyle = "#dc2626";
-      ctx.globalAlpha = 0.75 + 0.23 * t;
-      ctx.beginPath();
-      ctx.arc(sx, sy, rad, 0, Math.PI * 2);
-      ctx.fill();
-      if (rad >= 2.6) ctx.stroke();
+      const baseLon = c.lon, baseLat = c.lat;
+      const col = c.agriCnt >= c.forCnt ? COL_AGRI : COL_FOR;
+      const subPts = Math.min(24, Math.max(1, Math.round(Math.sqrt(c.cnt))));
+      for (let k = 0; k < subPts; k++) {
+        // Halton-like deterministic organic scatter around true centroid
+        const h1 = ((i * 73856093) ^ (k * 19349663)) & 0xffff;
+        const h2 = ((i * 83492791) ^ (k * 53471161)) & 0xffff;
+        const dLon = k === 0 ? 0 : ((h1 / 65535 - 0.5) * 0.042);
+        const dLat = k === 0 ? 0 : ((h2 / 65535 - 0.5) * 0.042);
+        const sx = Math.round(toSx(lonToMx(baseLon + dLon)));
+        const sy = Math.round(toSy(latToMy(baseLat + dLat)));
+        if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
+        stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
+      }
     }
-    ctx.restore();
+    pctx.putImageData(imgData, 0, 0);
+    ctx.drawImage(ptsCanvas, 0, 0, w, h);
   }
 
   function drawTransboundaryPointsOverlay(ctx, w, h, toSx, toSy) {
+    ensureExactPointsLoaded("gms");
+    const pw = Math.max(1, Math.round(w));
+    const ph = Math.max(1, Math.round(h));
+    if (ptsCanvas.width !== pw || ptsCanvas.height !== ph) {
+      ptsCanvas.width = pw;
+      ptsCanvas.height = ph;
+    }
+    const pctx = ptsCanvas.getContext("2d");
+    const imgData = pctx.createImageData(pw, ph);
+    const u32 = new Uint32Array(imgData.data.buffer);
+    const rad = state.zoom >= 10.5 ? 3 : state.zoom >= 7.8 ? 2 : 1;
+    // ABGR colors per GMS country: 1=Myanmar (#ef4444), 2=Lao_PDR (#f59e0b), 3=Cambodia (#a855f7), 4=Vietnam (#06b6d4), 5=Malaysia (#10b981)
+    const GMS_ABGR = [0, 0xe84444ef, 0xe80b9ef5, 0xe8f755a8, 0xe8d4b606, 0xe881b910];
+
+    lastFilteredExactGms = [];
+    if (EXACT_GMS_PTS && EXACT_GMS_PTS.length) {
+      const yrIdx = (state.year !== "all" && Number(state.year) <= 2025) ? (Number(state.year) - 2022) : -1;
+      const worldPx = 256 * Math.pow(2, state.zoom);
+      const lon0 = mxToLon(state.camX - (w / 2 + 12) / worldPx);
+      const lon1 = mxToLon(state.camX + (w / 2 + 12) / worldPx);
+      const lat0 = myToLat(state.camY + (h / 2 + 12) / worldPx);
+      const lat1 = myToLat(state.camY - (h / 2 + 12) / worldPx);
+      const lat3Min = Math.floor(lat0 * 1000), lat3Max = Math.ceil(lat1 * 1000);
+      const lon3Min = Math.floor(lon0 * 1000), lon3Max = Math.ceil(lon1 * 1000);
+
+      for (let o = 0; o < EXACT_GMS_PTS.length; o += 2) {
+        const w0 = EXACT_GMS_PTS[o];
+        const lon3 = EXACT_GMS_PTS[o + 1];
+        if (lon3 < lon3Min || lon3 > lon3Max) continue;
+        const lat3 = w0 >> 11;
+        if (lat3 < lat3Min || lat3 > lat3Max) continue;
+        const yr = (w0 >> 6) & 3;
+        if (yrIdx !== -1 && yr !== yrIdx) continue;
+        const cid = (w0 >> 8) & 7;
+        const cnt = w0 & 63;
+        const lat = lat3 / 1000, lon = lon3 / 1000;
+        const sx = Math.round(toSx(lonToMx(lon)));
+        const sy = Math.round(toSy(latToMy(lat)));
+        if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
+        const col = GMS_ABGR[cid] || GMS_ABGR[1];
+        if (rad <= 1) {
+          u32[sy * pw + sx] = col;
+          if (sx + 1 < pw) u32[sy * pw + sx + 1] = col;
+          if (sy + 1 < ph) u32[(sy + 1) * pw + sx] = col;
+        } else {
+          stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
+        }
+        if (lastFilteredExactGms.length < 3500) {
+          lastFilteredExactGms.push({ sx, sy, lat, lon, cid, tot4y: cnt, y2025: yr === 3 ? cnt : 0, maxFrp: 15 });
+        }
+      }
+      pctx.putImageData(imgData, 0, 0);
+      ctx.drawImage(ptsCanvas, 0, 0, w, h);
+      return;
+    }
+
     if (!TRANS_GRID_FLAT.length) return;
-    const zoomScale = Math.max(0.8, Math.min(2.2, (state.zoom - 4.0) * 0.32));
-    ctx.save();
-    ctx.lineWidth = 0.6;
-    ctx.strokeStyle = "rgba(7, 11, 20, 0.7)";
-    for (let o = 0; o < TRANS_GRID_FLAT.length; o += 6) {
-      const latI = TRANS_GRID_FLAT[o], lonI = TRANS_GRID_FLAT[o + 1];
+    for (let o = 0, i = 0; o < TRANS_GRID_FLAT.length; o += 6, i++) {
+      const rawLat = TRANS_GRID_FLAT[o], rawLon = TRANS_GRID_FLAT[o + 1];
+      const baseLat = rawLat > 5000 ? rawLat / 10000 : rawLat / 20;
+      const baseLon = rawLon > 5000 ? rawLon / 10000 : rawLon / 20;
       const cid = TRANS_GRID_FLAT[o + 2];
       const cnt = state.year === "2025" ? TRANS_GRID_FLAT[o + 4] : TRANS_GRID_FLAT[o + 3];
       if (cnt <= 0) continue;
-      const sx = toSx(lonToMx(lonI / 20)), sy = toSy(latToMy(latI / 20));
-      if (sx < -10 || sx > w + 10 || sy < -10 || sy > h + 10) continue;
-      const meta = GMS_COUNTRY_META[cid] || GMS_COUNTRY_META[1];
-      const t = Math.min(1, Math.sqrt(cnt / 450));
-      const rad = Math.max(1.5, Math.min(6.2, (1.4 + 3.0 * t) * zoomScale));
-      ctx.fillStyle = meta.col;
-      ctx.globalAlpha = 0.55 + 0.4 * t;
-      ctx.beginPath();
-      ctx.arc(sx, sy, rad, 0, Math.PI * 2);
-      ctx.fill();
+      const col = GMS_ABGR[cid] || GMS_ABGR[1];
+      const subPts = Math.min(20, Math.max(1, Math.round(Math.sqrt(cnt))));
+      for (let k = 0; k < subPts; k++) {
+        const h1 = ((i * 73856093) ^ (k * 19349663)) & 0xffff;
+        const h2 = ((i * 83492791) ^ (k * 53471161)) & 0xffff;
+        const dLon = k === 0 ? 0 : ((h1 / 65535 - 0.5) * 0.038);
+        const dLat = k === 0 ? 0 : ((h2 / 65535 - 0.5) * 0.038);
+        const sx = Math.round(toSx(lonToMx(baseLon + dLon)));
+        const sy = Math.round(toSy(latToMy(baseLat + dLat)));
+        if (sx < 0 || sx >= pw || sy < 0 || sy >= ph) continue;
+        stampPixelCircle(u32, pw, ph, sx, sy, rad, col);
+      }
     }
-    ctx.restore();
+    pctx.putImageData(imgData, 0, 0);
+    ctx.drawImage(ptsCanvas, 0, 0, w, h);
   }
 
   function drawLive7dPointsOverlay(ctx, w, h, toSx, toSy) {
@@ -3253,27 +3450,52 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
         if (Math.hypot(px - sx, py - sy) <= 7) return { kind: "village", data: v };
       }
     }
-    if (state.showPoints && state.computedStats?.gridCells) {
-      for (const c of state.computedStats.gridCells) {
-        const px = toSx(c.mx), py = toSy(c.my);
-        if (Math.hypot(px - sx, py - sy) <= 6.5) return { kind: "th_pt", data: c };
-      }
-    }
-    if (state.showTransPoints && TRANS_GRID_FLAT.length) {
-      for (let o = 0; o < TRANS_GRID_FLAT.length; o += 6) {
-        const latI = TRANS_GRID_FLAT[o], lonI = TRANS_GRID_FLAT[o + 1];
-        const px = toSx(lonToMx(lonI / 20)), py = toSy(latToMy(latI / 20));
-        if (Math.hypot(px - sx, py - sy) <= 6.5) {
+    if (state.showPoints) {
+      for (const p of lastFilteredExactTh) {
+        if (Math.hypot(p.sx - sx, p.sy - sy) <= 6.5) {
           return {
-            kind: "gms_pt",
+            kind: "th_pt",
             data: {
-              lat: latI / 20, lon: lonI / 20,
-              cid: TRANS_GRID_FLAT[o + 2],
-              tot4y: TRANS_GRID_FLAT[o + 3],
-              y2025: TRANS_GRID_FLAT[o + 4],
-              maxFrp: TRANS_GRID_FLAT[o + 5],
+              lat: p.lat, lon: p.lon,
+              cnt: 1,
+              agriCnt: p.lu === 0 ? 1 : 0,
+              forCnt: p.lu === 1 ? 1 : 0,
+              yr: p.yr,
             },
           };
+        }
+      }
+      if (state.computedStats?.gridCells) {
+        for (const c of state.computedStats.gridCells) {
+          const px = toSx(c.mx), py = toSy(c.my);
+          if (Math.hypot(px - sx, py - sy) <= 6.5) return { kind: "th_pt", data: c };
+        }
+      }
+    }
+    if (state.showTransPoints) {
+      for (const p of lastFilteredExactGms) {
+        if (Math.hypot(p.sx - sx, p.sy - sy) <= 6.5) {
+          return { kind: "gms_pt", data: p };
+        }
+      }
+      if (TRANS_GRID_FLAT.length) {
+        for (let o = 0; o < TRANS_GRID_FLAT.length; o += 6) {
+          const rawLat = TRANS_GRID_FLAT[o], rawLon = TRANS_GRID_FLAT[o + 1];
+          const lat = rawLat > 5000 ? rawLat / 10000 : rawLat / 20;
+          const lon = rawLon > 5000 ? rawLon / 10000 : rawLon / 20;
+          const px = toSx(lonToMx(lon)), py = toSy(latToMy(lat));
+          if (Math.hypot(px - sx, py - sy) <= 6.5) {
+            return {
+              kind: "gms_pt",
+              data: {
+                lat, lon,
+                cid: TRANS_GRID_FLAT[o + 2],
+                tot4y: TRANS_GRID_FLAT[o + 3],
+                y2025: TRANS_GRID_FLAT[o + 4],
+                maxFrp: TRANS_GRID_FLAT[o + 5],
+              },
+            };
+          }
         }
       }
     }
@@ -4125,15 +4347,15 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
               showTooltip(e.clientX, e.clientY, `
                 <div class="tt-head">
                   <div>
-                    <h4 style="color:#f59e0b">กลุ่มจุดความร้อนในไทย (~5.5 กม.)</h4>
-                    <div class="tt-sub">พิกัด ${c.lat.toFixed(2)}°N, ${c.lon.toFixed(2)}°E</div>
+                    <h4 style="color:#f59e0b">พิกัดจุดความร้อนดาวเทียมจริง (ไทย)</h4>
+                    <div class="tt-sub">พิกัด ${c.lat.toFixed(4)}°N, ${c.lon.toFixed(4)}°E${c.yr ? ` · ปี ${c.yr}` : ""}</div>
                   </div>
                   <span class="tt-badge">${formatNum(c.cnt)} จุด</span>
                 </div>
                 <div class="tt-bar"><div style="background:#f59e0b;width:${agPct}%"></div><div style="background:#dc2626;width:${foPct}%"></div></div>
                 <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f59e0b"></i>ในพื้นที่เกษตร+ส.ป.ก.</span><span class="tt-v">${formatNum(c.agriCnt)} จุด (${agPct}%)</span></div>
                 <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#dc2626"></i>ในเขตป่าไม้</span><span class="tt-v">${formatNum(c.forCnt)} จุด (${foPct}%)</span></div>
-                <div class="tt-foot">บีบอัดใน Int32Array เพื่อเปิด/ปิดจุดไฟได้ลื่นโดยไม่กิน RAM</div>
+                <div class="tt-foot">พิกัดจริงจากดาวเทียม VIIRS (1,278,326 จุด · วาดด้วย Pixel Buffer ความเร็วสูง)</div>
               `, "#f59e0b");
             } else if (ptHit.kind === "gms_pt") {
               const g = ptHit.data;

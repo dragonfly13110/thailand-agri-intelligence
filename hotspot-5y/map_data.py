@@ -926,8 +926,8 @@ def _load_transboundary_point_grid(con: duckdb.DuckDBPyConnection) -> list[list[
     if parquet_files:
         glob_sql = str(parquet_glob).replace("\\", "/")
         rows = con.execute(f"""
-            SELECT CAST(round(latitude * 20) AS INTEGER) AS lat_i,
-                   CAST(round(longitude * 20) AS INTEGER) AS lon_i,
+            SELECT CAST(round(avg(latitude) * 10000) AS INTEGER) AS lat4,
+                   CAST(round(avg(longitude) * 10000) AS INTEGER) AS lon4,
                    CASE country
                      WHEN 'Myanmar' THEN 1
                      WHEN 'Lao_PDR' THEN 2
@@ -940,10 +940,12 @@ def _load_transboundary_point_grid(con: duckdb.DuckDBPyConnection) -> list[list[
                    CAST(round(max(coalesce(frp_mw, 0))) AS INTEGER) AS max_frp
             FROM read_parquet('{glob_sql}')
             WHERE country != 'Thailand'
-            GROUP BY 1, 2, 3
-            HAVING count(*) >= 3
+            GROUP BY CAST(round(latitude * 25) AS INTEGER),
+                     CAST(round(longitude * 25) AS INTEGER),
+                     3
+            HAVING count(*) >= 2
             ORDER BY 4 DESC
-            LIMIT 20000
+            LIMIT 25000
         """).fetchall()
         return [[int(r[0]), int(r[1]), int(r[2]), int(r[3]), int(r[4]), int(r[5])] for r in rows]
     elif csv_files:
@@ -1314,10 +1316,10 @@ def build_map_payload(
             if str(tcode) in tambon_idx_by_code
         ]
 
-        # 0.05-degree heatmap grid cells
+        # 0.05-degree heatmap grid cells with TRUE mean coordinates (lat4, lon4 = deg * 10000) so points never form a grid lattice
         grid_rows = con.execute("""
-            SELECT CAST(round(latitude * 20) AS INTEGER) AS lat_i,
-                   CAST(round(longitude * 20) AS INTEGER) AS lon_i,
+            SELECT CAST(round(avg(latitude) * 10000) AS INTEGER) AS lat4,
+                   CAST(round(avg(longitude) * 10000) AS INTEGER) AS lon4,
                    CASE WHEN satellite = 'N' THEN 0 ELSE 1 END AS is_other_sat,
                    year_th - 2022 AS yr_idx,
                    CASE
@@ -1341,11 +1343,13 @@ def build_map_payload(
                    count(*) AS cnt
             FROM hotspots
             WHERE year_th BETWEEN 2022 AND 2026
-            GROUP BY 1,2,3,4,5,6,7,8
+            GROUP BY CAST(round(latitude * 20) AS INTEGER),
+                     CAST(round(longitude * 20) AS INTEGER),
+                     3, 4, 5, 6, 7, 8
         """).fetchall()
         grid = [
-            [int(lat_i), int(lon_i), pack_flags(is_other, yr, sea, lu, crop, st), int(cnt)]
-            for lat_i, lon_i, is_other, yr, sea, lu, crop, st, cnt in grid_rows
+            [int(lat4), int(lon4), pack_flags(is_other, yr, sea, lu, crop, st), int(cnt)]
+            for lat4, lon4, is_other, yr, sea, lu, crop, st, cnt in grid_rows
         ]
 
         # Static suspected spots overlay

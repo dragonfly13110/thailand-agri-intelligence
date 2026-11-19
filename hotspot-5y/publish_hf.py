@@ -14,6 +14,7 @@ import gzip
 import json
 import os
 from pathlib import Path
+import struct
 import sys
 import tempfile
 import zipfile
@@ -25,7 +26,7 @@ if str(SUBPROJECT_DIR) not in sys.path:
 
 from config import DEFAULT_DB_PATH, REPO_ROOT  # noqa: E402
 from download_transboundary import GMS_RAW_DIR, export_transboundary_parquets  # noqa: E402
-from map_data import DEFAULT_ERA5_PATH, DEFAULT_TADIH_DB_PATH, build_map_payload  # noqa: E402
+from map_data import DEFAULT_ERA5_PATH, DEFAULT_TADIH_DB_PATH, build_map_payload, pack_flags  # noqa: E402
 
 DEFAULT_EXPORT_DIR = SUBPROJECT_DIR / "data" / "hf_export"
 DEFAULT_HF_REPO = "dragonfly13110/thailand-hotspot-5y"
@@ -651,6 +652,89 @@ def export_hf_bundle(
     summary_gz = summary_dir / "map_payload.json.gz"
     with gzip.open(summary_gz, "wb", compresslevel=9) as gz:
         gz.write(raw_json)
+
+    # 7b. Exact coordinate binary point clouds (1.28M Thailand points + 2.63M GMS 6-country points)
+    #     so the map renders every real satellite point (no uniform grid lattice)
+    pcon = duckdb.connect(str(db_path), read_only=True)
+    try:
+        th_pts = pcon.execute("""
+            SELECT CAST(round(latitude * 10000) AS INTEGER) AS lat4,
+                   CAST(round(longitude * 10000) AS INTEGER) AS lon4,
+                   CASE WHEN satellite = 'N' THEN 0 ELSE 1 END AS sat,
+                   year_th - 2022 AS yr,
+                   CASE
+                     WHEN month_th IN (1, 2) THEN 0
+                     WHEN month_th IN (3, 4) THEN 1
+                     WHEN month_th BETWEEN 5 AND 10 THEN 2
+                     ELSE 3
+                   END AS sea,
+                   CASE
+                     WHEN lu_name IN ('พื้นที่เกษตร', 'เขต สปก.') THEN 0
+                     WHEN lu_name LIKE 'ป่า%' THEN 1
+                     ELSE 2
+                   END AS lu,
+                   CASE lu_hp_name
+                     WHEN 'นาข้าว' THEN 1
+                     WHEN 'อ้อย' THEN 2
+                     WHEN 'ข้าวโพดและไร่หมุนเวียน' THEN 3
+                     ELSE 0
+                   END AS crop,
+                   CASE WHEN is_suspected_static THEN 1 ELSE 0 END AS st
+            FROM hotspots
+            WHERE year_th BETWEEN 2022 AND 2026
+            ORDER BY yr, sea, lu, lat4, lon4
+        """).fetchall()
+        th_buf = bytearray(len(th_pts) * 8)
+        o = 0
+        for lat4, lon4, sat, yr, sea, lu, crop, st in th_pts:
+            fl = pack_flags(int(sat), int(yr), int(sea), int(lu), int(crop), int(st))
+            struct.pack_into("<ii", th_buf, o, (int(lat4) << 11) | fl, int(lon4))
+            o += 8
+        th_bin_gz = summary_dir / "th_points_exact.bin.gz"
+        with gzip.open(th_bin_gz, "wb", compresslevel=9) as gz:
+            gz.write(th_buf)
+        files_meta.append({
+            "path": "summary/th_points_exact.bin.gz",
+            "rows": len(th_pts),
+            "bytes": th_bin_gz.stat().st_size,
+        })
+
+        gms_glob = (parquet_dir / "transboundary_firms_*.parquet").as_posix()
+        if list(parquet_dir.glob("transboundary_firms_*.parquet")):
+            gms_pts = pcon.execute(f"""
+                SELECT CAST(round(latitude * 1000) AS INTEGER) AS lat3,
+                       CAST(round(longitude * 1000) AS INTEGER) AS lon3,
+                       CASE country
+                         WHEN 'Myanmar' THEN 1
+                         WHEN 'Lao_PDR' THEN 2
+                         WHEN 'Cambodia' THEN 3
+                         WHEN 'Vietnam' THEN 4
+                         ELSE 5
+                       END AS cid,
+                       year_th - 2022 AS yr,
+                       count(*) AS cnt
+                FROM read_parquet('{gms_glob}')
+                WHERE country != 'Thailand'
+                GROUP BY 1, 2, 3, 4
+                ORDER BY cid, yr, lat3, lon3
+            """).fetchall()
+            gms_buf = bytearray(len(gms_pts) * 8)
+            o = 0
+            for lat3, lon3, cid, yr, cnt in gms_pts:
+                c_cap = min(63, int(cnt))
+                w0 = (int(lat3) << 11) | ((int(cid) & 7) << 8) | ((int(yr) & 3) << 6) | c_cap
+                struct.pack_into("<ii", gms_buf, o, w0, int(lon3))
+                o += 8
+            gms_bin_gz = summary_dir / "gms_points_exact.bin.gz"
+            with gzip.open(gms_bin_gz, "wb", compresslevel=9) as gz:
+                gz.write(gms_buf)
+            files_meta.append({
+                "path": "summary/gms_points_exact.bin.gz",
+                "rows": len(gms_pts),
+                "bytes": gms_bin_gz.stat().st_size,
+            })
+    finally:
+        pcon.close()
 
     bench_rows = _benchmark_compression(parquet_dir)
 
