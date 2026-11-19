@@ -115,11 +115,13 @@ EXPLORER_MODAL_HTML = r"""
           <label class="field-label" for="expTable">ชุดข้อมูล (Parquet)</label>
           <select id="expTable">
             <option value="hotspots" selected>จุดความร้อนรายวัน VIIRS (1.28 ล้านจุด)</option>
-            <option value="air_quality_daily">ฝุ่น PM2.5 &amp; อากาศรายวัน 77 จว. (CAMS)</option>
+            <option value="live_hotspots_7d">จุดไฟล่าสุด 1–7 วัน GISTDA Near-Real-Time (2,559 จุด)</option>
+            <option value="tmd_wrf">พยากรณ์อากาศ 3 กม. กรมอุตุฯ TMD WRF (77 จว.)</option>
+            <option value="air_quality_daily">ฝุ่น PM2.5 &amp; อากาศรายวัน 77 จว. (CAMS 120,813 แถว)</option>
             <option value="air_quality_monthly">ฝุ่น PM2.5 &amp; วันเกินเกณฑ์รายเดือน 77 จว.</option>
-            <option value="transboundary">หมอกควันข้ามแดน 6 ประเทศ (NASA FIRMS)</option>
-            <option value="nasa_soil">ความชื้นดิน &amp; แสงอาทิตย์รายวัน (NASA POWER)</option>
-            <option value="doae_crops">พื้นที่เพาะปลูกพืชรายตำบล (DOAE 2566–2567)</option>
+            <option value="transboundary">หมอกควันข้ามแดน 6 ประเทศ (NASA FIRMS 3.17 ล้านจุด)</option>
+            <option value="nasa_soil">ความชื้นดิน &amp; แสงอาทิตย์รายวัน (NASA POWER 137,060 แถว)</option>
+            <option value="doae_crops">พื้นที่เพาะปลูกพืชรายตำบล (DOAE 235,082 แถว)</option>
             <option value="rid_reservoirs">ปริมาณน้ำ 461 อ่างเก็บน้ำรายเดือน (RID)</option>
             <option value="oae_prices">ราคาสินค้าเกษตรรายเดือน (สศก./NABC)</option>
             <option value="weather">สภาพอากาศเอื้อไฟ ERA5 รายเดือน (77 จว.)</option>
@@ -297,7 +299,7 @@ EXPLORER_JS = r"""
     const isHot = t === "hotspots";
     const hasYear = ["hotspots", "tamroypao", "weather", "air_quality_daily", "air_quality_monthly", "transboundary", "nasa_soil", "rid_reservoirs"].includes(t);
     const hasDates = ["hotspots", "air_quality_daily", "nasa_soil"].includes(t);
-    const hasProv = !["transboundary", "rid_reservoirs", "oae_prices"].includes(t);
+    const hasProv = !["transboundary", "rid_reservoirs", "oae_prices", "live_hotspots_7d"].includes(t);
     expEls.yearWrap.style.display = hasYear ? "block" : "none";
     expEls.satWrap.style.display = isHot ? "block" : "none";
     expEls.dateFromWrap.style.display = hasDates ? "block" : "none";
@@ -312,6 +314,24 @@ EXPLORER_JS = r"""
     const kw = expEls.keyword.value.trim();
     const yr = expEls.year.value;
     const where = [];
+
+    if (t === "live_hotspots_7d") {
+      const url = `${HF_BASE}/parquet/gistda_live_hotspots_7d.parquet`;
+      if (kw) {
+        const pat = sqlStr("%" + kw + "%");
+        where.push(`(coalesce(country, '') ILIKE ${pat} OR coalesce(pv_tn, '') ILIKE ${pat} OR coalesce(ap_tn, '') ILIKE ${pat} OR coalesce(tb_tn, '') ILIKE ${pat})`);
+      }
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT window_tag AS "ช่วง", acq_date AS "วันที่", acq_time AS "เวลา", country AS "ประเทศ", pv_tn AS "จังหวัด", ap_tn AS "อำเภอ", tb_tn AS "ตำบล", lu_name AS "การใช้ที่ดิน", satellite AS "ดาวเทียม", frp_mw AS "FRP(MW)", lat AS "Lat", lon AS "Lon"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY window_tag ASC, acq_date DESC, frp_mw DESC NULLS LAST`;
+    }
+
+    if (t === "tmd_wrf") {
+      const url = `${HF_BASE}/parquet/tmd_wrf_forecast_77prov.parquet`;
+      if (prov !== "all") where.push(`prov_code = ${sqlStr(prov)}`);
+      if (kw) where.push(`coalesce(prov_name_th, '') ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT forecast_date AS "วันที่พยากรณ์", prov_name_th AS "จังหวัด", tc_max AS "สูงสุด(°C)", tc_min AS "ต่ำสุด(°C)", rh_pct AS "ความชื้น(%)", rain_mm AS "ฝน(มม.)", fwi_tmd AS "ดัชนีเอื้อไฟ(FWI)", cond_label_th AS "สภาพอากาศ(WRF 3กม.)"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY forecast_date ASC, fwi_tmd DESC NULLS LAST`;
+    }
 
     if (t === "hotspots") {
       const url = `${HF_BASE}/parquet/hotspots_${yr}.parquet`;

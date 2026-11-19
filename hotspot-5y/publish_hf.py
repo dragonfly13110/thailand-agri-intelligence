@@ -537,6 +537,32 @@ def export_hf_bundle(
                     parquet_dir / "oae_monthly_crop_prices.parquet",
                 )
             )
+        if "gistda_live_hotspots_7d" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT window_tag, acq_date, acq_time, lat, lon, satellite, confidence,
+                           frp_mw, bright_ti4, country, ct_tn, pv_tn, ap_tn, tb_tn, lu_name
+                    FROM gistda_live_hotspots_7d
+                    ORDER BY window_tag, acq_date DESC, acq_time DESC
+                    """,
+                    parquet_dir / "gistda_live_hotspots_7d.parquet",
+                )
+            )
+        if "tmd_wrf_forecast_77prov" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT prov_code, prov_name_th, forecast_date, tc_max, tc_min, rh_pct, rain_mm,
+                           ws10m_ms, ws10m_kmh, wd10m_deg, wind_dir_th, cond_code, cond_label_th, fwi_tmd
+                    FROM tmd_wrf_forecast_77prov
+                    ORDER BY prov_code, forecast_date
+                    """,
+                    parquet_dir / "tmd_wrf_forecast_77prov.parquet",
+                )
+            )
     finally:
         con.close()
 

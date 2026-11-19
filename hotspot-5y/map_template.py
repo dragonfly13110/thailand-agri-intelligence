@@ -425,7 +425,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <option value="aq_exceed">วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)</option>
               <option value="aq_co">ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)</option>
               <option value="soil_wet">ความชื้นผิวดิน NASA GWETTOP (0–1)</option>
-              <option value="burn_rate_agri">อัตราเผาเกษตรเทียบปลูก DOAE (% · 62 จว.)</option>
+              <option value="soil_dry_streak">เตือนภัยดินแห้งต่อเนื่องสูงสุด (วัน · NASA POWER)</option>
+              <option value="doae_plant_rai">พื้นที่ปลูกข้าว+อ้อย+ข้าวโพด DOAE (ไร่ · จว./อำเภอ/ตำบล)</option>
+              <option value="burn_rate_agri">อัตราเผาเกษตรเทียบปลูก DOAE (% · จว./อำเภอ/ตำบล)</option>
             </optgroup>
             <optgroup label="สภาพอากาศเอื้อไฟ 2022–2026 (ครบ 77 จว.)">
               <option value="wx_fwi">ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)</option>
@@ -455,7 +457,19 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       </div>
 
       <div class="section">
-        <div class="section-title"><span>4. ชั้นข้อมูลซ้อนทับ</span></div>
+        <div class="section-title"><span>4. ชั้นข้อมูลซ้อนทับ (เปิด/ปิดจุดไฟ · ประหยัด RAM)</span></div>
+        <label class="check-row" title="วาดจุดความร้อนรายพิกัดในไทยจาก Int32Array โดยใช้ Viewport Culling ไม่กิน RAM เพิ่ม">
+          <input id="showPointsCheck" type="checkbox" />
+          <span>จุด Hotspot รายพิกัด (ไทย · ประหยัด RAM)</span>
+        </label>
+        <label class="check-row" title="แสดงจุดไฟข้ามแดน 6 ประเทศ (เมียนมา ลาว กัมพูชา เวียดนาม มาเลเซีย 3.17 ล้านจุด บีบอัดลง Int32Array < 0.6 MB RAM)">
+          <input id="showTransPointsCheck" type="checkbox" />
+          <span>จุดไฟข้ามแดน 6 ประเทศ (3.17 ล้านจุด · GMS)</span>
+        </label>
+        <label class="check-row" title="แสดงจุดความร้อนล่าสุด 1–7 วันจาก GISTDA API Gateway (ดาวเทียม VIIRS)">
+          <input id="showLive7dCheck" type="checkbox" />
+          <span>จุดไฟล่าสุด 1–7 วัน (GISTDA Near-Real-Time)</span>
+        </label>
         <label class="check-row">
           <input id="showHeatCheck" type="checkbox" />
           <span>Heatmap ความหนาแน่น (กริด ~5.5 กม.)</span>
@@ -468,6 +482,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <input id="showVillagesCheck" type="checkbox" />
           <span>หมู่บ้านใกล้จุดไฟสูงสุด</span>
         </label>
+        <div>
+          <label class="field-label" for="gistdaWmsSelect">ชั้นภาพภัยแล้ง/ความชื้นพืช GISTDA 7 วัน (WMS)</label>
+          <select id="gistdaWmsSelect">
+            <option value="none" selected>ปิดชั้นภาพภัยแล้ง/ความชื้น GISTDA</option>
+            <option value="dri">ดัชนีเสี่ยงภัยแล้ง GISTDA (DRI · 7 วันล่าสุด)</option>
+            <option value="ndwi">ดัชนีความชื้นพืชและน้ำ GISTDA (NDWI · 7 วันล่าสุด)</option>
+            <option value="smap">ความชื้นผิวดินดาวเทียม GISTDA (SMAP · 7 วันล่าสุด)</option>
+          </select>
+        </div>
         <div>
           <label class="field-label" for="tmsOverlaySelect">ชั้นภาพรอยเผา 20 ม. สสน. (TMS เมื่อมีเน็ต)</label>
           <select id="tmsOverlaySelect">
@@ -525,9 +548,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <div id="mapDock" class="map-dock" aria-label="สลับมุมมองแผนที่ด่วน">
         <button type="button" class="dock-btn active" data-dock-metric="count">จุดความร้อน</button>
         <button type="button" class="dock-btn" data-dock-metric="trp_rai">รอยเผา สสน.</button>
+        <button type="button" class="dock-btn" data-dock-metric="burn_rate_agri">% เผา/ปลูก DOAE</button>
         <button type="button" class="dock-btn" data-dock-metric="aq_pm25">ฝุ่น PM2.5</button>
-        <button type="button" class="dock-btn" data-dock-metric="wx_fwi">อากาศ FWI</button>
-        <button type="button" class="dock-btn" data-dock-metric="hazard">ท่วม+เผา</button>
+        <button type="button" class="dock-btn" data-dock-metric="soil_dry_streak">ดินแห้งติดกัน</button>
+        <button type="button" class="dock-btn" id="dockPointsBtn" title="เปิด/ปิดจุด Hotspot รายพิกัดบนแผนที่ (ประหยัด RAM)">จุดไฟ</button>
+        <button type="button" class="dock-btn" id="dockTransBtn" title="เปิด/ปิดจุดไฟข้ามแดน 6 ประเทศอาเซียน (3.17 ล้านจุด)">ไฟ 6 ประเทศ</button>
         <button type="button" class="dock-btn" id="dockHeatBtn">Heatmap</button>
       </div>
     </section>
@@ -669,6 +694,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   let DATA = null;
   let CUBE_FLAT = new Int32Array(0);
   let GRID_FLAT = new Int32Array(0);
+  let TRANS_GRID_FLAT = new Int32Array(0);
+  let WMS_IMAGE_CACHE = new Map();
   let PROV_MAP = new Map();
   let AMP_MAP = new Map();
   let TB_MAP = new Map();
@@ -687,9 +714,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     selectedProv: null,
     selectedAmphoe: null,
     selectedTambon: null,
+    showPoints: false,
+    showTransPoints: false,
+    showLive7d: false,
     showHeat: false,
     showStatic: false,
     showVillages: false,
+    gistdaWms: "none",
     tmsOverlay: "none",
     basemap: "none",
     scatterX: "wx_peak_fwi",
@@ -711,7 +742,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     "provenanceBtn","themeToggle","presentationBtn","exitPresBtn",
     "satSelect","janOctCheck","satWarnPill","yearSelect","seasonSelect","cropSelect",
     "excludeStaticCheck","metricSelect","levelModeSelect","grainWarnPill",
-    "showHeatCheck","showStaticCheck","showVillagesCheck","tmsOverlaySelect","basemapSelect",
+    "showPointsCheck","showTransPointsCheck","showLive7dCheck","showHeatCheck","showStaticCheck","showVillagesCheck","gistdaWmsSelect","tmsOverlaySelect","basemapSelect",
     "mapCanvas","scopePill","resetZoomBtn","zoomInBtn","zoomOutBtn","zoomReadout",
     "legendTitle","legendBar","legMin","legMid","legMax","legendNullChip","tmsLegendChip","tooltip",
     "kpiTotal","kpiTotalSub","kpiAgri","kpiAgriSub","kpiScarLabel","kpiScar","kpiScarSub","kpiFactor","kpiFactorSub",
@@ -813,6 +844,16 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       GRID_FLAT[o] = g[0]; GRID_FLAT[o + 1] = g[1]; GRID_FLAT[o + 2] = g[2]; GRID_FLAT[o + 3] = g[3];
     }
     raw.grid = null;
+
+    // Pack 6-country GMS transboundary point grid (20,000 cells x 6 ints = 480 KB flat Int32Array, 0 GC pressure)
+    const rawTrans = raw.trans_grid || [];
+    TRANS_GRID_FLAT = new Int32Array(rawTrans.length * 6);
+    for (let i = 0, o = 0; i < rawTrans.length; i++, o += 6) {
+      const t = rawTrans[i];
+      TRANS_GRID_FLAT[o] = t[0]; TRANS_GRID_FLAT[o + 1] = t[1]; TRANS_GRID_FLAT[o + 2] = t[2];
+      TRANS_GRID_FLAT[o + 3] = t[3]; TRANS_GRID_FLAT[o + 4] = t[4]; TRANS_GRID_FLAT[o + 5] = t[5];
+    }
+    raw.trans_grid = null;
 
     els.dateBadge.textContent = (DATA.meta.min_date || "2022") + " – " + (DATA.meta.max_date || "2026");
   }
@@ -918,21 +959,39 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     return vals.reduce((x, y) => x + y, 0) / vals.length;
   }
 
-  function getBurnRateMetric(provObj) {
-    if (!provObj || provObj.trp === null || provObj.trp === undefined || !provObj.doae_2566) return null;
-    const yr = state.year === "all" ? "2026" : state.year;
-    const a = provObj.trp[yr];
-    if (!a) return null;
-    const d = provObj.doae_2566;
-    let burn = 0, plant = 0;
-    if (state.crop === "rice") { burn = a[0] || 0; plant = d.paddy_rai || 0; }
-    else if (state.crop === "sugarcane") { burn = a[1] || 0; plant = d.sugarcane_rai || 0; }
-    else if (state.crop === "corn") { burn = a[2] || 0; plant = d.corn_rai || 0; }
-    else {
-      burn = (a[0] || 0) + (a[1] || 0) + (a[2] || 0);
-      plant = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
+  function getDoaePlantedMetric(item, cropOverride) {
+    if (!item) return null;
+    const c = cropOverride || state.crop;
+    if (item.doae_2566) {
+      const d = item.doae_2566;
+      if (c === "rice") return d.paddy_rai || null;
+      if (c === "sugarcane") return d.sugarcane_rai || null;
+      if (c === "corn") return d.corn_rai || null;
+      const tot = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
+      return tot > 0 ? tot : null;
     }
+    if (item.doae && Array.isArray(item.doae)) {
+      const d = item.doae;
+      if (c === "rice") return d[0] > 0 ? d[0] : null;
+      if (c === "sugarcane") return d[1] > 0 ? d[1] : null;
+      if (c === "corn") return d[2] > 0 ? d[2] : null;
+      return d[4] > 0 ? d[4] : null;
+    }
+    return null;
+  }
+
+  function getBurnRateMetric(item) {
+    if (!item || item.trp === null || item.trp === undefined) return null;
+    const yr = (state.year === "all" || state.year === "2022" || state.year === "2023") ? "2026" : state.year;
+    const a = item.trp[yr];
+    if (!a) return null;
+    const plant = getDoaePlantedMetric(item, state.crop);
     if (!plant || plant <= 0) return null;
+    let burn = 0;
+    if (state.crop === "rice") burn = a[0] || 0;
+    else if (state.crop === "sugarcane") burn = a[1] || 0;
+    else if (state.crop === "corn") burn = a[2] || 0;
+    else burn = (a[0] || 0) + (a[1] || 0) + (a[2] || 0);
     return Math.min(100, +(burn * 100 / plant).toFixed(2));
   }
 
@@ -1121,10 +1180,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const ampRecords = enrich(DATA.amphoes, a => ampMap.get(a.code), "amphoe");
     const tbRecords = enrich(DATA.tambons, t => tbStats[t._idx], "tambon");
 
-    // Only aggregate 0.05-deg heatmap cells when Heatmap overlay is actually enabled
+    // Aggregate 0.05-deg cells when Heatmap OR Thailand Hotspot Point layer is enabled (zero extra RAM when off)
     let maxGridCnt = 1;
     const gridCells = [];
-    if (state.showHeat && GRID_FLAT.length) {
+    if ((state.showHeat || state.showPoints) && GRID_FLAT.length) {
       const cellAgg = new Map();
       for (let o = 0; o < GRID_FLAT.length; o += 4) {
         const f = GRID_FLAT[o + 2];
@@ -1142,8 +1201,17 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         const latI = GRID_FLAT[o], lonI = GRID_FLAT[o + 1], cnt = GRID_FLAT[o + 3];
         const key = (latI << 16) ^ lonI;
         let prev = cellAgg.get(key);
-        if (!prev) cellAgg.set(key, { mx: lonToMx(lonI / 20), my: latToMy(latI / 20), cnt });
-        else prev.cnt += cnt;
+        if (!prev) {
+          cellAgg.set(key, {
+            lat: latI / 20, lon: lonI / 20,
+            mx: lonToMx(lonI / 20), my: latToMy(latI / 20),
+            cnt, agriCnt: lu === 0 ? cnt : 0, forCnt: lu === 1 ? cnt : 0,
+          });
+        } else {
+          prev.cnt += cnt;
+          if (lu === 0) prev.agriCnt += cnt;
+          else if (lu === 1) prev.forCnt += cnt;
+        }
       }
       for (const c of cellAgg.values()) {
         if (c.cnt > maxGridCnt) maxGridCnt = c.cnt;
@@ -1193,7 +1261,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     if (m === "aq_exceed") return level === "province" ? getAqAnnualMetric(it, "days_37_5") : null;
     if (m === "aq_co") return level === "province" ? getAqAnnualMetric(it, "co_peak") : null;
     if (m === "soil_wet") return level === "province" ? getSoilAnnualMetric(it, "gwettop_peak") : null;
-    if (m === "burn_rate_agri") return level === "province" ? getBurnRateMetric(it) : null;
+    if (m === "soil_dry_streak") {
+      if (level !== "province") return null;
+      const s = it.soil_y || {};
+      if (state.year !== "all") return s[state.year]?.max_dry_streak ?? null;
+      const vals = ["2022", "2023", "2024", "2025", "2026"].map(y => s[y]?.max_dry_streak).filter(v => v !== null && v !== undefined);
+      return vals.length ? Math.max(...vals) : null;
+    }
+    if (m === "doae_plant_rai") return getDoaePlantedMetric(it);
+    if (m === "burn_rate_agri") return getBurnRateMetric(it);
     return rec.total;
   }
 
@@ -1217,10 +1293,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   }
 
   function getPaletteForMetric(m) {
-    if (m === "agri_pct" || m === "burn_rate_agri") return PALETTES.agri;
+    if (m === "agri_pct" || m === "burn_rate_agri" || m === "doae_plant_rai") return PALETTES.agri;
     if (m === "wx_rhmin" || m === "soil_wet") return PALETTES.moisture;
     if (m === "era5_rain" || m === "wx_rain") return PALETTES.rain;
-    if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind" || m === "aq_pm25" || m === "aq_exceed" || m === "aq_co") return PALETTES.heat;
+    if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind" || m === "aq_pm25" || m === "aq_exceed" || m === "aq_co" || m === "soil_dry_streak") return PALETTES.heat;
     if (m === "hazard") return PALETTES.hazard;
     return PALETTES.fire;
   }
@@ -1233,7 +1309,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const span = maxV - minV;
     if (span <= 0) return pal[val > 0 ? 3 : 0];
     let t = (val - minV) / span;
-    if (m === "count" || m === "density" || m === "trp_rai" || m === "scar_rai" || m === "freq_rai") {
+    if (m === "count" || m === "density" || m === "trp_rai" || m === "scar_rai" || m === "freq_rai" || m === "doae_plant_rai") {
       // Perceptual sqrt scaling so mid-tier agricultural hotspots stand out cleanly
       t = Math.sqrt(Math.max(0, t));
     }
@@ -1475,6 +1551,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const strokeCol = rootStyle.getPropertyValue("--map-land-stroke").trim();
     const hasTiles = state.basemap !== "none";
     const hasTms = state.tmsOverlay !== "none";
+    const hasWms = state.gistdaWms !== "none";
 
     // Draw background Thailand silhouette if zoomed into amphoe/tambon
     if (level !== "province" && state.levelMode !== "amphoe_all") {
@@ -1504,7 +1581,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
 
     // Draw active polygons (with subtle neutral country drop shadow once on baseCanvas)
-    if (level === "province" && !hasTiles && !hasTms) {
+    if (level === "province" && !hasTiles && !hasTms && !hasWms) {
       ctx.save();
       ctx.shadowColor = state.theme === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(15, 23, 42, 0.16)";
       ctx.shadowBlur = 18;
@@ -1517,7 +1594,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       ctx.restore();
     }
     ctx.save();
-    ctx.globalAlpha = hasTms
+    ctx.globalAlpha = (hasTms || hasWms)
       ? (state.zoom >= 13.5 ? 0.12 : 0.25)
       : (hasTiles ? (state.zoom >= 14 ? 0.32 : 0.78) : 0.96);
     ctx.lineWidth = level === "tambon" ? 0.6 : 0.95;
@@ -1531,6 +1608,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
     ctx.restore();
 
+    if (hasWms) {
+      drawGistdaWmsOverlay(ctx, w, h, toSx, toSy);
+    }
     if (hasTms) {
       drawTmsOverlay(ctx, w, h);
     }
@@ -1538,6 +1618,17 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     // Fast pre-baked sprite Heatmap overlay (no per-cell createRadialGradient or 45k-vertex clip)
     if (state.showHeat && records.length) {
       drawHeatmapOverlay(ctx, w, h, toSx, toSy, worldPx);
+    }
+
+    // Toggleable Hotspot Point Overlays (Thailand Int32Array + 6-Country GMS Int32Array + GISTDA Live 1-7d)
+    if (state.showTransPoints && TRANS_GRID_FLAT.length) {
+      drawTransboundaryPointsOverlay(ctx, w, h, toSx, toSy);
+    }
+    if (state.showPoints && records.length) {
+      drawThaiHotspotPointsOverlay(ctx, w, h, toSx, toSy);
+    }
+    if (state.showLive7d && DATA.live_hotspots_7d && DATA.live_hotspots_7d.length) {
+      drawLive7dPointsOverlay(ctx, w, h, toSx, toSy);
     }
 
     // Map labels when drilled into province/amphoe
@@ -1645,6 +1736,113 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
   }
 
+  const GMS_COUNTRY_META = {
+    1: { code: "Myanmar", th: "เมียนมา", col: "#ef4444" },
+    2: { code: "Lao_PDR", th: "สปป.ลาว", col: "#f59e0b" },
+    3: { code: "Cambodia", th: "กัมพูชา", col: "#a855f7" },
+    4: { code: "Vietnam", th: "เวียดนาม", col: "#06b6d4" },
+    5: { code: "Malaysia", th: "มาเลเซีย", col: "#10b981" },
+  };
+
+  function drawGistdaWmsOverlay(ctx, w, h, toSx, toSy) {
+    const key = state.gistdaWms;
+    if (!key || key === "none") return;
+    const info = (DATA.gistda_wms_layers || {})[key];
+    const bbox = info?.bbox_4326 || [97.343968, 5.617402, 105.6429129, 20.470097];
+    const path = info?.path || `gistda_layers/${key}_7d.png`;
+    let entry = WMS_IMAGE_CACHE.get(key);
+    if (!entry) {
+      const img = new Image();
+      entry = { img, ok: false, err: false };
+      img.onload = () => { entry.ok = true; requestDrawMap(true); };
+      img.onerror = () => { entry.err = true; };
+      img.src = path;
+      WMS_IMAGE_CACHE.set(key, entry);
+    }
+    if (!entry.ok || !entry.img.width) return;
+    const x0 = toSx(lonToMx(bbox[0]));
+    const x1 = toSx(lonToMx(bbox[2]));
+    const y0 = toSy(latToMy(bbox[3])); // north
+    const y1 = toSy(latToMy(bbox[1])); // south
+    ctx.save();
+    ctx.globalAlpha = 0.86;
+    ctx.drawImage(entry.img, x0, y0, x1 - x0, y1 - y0);
+    ctx.restore();
+  }
+
+  function drawThaiHotspotPointsOverlay(ctx, w, h, toSx, toSy) {
+    const gridCells = state.computedStats?.gridCells || [];
+    if (!gridCells.length) return;
+    const maxC = state.computedStats.maxGridCnt || 1;
+    const zoomScale = Math.max(0.85, Math.min(2.4, (state.zoom - 4.2) * 0.35));
+    ctx.save();
+    ctx.lineWidth = 0.7;
+    ctx.strokeStyle = state.theme === "dark" ? "rgba(7, 11, 20, 0.75)" : "rgba(15, 23, 42, 0.65)";
+    for (let i = 0; i < gridCells.length; i++) {
+      const c = gridCells[i];
+      const sx = toSx(c.mx), sy = toSy(c.my);
+      if (sx < -12 || sx > w + 12 || sy < -12 || sy > h + 12) continue;
+      const t = Math.sqrt(c.cnt / maxC);
+      const rad = Math.max(1.8, Math.min(7.5, (1.6 + 3.6 * t) * zoomScale));
+      // Color by dominant land use: Agri (#f59e0b) vs Forest (#dc2626) vs High intensity (#7f1d1d)
+      if (t >= 0.65) ctx.fillStyle = "#991b1b";
+      else if (c.agriCnt >= c.forCnt) ctx.fillStyle = "#f59e0b";
+      else ctx.fillStyle = "#dc2626";
+      ctx.globalAlpha = 0.75 + 0.23 * t;
+      ctx.beginPath();
+      ctx.arc(sx, sy, rad, 0, Math.PI * 2);
+      ctx.fill();
+      if (rad >= 2.6) ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawTransboundaryPointsOverlay(ctx, w, h, toSx, toSy) {
+    if (!TRANS_GRID_FLAT.length) return;
+    const zoomScale = Math.max(0.8, Math.min(2.2, (state.zoom - 4.0) * 0.32));
+    ctx.save();
+    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = "rgba(7, 11, 20, 0.7)";
+    for (let o = 0; o < TRANS_GRID_FLAT.length; o += 6) {
+      const latI = TRANS_GRID_FLAT[o], lonI = TRANS_GRID_FLAT[o + 1];
+      const cid = TRANS_GRID_FLAT[o + 2];
+      const cnt = state.year === "2025" ? TRANS_GRID_FLAT[o + 4] : TRANS_GRID_FLAT[o + 3];
+      if (cnt <= 0) continue;
+      const sx = toSx(lonToMx(lonI / 20)), sy = toSy(latToMy(latI / 20));
+      if (sx < -10 || sx > w + 10 || sy < -10 || sy > h + 10) continue;
+      const meta = GMS_COUNTRY_META[cid] || GMS_COUNTRY_META[1];
+      const t = Math.min(1, Math.sqrt(cnt / 450));
+      const rad = Math.max(1.5, Math.min(6.2, (1.4 + 3.0 * t) * zoomScale));
+      ctx.fillStyle = meta.col;
+      ctx.globalAlpha = 0.55 + 0.4 * t;
+      ctx.beginPath();
+      ctx.arc(sx, sy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawLive7dPointsOverlay(ctx, w, h, toSx, toSy) {
+    const pts = DATA.live_hotspots_7d || [];
+    if (!pts.length) return;
+    ctx.save();
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      const sx = toSx(lonToMx(p.lon)), sy = toSy(latToMy(p.lat));
+      if (sx < -12 || sx > w + 12 || sy < -12 || sy > h + 12) continue;
+      const is1d = p.w === "1d";
+      ctx.fillStyle = is1d ? "#ff1e56" : "#fb923c";
+      ctx.strokeStyle = is1d ? "#fef08a" : "#0f172a";
+      ctx.lineWidth = is1d ? 1.4 : 0.9;
+      ctx.globalAlpha = is1d ? 0.96 : 0.78;
+      ctx.beginPath();
+      ctx.arc(sx, sy, is1d ? 4.2 : 2.9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawHeatmapOverlay(ctx, w, h, toSx, toSy, worldPx) {
     const gridCells = state.computedStats?.gridCells || [];
     if (!gridCells.length) return;
@@ -1684,7 +1882,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       aq_exceed: "วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)",
       aq_co: "ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)",
       soil_wet: "ความชื้นผิวดิน NASA GWETTOP (0–1 · แดงเข้ม=แห้ง ฟ้า=ชื้น)",
-      burn_rate_agri: "อัตราเผาเกษตรเทียบพื้นที่ปลูก DOAE (% · 62 จว.)",
+      soil_dry_streak: "สัญญาณเตือนดินแห้งต่อเนื่องสูงสุด (วัน · GWETTOP < 0.38)",
+      doae_plant_rai: "พื้นที่เพาะปลูกข้าว+อ้อย+ข้าวโพด DOAE ปี 2566 (ไร่)",
+      burn_rate_agri: "อัตราเผาเกษตรเทียบพื้นที่ปลูก DOAE (% · จว./อำเภอ/ตำบล)",
       era5_hot: "อากาศ ERA5: วันร้อนจัด ≥38°C (วัน)",
       era5_dry: "อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)",
       era5_rain: "อากาศ ERA5: ฝนรวมทั้งปี (มม.)",
@@ -1707,7 +1907,23 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
     els.legendNullChip.style.display = hasNull ? "inline-flex" : "none";
     if (els.tmsLegendChip) {
-      if (state.tmsOverlay === "none") {
+      if (state.gistdaWms !== "none") {
+        const wmsNames = { dri: "ดัชนีเสี่ยงภัยแล้ง DRI (7 วัน)", ndwi: "ดัชนีความชื้นพืช NDWI (7 วัน)", smap: "ความชื้นผิวดิน SMAP (7 วัน)" };
+        els.tmsLegendChip.style.display = "inline-flex";
+        els.tmsLegendChip.innerHTML = `<strong>ชั้นภาพ GISTDA WMS:</strong> <span>${escHtml(wmsNames[state.gistdaWms] || state.gistdaWms)}</span>`;
+      } else if (state.showTransPoints || state.showLive7d || state.showPoints) {
+        const chips = [];
+        if (state.showPoints) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:50%"></i> จุดไฟไทย (เกษตร/ป่า)</span>`);
+        if (state.showTransPoints) chips.push(
+          `<span><i style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%"></i> เมียนมา</span>`,
+          `<span><i style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:50%"></i> ลาว</span>`,
+          `<span><i style="display:inline-block;width:8px;height:8px;background:#a855f7;border-radius:50%"></i> กัมพูชา</span>`,
+          `<span><i style="display:inline-block;width:8px;height:8px;background:#06b6d4;border-radius:50%"></i> เวียดนาม</span>`
+        );
+        if (state.showLive7d) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:#ff1e56;border:1px solid #fef08a;border-radius:50%"></i> ล่าสุด 24 ชม. / 7 วัน GISTDA</span>`);
+        els.tmsLegendChip.style.display = "inline-flex";
+        els.tmsLegendChip.innerHTML = chips.join(" ");
+      } else if (state.tmsOverlay === "none") {
         els.tmsLegendChip.style.display = "none";
       } else if (state.tmsOverlay.includes("SAVI_")) {
         els.tmsLegendChip.style.display = "inline-flex";
@@ -1747,6 +1963,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const worldPx = 256 * Math.pow(2, state.zoom);
     const toSx = (mx) => (mx - state.camX) * worldPx + rect.width / 2;
     const toSy = (my) => (my - state.camY) * worldPx + rect.height / 2;
+    if (state.showLive7d && DATA.live_hotspots_7d) {
+      for (const p of DATA.live_hotspots_7d) {
+        const px = toSx(lonToMx(p.lon)), py = toSy(latToMy(p.lat));
+        if (Math.hypot(px - sx, py - sy) <= 7.5) return { kind: "live7d", data: p };
+      }
+    }
     if (state.showStatic) {
       for (const sp of DATA.static_spots) {
         const px = toSx(lonToMx(sp.lon)), py = toSy(latToMy(sp.lat));
@@ -1757,6 +1979,30 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       for (const v of getVisibleVillages().slice(0, 120)) {
         const px = toSx(lonToMx(v.lon)), py = toSy(latToMy(v.lat));
         if (Math.hypot(px - sx, py - sy) <= 7) return { kind: "village", data: v };
+      }
+    }
+    if (state.showPoints && state.computedStats?.gridCells) {
+      for (const c of state.computedStats.gridCells) {
+        const px = toSx(c.mx), py = toSy(c.my);
+        if (Math.hypot(px - sx, py - sy) <= 6.5) return { kind: "th_pt", data: c };
+      }
+    }
+    if (state.showTransPoints && TRANS_GRID_FLAT.length) {
+      for (let o = 0; o < TRANS_GRID_FLAT.length; o += 6) {
+        const latI = TRANS_GRID_FLAT[o], lonI = TRANS_GRID_FLAT[o + 1];
+        const px = toSx(lonToMx(lonI / 20)), py = toSy(latToMy(latI / 20));
+        if (Math.hypot(px - sx, py - sy) <= 6.5) {
+          return {
+            kind: "gms_pt",
+            data: {
+              lat: latI / 20, lon: lonI / 20,
+              cid: TRANS_GRID_FLAT[o + 2],
+              tot4y: TRANS_GRID_FLAT[o + 3],
+              y2025: TRANS_GRID_FLAT[o + 4],
+              maxFrp: TRANS_GRID_FLAT[o + 5],
+            },
+          };
+        }
       }
     }
     return null;
@@ -1829,12 +2075,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const gWarns = [];
     if (state.metric.startsWith("wx_")) {
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลสภาพอากาศเอื้อไฟ 2022–2026 มีเฉพาะระดับ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
-    } else if (state.metric.startsWith("aq_") || state.metric === "soil_wet") {
+    } else if (state.metric.startsWith("aq_") || state.metric === "soil_wet" || state.metric === "soil_dry_streak") {
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูล PM2.5 (CAMS) และความชื้นดิน (NASA POWER) มีเฉพาะระดับ 77 จังหวัด");
       if (state.metric.startsWith("aq_") && state.year === "2022") gWarns.push("CAMS PM2.5 เริ่ม ส.ค. 2022 (ไม่มี ม.ค.–เม.ย. 2022)");
-    } else if (state.metric === "burn_rate_agri") {
-      if (getActiveScopeLevel() !== "province") gWarns.push("อัตราเผาเทียบพื้นที่ปลูกคำนวณระดับจังหวัด (DOAE 2566 × สสน. 2567–2569)");
-      gWarns.push("ครอบคลุม 62 จังหวัดในเขต สสน. (15 จังหวัดภาคใต้คงค่าไม่มีข้อมูล)");
+    } else if (state.metric === "burn_rate_agri" || state.metric === "doae_plant_rai") {
+      gWarns.push("เชื่อมพื้นที่ปลูก DOAE ปี 2566 ครบทั้งระดับจังหวัด (77), อำเภอ (814) และตำบล (6,308); รอยเผา สสน. ครอบคลุม 62 จังหวัด");
     } else if (state.metric.startsWith("era5_")) {
       if (state.year === "2026") gWarns.push("ERA5 รายปียังไม่มีปี 2026 (ใช้หมวด 'สภาพอากาศเอื้อไฟ 2022–2026' ด้านบนแทนได้)");
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลอากาศ ERA5 มีเฉพาะ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
@@ -2355,6 +2600,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     });
     const hb = document.getElementById("dockHeatBtn");
     if (hb) hb.classList.toggle("active", !!state.showHeat);
+    const pb = document.getElementById("dockPointsBtn");
+    if (pb) pb.classList.toggle("active", !!state.showPoints);
+    const tb = document.getElementById("dockTransBtn");
+    if (tb) tb.classList.toggle("active", !!state.showTransPoints);
   }
 
   function refreshAll() {
@@ -2395,9 +2644,21 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     syncControl(els.excludeStaticCheck, "excludeStatic", el => el.checked);
     syncControl(els.metricSelect, "metric");
     syncControl(els.levelModeSelect, "levelMode");
+    if (els.showPointsCheck) syncControl(els.showPointsCheck, "showPoints", el => el.checked);
+    if (els.showTransPointsCheck) {
+      els.showTransPointsCheck.addEventListener("change", () => {
+        state.showTransPoints = els.showTransPointsCheck.checked;
+        if (state.showTransPoints && state.zoom > 5.8 && !state.selectedProv) {
+          fitBbox([92.5, 5.2, 108.5, 22.8]);
+        }
+        refreshAll();
+      });
+    }
+    if (els.showLive7dCheck) syncControl(els.showLive7dCheck, "showLive7d", el => el.checked);
     syncControl(els.showHeatCheck, "showHeat", el => el.checked);
     syncControl(els.showStaticCheck, "showStatic", el => el.checked);
     syncControl(els.showVillagesCheck, "showVillages", el => el.checked);
+    if (els.gistdaWmsSelect) syncControl(els.gistdaWmsSelect, "gistdaWms");
     syncControl(els.tmsOverlaySelect, "tmsOverlay");
     syncControl(els.basemapSelect, "basemap");
     syncControl(els.scatterX, "scatterX");
@@ -2411,6 +2672,25 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         refreshAll();
       };
     });
+    const dockPoints = document.getElementById("dockPointsBtn");
+    if (dockPoints) {
+      dockPoints.onclick = () => {
+        state.showPoints = !state.showPoints;
+        if (els.showPointsCheck) els.showPointsCheck.checked = state.showPoints;
+        refreshAll();
+      };
+    }
+    const dockTrans = document.getElementById("dockTransBtn");
+    if (dockTrans) {
+      dockTrans.onclick = () => {
+        state.showTransPoints = !state.showTransPoints;
+        if (els.showTransPointsCheck) els.showTransPointsCheck.checked = state.showTransPoints;
+        if (state.showTransPoints && state.zoom > 5.8 && !state.selectedProv) {
+          fitBbox([92.5, 5.2, 108.5, 22.8]);
+        }
+        refreshAll();
+      };
+    }
     const dockHeat = document.getElementById("dockHeatBtn");
     if (dockHeat) {
       dockHeat.onclick = () => {
@@ -2507,7 +2787,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (ptHit) {
           const tKey = ptHit.kind === "static"
             ? `st:${ptHit.data.lat}:${ptHit.data.lon}`
-            : `vil:${ptHit.data.tambon_code}:${ptHit.data.name}:${state.sat}`;
+            : ptHit.kind === "village"
+              ? `vil:${ptHit.data.tambon_code}:${ptHit.data.name}:${state.sat}`
+              : ptHit.kind === "live7d"
+                ? `l7d:${ptHit.data.lat}:${ptHit.data.lon}:${ptHit.data.d}`
+                : ptHit.kind === "th_pt"
+                  ? `thpt:${ptHit.data.lat}:${ptHit.data.lon}:${ptHit.data.cnt}`
+                  : `gmspt:${ptHit.data.lat}:${ptHit.data.lon}:${ptHit.data.cid}`;
           if (tKey !== lastTooltipKey) {
             lastTooltipKey = tKey;
             if (ptHit.kind === "static") {
@@ -2525,7 +2811,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
                 <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พลังงานความร้อน FRP</span><span class="tt-v">${sp.avg_frp.toFixed(2)} MW</span></div>
                 <div class="tt-foot">มักเป็นโรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล (เกิดซ้ำ ≥25 วัน)</div>
               `, "#38bdf8");
-            } else {
+            } else if (ptHit.kind === "village") {
               const v = ptHit.data;
               const cnt = state.sat === "N" ? v.n : v.all;
               const ag = state.sat === "N" ? v.agri_n : v.agri_all;
@@ -2542,6 +2828,57 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
                 <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>ในเขตป่า/อื่น ๆ</span><span class="tt-v">${formatNum(Math.max(0, cnt - ag))} จุด</span></div>
                 <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ระยะห่างจุดไฟเฉลี่ย</span><span class="tt-v">${v.dist_km !== null ? v.dist_km.toFixed(2) + " กม." : "-"}</span></div>
               `, "#facc15");
+            } else if (ptHit.kind === "live7d") {
+              const p = ptHit.data;
+              const is1d = p.w === "1d";
+              const col = is1d ? "#ff1e56" : "#fb923c";
+              const loc = p.pv ? `${p.tb ? "ต." + p.tb + " · " : ""}${p.ap ? "อ." + p.ap + " · " : ""}จ.${p.pv}` : (p.ct || "ภูมิภาคอาเซียน");
+              showTooltip(e.clientX, e.clientY, `
+                <div class="tt-head">
+                  <div>
+                    <h4 style="color:${col}">จุดไฟล่าสุด GISTDA (${is1d ? "24 ชม. ล่าสุด" : "7 วันย้อนหลัง"})</h4>
+                    <div class="tt-sub">${escHtml(loc)}</div>
+                  </div>
+                  <span class="tt-badge" style="color:${col};border-color:${col};">${escHtml(p.d)} ${escHtml(p.t || "")}</span>
+                </div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${col}"></i>ดาวเทียม / ความเชื่อมั่น</span><span class="tt-v">${escHtml(p.sat || "VIIRS")} (${escHtml(p.conf || "-")})</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พลังงานความร้อน FRP</span><span class="tt-v">${p.frp !== null ? p.frp.toFixed(1) + " MW" : "-"}</span></div>
+                ${p.lu ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>การใช้ที่ดิน</span><span class="tt-v">${escHtml(p.lu)}</span></div>` : ""}
+                <div class="tt-foot">พิกัด ${p.lat.toFixed(4)}°N, ${p.lon.toFixed(4)}°E (GISTDA API Gateway)</div>
+              `, col);
+            } else if (ptHit.kind === "th_pt") {
+              const c = ptHit.data;
+              const agPct = c.cnt > 0 ? (c.agriCnt * 100 / c.cnt).toFixed(0) : "0";
+              const foPct = c.cnt > 0 ? (c.forCnt * 100 / c.cnt).toFixed(0) : "0";
+              showTooltip(e.clientX, e.clientY, `
+                <div class="tt-head">
+                  <div>
+                    <h4 style="color:#f59e0b">กลุ่มจุดความร้อนในไทย (~5.5 กม.)</h4>
+                    <div class="tt-sub">พิกัด ${c.lat.toFixed(2)}°N, ${c.lon.toFixed(2)}°E</div>
+                  </div>
+                  <span class="tt-badge">${formatNum(c.cnt)} จุด</span>
+                </div>
+                <div class="tt-bar"><div style="background:#f59e0b;width:${agPct}%"></div><div style="background:#dc2626;width:${foPct}%"></div></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f59e0b"></i>ในพื้นที่เกษตร+ส.ป.ก.</span><span class="tt-v">${formatNum(c.agriCnt)} จุด (${agPct}%)</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#dc2626"></i>ในเขตป่าไม้</span><span class="tt-v">${formatNum(c.forCnt)} จุด (${foPct}%)</span></div>
+                <div class="tt-foot">บีบอัดใน Int32Array เพื่อเปิด/ปิดจุดไฟได้ลื่นโดยไม่กิน RAM</div>
+              `, "#f59e0b");
+            } else if (ptHit.kind === "gms_pt") {
+              const g = ptHit.data;
+              const meta = GMS_COUNTRY_META[g.cid] || GMS_COUNTRY_META[1];
+              showTooltip(e.clientX, e.clientY, `
+                <div class="tt-head">
+                  <div>
+                    <h4 style="color:${meta.col}">จุดไฟข้ามแดน: ${escHtml(meta.th)}</h4>
+                    <div class="tt-sub">พิกัด ${g.lat.toFixed(2)}°N, ${g.lon.toFixed(2)}°E (NASA FIRMS VIIRS-SNPP)</div>
+                  </div>
+                  <span class="tt-badge" style="color:${meta.col};border-color:${meta.col};">${formatNum(g.tot4y)} จุด</span>
+                </div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${meta.col}"></i>สะสม 4 ปี (2022–2025)</span><span class="tt-v">${formatNum(g.tot4y)} จุด</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>เฉพาะปี 2025</span><span class="tt-v">${formatNum(g.y2025)} จุด</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พลังงาน FRP สูงสุด</span><span class="tt-v">${formatNum(g.maxFrp)} MW</span></div>
+                <div class="tt-foot">จากชุดข้อมูลหมอกควันข้ามแดน 6 ประเทศอาเซียน 3.17 ล้านจุด</div>
+              `, meta.col);
             }
           } else {
             positionTooltip(e.clientX, e.clientY);
@@ -2564,6 +2901,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             const wxRh = level === "province" ? getWxAnnualMetric(it, "rh_min") : null;
             const aqPm = level === "province" ? getAqAnnualMetric(it, "pm25_peak") : null;
             const soilG = level === "province" ? getSoilAnnualMetric(it, "gwettop_peak") : null;
+            const doaeRai = getDoaePlantedMetric(it);
+            const burnRatePct = getBurnRateMetric(it);
             const trpB = getTrpBreakdown(it);
             const trpVal = getTrpMetric(it);
             const dTxt = hit.density !== null ? `${hit.density.toFixed(1)} /100 ตร.กม.` : "ไม่มีพื้นที่";
@@ -2585,6 +2924,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${hit.agriPct !== null ? `${agPct.toFixed(1)}% / ${foPct.toFixed(1)}%` : "-"}</span></div>
               <div class="tt-divider"></div>
               <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>รอยเผา สสน. (20 ม.)</span><span class="tt-v">${trpVal !== null ? formatNum(trpVal, 0) + " ไร่" + (trpB ? ` (เกษตร ${formatNum(trpB.agri, 0)})` : "") : "ไม่มีข้อมูล"}</span></div>
+              ${doaeRai !== null ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พื้นที่ปลูก DOAE · %เผา</span><span class="tt-v">${formatNum(doaeRai, 0)} ไร่${burnRatePct !== null ? ` (${burnRatePct.toFixed(1)}%)` : ""}</span></div>` : ""}
               <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#df6a37"></i>รอยเผา / เผาซ้ำ GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) : "ไม่มีข้อมูล"} / ${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "-"}</span></div>
               <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>น้ำท่วมซ้ำ 17 ปี (HII)</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง" : "ไม่มีข้อมูล"}</span></div>
               ${level === "province" ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>อากาศเอื้อไฟ FWI</span><span class="tt-v">${wxFwi !== null ? `${wxFwi.toFixed(1)}/100 (${wxTmax !== null ? wxTmax.toFixed(1) + "°C" : "-"} · RH ${wxRh !== null ? wxRh.toFixed(0) + "%" : "-"})` : "ไม่มีข้อมูล"}</span></div>` : ""}

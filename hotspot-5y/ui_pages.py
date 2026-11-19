@@ -601,12 +601,29 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">พยากรณ์อากาศ 7 วันล่วงหน้า &amp; ความเสี่ยงไฟจากอากาศ (Live Open-Meteo)</h2>
-          <div id="wxLiveSub" class="panel-sub">กำลังโหลดพยากรณ์อากาศ 7 วัน...</div>
+          <h2 class="panel-title">พยากรณ์อากาศ 7 วันล่วงหน้า &amp; ความเสี่ยงไฟจากอากาศ (Open-Meteo IFS vs กรมอุตุฯ TMD WRF 3 กม.)</h2>
+          <div id="wxLiveSub" class="panel-sub">กำลังโหลดพยากรณ์อากาศ...</div>
         </div>
-        <span id="wxLiveProvBadge" class="badge">จังหวัดเชียงใหม่</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="pill-toggle" id="wxFcSourceToggle" aria-label="สลับแหล่งข้อมูลพยากรณ์อากาศ">
+            <button type="button" data-fc-src="openmeteo" class="active">Open-Meteo IFS (7 วันสด)</button>
+            <button type="button" data-fc-src="tmd_wrf">กรมอุตุฯ TMD WRF (3 กม. d02)</button>
+          </div>
+          <span id="wxLiveProvBadge" class="badge">จังหวัดเชียงใหม่</span>
+        </div>
       </div>
       <div id="wxLiveGrid" class="fc-grid"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">สัญญาณเตือนล่วงหน้าก่อนฤดูเผา: "ดินแห้งต่อเนื่อง X วัน" (NASA POWER Daily 137,060 แถว)</h2>
+          <div class="panel-sub">ตรวจจับจำนวนวันที่ความชื้นผิวดิน (GWETTOP &lt; 0.38) แห้งติดต่อกันยาวนานที่สุดรายจังหวัด เพื่อใช้เตือนภัยล่วงหน้าก่อนเกิดวิกฤตไฟลาม</div>
+        </div>
+        <button type="button" class="btn" id="wxJumpDryMapBtn">ดูแผนที่ดินแห้งต่อเนื่อง</button>
+      </div>
+      <div id="wxSoilEarlyGrid" class="hz-live-grid"></div>
     </div>
 
     <div class="panel-card">
@@ -935,13 +952,25 @@ HAZE_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">1. สถานการณ์ฝุ่น PM2.5 รายชั่วโมง (GISTDA เช็คฝุ่น 77 จังหวัด · คลิกเพื่อดูรายอำเภอ)</h2>
+          <h2 class="panel-title">1. สถานการณ์ฝุ่น PM2.5 รายชั่วโมง (GISTDA เช็คฝุ่น 77 จังหวัด → คลิกอำเภอ → เจาะลึกค่ารายตำบลสด)</h2>
           <div id="hzLiveSub" class="panel-sub">กำลังดึงค่า PM2.5 ล่าสุดจาก pm25.gistda.or.th...</div>
         </div>
         <select id="hzLiveProvSel" style="width:auto;min-width:205px;" aria-label="เลือกจังหวัดตรวจฝุ่นสด"></select>
       </div>
       <div id="hzLiveGrid" class="hz-live-grid"></div>
       <div id="hzLiveDetail" class="hz-detail-box" style="display:none;"></div>
+      <div id="hzLiveTambonBox" class="hz-detail-box" style="display:none;border-color:var(--accent);"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">1.5 วิเคราะห์ฝุ่น PM2.5 รายวัน (120,813 แถว): วันฝุ่นเกินเกณฑ์ต่อเนื่อง &amp; ระยะเวลาฝุ่นพุ่งหลังไฟพุ่ง (Lag 0–5 วัน)</h2>
+          <div class="panel-sub">คำนวณจากข้อมูลรายวัน 77 จังหวัด (2022–2026): ความสัมพันธ์ระหว่างจุดความร้อนกับฝุ่น PM2.5 ในวันถัดไป (Lag Effect) และสถิติวันฝุ่นเกิน 37.5 µg/m³ ติดต่อกันสูงสุด</div>
+        </div>
+        <span id="hzLagPeakBadge" class="badge">Lag สูงสุด: +3 วัน (r = 0.642)</span>
+      </div>
+      <div id="hzDailyAnalyticsBox" class="grid-2" style="gap:14px;"></div>
     </div>
 
     <div class="panel-card">
@@ -1030,10 +1059,15 @@ HAZE_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">5. อัตราการเผาเทียบพื้นที่เพาะปลูกจริง (% Burn Rate · DOAE 2566 × รอยเผา สสน. 20 ม.)</h2>
-          <div class="panel-sub">เห็นชัดว่าจังหวัดใดปลูกเยอะและเผาจริงกี่เปอร์เซ็นต์ (15 จังหวัดภาคใต้คงค่า "ไม่มีข้อมูล" ตามขอบเขต สสน.)</div>
+          <h2 class="panel-title">5. อัตราการเผาเทียบพื้นที่เพาะปลูกจริง (% Burn Rate · DOAE 2566 × รอยเผา สสน. 20 ม. ระดับจังหวัด / อำเภอ / ตำบล)</h2>
+          <div class="panel-sub">เชื่อมฐานข้อมูลพื้นที่ปลูก DOAE 235,082 แถวเข้ากับรอยเผา 20 ม. สสน. เจาะลึกได้ตั้งแต่ 77 จังหวัด → 814 อำเภอ → 6,308 ตำบล (คลิกแถวเพื่อบินไปดูบนแผนที่ทันที)</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div class="pill-toggle" id="hzBurnLevelToggle" aria-label="เลือกระดับพื้นที่วิเคราะห์อัตราเผาเทียบพื้นที่ปลูก">
+            <button type="button" data-burn-lvl="province" class="active">ระดับจังหวัด (77)</button>
+            <button type="button" data-burn-lvl="amphoe">ระดับอำเภอ (814)</button>
+            <button type="button" data-burn-lvl="tambon">ระดับตำบล (6,308)</button>
+          </div>
           <select id="hzBurnSeasonSel" style="width:auto;min-width:140px;">
             <option value="2026" selected>ฤดู 2569 (2026)</option>
             <option value="2025">ฤดู 2568 (2025)</option>
@@ -1045,20 +1079,20 @@ HAZE_PAGE_HTML = r"""
             <option value="sugarcane">เฉพาะ อ้อยโรงงาน</option>
             <option value="corn">เฉพาะ ข้าวโพด</option>
           </select>
-          <input id="hzBurnSearch" class="search-input" style="max-width:200px;" type="search" placeholder="กรองชื่อจังหวัด..." />
+          <input id="hzBurnSearch" class="search-input" style="max-width:200px;" type="search" placeholder="กรองชื่อจังหวัด/อำเภอ/ตำบล..." />
         </div>
       </div>
-      <div class="data-table-wrap" role="region" tabindex="0" aria-label="ตารางอัตราเผาเทียบพื้นที่ปลูก 77 จังหวัด">
+      <div class="data-table-wrap" role="region" tabindex="0" aria-label="ตารางอัตราเผาเทียบพื้นที่ปลูก">
         <table class="data-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>จังหวัด</th>
-              <th>ภาค</th>
+              <th id="hzBurnColName">จังหวัด</th>
+              <th id="hzBurnColParent">ภาค</th>
               <th>พื้นที่เผา (ไร่)</th>
               <th>พื้นที่ปลูก DOAE 66 (ไร่)</th>
               <th>% เผาเทียบปลูก</th>
-              <th>PM2.5 เฉลี่ยฤดู</th>
+              <th>PM2.5 / จุดไฟ 5 ปี</th>
               <th>ประมาณการปล่อย PM2.5 (ตัน)</th>
             </tr>
           </thead>
@@ -1883,12 +1917,18 @@ MULTI_PAGE_JS = r"""
     }
   }
 
+  let wxFcSource = "openmeteo";
+
   async function loadLiveForecast(provObj, force = false) {
     const grid = document.getElementById("wxLiveGrid");
     const sub = document.getElementById("wxLiveSub");
     const badge = document.getElementById("wxLiveProvBadge");
     if (!grid || !provObj) return;
     badge.textContent = `จ.${provObj.name_th} (${provObj.lat?.toFixed(2)}, ${provObj.lon?.toFixed(2)})`;
+    if (wxFcSource === "tmd_wrf") {
+      renderTmdWrfForecastCards(provObj);
+      return;
+    }
     const cacheKey = provObj.code;
     if (!force && liveForecastCache.has(cacheKey)) {
       renderForecastCards(liveForecastCache.get(cacheKey), provObj);
@@ -1904,9 +1944,128 @@ MULTI_PAGE_JS = r"""
       liveForecastCache.set(cacheKey, json);
       renderForecastCards(json, provObj);
     } catch (err) {
-      sub.textContent = "ไม่สามารถเชื่อมต่อพยากรณ์สด 7 วันได้ (โหมดออฟไลน์หรือไม่มีอินเทอร์เน็ต — ข้อมูลย้อนหลัง 2016–2026 ด้านล่างยังใช้งานได้ครบ)";
-      grid.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:6px;">ออฟไลน์: กดปุ่มอัปเดตอีกครั้งเมื่อต่ออินเทอร์เน็ต</div>`;
+      if (provObj.tmd_wrf && provObj.tmd_wrf.length) {
+        renderTmdWrfForecastCards(provObj);
+      } else {
+        sub.textContent = "ไม่สามารถเชื่อมต่อพยากรณ์สด 7 วันได้ (โหมดออฟไลน์หรือไม่มีอินเทอร์เน็ต — ข้อมูลย้อนหลัง 2016–2026 ด้านล่างยังใช้งานได้ครบ)";
+        grid.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:6px;">ออฟไลน์: กดปุ่มอัปเดตอีกครั้งเมื่อต่ออินเทอร์เน็ต</div>`;
+      }
     }
+  }
+
+  function renderTmdWrfForecastCards(provObj) {
+    const grid = document.getElementById("wxLiveGrid");
+    const sub = document.getElementById("wxLiveSub");
+    const wrf = provObj?.tmd_wrf || [];
+    if (!grid) return;
+    if (!wrf.length) {
+      sub.textContent = `ไม่มีข้อมูล TMD WRF ของ จ.${provObj?.name_th || ""}`;
+      grid.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:6px;">ไม่มีข้อมูล TMD WRF</div>`;
+      return;
+    }
+    sub.textContent = `พยากรณ์อากาศเชิงตัวเลข กรมอุตุนิยมวิทยา TMD NWP WRF-ROMS (Domain d02 ความละเอียด 3×3 กม. · 72 ชม.) ของ จ.${provObj.name_th} (รัศมี 25 กม. รอบจุดศูนย์กลางจังหวัด)`;
+    grid.innerHTML = "";
+    const wk = ["อา.","จ.","อ.","พ.","พฤ.","ศ.","ส."];
+    for (let i = 0; i < wrf.length; i++) {
+      const item = wrf[i];
+      const dt = new Date(item.date + "T12:00:00");
+      const label = `${wk[dt.getDay()]} ${dt.getDate()} ${MONTH_TH_SHORT[dt.getMonth()]}`;
+      const tmax = item.tmax;
+      const tmin = item.tmin;
+      const rh = item.rh ?? 58;
+      const rain = item.rain ?? 0;
+      const score = Math.round(item.fwi ?? 40);
+      const [tier, cls, barCol] = score >= 70
+        ? ["เสี่ยงสูงมาก", "vhigh", "#cf5648"]
+        : score >= 52
+          ? ["เสี่ยงสูง", "high", "#df6a37"]
+          : score >= 34
+            ? ["ปานกลาง", "med", "#c79a4b"]
+            : ["เสี่ยงต่ำ", "low", "#55947a"];
+      const card = document.createElement("div");
+      card.className = "fc-card";
+      card.style.setProperty("--fc-bar", barCol);
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong style="font-size:12.5px;">${escHtml(label)}</strong>
+          <span style="font-size:11px;color:var(--accent);font-weight:700;">TMD WRF 3กม.</span>
+        </div>
+        <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">${tmax !== null ? tmax.toFixed(1) : "-"}° <span style="font-size:12px;color:var(--muted);font-weight:500;">/ ${tmin !== null ? tmin.toFixed(1) : "-"}°C</span></div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">${escHtml(item.cond || "WRF d02")}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">ความชื้น ${rh.toFixed(0)}% · ฝน ${rain.toFixed(1)} มม. · FWI <strong>${score}</strong></div>
+        <div class="fc-meter-bg"><div class="fc-meter-fg" style="width:${Math.max(6, Math.min(100, score))}%"></div></div>
+        <span class="fc-risk ${cls}">${tier}</span>
+      `;
+      card.addEventListener("mousemove", (e) => {
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(label)} (${escHtml(item.date)})</h4>
+              <div class="tt-sub">กรมอุตุนิยมวิทยา TMD WRF-ROMS (Domain d02 · 3 กม.) · จ.${escHtml(provObj.name_th)}</div>
+            </div>
+            <span class="tt-badge" style="color:${barCol};border-color:${barCol}55;background:${barCol}1f;">FWI ${score}/100 · ${tier}</span>
+          </div>
+          <div class="tt-bar"><div style="background:${barCol};width:${Math.max(6, Math.min(100, score))}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#df6a37"></i>อุณหภูมิ 2 ม. สูงสุด / ต่ำสุด (t2m)</span><span class="tt-v">${tmax !== null ? tmax.toFixed(1) : "-"}° / ${tmin !== null ? tmin.toFixed(1) : "-"}°C</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>ความชื้นสัมพัทธ์เฉลี่ย (rhum)</span><span class="tt-v">${rh.toFixed(1)}%</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ฝนสะสมรายวัน (p1h/p24h)</span><span class="tt-v">${rain.toFixed(1)} มม.</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>สภาพอากาศ WRF 3 กม.</span><span class="tt-v">${escHtml(item.cond)}</span></div>
+          <div class="tt-foot">สกัดจากกริด 3×3 กม. รัศมี 25 กม. รอบจุดศูนย์กลางจังหวัด (77 จังหวัด)</div>
+        `, barCol);
+      });
+      card.addEventListener("mouseleave", hideTooltip);
+      grid.appendChild(card);
+    }
+  }
+
+  function renderSoilEarlyWarningCards() {
+    const grid = document.getElementById("wxSoilEarlyGrid");
+    if (!grid || !DATA) return;
+    const list = (DATA.soil_early_warning || []).slice(0, 12);
+    if (!list.length) {
+      grid.innerHTML = `<div style="color:var(--muted);font-size:12px;">ไม่มีข้อมูลความชื้นดินรายวัน</div>`;
+      return;
+    }
+    grid.innerHTML = list.map((item, i) => {
+      const s = item.max_streak_5y || 0;
+      const cls = s >= 80 ? "hz-pm-crit" : s >= 60 ? "hz-pm-high" : "hz-pm-mod";
+      const badgeTxt = s >= 80 ? "แห้งวิกฤต ≥80 วัน" : s >= 60 ? "เตือนภัยสูง ≥60 วัน" : "เฝ้าระวัง";
+      return `
+        <button type="button" class="hz-prov-card" data-soil-prov="${escHtml(item.prov_code)}">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <strong style="font-size:13px;">#${i + 1} จ.${escHtml(item.prov)}</strong>
+            <span class="hz-pm-badge ${cls}">${badgeTxt}</span>
+          </div>
+          <div style="font-size:21px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;">แห้งติดกัน ${s} <span style="font-size:11px;font-weight:500;color:var(--muted);">วัน</span></div>
+          <div style="font-size:11px;color:var(--muted);">ปี 2025: ${item.streak_2025} วัน · ปี 2024: ${item.streak_2024} วัน · ต่ำสุด ${item.min_gwettop != null ? item.min_gwettop.toFixed(2) : "-"}</div>
+        </button>
+      `;
+    }).join("");
+    grid.querySelectorAll(".hz-prov-card[data-soil-prov]").forEach(btn => {
+      const code = btn.dataset.soilProv;
+      const item = list.find(x => x.prov_code === code);
+      btn.onclick = () => {
+        const sel = document.getElementById("wxProvSelect");
+        if (sel) { sel.value = code; renderWeatherPage(); }
+      };
+      btn.addEventListener("mousemove", (e) => {
+        if (!item) return;
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>สัญญาณเตือนดินแห้งต่อเนื่อง: จ.${escHtml(item.prov)}</h4>
+              <div class="tt-sub">NASA POWER Daily Soil Wetness (GWETTOP &lt; 0.38)</div>
+            </div>
+            <span class="tt-badge">${item.max_streak_5y} วันติดกัน</span>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#dc2626"></i>ช่วงที่ดินแห้งติดต่อกันยาวสุด</span><span class="tt-v">${escHtml(item.peak_period || "-")}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>สถิติปี 2025 / ปี 2024</span><span class="tt-v">${item.streak_2025} วัน / ${item.streak_2024} วัน</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>ความชื้นผิวดินต่ำสุด (0–1)</span><span class="tt-v">${item.min_gwettop != null ? item.min_gwettop.toFixed(3) : "-"}</span></div>
+          <div class="tt-foot">คลิกเพื่อสลับกราฟสภาพอากาศด้านบนเป็น จ.${escHtml(item.prov)}</div>
+        `, "#dc2626");
+      });
+      btn.addEventListener("mouseleave", hideTooltip);
+    });
   }
 
   function renderForecastCards(data, provObj) {
@@ -1990,6 +2149,7 @@ MULTI_PAGE_JS = r"""
     // Live forecast (use selected province or Chiang Mai '50' when viewing national avg)
     const fcProv = pCode === "all" ? (PROV_MAP.get("50") || DATA.provinces[0]) : PROV_MAP.get(pCode);
     loadLiveForecast(fcProv, false);
+    renderSoilEarlyWarningCards();
 
     // 59-month dual-axis chart + Pearson r explanation
     const series = getMonthlySeries(pCode, satMode, wxIdx);
@@ -3478,6 +3638,22 @@ MULTI_PAGE_JS = r"""
       const fcProv = pCode === "all" ? (PROV_MAP.get("50") || DATA.provinces[0]) : PROV_MAP.get(pCode);
       loadLiveForecast(fcProv, true);
     });
+    document.querySelectorAll("#wxFcSourceToggle button[data-fc-src]").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll("#wxFcSourceToggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        wxFcSource = btn.dataset.fcSrc || "openmeteo";
+        const pCode = document.getElementById("wxProvSelect")?.value || "all";
+        const fcProv = pCode === "all" ? (PROV_MAP.get("50") || DATA.provinces[0]) : PROV_MAP.get(pCode);
+        loadLiveForecast(fcProv, false);
+      };
+    });
+    document.getElementById("wxJumpDryMapBtn")?.addEventListener("click", () => {
+      state.metric = "soil_dry_streak";
+      if (els.metricSelect) els.metricSelect.value = "soil_dry_streak";
+      switchPage("map");
+      requestAnimationFrame(() => refreshAll());
+    });
 
     document.getElementById("ovStoryTmsBtn")?.addEventListener("click", () => switchPage("burnscar"));
     document.getElementById("wxJumpMapBtn")?.addEventListener("click", () => {
@@ -3492,6 +3668,14 @@ MULTI_PAGE_JS = r"""
       document.getElementById(id)?.addEventListener("change", renderHazeDualLab);
     });
     document.getElementById("hzTransYearSel")?.addEventListener("change", renderTransboundarySection);
+    document.querySelectorAll("#hzBurnLevelToggle button[data-burn-lvl]").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll("#hzBurnLevelToggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        hzBurnLevel = btn.dataset.burnLvl || "province";
+        renderBurnIntensityAndEmissions();
+      };
+    });
     ["hzBurnSeasonSel","hzBurnCropSel"].forEach(id => {
       document.getElementById(id)?.addEventListener("change", renderBurnIntensityAndEmissions);
     });
@@ -3702,16 +3886,20 @@ MULTI_PAGE_JS = r"""
     box.innerHTML = `<div style="font-size:12.5px;color:var(--muted);">กำลังดึงฝุ่น PM2.5 รายอำเภอของ จ.${escHtml(prov.name_th)} และพยากรณ์ 5 วันล่วงหน้า...</div>`;
 
     let ampHtml = "";
+    let topAmpIdn = null;
+    let topAmpName = "";
     try {
       const rAmp = await fetch(`https://pm25.gistda.or.th/rest/getPm25byAmphoe?pv_idn=${Number(provCode)}`);
       if (rAmp.ok) {
         const jAmp = await rAmp.json();
         const amps = (jAmp.data || []).filter(a => a.pm25 != null).sort((a, b) => b.pm25 - a.pm25).slice(0, 12);
         if (amps.length) {
-          ampHtml = `<div style="font-size:12px;font-weight:700;">รายอำเภอสูงสุด จ.${escHtml(prov.name_th)} (GISTDA สด):</div>
+          topAmpIdn = amps[0].ap_idn;
+          topAmpName = amps[0].ap_tn || "";
+          ampHtml = `<div style="font-size:12px;font-weight:700;">รายอำเภอสูงสุด จ.${escHtml(prov.name_th)} (คลิกชื่ออำเภอเพื่อดูฝุ่นรายตำบลสด GISTDA):</div>
             <div class="hz-amp-grid">${amps.map(a => {
               const [, cls] = pm25Tier(a.pm25);
-              return `<div class="hz-amp-chip"><span>อ.${escHtml(a.ap_tn || "")}</span><span class="hz-pm-badge ${cls}">${Number(a.pm25).toFixed(1)}</span></div>`;
+              return `<button type="button" class="hz-amp-chip" data-ap-idn="${escHtml(a.ap_idn)}" data-ap-name="${escHtml(a.ap_tn || "")}" style="cursor:pointer;font-family:inherit;color:var(--text);text-align:left;"><span>อ.${escHtml(a.ap_tn || "")}</span><span class="hz-pm-badge ${cls}">${Number(a.pm25).toFixed(1)}</span></button>`;
             }).join("")}</div>`;
         }
       }
@@ -3749,7 +3937,120 @@ MULTI_PAGE_JS = r"""
       box.innerHTML = `<div style="font-size:12px;color:var(--muted);">ไม่สามารถเชื่อมต่อ API รายอำเภอ/พยากรณ์ฝุ่นได้ขณะนี้</div>`;
     } else {
       box.innerHTML = ampHtml + fcHtml;
+      box.querySelectorAll(".hz-amp-chip[data-ap-idn]").forEach(btn => {
+        btn.onclick = () => inspectLiveHazeTambon(btn.dataset.apIdn, btn.dataset.apName, prov.name_th);
+      });
+      if (topAmpIdn) {
+        inspectLiveHazeTambon(topAmpIdn, topAmpName, prov.name_th);
+      }
     }
+  }
+
+  async function inspectLiveHazeTambon(apIdn, apName, provName) {
+    const tBox = document.getElementById("hzLiveTambonBox");
+    if (!tBox || !apIdn) return;
+    tBox.style.display = "flex";
+    tBox.innerHTML = `<div style="font-size:12px;color:var(--muted);">กำลังดึงค่าฝุ่น PM2.5 รายตำบลสดของ อ.${escHtml(apName)} จ.${escHtml(provName)} จาก GISTDA...</div>`;
+    try {
+      const resp = await fetch(`https://pm25.gistda.or.th/rest/getPm25byTambon?ap_idn=${encodeURIComponent(apIdn)}`);
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const j = await resp.json();
+      const tbs = (j.data || []).filter(t => t.pm25 != null).sort((a, b) => b.pm25 - a.pm25);
+      if (!tbs.length) throw new Error("empty");
+      tBox.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:12.5px;color:var(--accent);">ค่าฝุ่น PM2.5 รายตำบลสด: อ.${escHtml(apName)} จ.${escHtml(provName)} (${tbs.length} ตำบล · GISTDA REST API)</strong>
+          <span class="badge">รหัสอำเภอ ${escHtml(apIdn)}</span>
+        </div>
+        <div class="hz-amp-grid">${tbs.map(t => {
+          const [, cls] = pm25Tier(t.pm25);
+          const avg24 = t.pm25Avg24hr != null ? Number(t.pm25Avg24hr).toFixed(1) : "-";
+          return `<div class="hz-amp-chip" title="เฉลี่ย 24 ชม.: ${avg24} µg/m³"><span>ต.${escHtml(t.tb_tn || "")}</span><span class="hz-pm-badge ${cls}">${Number(t.pm25).toFixed(1)} µg/m³</span></div>`;
+        }).join("")}</div>
+      `;
+    } catch (_) {
+      tBox.innerHTML = `<div style="font-size:12px;color:var(--muted);">ไม่สามารถดึงข้อมูลฝุ่นรายตำบลสดของ อ.${escHtml(apName)} ได้ในขณะนี้</div>`;
+    }
+  }
+
+  function renderDailyPm25Analytics() {
+    const box = document.getElementById("hzDailyAnalyticsBox");
+    const badge = document.getElementById("hzLagPeakBadge");
+    if (!box || !DATA) return;
+    const aqD = DATA.aq_daily_summary;
+    if (!aqD) {
+      box.innerHTML = "";
+      return;
+    }
+    const lags = aqD.lag_corr_north || [0.491, 0.575, 0.636, 0.642, 0.627, 0.596];
+    let bestLag = 0, bestR = -1;
+    lags.forEach((r, idx) => { if (r > bestR) { bestR = r; bestLag = idx; } });
+    if (badge) badge.textContent = `Lag สูงสุด: +${bestLag} วันหลังไฟพุ่ง (r = ${bestR.toFixed(3)})`;
+
+    // Collect top provinces by max consecutive exceedance streak (>37.5 ug/m3)
+    const streakProvs = [];
+    for (const p of DATA.provinces) {
+      let maxSt = 0, bestYr = "", bestRange = null, peakDay = null;
+      for (const [yr, info] of Object.entries(p.aq_y || {})) {
+        if ((info.max_streak_37_5 || 0) > maxSt) {
+          maxSt = info.max_streak_37_5;
+          bestYr = yr;
+          bestRange = info.streak_range;
+        }
+        if (info.peak_day && (!peakDay || info.peak_day[0] > peakDay[0])) {
+          peakDay = info.peak_day;
+        }
+      }
+      if (maxSt > 0) {
+        streakProvs.push({ code: p.code, name_th: p.name_th, maxSt, bestYr, bestRange, peakDay });
+      }
+    }
+    streakProvs.sort((a, b) => b.maxSt - a.maxSt);
+    const topStreaks = streakProvs.slice(0, 6);
+
+    const lagBarsHtml = lags.map((r, idx) => {
+      const pct = Math.max(15, Math.round((r / Math.max(0.01, bestR)) * 100));
+      const isBest = idx === bestLag;
+      const col = isBest ? "#dc2626" : "#f59e0b";
+      return `
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+          <span style="width:92px;color:var(--muted);font-weight:${isBest ? "700" : "500"};">${idx === 0 ? "วันเดียวกัน (0d)" : `หลังไฟ +${idx} วัน`}</span>
+          <div style="flex:1;height:10px;background:var(--panel-solid);border-radius:999px;overflow:hidden;border:1px solid var(--border);">
+            <div style="width:${pct}%;height:100%;background:${col};border-radius:999px;"></div>
+          </div>
+          <strong style="width:58px;text-align:right;color:${isBest ? "var(--accent)" : "var(--text)"};">r = ${r.toFixed(3)}</strong>
+        </div>
+      `;
+    }).join("");
+
+    const streakHtml = topStreaks.map((s, i) => `
+      <div class="hz-amp-chip" style="cursor:pointer;" data-st-prov="${escHtml(s.code)}">
+        <div>
+          <strong>#${i + 1} จ.${escHtml(s.name_th)}</strong>
+          <div style="font-size:10.5px;color:var(--muted);">ปี ${escHtml(s.bestYr)} · พีครายวัน ${s.peakDay ? s.peakDay[0].toFixed(1) + " µg/m³ (" + s.peakDay[1] + ")" : "-"}</div>
+        </div>
+        <span class="hz-pm-badge hz-pm-crit">${s.maxSt} วันติดกัน</span>
+      </div>
+    `).join("");
+
+    box.innerHTML = `
+      <div class="hz-detail-box">
+        <div style="font-size:12.5px;font-weight:700;">ความสัมพันธ์จุดความร้อน → ฝุ่น PM2.5 ตามระยะเวลาหน่วง (Fire-to-PM2.5 Lag 0–5 วัน · ${formatNum(aqD.total_rows || 120813)} แถวรายวัน)</div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-top:4px;">${lagBarsHtml}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:4px;">อินไซต์: เมื่อจุดความร้อนพุ่งสูง ค่าฝุ่น PM2.5 เฉลี่ยจะสะสมและพุ่งสูงสุดในอีก <strong>+${bestLag} วันถัดมา (r = ${bestR.toFixed(3)})</strong></div>
+      </div>
+      <div class="hz-detail-box">
+        <div style="font-size:12.5px;font-weight:700;">6 อันดับจังหวัดที่ฝุ่น PM2.5 เกินเกณฑ์มาตรฐานไทย (&gt;37.5 µg/m³) ติดต่อกันยาวนานที่สุด</div>
+        <div class="hz-amp-grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));">${streakHtml}</div>
+      </div>
+    `;
+    box.querySelectorAll("[data-st-prov]").forEach(el => {
+      el.onclick = () => {
+        const pSel = document.getElementById("hzProvSelect");
+        if (pSel) { pSel.value = el.dataset.stProv; renderHazeDualLab(); }
+        inspectLiveHazeProv(el.dataset.stProv);
+      };
+    });
   }
 
   function getHazeMonthlySeries(provCode, satMode, metricKey) {
@@ -4145,11 +4446,18 @@ MULTI_PAGE_JS = r"""
     }
   }
 
+  let hzBurnLevel = "province";
+
   function renderBurnIntensityAndEmissions() {
     if (!DATA || !state.computedStats) return;
     const yrKey = document.getElementById("hzBurnSeasonSel")?.value || "2026";
     const cropMode = document.getElementById("hzBurnCropSel")?.value || "all";
     const q = (document.getElementById("hzBurnSearch")?.value || "").trim().toLowerCase();
+
+    const colName = document.getElementById("hzBurnColName");
+    const colParent = document.getElementById("hzBurnColParent");
+    if (colName) colName.textContent = hzBurnLevel === "province" ? "จังหวัด" : hzBurnLevel === "amphoe" ? "อำเภอ" : "ตำบล";
+    if (colParent) colParent.textContent = hzBurnLevel === "province" ? "ภาค" : hzBurnLevel === "amphoe" ? "จังหวัด" : "อำเภอ · จังหวัด";
 
     // Standard biomass dry fuel (t/rai) & emission factors (Andreae/IPCC screening)
     const FUEL_T_PER_RAI = [0.58, 1.12, 0.88, 0.70, 2.40]; // paddy, sugarcane, corn, mixed, forest
@@ -4162,51 +4470,104 @@ MULTI_PAGE_JS = r"""
     for (const p of DATA.provinces) {
       const covered = p.trp !== null && p.trp !== undefined;
       const a = covered ? (p.trp[yrKey] || [0, 0, 0, 0, 0]) : null;
-      let provBm = null, provPm = null;
       if (a) {
         burnTotalRai += a[0] + a[1] + a[2] + a[3] + a[4];
         burnAgriRai += a[0] + a[1] + a[2] + a[3];
-        provBm = 0;
+        let provBm = 0;
         for (let k = 0; k < 5; k++) provBm += a[k] * FUEL_T_PER_RAI[k];
         biomassTons += provBm;
-        provPm = provBm * EF_PM25_T_PER_T;
-        pm25Tons += provPm;
+        pm25Tons += provBm * EF_PM25_T_PER_T;
         co2eTons += provBm * EF_CO2E_T_PER_T;
       }
+    }
 
-      const d = p.doae_2566 || {};
+    const extractBurnAndPlant = (item, isProv) => {
+      const covered = item.trp !== null && item.trp !== undefined;
+      const a = covered ? (item.trp[yrKey] || [0, 0, 0, 0, 0]) : null;
+      let paddyPl = null, sugarPl = null, cornPl = null, sumPl = null;
+      if (isProv && item.doae_2566) {
+        const d = item.doae_2566;
+        paddyPl = d.paddy_rai ?? null;
+        sugarPl = d.sugarcane_rai ?? null;
+        cornPl = d.corn_rai ?? null;
+        const s = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
+        sumPl = s > 0 ? s : null;
+      } else if (!isProv && Array.isArray(item.doae)) {
+        paddyPl = item.doae[0] > 0 ? item.doae[0] : null;
+        sugarPl = item.doae[1] > 0 ? item.doae[1] : null;
+        cornPl = item.doae[2] > 0 ? item.doae[2] : null;
+        sumPl = item.doae[4] > 0 ? item.doae[4] : null;
+      }
       let burnVal = null, plantVal = null, pmCrop = null;
-      if (a) {
-        if (cropMode === "paddy") { burnVal = a[0]; plantVal = d.paddy_rai ?? null; pmCrop = a[0] * FUEL_T_PER_RAI[0] * EF_PM25_T_PER_T; }
-        else if (cropMode === "sugarcane") { burnVal = a[1]; plantVal = d.sugarcane_rai ?? null; pmCrop = a[1] * FUEL_T_PER_RAI[1] * EF_PM25_T_PER_T; }
-        else if (cropMode === "corn") { burnVal = a[2]; plantVal = d.corn_rai ?? null; pmCrop = a[2] * FUEL_T_PER_RAI[2] * EF_PM25_T_PER_T; }
-        else {
+      if (cropMode === "paddy") {
+        plantVal = paddyPl;
+        if (a) { burnVal = a[0]; pmCrop = a[0] * FUEL_T_PER_RAI[0] * EF_PM25_T_PER_T; }
+      } else if (cropMode === "sugarcane") {
+        plantVal = sugarPl;
+        if (a) { burnVal = a[1]; pmCrop = a[1] * FUEL_T_PER_RAI[1] * EF_PM25_T_PER_T; }
+      } else if (cropMode === "corn") {
+        plantVal = cornPl;
+        if (a) { burnVal = a[2]; pmCrop = a[2] * FUEL_T_PER_RAI[2] * EF_PM25_T_PER_T; }
+      } else {
+        plantVal = sumPl;
+        if (a) {
           burnVal = a[0] + a[1] + a[2];
-          const sumPl = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
-          plantVal = sumPl > 0 ? sumPl : null;
           pmCrop = (a[0] * FUEL_T_PER_RAI[0] + a[1] * FUEL_T_PER_RAI[1] + a[2] * FUEL_T_PER_RAI[2]) * EF_PM25_T_PER_T;
         }
-      } else {
-        if (cropMode === "paddy") plantVal = d.paddy_rai ?? null;
-        else if (cropMode === "sugarcane") plantVal = d.sugarcane_rai ?? null;
-        else if (cropMode === "corn") plantVal = d.corn_rai ?? null;
-        else {
-          const sumPl = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
-          plantVal = sumPl > 0 ? sumPl : null;
-        }
       }
-      const ratePct = (burnVal !== null && plantVal !== null && plantVal > 0) ? (burnVal * 100 / plantVal) : null;
-      const pmPeak = p.aq_y?.[yrKey]?.pm25_peak ?? p.aq_y?.[yrKey]?.pm25_mean ?? null;
-      tableRows.push({
-        code: p.code,
-        name_th: p.name_th,
-        region: REGION_TH[p.region] || p.region || "-",
-        burnVal,
-        plantVal,
-        ratePct,
-        pmPeak,
-        pmCrop,
-      });
+      const ratePct = (burnVal !== null && plantVal !== null && plantVal > 0) ? Math.min(100, burnVal * 100 / plantVal) : null;
+      return { burnVal, plantVal, ratePct, pmCrop, a, paddyPl, sugarPl, cornPl };
+    };
+
+    if (hzBurnLevel === "province") {
+      for (const p of DATA.provinces) {
+        const bp = extractBurnAndPlant(p, true);
+        const pmPeak = p.aq_y?.[yrKey]?.pm25_peak ?? p.aq_y?.[yrKey]?.pm25_mean ?? null;
+        tableRows.push({
+          level: "province",
+          code: p.code,
+          prov_code: p.code,
+          name_th: p.name_th,
+          parent_th: REGION_TH[p.region] || p.region || "-",
+          ...bp,
+          extraTxt: pmPeak !== null ? pmPeak.toFixed(1) + " µg/m³" : "-",
+        });
+      }
+    } else if (hzBurnLevel === "amphoe") {
+      for (const amp of DATA.amphoes) {
+        const bp = extractBurnAndPlant(amp, false);
+        if (!bp.plantVal && !bp.burnVal) continue;
+        const p = PROV_MAP.get(amp.prov_code);
+        const rec = state.computedStats.ampByCode.get(amp.code);
+        tableRows.push({
+          level: "amphoe",
+          code: amp.code,
+          prov_code: amp.prov_code,
+          amphoe_code: amp.code,
+          name_th: "อ." + amp.name_th,
+          parent_th: "จ." + (p?.name_th || amp.prov_code),
+          ...bp,
+          extraTxt: rec ? formatNum(rec.total) + " จุด" : "-",
+        });
+      }
+    } else {
+      for (const tb of DATA.tambons) {
+        const bp = extractBurnAndPlant(tb, false);
+        if (!bp.plantVal && !bp.burnVal) continue;
+        const p = PROV_MAP.get(tb.prov_code);
+        const amp = AMP_MAP.get(tb.amphoe_code);
+        const rec = state.computedStats.tbByCode.get(tb.code);
+        tableRows.push({
+          level: "tambon",
+          code: tb.code,
+          prov_code: tb.prov_code,
+          amphoe_code: tb.amphoe_code,
+          name_th: "ต." + tb.name_th,
+          parent_th: `${amp ? "อ." + amp.name_th + " · " : ""}จ.${p?.name_th || tb.prov_code}`,
+          ...bp,
+          extraTxt: rec ? formatNum(rec.total) + " จุด" : "-",
+        });
+      }
     }
 
     document.getElementById("hzKpiEmit").textContent = `${formatNum(pm25Tons, 0)} ตัน`;
@@ -4231,48 +4592,69 @@ MULTI_PAGE_JS = r"""
     const tbody = document.getElementById("hzBurnRateTbody");
     if (!tbody) return;
     let filtered = tableRows;
-    if (q) filtered = filtered.filter(r => r.name_th.toLowerCase().includes(q) || r.region.toLowerCase().includes(q));
-    filtered.sort((a, b) => (b.burnVal ?? -1) - (a.burnVal ?? -1));
+    if (q) filtered = filtered.filter(r => r.name_th.toLowerCase().includes(q) || r.parent_th.toLowerCase().includes(q));
+    filtered.sort((a, b) => (b.burnVal ?? -1) - (a.burnVal ?? -1) || (b.plantVal ?? -1) - (a.plantVal ?? -1));
+    const displayRows = filtered.slice(0, 150);
     const fmt = (v, d = 0) => (v === null || v === undefined ? '<span style="color:var(--muted)">ไม่มีข้อมูล</span>' : formatNum(v, d));
-    tbody.innerHTML = filtered.map((r, i) => `
-      <tr data-hz-pcode="${escHtml(r.code)}">
+    tbody.innerHTML = displayRows.map((r, i) => `
+      <tr data-hz-code="${escHtml(r.code)}" data-hz-lvl="${escHtml(r.level)}" data-hz-pcode="${escHtml(r.prov_code)}">
         <td>${i + 1}</td>
         <td>${escHtml(r.name_th)}</td>
-        <td><span class="reg-pill">${escHtml(r.region)}</span></td>
+        <td><span class="reg-pill">${escHtml(r.parent_th)}</span></td>
         <td style="font-weight:700;color:var(--accent);">${fmt(r.burnVal)}</td>
         <td>${fmt(r.plantVal)}</td>
         <td style="font-weight:700;">${r.ratePct !== null ? r.ratePct.toFixed(1) + "%" : '<span style="color:var(--muted)">ไม่มีข้อมูล</span>'}</td>
-        <td>${r.pmPeak !== null ? r.pmPeak.toFixed(1) + " µg/m³" : "-"}</td>
+        <td>${escHtml(r.extraTxt)}</td>
         <td>${fmt(r.pmCrop)}</td>
       </tr>
     `).join("");
-    tbody.querySelectorAll("tr[data-hz-pcode]").forEach(tr => {
+    tbody.querySelectorAll("tr[data-hz-code]").forEach(tr => {
+      const code = tr.dataset.hzCode;
+      const lvl = tr.dataset.hzLvl;
+      const pcode = tr.dataset.hzPcode;
+      const r = displayRows.find(x => x.code === code);
       tr.onclick = () => {
-        const pSel = document.getElementById("hzProvSelect");
-        if (pSel) { pSel.value = tr.dataset.hzPcode; renderHazeDualLab(); }
-        inspectLiveHazeProv(tr.dataset.hzPcode);
+        if (lvl === "province") {
+          const pSel = document.getElementById("hzProvSelect");
+          if (pSel) { pSel.value = pcode; renderHazeDualLab(); }
+          inspectLiveHazeProv(pcode);
+        } else {
+          state.metric = "burn_rate_agri";
+          if (els.metricSelect) els.metricSelect.value = "burn_rate_agri";
+          switchPage("map", { skipFit: true });
+          requestAnimationFrame(() => {
+            if (lvl === "amphoe") {
+              const amp = AMP_MAP.get(code);
+              if (amp) selectFeature(amp, "amphoe");
+            } else {
+              const tb = TB_MAP.get(code);
+              if (tb) {
+                state.selectedProv = tb.prov_code;
+                state.selectedAmphoe = tb.amphoe_code;
+                selectFeature(tb, "tambon");
+              }
+            }
+          });
+        }
       };
       tr.addEventListener("mousemove", (e) => {
-        const p = PROV_MAP.get(tr.dataset.hzPcode);
-        const r = filtered.find(x => x.code === tr.dataset.hzPcode);
-        if (!p || !r) return;
-        const a = p.trp?.[yrKey];
-        const d = p.doae_2566 || {};
+        if (!r) return;
+        const a = r.a;
         showTooltip(e.clientX, e.clientY, `
           <div class="tt-head">
             <div>
-              <h4>จ.${escHtml(p.name_th)} · ฤดู ${Number(yrKey) + 543}</h4>
-              <div class="tt-sub">${escHtml(r.region)} · เทียบรอยเผา สสน. 20 ม. กับพื้นที่ปลูก DOAE 2566</div>
+              <h4>${escHtml(r.name_th)} · ฤดู ${Number(yrKey) + 543}</h4>
+              <div class="tt-sub">${escHtml(r.parent_th)} · DOAE 2566 × สสน. 20 ม.</div>
             </div>
             <span class="tt-badge">${r.ratePct !== null ? r.ratePct.toFixed(1) + "% เผา/ปลูก" : "นอกเขต สสน."}</span>
           </div>
-          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>นาข้าว (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[0], 0) : "ไม่มีข้อมูล"} / ${d.paddy_rai != null ? formatNum(d.paddy_rai, 0) + " ไร่" : "-"}</span></div>
-          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>อ้อยโรงงาน (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[1], 0) : "ไม่มีข้อมูล"} / ${d.sugarcane_rai != null ? formatNum(d.sugarcane_rai, 0) + " ไร่" : "-"}</span></div>
-          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#7d9b65"></i>ข้าวโพด (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[2], 0) : "ไม่มีข้อมูล"} / ${d.corn_rai != null ? formatNum(d.corn_rai, 0) + " ไร่" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>นาข้าว (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[0], 0) : "ไม่มีข้อมูล"} / ${r.paddyPl != null ? formatNum(r.paddyPl, 0) + " ไร่" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>อ้อยโรงงาน (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[1], 0) : "ไม่มีข้อมูล"} / ${r.sugarPl != null ? formatNum(r.sugarPl, 0) + " ไร่" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#7d9b65"></i>ข้าวโพด (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[2], 0) : "ไม่มีข้อมูล"} / ${r.cornPl != null ? formatNum(r.cornPl, 0) + " ไร่" : "-"}</span></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a84438"></i>เขตป่าไม้ (รอยเผา สสน.)</span><span class="tt-v">${a ? formatNum(a[4], 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
           <div class="tt-divider"></div>
-          <div class="tt-row"><span class="tt-k">PM2.5 เฉลี่ยฤดู · ปล่อย PM2.5</span><span class="tt-v">${r.pmPeak !== null ? r.pmPeak.toFixed(1) + " µg/m³" : "-"} · ${r.pmCrop !== null ? "~" + formatNum(r.pmCrop, 0) + " ตัน" : "ไม่มีข้อมูล"}</span></div>
-          <div class="tt-foot">คลิกแถวเพื่อดูกราฟแนวโน้มฝุ่นและตรวจรายอำเภอของจังหวัดนี้</div>
+          <div class="tt-row"><span class="tt-k">ปล่อย PM2.5 ประมาณการ</span><span class="tt-v">${r.pmCrop !== null ? "~" + formatNum(r.pmCrop, 1) + " ตัน" : "ไม่มีข้อมูล"}</span></div>
+          <div class="tt-foot">${lvl === "province" ? "คลิกแถวเพื่อดูกราฟแนวโน้มฝุ่นและตรวจรายอำเภอของจังหวัดนี้" : "คลิกแถวเพื่อบินไปซูมดูพื้นที่นี้บนแผนที่เจาะลึกทันที"}</div>
         `);
       });
       tr.addEventListener("mouseleave", hideTooltip);
@@ -4283,6 +4665,7 @@ MULTI_PAGE_JS = r"""
     if (!DATA) return;
     populateHazeSelects();
     loadLiveHazeData(false);
+    renderDailyPm25Analytics();
     renderHazeDualLab();
     renderTransboundarySection();
     renderRidWaterChart();

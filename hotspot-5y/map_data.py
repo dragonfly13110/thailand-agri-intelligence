@@ -421,9 +421,9 @@ def _load_air_quality(
     con: duckdb.DuckDBPyConnection,
     existing_tables: set[str],
     timeline_months: list[str],
-) -> tuple[dict[str, list], dict[str, dict]]:
+) -> tuple[dict[str, list], dict[str, dict], dict | None]:
     if "air_quality_monthly_77prov" not in existing_tables:
-        return {}, {}
+        return {}, {}, None
     m_idx = {ym: idx for idx, ym in enumerate(timeline_months)}
     rows = con.execute("""
         SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
@@ -463,17 +463,144 @@ def _load_air_quality(
             "days_15": _sum_i(6),
             "co_peak": round(sum(peak_cos) / len(peak_cos), 0) if peak_cos else None,
             "aod_peak": round(sum(peak_aods) / len(peak_aods), 2) if peak_aods else None,
+            "max_streak_37_5": 0,
+            "peak_day": None,
         }
-    return aq_m, aq_y
+
+    aq_daily_summary = None
+    if "air_quality_daily_77prov" in existing_tables:
+        streak_rows = con.execute("""
+            WITH r AS (
+                SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                       year_th, date, pm25_mean,
+                       CASE WHEN pm25_mean > 37.5 THEN 1 ELSE 0 END AS is_ex
+                FROM air_quality_daily_77prov
+                WHERE pm25_mean IS NOT NULL
+            ),
+            g AS (
+                SELECT pcode, year_th, date, is_ex,
+                       row_number() OVER (PARTITION BY pcode, year_th ORDER BY date)
+                       - row_number() OVER (PARTITION BY pcode, year_th, is_ex ORDER BY date) AS grp
+                FROM r
+            ),
+            st AS (
+                SELECT pcode, year_th, count(*) AS streak,
+                       CAST(min(date) AS VARCHAR) AS start_d,
+                       CAST(max(date) AS VARCHAR) AS end_d,
+                       row_number() OVER (PARTITION BY pcode, year_th ORDER BY count(*) DESC, min(date)) AS rn
+                FROM g
+                WHERE is_ex = 1
+                GROUP BY pcode, year_th, grp
+            )
+            SELECT pcode, CAST(year_th AS VARCHAR), streak, start_d, end_d
+            FROM st
+            WHERE rn = 1
+        """).fetchall()
+        for pcode, yr_s, streak, sd, ed in streak_rows:
+            if pcode in aq_y and yr_s in aq_y[pcode]:
+                aq_y[pcode][yr_s]["max_streak_37_5"] = int(streak)
+                aq_y[pcode][yr_s]["streak_range"] = [sd, ed]
+
+        peak_day_rows = con.execute("""
+            WITH pk AS (
+                SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                       CAST(year_th AS VARCHAR) AS yr_s,
+                       round(pm25_mean, 1) AS pm_mean,
+                       round(pm25_max, 1) AS pm_max,
+                       CAST(date AS VARCHAR) AS d_str,
+                       row_number() OVER (PARTITION BY prov_code, year_th ORDER BY pm25_mean DESC, pm25_max DESC) AS rn
+                FROM air_quality_daily_77prov
+                WHERE pm25_mean IS NOT NULL
+            )
+            SELECT pcode, yr_s, pm_mean, pm_max, d_str
+            FROM pk
+            WHERE rn = 1
+        """).fetchall()
+        for pcode, yr_s, pmm, pmx, d_str in peak_day_rows:
+            if pcode in aq_y and yr_s in aq_y[pcode]:
+                aq_y[pcode][yr_s]["peak_day"] = [float(pmm), d_str, float(pmx or pmm)]
+
+        lag_row = con.execute("""
+            WITH hs AS (
+                SELECT acq_date_th AS d,
+                       count(*) FILTER (WHERE satellite = 'N' AND NOT is_suspected_static) AS hs_n,
+                       count(*) FILTER (WHERE satellite = 'N' AND NOT is_suspected_static
+                                        AND lpad(CAST(prov_code AS VARCHAR), 2, '0') IN ('50','51','52','53','54','55','56','57','58','63')) AS hs_north
+                FROM hotspots
+                WHERE year_th BETWEEN 2022 AND 2026 AND month_th BETWEEN 1 AND 4
+                GROUP BY 1
+            ),
+            aq AS (
+                SELECT date AS d,
+                       avg(pm25_mean) AS pm_nat,
+                       avg(CASE WHEN lpad(CAST(prov_code AS VARCHAR), 2, '0') IN ('50','51','52','53','54','55','56','57','58','63')
+                                THEN pm25_mean END) AS pm_north
+                FROM air_quality_daily_77prov
+                WHERE year_th BETWEEN 2022 AND 2026 AND month_th BETWEEN 1 AND 4
+                GROUP BY 1
+            )
+            SELECT round(corr(h.hs_n, a0.pm_north), 3),
+                   round(corr(h.hs_n, a1.pm_north), 3),
+                   round(corr(h.hs_n, a2.pm_north), 3),
+                   round(corr(h.hs_n, a3.pm_north), 3),
+                   round(corr(h.hs_n, a4.pm_north), 3),
+                   round(corr(h.hs_n, a5.pm_north), 3),
+                   round(corr(h.hs_n, a0.pm_nat), 3),
+                   round(corr(h.hs_n, a2.pm_nat), 3),
+                   round(corr(h.hs_n, a3.pm_nat), 3)
+            FROM hs h
+            JOIN aq a0 ON a0.d = h.d
+            JOIN aq a1 ON a1.d = h.d + INTERVAL 1 DAY
+            JOIN aq a2 ON a2.d = h.d + INTERVAL 2 DAY
+            JOIN aq a3 ON a3.d = h.d + INTERVAL 3 DAY
+            JOIN aq a4 ON a4.d = h.d + INTERVAL 4 DAY
+            JOIN aq a5 ON a5.d = h.d + INTERVAL 5 DAY
+        """).fetchone()
+
+        top_spikes = con.execute("""
+            SELECT lpad(CAST(a.prov_code AS VARCHAR), 2, '0') AS pcode,
+                   p.prov_name_th,
+                   CAST(a.date AS VARCHAR) AS d_str,
+                   round(a.pm25_mean, 1) AS pm_mean,
+                   round(a.pm25_max, 1) AS pm_max,
+                   a.us_aqi_max
+            FROM air_quality_daily_77prov a
+            LEFT JOIN dim_province p ON lpad(CAST(a.prov_code AS VARCHAR), 2, '0') = p.prov_code
+            WHERE a.pm25_mean IS NOT NULL
+            ORDER BY a.pm25_mean DESC
+            LIMIT 20
+        """).fetchall()
+
+        aq_daily_summary = {
+            "total_rows": int(con.execute("SELECT count(*) FROM air_quality_daily_77prov").fetchone()[0]),
+            "lag_corr_north": [float(lag_row[i] or 0.0) for i in range(6)] if lag_row else [0, 0, 0, 0, 0, 0],
+            "lag_corr_nat": [
+                float(lag_row[6] or 0.0) if lag_row else 0.0,
+                float(lag_row[7] or 0.0) if lag_row else 0.0,
+                float(lag_row[8] or 0.0) if lag_row else 0.0,
+            ],
+            "top_spikes": [
+                {
+                    "prov_code": r[0],
+                    "prov": r[1] or r[0],
+                    "date": r[2],
+                    "pm25_mean": float(r[3]),
+                    "pm25_max": float(r[4] or r[3]),
+                    "aqi": int(r[5] or 0),
+                }
+                for r in top_spikes
+            ],
+        }
+    return aq_m, aq_y, aq_daily_summary
 
 
 def _load_nasa_soil(
     con: duckdb.DuckDBPyConnection,
     existing_tables: set[str],
     timeline_months: list[str],
-) -> tuple[dict[str, list], dict[str, dict]]:
+) -> tuple[dict[str, list], dict[str, dict], list[dict]]:
     if "nasa_power_soil_monthly" not in existing_tables:
-        return {}, {}
+        return {}, {}, []
     m_idx = {ym: idx for idx, ym in enumerate(timeline_months)}
     rows = con.execute("""
         SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
@@ -500,27 +627,220 @@ def _load_nasa_soil(
             "gwettop_peak": round(sum(peak_gt) / len(peak_gt), 3) if peak_gt else None,
             "gwetroot_peak": round(sum(peak_gr) / len(peak_gr), 3) if peak_gr else None,
             "dry_soil_days": int(sum(dry_vals)) if dry_vals else None,
+            "max_dry_streak": 0,
+            "streak_range": None,
         }
-    return soil_m, soil_y
+
+    early_warnings: list[dict] = []
+    if "nasa_power_soil_daily" in existing_tables:
+        streak_rows = con.execute("""
+            WITH r AS (
+                SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                       year_th, date, gwettop,
+                       CASE WHEN gwettop < 0.38 THEN 1 ELSE 0 END AS is_dry
+                FROM nasa_power_soil_daily
+                WHERE gwettop IS NOT NULL
+            ),
+            g AS (
+                SELECT pcode, year_th, date, is_dry, gwettop,
+                       row_number() OVER (PARTITION BY pcode, year_th ORDER BY date)
+                       - row_number() OVER (PARTITION BY pcode, year_th, is_dry ORDER BY date) AS grp
+                FROM r
+            ),
+            st AS (
+                SELECT pcode, year_th, count(*) AS streak,
+                       round(min(gwettop), 3) AS min_gw,
+                       CAST(min(date) AS VARCHAR) AS start_d,
+                       CAST(max(date) AS VARCHAR) AS end_d,
+                       row_number() OVER (PARTITION BY pcode, year_th ORDER BY count(*) DESC, min(date)) AS rn
+                FROM g
+                WHERE is_dry = 1
+                GROUP BY pcode, year_th, grp
+            )
+            SELECT pcode, CAST(year_th AS VARCHAR), streak, min_gw, start_d, end_d
+            FROM st
+            WHERE rn = 1
+        """).fetchall()
+        for pcode, yr_s, streak, min_gw, sd, ed in streak_rows:
+            if pcode in soil_y and yr_s in soil_y[pcode]:
+                soil_y[pcode][yr_s]["max_dry_streak"] = int(streak)
+                soil_y[pcode][yr_s]["min_gwettop"] = float(min_gw) if min_gw is not None else None
+                soil_y[pcode][yr_s]["streak_range"] = [sd, ed]
+
+        ew_rows = con.execute("""
+            WITH r AS (
+                SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                       year_th, date, month_th, gwettop,
+                       CASE WHEN gwettop < 0.38 THEN 1 ELSE 0 END AS is_dry
+                FROM nasa_power_soil_daily
+                WHERE gwettop IS NOT NULL
+            ),
+            g AS (
+                SELECT pcode, year_th, date, is_dry, gwettop,
+                       row_number() OVER (PARTITION BY pcode, year_th ORDER BY date)
+                       - row_number() OVER (PARTITION BY pcode, year_th, is_dry ORDER BY date) AS grp
+                FROM r
+            ),
+            st AS (
+                SELECT pcode, year_th, count(*) AS streak,
+                       round(min(gwettop), 3) AS min_gw,
+                       CAST(min(date) AS VARCHAR) AS start_d,
+                       CAST(max(date) AS VARCHAR) AS end_d
+                FROM g
+                WHERE is_dry = 1
+                GROUP BY pcode, year_th, grp
+            ),
+            p_max AS (
+                SELECT pcode,
+                       max(streak) AS max_streak_5y,
+                       max(streak) FILTER (WHERE year_th = 2025) AS streak_2025,
+                       max(streak) FILTER (WHERE year_th = 2024) AS streak_2024,
+                       min(min_gw) AS min_gw_5y,
+                       arg_max(start_d || ' ถึง ' || end_d, streak) AS peak_period
+                FROM st
+                GROUP BY pcode
+            )
+            SELECT m.pcode, p.prov_name_th, m.max_streak_5y,
+                   coalesce(m.streak_2025, 0), coalesce(m.streak_2024, 0),
+                   m.min_gw_5y, m.peak_period
+            FROM p_max m
+            LEFT JOIN dim_province p ON m.pcode = p.prov_code
+            ORDER BY m.max_streak_5y DESC
+        """).fetchall()
+        for pcode, pname, s5y, s25, s24, mgw, prd in ew_rows:
+            s_val = int(s5y or 0)
+            tier = "วิกฤต (แห้งติดกัน ≥60 วัน)" if s_val >= 60 else (
+                "เฝ้าระวังสูง (30–59 วัน)" if s_val >= 30 else (
+                    "เฝ้าระวัง (14–29 วัน)" if s_val >= 14 else "ปกติ (<14 วัน)"
+                )
+            )
+            early_warnings.append({
+                "prov_code": pcode,
+                "prov": pname or pcode,
+                "max_streak_5y": s_val,
+                "streak_2025": int(s25 or 0),
+                "streak_2024": int(s24 or 0),
+                "min_gwettop": float(mgw) if mgw is not None else None,
+                "peak_period": prd,
+                "tier": tier,
+            })
+
+    return soil_m, soil_y, early_warnings
 
 
-def _load_doae_crops(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict[str, dict]:
-    if "doae_fire_crops_province" not in existing_tables:
-        return {}
-    rows = con.execute("""
-        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
-               paddy_rai, sugarcane_rai, corn_rai, cassava_rai
-        FROM doae_fire_crops_province
-    """).fetchall()
-    out: dict[str, dict] = {}
-    for pcode, paddy, sugar, corn, cass in rows:
-        out[pcode] = {
-            "paddy_rai": round(float(paddy), 0) if paddy is not None else None,
-            "sugarcane_rai": round(float(sugar), 0) if sugar is not None else None,
-            "corn_rai": round(float(corn), 0) if corn is not None else None,
-            "cassava_rai": round(float(cass), 0) if cass is not None else None,
-        }
-    return out
+def _load_doae_crops(
+    con: duckdb.DuckDBPyConnection,
+    existing_tables: set[str],
+) -> tuple[dict[str, dict], dict[str, list[int]], dict[str, list[int]]]:
+    prov_out: dict[str, dict] = {}
+    if "doae_fire_crops_province" in existing_tables:
+        rows = con.execute("""
+            SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                   paddy_rai, sugarcane_rai, corn_rai, cassava_rai
+            FROM doae_fire_crops_province
+        """).fetchall()
+        for pcode, paddy, sugar, corn, cass in rows:
+            prov_out[pcode] = {
+                "paddy_rai": round(float(paddy), 0) if paddy is not None else None,
+                "sugarcane_rai": round(float(sugar), 0) if sugar is not None else None,
+                "corn_rai": round(float(corn), 0) if corn is not None else None,
+                "cassava_rai": round(float(cass), 0) if cassava is not None else None,
+            } if False else {
+                "paddy_rai": round(float(paddy), 0) if paddy is not None else None,
+                "sugarcane_rai": round(float(sugar), 0) if sugar is not None else None,
+                "corn_rai": round(float(corn), 0) if corn is not None else None,
+                "cassava_rai": round(float(cass), 0) if cass is not None else None,
+            }
+
+    amp_doae: dict[str, list[int]] = {}
+    tb_doae: dict[str, list[int]] = {}
+    if "doae_crop_tambon" in existing_tables:
+        # Match DOAE tambon planted area (source_year_be = 2566) to dim_tambon and rollup to dim_amphoe
+        tb_rows = con.execute("""
+            WITH d AS (
+                SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                       trim(regexp_replace(amphoe_name_th, '^(อำเภอ|เขต)', '')) AS aname,
+                       trim(regexp_replace(tambon_name_th, '^(ตำบล|แขวง)', '')) AS tname,
+                       sum(CASE WHEN crop_name IN ('ข้าวนาปี', 'ข้าวนาปรัง', 'ข้าวไร่') THEN coalesce(planted_rai, 0) ELSE 0 END) AS paddy_rai,
+                       sum(CASE WHEN crop_name = 'อ้อยโรงงาน' THEN coalesce(planted_rai, 0) ELSE 0 END) AS sugar_rai,
+                       sum(CASE WHEN crop_name IN ('ข้าวโพดเลี้ยงสัตว์', 'ข้าวโพดเลี้ยงสัตว์(เมล็ดพันธุ์)', 'ข้าวโพดเลี้ยงสัตว์(ต้นสด)') THEN coalesce(planted_rai, 0) ELSE 0 END) AS corn_rai,
+                       sum(CASE WHEN crop_name = 'มันสำปะหลังโรงงาน' THEN coalesce(planted_rai, 0) ELSE 0 END) AS cass_rai
+                FROM doae_crop_tambon
+                WHERE source_year_be = 2566
+                  AND crop_name IN (
+                      'ข้าวนาปี', 'ข้าวนาปรัง', 'ข้าวไร่',
+                      'อ้อยโรงงาน',
+                      'ข้าวโพดเลี้ยงสัตว์', 'ข้าวโพดเลี้ยงสัตว์(เมล็ดพันธุ์)', 'ข้าวโพดเลี้ยงสัตว์(ต้นสด)',
+                      'มันสำปะหลังโรงงาน'
+                  )
+                GROUP BY 1, 2, 3
+            ),
+            tb AS (
+                SELECT tb.prov_code, tb.amphoe_code, tb.tambon_code, p.prov_name_th,
+                       trim(regexp_replace(tb.amphoe_name_th, '^(อำเภอ|เขต)', '')) AS aname_clean,
+                       trim(regexp_replace(tb.tambon_name_th, '^(ตำบล|แขวง)', '')) AS tname_clean
+                FROM dim_tambon tb
+                JOIN dim_province p ON tb.prov_code = p.prov_code
+            )
+            SELECT tb.tambon_code, tb.amphoe_code,
+                   CAST(round(sum(d.paddy_rai)) AS BIGINT),
+                   CAST(round(sum(d.sugar_rai)) AS BIGINT),
+                   CAST(round(sum(d.corn_rai)) AS BIGINT),
+                   CAST(round(sum(d.cass_rai)) AS BIGINT)
+            FROM d
+            JOIN tb
+              ON d.pcode = tb.prov_code
+             AND (d.aname = tb.aname_clean OR (d.aname = 'เมือง' AND tb.aname_clean = 'เมือง' || tb.prov_name_th))
+             AND d.tname = tb.tname_clean
+            GROUP BY 1, 2
+        """).fetchall()
+        for tcode, acode, pad, sug, crn, cas in tb_rows:
+            tot3 = int(pad or 0) + int(sug or 0) + int(crn or 0)
+            if tot3 > 0 or int(cas or 0) > 0:
+                tb_doae[str(tcode)] = [int(pad or 0), int(sug or 0), int(crn or 0), int(cas or 0), tot3]
+
+        # Also match at amphoe level directly so even tambons with spelling variance contribute to their amphoe
+        amp_rows = con.execute("""
+            WITH d AS (
+                SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+                       trim(regexp_replace(amphoe_name_th, '^(อำเภอ|เขต)', '')) AS aname,
+                       sum(CASE WHEN crop_name IN ('ข้าวนาปี', 'ข้าวนาปรัง', 'ข้าวไร่') THEN coalesce(planted_rai, 0) ELSE 0 END) AS paddy_rai,
+                       sum(CASE WHEN crop_name = 'อ้อยโรงงาน' THEN coalesce(planted_rai, 0) ELSE 0 END) AS sugar_rai,
+                       sum(CASE WHEN crop_name IN ('ข้าวโพดเลี้ยงสัตว์', 'ข้าวโพดเลี้ยงสัตว์(เมล็ดพันธุ์)', 'ข้าวโพดเลี้ยงสัตว์(ต้นสด)') THEN coalesce(planted_rai, 0) ELSE 0 END) AS corn_rai,
+                       sum(CASE WHEN crop_name = 'มันสำปะหลังโรงงาน' THEN coalesce(planted_rai, 0) ELSE 0 END) AS cass_rai
+                FROM doae_crop_tambon
+                WHERE source_year_be = 2566
+                  AND crop_name IN (
+                      'ข้าวนาปี', 'ข้าวนาปรัง', 'ข้าวไร่',
+                      'อ้อยโรงงาน',
+                      'ข้าวโพดเลี้ยงสัตว์', 'ข้าวโพดเลี้ยงสัตว์(เมล็ดพันธุ์)', 'ข้าวโพดเลี้ยงสัตว์(ต้นสด)',
+                      'มันสำปะหลังโรงงาน'
+                  )
+                GROUP BY 1, 2
+            ),
+            a AS (
+                SELECT a.prov_code, a.amphoe_code, p.prov_name_th,
+                       trim(regexp_replace(a.amphoe_name_th, '^(อำเภอ|เขต)', '')) AS aname_clean
+                FROM dim_amphoe a
+                JOIN dim_province p ON a.prov_code = p.prov_code
+            )
+            SELECT a.amphoe_code,
+                   CAST(round(sum(d.paddy_rai)) AS BIGINT),
+                   CAST(round(sum(d.sugar_rai)) AS BIGINT),
+                   CAST(round(sum(d.corn_rai)) AS BIGINT),
+                   CAST(round(sum(d.cass_rai)) AS BIGINT)
+            FROM d
+            JOIN a
+              ON d.pcode = a.prov_code
+             AND (d.aname = a.aname_clean OR (d.aname = 'เมือง' AND a.aname_clean = 'เมือง' || a.prov_name_th))
+            GROUP BY 1
+        """).fetchall()
+        for acode, pad, sug, crn, cas in amp_rows:
+            tot3 = int(pad or 0) + int(sug or 0) + int(crn or 0)
+            if tot3 > 0 or int(cas or 0) > 0:
+                amp_doae[str(acode)] = [int(pad or 0), int(sug or 0), int(crn or 0), int(cas or 0), tot3]
+
+    return prov_out, amp_doae, tb_doae
 
 
 def _load_pm25_snapshot(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict[str, dict]:
@@ -596,6 +916,118 @@ def _load_rid_regional(con: duckdb.DuckDBPyConnection, existing_tables: set[str]
     return {"months": months, "regions": regions}
 
 
+def _load_transboundary_point_grid(con: duckdb.DuckDBPyConnection) -> list[list[int]]:
+    """Build a compact 0.05-degree (~5.5 km) spatial grid of non-Thailand GMS hotspots (3.17M points -> 20,000 cells)."""
+    parquet_glob = (REPO_ROOT / "hotspot-5y" / "data" / "hf_export" / "parquet" / "transboundary_firms_*.parquet")
+    parquet_files = sorted(parquet_glob.parent.glob(parquet_glob.name)) if parquet_glob.parent.exists() else []
+    raw_csv_dir = REPO_ROOT / "hotspot-5y" / "data" / "raw" / "firms_gms"
+    csv_files = sorted(raw_csv_dir.glob("*.csv")) if raw_csv_dir.exists() else []
+
+    if parquet_files:
+        glob_sql = str(parquet_glob).replace("\\", "/")
+        rows = con.execute(f"""
+            SELECT CAST(round(latitude * 20) AS INTEGER) AS lat_i,
+                   CAST(round(longitude * 20) AS INTEGER) AS lon_i,
+                   CASE country
+                     WHEN 'Myanmar' THEN 1
+                     WHEN 'Lao_PDR' THEN 2
+                     WHEN 'Cambodia' THEN 3
+                     WHEN 'Vietnam' THEN 4
+                     ELSE 5
+                   END AS cid,
+                   CAST(count(*) AS INTEGER) AS tot_4y,
+                   CAST(count(*) FILTER (WHERE year_th = 2025) AS INTEGER) AS y2025,
+                   CAST(round(max(coalesce(frp_mw, 0))) AS INTEGER) AS max_frp
+            FROM read_parquet('{glob_sql}')
+            WHERE country != 'Thailand'
+            GROUP BY 1, 2, 3
+            HAVING count(*) >= 3
+            ORDER BY 4 DESC
+            LIMIT 20000
+        """).fetchall()
+        return [[int(r[0]), int(r[1]), int(r[2]), int(r[3]), int(r[4]), int(r[5])] for r in rows]
+    elif csv_files:
+        return []
+    return []
+
+
+def _load_gistda_live_hotspots_7d(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> list[dict]:
+    if "gistda_live_hotspots_7d" not in existing_tables:
+        return []
+    rows = con.execute("""
+        SELECT window_tag, acq_date, acq_time,
+               round(lat, 4), round(lon, 4),
+               satellite, confidence, round(frp_mw, 1),
+               country, pv_tn, ap_tn, tb_tn, lu_name
+        FROM gistda_live_hotspots_7d
+        ORDER BY window_tag ASC, acq_date DESC, frp_mw DESC NULLS LAST
+    """).fetchall()
+    return [
+        {
+            "w": r[0],
+            "d": r[1],
+            "t": r[2],
+            "lat": float(r[3]),
+            "lon": float(r[4]),
+            "sat": r[5],
+            "conf": r[6],
+            "frp": float(r[7]) if r[7] is not None else None,
+            "ct": r[8],
+            "pv": r[9],
+            "ap": r[10],
+            "tb": r[11],
+            "lu": r[12],
+        }
+        for r in rows
+    ]
+
+
+def _load_gistda_wms_layers() -> dict[str, dict]:
+    layers_dir = REPO_ROOT / "hotspot-5y" / "web_app" / "gistda_layers"
+    bbox_4326 = [97.343968, 5.617402, 105.6429129, 20.470097]
+    specs = {
+        "dri": ("dri_7d.png", "ดัชนีเสี่ยงภัยแล้ง GISTDA (DRI · 7 วันล่าสุด)"),
+        "ndwi": ("ndwi_7d.png", "ดัชนีความชื้นพืชและน้ำ GISTDA (NDWI · 7 วันล่าสุด)"),
+        "smap": ("smap_7d.png", "ความชื้นผิวดินดาวเทียม GISTDA (SMAP · 7 วันล่าสุด)"),
+    }
+    out: dict[str, dict] = {}
+    for k, (fname, title_th) in specs.items():
+        fpath = layers_dir / fname
+        if fpath.exists():
+            out[k] = {
+                "key": k,
+                "title_th": title_th,
+                "path": f"gistda_layers/{fname}",
+                "bbox_4326": bbox_4326,
+            }
+    return out
+
+
+def _load_tmd_wrf_forecast(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict[str, list[dict]]:
+    if "tmd_wrf_forecast_77prov" not in existing_tables:
+        return {}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               forecast_date,
+               round(tc_max, 1), round(tc_min, 1),
+               round(rh_pct, 1), round(rain_mm, 1),
+               cond_label_th, round(fwi_tmd, 1)
+        FROM tmd_wrf_forecast_77prov
+        ORDER BY pcode, forecast_date
+    """).fetchall()
+    out: dict[str, list[dict]] = {}
+    for pcode, dt_str, tmax, tmin, rh, rain, cond_th, fwi in rows:
+        out.setdefault(str(pcode), []).append({
+            "date": str(dt_str),
+            "tmax": float(tmax) if tmax is not None else None,
+            "tmin": float(tmin) if tmin is not None else None,
+            "rh": float(rh) if rh is not None else None,
+            "rain": float(rain) if rain is not None else 0.0,
+            "cond": str(cond_th or ""),
+            "fwi": float(fwi) if fwi is not None else None,
+        })
+    return out
+
 
 def build_map_payload(
     db_path: Path = DEFAULT_DB_PATH,
@@ -623,11 +1055,15 @@ def build_map_payload(
         trp_maps, covered_trp_provs, trp_years = _load_tamroypao_stats(con, existing_tables)
         weather_months, wx_m_map, wx_y_map = _load_fire_weather(con, existing_tables)
         timeline_months, hs_m_map = _load_hotspots_monthly(con, weather_months)
-        aq_m_map, aq_y_map = _load_air_quality(con, existing_tables, timeline_months)
-        soil_m_map, soil_y_map = _load_nasa_soil(con, existing_tables, timeline_months)
-        doae_map = _load_doae_crops(con, existing_tables)
+        aq_m_map, aq_y_map, aq_daily_summary = _load_air_quality(con, existing_tables, timeline_months)
+        soil_m_map, soil_y_map, soil_early_warning = _load_nasa_soil(con, existing_tables, timeline_months)
+        doae_map, doae_amp_map, doae_tb_map = _load_doae_crops(con, existing_tables)
         pm25_snap_map = _load_pm25_snapshot(con, existing_tables)
         transboundary_data = _load_transboundary(con, existing_tables)
+        trans_grid_data = _load_transboundary_point_grid(con)
+        live_hotspots_7d = _load_gistda_live_hotspots_7d(con, existing_tables)
+        gistda_wms_layers = _load_gistda_wms_layers()
+        tmd_wrf_map = _load_tmd_wrf_forecast(con, existing_tables)
         rid_regional_data = _load_rid_regional(con, existing_tables)
         covered_scar_provs = set(scar_maps["prov"].keys())
         covered_freq_provs = set(freq_maps["prov"].keys())
@@ -679,6 +1115,7 @@ def build_map_payload(
                 "soil_m": soil_m_map.get(pcode),
                 "doae_2566": doae_map.get(pcode),
                 "pm25_snap": pm25_snap_map.get(pcode),
+                "tmd_wrf": tmd_wrf_map.get(pcode),
                 "trp": trp,
             })
 
@@ -739,6 +1176,7 @@ def build_map_payload(
                 "flood_avg_17yr": fl["avg_17yr"] if fl else None,
                 "flood_high_tambons": fl["high_tambons"] if fl else None,
                 "flood_matched_tambons": fl["matched_tambons"] if fl else None,
+                "doae": doae_amp_map.get(acode_s),
                 "trp": trp,
             })
 
@@ -781,6 +1219,7 @@ def build_map_payload(
                 "flood_max_17yr": fl["max_17yr"] if fl else None,
                 "flood_months": fl["months"] if fl else None,
                 "flood_risk_level": fl["risk_level"] if fl else None,
+                "doae": doae_tb_map.get(tcode_s),
                 "trp": trp,
             })
 
@@ -1012,7 +1451,12 @@ def build_map_payload(
                 "aq_covered_provinces": len(aq_m_map),
                 "soil_covered_provinces": len(soil_m_map),
                 "doae_covered_provinces": len(doae_map),
+                "doae_covered_amphoes": len(doae_amp_map),
+                "doae_covered_tambons": len(doae_tb_map),
                 "transboundary_countries": len((transboundary_data or {}).get("countries") or {}),
+                "trans_grid_cells": len(trans_grid_data),
+                "live_hotspots_7d_count": len(live_hotspots_7d),
+                "tmd_wrf_provinces": len(tmd_wrf_map),
                 "rid_regions_count": len((rid_regional_data or {}).get("regions") or {}),
                 "flood_covered_provinces": len(flood_prov),
                 "flood_covered_tambons": len(flood_tambon),
@@ -1021,6 +1465,11 @@ def build_map_payload(
             },
             "weather_months": timeline_months,
             "transboundary": transboundary_data,
+            "trans_grid": trans_grid_data,
+            "live_hotspots_7d": live_hotspots_7d,
+            "gistda_wms_layers": gistda_wms_layers,
+            "aq_daily_summary": aq_daily_summary,
+            "soil_early_warning": soil_early_warning,
             "rid_monthly": rid_regional_data,
             "provinces": provinces,
             "amphoes": amphoes,
