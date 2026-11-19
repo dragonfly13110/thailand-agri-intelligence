@@ -26,56 +26,54 @@ HTML_SHELL = r"""<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --bg: #080c15;
-  --bg-mesh: radial-gradient(ellipse 80% 45% at 15% -5%, rgba(249, 115, 22, 0.14), transparent 55%),
-             radial-gradient(ellipse 65% 45% at 90% 5%, rgba(56, 189, 248, 0.10), transparent 55%),
-             #080c15;
-  --topbar-bg: #0c1220;
-  --hero-bg: linear-gradient(135deg, rgba(24, 34, 54, 0.96), rgba(14, 21, 38, 0.96));
-  --panel: rgba(13, 20, 36, 0.94);
-  --panel-solid: #0d1424;
-  --card: rgba(24, 34, 54, 0.72);
-  --card-elev: #121b2e;
-  --border: rgba(148, 163, 184, 0.18);
-  --border-strong: rgba(249, 115, 22, 0.30);
-  --text: #f1f5f9;
-  --muted: #94a3b8;
-  --accent: #f97316;
-  --accent-soft: rgba(249, 115, 22, 0.16);
-  --agri: #f59e0b;
-  --forest: #10b981;
-  --flood: #38bdf8;
-  --danger: #ef4444;
-  --null-fill: #334155;
-  --map-land-stroke: rgba(148, 163, 184, 0.42);
-  --shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
-  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.28);
+  --bg: #0b0e14;
+  --bg-mesh: radial-gradient(ellipse 75% 40% at 50% -10%, rgba(229, 107, 55, 0.07), transparent 60%), #0b0e14;
+  --topbar-bg: #0f131b;
+  --hero-bg: linear-gradient(180deg, #141923, #10141d);
+  --panel: rgba(15, 19, 27, 0.96);
+  --panel-solid: #0f131b;
+  --card: #151a24;
+  --card-elev: #121720;
+  --border: rgba(255, 255, 255, 0.085);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #eceff4;
+  --muted: #8b95a7;
+  --accent: #df6a37;
+  --accent-soft: rgba(223, 106, 55, 0.13);
+  --secondary: #689cb8;
+  --agri: #d48942;
+  --forest: #55947a;
+  --flood: #689cb8;
+  --danger: #cf5648;
+  --null-fill: #273040;
+  --map-land-stroke: rgba(148, 163, 184, 0.32);
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.24);
 }
 html[data-theme="light"] {
-  --bg: #f3f5f9;
-  --bg-mesh: radial-gradient(ellipse 80% 45% at 15% -5%, rgba(234, 88, 12, 0.08), transparent 55%),
-             radial-gradient(ellipse 65% 45% at 90% 5%, rgba(2, 132, 199, 0.07), transparent 55%),
-             #f3f5f9;
+  --bg: #f5f5f2;
+  --bg-mesh: #f5f5f2;
   --topbar-bg: #ffffff;
-  --hero-bg: linear-gradient(135deg, #ffffff, #fff7ed);
-  --panel: rgba(255, 255, 255, 0.96);
+  --hero-bg: #ffffff;
+  --panel: rgba(255, 255, 255, 0.97);
   --panel-solid: #ffffff;
-  --card: #f8fafc;
+  --card: #f8f8f6;
   --card-elev: #ffffff;
-  --border: rgba(15, 23, 42, 0.11);
-  --border-strong: rgba(234, 88, 12, 0.26);
-  --text: #0f172a;
-  --muted: #475569;
-  --accent: #ea580c;
-  --accent-soft: rgba(234, 88, 12, 0.10);
-  --agri: #d97706;
-  --forest: #059669;
-  --flood: #0284c7;
-  --danger: #dc2626;
-  --null-fill: #cbd5e1;
-  --map-land-stroke: rgba(51, 65, 85, 0.42);
-  --shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
-  --shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.06);
+  --border: rgba(15, 23, 42, 0.09);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --text: #161b22;
+  --muted: #5c6675;
+  --accent: #c55325;
+  --accent-soft: rgba(197, 83, 37, 0.09);
+  --secondary: #3c748f;
+  --agri: #b8732a;
+  --forest: #3b7c62;
+  --flood: #3c748f;
+  --danger: #b83f35;
+  --null-fill: #d6dbe3;
+  --map-land-stroke: rgba(51, 65, 85, 0.34);
+  --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.05);
 }
 * { box-sizing: border-box; }
 html, body {
@@ -99,13 +97,12 @@ html, body {
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
 .brand-dot {
-  width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
-  background: radial-gradient(circle, #fde047, #f97316 65%, #dc2626);
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.85);
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent);
 }
 .badge {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
-  background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(249,115,22,0.35);
+  background: var(--card); color: var(--muted); border: 1px solid var(--border);
   font-weight: 600;
 }
 .breadcrumbs {
@@ -143,11 +140,10 @@ html, body {
 }
 .btn:hover { border-color: var(--accent); color: var(--accent); }
 .btn.primary {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  background: var(--accent);
   color: #fff; border-color: transparent;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.28);
 }
-.btn.primary:hover { filter: brightness(1.08); color: #fff; }
+.btn.primary:hover { filter: brightness(1.07); color: #fff; }
 
 .workspace {
   grid-template-columns: 296px 1fr 378px;
@@ -234,12 +230,8 @@ html[data-theme="light"] .warn-pill { color: #92400e; background: rgba(245, 158,
 
 .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .kpi-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 11px;
-  border-top: 2.5px solid var(--accent);
+  background: var(--card); border: 1px solid var(--border); border-radius: 11px; padding: 10px 11px;
 }
-.kpi-card:nth-child(2) { border-top-color: var(--forest); }
-.kpi-card:nth-child(3) { border-top-color: var(--agri); }
-.kpi-card:nth-child(4) { border-top-color: var(--flood); }
 .kpi-label { font-size: 11px; color: var(--muted); font-weight: 600; }
 .kpi-val { font-size: 18px; font-weight: 800; margin-top: 3px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
@@ -255,12 +247,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   font-size: 12px;
 }
 .rank-item:hover { background: var(--accent-soft); }
-.rank-bar-bg { height: 4px; border-radius: 99px; background: rgba(148,163,184,0.18); margin-top: 3px; overflow: hidden; }
-.rank-bar-fg { height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); border-radius: 99px; }
+.rank-bar-bg { height: 4px; border-radius: 99px; background: rgba(148,163,184,0.16); margin-top: 3px; overflow: hidden; }
+.rank-bar-fg { height: 100%; background: var(--accent); border-radius: 99px; }
 
 .insight-box {
-  font-size: 12px; line-height: 1.5; padding: 9px 10px; border-radius: 9px;
-  background: var(--accent-soft); border: 1px solid rgba(249,115,22,0.35);
+  font-size: 12px; line-height: 1.5; padding: 10px 11px; border-radius: 10px;
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
 }
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 150;
@@ -309,20 +301,20 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <span id="dateBadge" class="badge">2022–2026</span>
     </div>
     <nav class="nav-tabs" aria-label="เมนูหลัก">
-      <button type="button" class="nav-tab active" data-page="overview">📊 ภาพรวม</button>
-      <button type="button" class="nav-tab" data-page="map">🗺️ แผนที่เจาะลึก</button>
-      <button type="button" class="nav-tab" data-page="weather">🌦️ อากาศ × ไฟ</button>
-      <button type="button" class="nav-tab" data-page="burnscar">🔥 รอยเผา &amp; เทียบจังหวัด</button>
+      <button type="button" class="nav-tab active" data-page="overview">ภาพรวม</button>
+      <button type="button" class="nav-tab" data-page="map">แผนที่เจาะลึก</button>
+      <button type="button" class="nav-tab" data-page="weather">อากาศ × ไฟ</button>
+      <button type="button" class="nav-tab" data-page="burnscar">รอยเผา &amp; เทียบจังหวัด</button>
       <!--__EXPLORER_BTN__-->
     </nav>
     <div class="spacer"></div>
     <div class="search-wrap" style="display:none;">
       <input id="searchInput" class="search-input" type="search" placeholder="ค้นหาจังหวัด / อำเภอ / ตำบล..." autocomplete="off" />
     </div>
-    <button id="exportCsvBtn" class="btn" style="display:none;" title="ส่งออกตารางเป็น CSV สำหรับ Excel">⬇ CSV</button>
-    <button id="provenanceBtn" class="btn" title="ที่มาข้อมูลและข้อควรระวัง">ℹ ข้อควรรู้</button>
-    <button id="themeToggle" class="btn" title="สลับโหมดสีมืด/สว่าง">☀ โหมดสว่าง</button>
-    <button id="presentationBtn" class="btn primary" style="display:none;" title="ขยายแผนที่เต็มจอสำหรับสอน/นำเสนอ">⛶ เต็มจอ</button>
+    <button id="exportCsvBtn" class="btn" style="display:none;" title="ส่งออกตารางเป็น CSV สำหรับ Excel">ส่งออก CSV</button>
+    <button id="provenanceBtn" class="btn" title="ที่มาข้อมูลและข้อควรระวัง">ข้อควรรู้</button>
+    <button id="themeToggle" class="btn" title="สลับโหมดสีมืด/สว่าง">โหมดสว่าง</button>
+    <button id="presentationBtn" class="btn primary" style="display:none;" title="ขยายแผนที่เต็มจอสำหรับสอน/นำเสนอ">เต็มจอ</button>
   </header>
 
   <div class="app-body">
@@ -393,7 +385,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <div>
           <label class="field-label" for="metricSelect">ระบายสีพื้นที่ตามตัวชี้วัด</label>
           <select id="metricSelect">
-            <optgroup label="🔥 จุดความร้อน &amp; รอยเผาไหม้">
+            <optgroup label="จุดความร้อน &amp; รอยเผาไหม้">
               <option value="count" selected>จำนวนจุดความร้อน (จุด)</option>
               <option value="density">ความหนาแน่น (จุด / 100 ตร.กม.)</option>
               <option value="agri_pct">สัดส่วนเผาในเกษตร+ส.ป.ก. (%)</option>
@@ -401,7 +393,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <option value="scar_rai">รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)</option>
               <option value="freq_rai">พื้นที่เผาซ้ำซาก GISTDA (ไร่)</option>
             </optgroup>
-            <optgroup label="🌦️ สภาพอากาศเอื้อไฟ 2022–2026 (ครบ 77 จว.)">
+            <optgroup label="สภาพอากาศเอื้อไฟ 2022–2026 (ครบ 77 จว.)">
               <option value="wx_fwi">ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)</option>
               <option value="wx_tmax">อุณหภูมิสูงสุดเฉลี่ย (°C · 2022–2026)</option>
               <option value="wx_rhmin">ความชื้นสัมพัทธ์ต่ำสุดเฉลี่ย (%)</option>
@@ -409,7 +401,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <option value="wx_wind">ความเร็วลมสูงสุดเฉลี่ย (กม./ชม.)</option>
               <option value="wx_rain">ปริมาณฝนรวม (มม. · 2022–2026)</option>
             </optgroup>
-            <optgroup label="🌡️ ภูมิอากาศ 10 ปี (2022–2025) &amp; ภัยซ้ำซ้อน">
+            <optgroup label="ภูมิอากาศ 10 ปี (2022–2025) &amp; ภัยซ้ำซ้อน">
               <option value="era5_hot">อากาศ ERA5: วันร้อนจัด ≥38°C</option>
               <option value="era5_dry">อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)</option>
               <option value="era5_rain">อากาศ ERA5: ฝนรวมทั้งปี (มม.)</option>
@@ -496,11 +488,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <div id="tmsLegendChip" class="null-chip" style="display:none;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:10.5px;"></div>
       </div>
       <div id="mapDock" class="map-dock" aria-label="สลับมุมมองแผนที่ด่วน">
-        <button type="button" class="dock-btn active" data-dock-metric="count">🔥 จุดไฟ</button>
-        <button type="button" class="dock-btn" data-dock-metric="trp_rai">🛰️ รอยเผา สสน.</button>
-        <button type="button" class="dock-btn" data-dock-metric="wx_fwi">🌡️ อากาศ FWI</button>
-        <button type="button" class="dock-btn" data-dock-metric="hazard">🌊 ท่วม+เผา</button>
-        <button type="button" class="dock-btn" id="dockHeatBtn">✨ Heatmap</button>
+        <button type="button" class="dock-btn active" data-dock-metric="count">จุดความร้อน</button>
+        <button type="button" class="dock-btn" data-dock-metric="trp_rai">รอยเผา สสน.</button>
+        <button type="button" class="dock-btn" data-dock-metric="wx_fwi">อากาศ FWI</button>
+        <button type="button" class="dock-btn" data-dock-metric="hazard">ท่วม+เผา</button>
+        <button type="button" class="dock-btn" id="dockHeatBtn">Heatmap</button>
       </div>
     </section>
 
@@ -615,11 +607,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   "use strict";
 
   const PALETTES = {
-    fire: ["#1e293b", "#7c2d12", "#c2410c", "#ea580c", "#f97316", "#facc15"],
-    agri: ["#1e293b", "#065f46", "#10b981", "#eab308", "#f97316", "#ef4444"],
-    rain: ["#7c2d12", "#d97706", "#eab308", "#38bdf8", "#0284c7", "#1d4ed8"],
-    heat: ["#1e293b", "#3b82f6", "#eab308", "#f97316", "#ef4444", "#b91c1c"],
-    hazard: ["#1e293b", "#0e7490", "#14b8a6", "#f59e0b", "#ef4444", "#a855f7"],
+    fire: ["#1b2230", "#4b251f", "#843624", "#bc4f28", "#dd783e", "#edc078"],
+    agri: ["#1b2230", "#2f574b", "#558c73", "#a89d60", "#d48440", "#c24e38"],
+    rain: ["#7a3a26", "#b6733f", "#c9b382", "#7da9bd", "#4c84a3", "#2b5b80"],
+    heat: ["#1e2636", "#455c78", "#a88f5a", "#d67a3e", "#c94d34", "#912a24"],
+    hazard: ["#1c2331", "#31576b", "#598c96", "#c4944c", "#cf6339", "#a13b3b"],
   };
   const CROPS = { all: null, agri: null, forest: null, rice: 1, sugarcane: 2, corn: 3 };
   const SEASON_MASKS = {
@@ -2015,8 +2007,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     for (const p of pts) {
       const cx = sx(p.x), cy = sy(p.y);
       const isSel = state.selectedProv === p.rec.item.code || state.selectedAmphoe === p.rec.item.code;
-      ctx.fillStyle = isSel ? "#fde047" : "rgba(56, 189, 248, 0.85)";
-      ctx.strokeStyle = isSel ? "#f97316" : "rgba(15, 23, 42, 0.7)";
+      ctx.fillStyle = isSel ? "#df6a37" : "rgba(104, 156, 184, 0.85)";
+      ctx.strokeStyle = isSel ? "#f1f5f9" : "rgba(15, 23, 42, 0.7)";
       ctx.lineWidth = isSel ? 2 : 1;
       ctx.beginPath();
       ctx.arc(cx, cy, isSel ? 5.2 : 3.5, 0, Math.PI * 2);
@@ -2061,21 +2053,21 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       const hFor = (r.forest / maxY) * ph;
       const hOth = (r.other / maxY) * ph;
       let y = pad.t + ph;
-      if (hAgri > 0) { ctx.fillStyle = "#f59e0b"; ctx.fillRect(x, y - hAgri, bw, hAgri); y -= hAgri; }
-      if (hFor > 0) { ctx.fillStyle = "#10b981"; ctx.fillRect(x, y - hFor, bw, hFor); y -= hFor; }
+      if (hAgri > 0) { ctx.fillStyle = "#d48942"; ctx.fillRect(x, y - hAgri, bw, hAgri); y -= hAgri; }
+      if (hFor > 0) { ctx.fillStyle = "#55947a"; ctx.fillRect(x, y - hFor, bw, hFor); y -= hFor; }
       if (hOth > 0) { ctx.fillStyle = "#64748b"; ctx.fillRect(x, y - hOth, bw, hOth); }
-      ctx.fillStyle = "#94a3b8";
+      ctx.fillStyle = "#8b95a7";
       ctx.font = "11px system-ui";
       ctx.fillText(String(r.year), cx - 14, pad.t + ph + 12);
     });
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#8b95a7";
     ctx.font = "10px system-ui";
     ctx.fillText(formatNum(maxY, 0), 2, pad.t + 9);
     // Tiny inline legend
-    ctx.fillStyle = "#f59e0b"; ctx.fillRect(w - 110, 4, 8, 8);
-    ctx.fillStyle = "#94a3b8"; ctx.fillText("เกษตร", w - 99, 12);
-    ctx.fillStyle = "#10b981"; ctx.fillRect(w - 60, 4, 8, 8);
-    ctx.fillStyle = "#94a3b8"; ctx.fillText("ป่าไม้", w - 49, 12);
+    ctx.fillStyle = "#d48942"; ctx.fillRect(w - 110, 4, 8, 8);
+    ctx.fillStyle = "#8b95a7"; ctx.fillText("เกษตร", w - 99, 12);
+    ctx.fillStyle = "#55947a"; ctx.fillRect(w - 60, 4, 8, 8);
+    ctx.fillStyle = "#8b95a7"; ctx.fillText("ป่าไม้", w - 49, 12);
 
     // Day vs Night horizontal split bar
     const kpiRecords = getKpiScopeRecords(getVisibleRecords().records);
@@ -2084,9 +2076,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const barY = h - 9, barW = w - pad.l - pad.r;
     if (tot > 0) {
       const dayFrac = day / tot;
-      ctx.fillStyle = "#facc15";
+      ctx.fillStyle = "#d4a85a";
       ctx.fillRect(pad.l, barY, barW * dayFrac, 6);
-      ctx.fillStyle = "#38bdf8";
+      ctx.fillStyle = "#5c8ba8";
       ctx.fillRect(pad.l + barW * dayFrac, barY, barW * (1 - dayFrac), 6);
       ctx.fillStyle = "#94a3b8";
       ctx.font = "10px system-ui";
@@ -2206,7 +2198,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.themeToggle.onclick = () => {
       state.theme = state.theme === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", state.theme);
-      els.themeToggle.textContent = state.theme === "dark" ? "☀ โหมดสว่าง" : "🌙 โหมดมืด";
+      els.themeToggle.textContent = state.theme === "dark" ? "โหมดสว่าง" : "โหมดมืด";
       if (activePage === "map") refreshAll();
       else if (activePage === "overview") renderOverviewPage();
       else if (activePage === "weather") renderWeatherPage();

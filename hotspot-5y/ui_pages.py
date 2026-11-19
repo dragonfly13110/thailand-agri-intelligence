@@ -33,9 +33,8 @@ MULTI_PAGE_CSS = r"""
 }
 .nav-tab:hover { color: var(--text); background: rgba(148,163,184,0.12); }
 .nav-tab.active {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: #ffffff; border-color: rgba(255,255,255,0.2);
-  box-shadow: 0 4px 14px rgba(249,115,22,0.38);
+  background: var(--accent);
+  color: #ffffff; border-color: transparent;
 }
 .app-body {
   height: calc(100vh - 58px); overflow: hidden; position: relative;
@@ -54,64 +53,51 @@ MULTI_PAGE_CSS = r"""
 }
 .hero-banner {
   background: var(--hero-bg); border: 1px solid var(--border-strong);
-  border-radius: 20px; padding: 24px 26px; box-shadow: var(--shadow);
+  border-radius: 16px; padding: 24px 26px; box-shadow: var(--shadow-sm);
   display: flex; flex-direction: column; gap: 16px; min-width: 0; max-width: 100%;
-  position: relative; overflow: hidden;
-}
-.hero-banner::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, #f97316, #facc15 35%, #10b981 70%, #38bdf8);
-}
-.hero-banner::after {
-  content: ""; position: absolute; right: -60px; top: -60px; width: 280px; height: 280px;
-  border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(249,115,22,0.16), transparent 70%);
+  position: relative;
 }
 .hero-row {
   display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
-  position: relative; z-index: 1;
 }
 .hero-kicker {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--accent); margin-bottom: 6px;
 }
-.hero-title { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.25; }
+.hero-title { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.28; }
 .hero-desc { margin: 7px 0 0; font-size: 13.5px; color: var(--muted); max-width: 760px; line-height: 1.6; }
 .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 .story-strip {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;
-  position: relative; z-index: 1; padding-top: 12px; border-top: 1px solid var(--border);
+  padding-top: 14px; border-top: 1px solid var(--border);
 }
 .story-chip {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 10px 13px; border-radius: 12px; text-align: left; font-family: inherit;
+  padding: 11px 14px; border-radius: 11px; text-align: left; font-family: inherit;
   background: var(--card); border: 1px solid var(--border); color: var(--text);
-  cursor: pointer; transition: border-color .16s, transform .14s, background .16s;
+  cursor: pointer; transition: border-color .16s, background .16s;
 }
-.story-chip:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+.story-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
 .story-chip-title { font-size: 12.5px; font-weight: 700; display: block; }
 .story-chip-sub { font-size: 11.5px; color: var(--muted); display: block; margin-top: 2px; }
-.story-chip-arrow { font-size: 15px; color: var(--accent); font-weight: 800; flex-shrink: 0; }
+.story-chip-arrow { font-size: 14px; color: var(--muted); font-weight: 700; flex-shrink: 0; }
+.story-chip:hover .story-chip-arrow { color: var(--accent); }
 
 .kpi-hero-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;
 }
 .kpi-hero {
-  background: var(--card-elev); border: 1px solid var(--border); border-radius: 16px;
-  padding: 17px 18px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
+  background: var(--card-elev); border: 1px solid var(--border); border-radius: 14px;
+  padding: 17px 18px; box-shadow: var(--shadow-sm); position: relative;
   display: flex; flex-direction: column; gap: 7px;
-  transition: border-color .16s, transform .16s;
+  transition: border-color .16s;
 }
-.kpi-hero:hover { border-color: var(--border-strong); transform: translateY(-1px); }
-.kpi-hero::after {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--stripe, #f97316);
-}
+.kpi-hero:hover { border-color: var(--border-strong); }
 .kpi-hero-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.kpi-hero-label { font-size: 12px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
-.kpi-hero-val { font-size: 27px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.kpi-hero-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.kpi-hero-val { font-size: 26px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .kpi-hero-sub { font-size: 12px; color: var(--muted); line-height: 1.45; }
 .mini-spark {
   display: flex; align-items: flex-end; gap: 5px; height: 36px; margin-top: 2px;
@@ -124,19 +110,19 @@ MULTI_PAGE_CSS = r"""
   background: rgba(148,163,184,0.08); border-radius: 3px; overflow: hidden;
 }
 .mini-spark-bar {
-  width: 100%; border-radius: 3px 3px 1px 1px;
-  background: linear-gradient(180deg, #fb923c, #ea580c); min-height: 3px;
+  width: 100%; border-radius: 2px 2px 0 0;
+  background: var(--accent); opacity: 0.86; min-height: 3px;
 }
 .mini-spark-yr { font-size: 9.5px; color: var(--muted); font-family: "JetBrains Mono", monospace; line-height: 1; }
 
 .delta-pill {
-  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
 }
-.delta-pill.up { background: rgba(239,68,68,0.16); color: #f87171; }
-.delta-pill.down { background: rgba(16,185,129,0.16); color: #34d399; }
-.delta-pill.neutral { background: var(--accent-soft); color: var(--accent); }
-html[data-theme="light"] .delta-pill.up { color: #b91c1c; }
-html[data-theme="light"] .delta-pill.down { color: #047857; }
+.delta-pill.up { background: rgba(207,86,72,0.14); color: #e28074; }
+.delta-pill.down { background: rgba(85,148,122,0.15); color: #7db89f; }
+.delta-pill.neutral { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+html[data-theme="light"] .delta-pill.up { color: #a3372c; }
+html[data-theme="light"] .delta-pill.down { color: #2d6b52; }
 
 .panel-card {
   background: var(--card-elev); border: 1px solid var(--border); border-radius: 18px;
@@ -184,29 +170,25 @@ html[data-theme="light"] .delta-pill.down { color: #047857; }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(156px, 1fr)); gap: 11px;
 }
 .fc-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
   padding: 13px 14px; display: flex; flex-direction: column; gap: 6px;
-  position: relative; overflow: hidden; transition: transform .14s, border-color .15s;
+  transition: border-color .15s;
 }
-.fc-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
-.fc-card::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--fc-bar, #38bdf8);
-}
-.fc-meter-bg { height: 5px; border-radius: 999px; background: rgba(148,163,184,0.18); overflow: hidden; }
-.fc-meter-fg { height: 100%; border-radius: 999px; background: var(--fc-bar, #38bdf8); }
+.fc-card:hover { border-color: var(--border-strong); }
+.fc-meter-bg { height: 4px; border-radius: 999px; background: rgba(148,163,184,0.16); overflow: hidden; margin-top: 2px; }
+.fc-meter-fg { height: 100%; border-radius: 999px; background: var(--fc-bar, var(--accent)); }
 .fc-risk {
-  display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px;
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
   border-radius: 999px; align-self: flex-start;
 }
-.fc-risk.low { background: rgba(16,185,129,0.16); color: #34d399; }
-.fc-risk.med { background: rgba(234,179,8,0.18); color: #facc15; }
-.fc-risk.high { background: rgba(249,115,22,0.18); color: #fb923c; }
-.fc-risk.vhigh { background: rgba(239,68,68,0.22); color: #f87171; }
-html[data-theme="light"] .fc-risk.low { color: #047857; }
-html[data-theme="light"] .fc-risk.med { color: #a16207; }
-html[data-theme="light"] .fc-risk.high { color: #c2410c; }
-html[data-theme="light"] .fc-risk.vhigh { color: #b91c1c; }
+.fc-risk.low { background: rgba(85,148,122,0.14); color: #7db89f; }
+.fc-risk.med { background: rgba(212,168,79,0.14); color: #d9b66b; }
+.fc-risk.high { background: rgba(223,106,55,0.16); color: #e88b61; }
+.fc-risk.vhigh { background: rgba(207,86,72,0.18); color: #e28074; }
+html[data-theme="light"] .fc-risk.low { color: #2d6b52; }
+html[data-theme="light"] .fc-risk.med { color: #8c6619; }
+html[data-theme="light"] .fc-risk.high { color: #b24b20; }
+html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
 
 /* 5x12 Calendar Heatmap Matrix */
 .matrix-wrap { overflow-x: auto; max-width: 100%; min-width: 0; }
@@ -230,9 +212,8 @@ html[data-theme="light"] .fc-risk.vhigh { color: #b91c1c; }
 /* Province Comparator & Sortable Table */
 .cmp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 13px; min-width: 0; }
 .cmp-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 15px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 13px;
   padding: 15px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
-  border-top: 3px solid var(--accent);
 }
 .cmp-metric { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed rgba(148,163,184,0.16); }
 .cmp-metric span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
@@ -312,7 +293,7 @@ OVERVIEW_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">● THAILAND FIRE, BURN SCAR &amp; CLIMATE INTELLIGENCE ATLAS</div>
+          <div class="hero-kicker">THAILAND FIRE, BURN SCAR &amp; CLIMATE INTELLIGENCE ATLAS</div>
           <h1 class="hero-title">ศูนย์วิเคราะห์ไฟป่า การเผาเกษตร และสภาพอากาศประเทศไทย (2022–2026)</h1>
           <p class="hero-desc">
             รวมจุดความร้อน 5 ปี (GISTDA VIIRS 1.28 ล้านจุด) · รอยเผาไหม้แยกพืช 20 ม. 3 ฤดู (สสน. ตามรอยเผา) · สภาพอากาศเอื้อไฟรายเดือน 77 จังหวัด (Open-Meteo ERA5 2016–2026) · และพื้นที่น้ำท่วมซ้ำซาก 17 ปี (HII)
@@ -323,28 +304,28 @@ OVERVIEW_PAGE_HTML = r"""
             <button type="button" data-sat="N" class="active">Suomi NPP (N) มาตรฐาน 5 ปี</button>
             <button type="button" data-sat="ALL">ทุกดาวเทียม (N+N20+N21)</button>
           </div>
-          <button type="button" class="btn primary" data-goto="map">🗺️ เปิดแผนที่เจาะลึก</button>
-          <button type="button" class="btn" data-goto="weather">🌦️ ห้องแล็บอากาศ × ไฟ</button>
+          <button type="button" class="btn primary" data-goto="map">เปิดแผนที่เจาะลึก</button>
+          <button type="button" class="btn" data-goto="weather">วิเคราะห์อากาศ × ไฟ</button>
         </div>
       </div>
       <div class="story-strip">
         <button type="button" class="story-chip" data-goto="burnscar">
           <div>
-            <span id="ovStory1Title" class="story-chip-title">🔥 รอยเผา 3 ฤดูแยกพืช (Sentinel-2 20 ม.)</span>
+            <span id="ovStory1Title" class="story-chip-title">รอยเผา 3 ฤดูแยกพืช (Sentinel-2 20 ม.)</span>
             <span id="ovStory1Sub" class="story-chip-sub">เทียบการเปลี่ยนแปลงไฟป่า vs นาข้าว อ้อย ข้าวโพด</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
         <button type="button" class="story-chip" data-goto="weather">
           <div>
-            <span id="ovStory2Title" class="story-chip-title">🌦️ อากาศแห้งแล้งดันไฟพุ่งแค่ไหน?</span>
+            <span id="ovStory2Title" class="story-chip-title">อากาศแห้งแล้งดันไฟพุ่งแค่ไหน?</span>
             <span id="ovStory2Sub" class="story-chip-sub">ดูความสัมพันธ์ 59 เดือน + พยากรณ์สด 7 วัน</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
         <button type="button" class="story-chip" id="ovStoryTmsBtn">
           <div>
-            <span class="story-chip-title">🛰️ ส่องภาพแปลงเผาจริงความละเอียด 20 ม.</span>
+            <span class="story-chip-title">ส่องภาพแปลงเผาจริงความละเอียด 20 ม.</span>
             <span class="story-chip-sub">เปิดชั้นภาพ TMS สสน. ซ้อนแผนที่เจาะลึกเชียงใหม่ทันที</span>
           </div>
           <span class="story-chip-arrow">→</span>
@@ -353,30 +334,30 @@ OVERVIEW_PAGE_HTML = r"""
     </div>
 
     <div class="kpi-hero-grid" id="ovKpiGrid">
-      <div class="kpi-hero" style="--stripe:#f97316">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">🔥 จุดไฟ 5 ปี (ม.ค.–ต.ค.)</span><span id="ovKpi1Delta" class="delta-pill neutral">-</span></div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">จุดไฟ 5 ปี (ม.ค.–ต.ค.)</span><span id="ovKpi1Delta" class="delta-pill neutral">-</span></div>
         <div id="ovKpi1Val" class="kpi-hero-val">-</div>
         <div id="ovMiniSpark" class="mini-spark" aria-label="แนวโน้ม 5 ปี"></div>
         <div id="ovKpi1Sub" class="kpi-hero-sub">-</div>
       </div>
-      <div class="kpi-hero" style="--stripe:#10b981">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">🌾 เกษตร+ส.ป.ก. vs ป่าไม้</span><span id="ovKpi2Delta" class="delta-pill neutral">5 ปี</span></div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">เกษตร+ส.ป.ก. vs ป่าไม้</span><span id="ovKpi2Delta" class="delta-pill neutral">5 ปี</span></div>
         <div id="ovKpi2Val" class="kpi-hero-val">-</div>
-        <div class="split-bar"><div id="ovAgriBar" style="background:#f59e0b;width:50%"></div><div id="ovForBar" style="background:#10b981;width:50%"></div></div>
+        <div class="split-bar"><div id="ovAgriBar" style="background:#d48942;width:50%"></div><div id="ovForBar" style="background:#55947a;width:50%"></div></div>
         <div id="ovKpi2Sub" class="kpi-hero-sub">-</div>
       </div>
-      <div class="kpi-hero" style="--stripe:#facc15">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">🛰️ รอยเผา สสน. (3 ฤดู · 62 จว.)</span><span id="ovKpi3Delta" class="delta-pill down">-</span></div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">รอยเผา สสน. (3 ฤดู · 62 จว.)</span><span id="ovKpi3Delta" class="delta-pill down">-</span></div>
         <div id="ovKpi3Val" class="kpi-hero-val">-</div>
         <div id="ovKpi3Sub" class="kpi-hero-sub">-</div>
       </div>
-      <div class="kpi-hero" style="--stripe:#38bdf8">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">🌡️ อากาศเอื้อไฟ 2026 (ERA5)</span><span id="ovKpi4Delta" class="delta-pill neutral">77 จว.</span></div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">อากาศเอื้อไฟ 2026 (ERA5)</span><span id="ovKpi4Delta" class="delta-pill neutral">77 จว.</span></div>
         <div id="ovKpi4Val" class="kpi-hero-val">-</div>
         <div id="ovKpi4Sub" class="kpi-hero-sub">-</div>
       </div>
-      <div class="kpi-hero" style="--stripe:#a855f7">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">🌊 พื้นที่เสี่ยงซ้ำซ้อน (ท่วม+เผา)</span><span class="delta-pill neutral">HII 17 ปี</span></div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">พื้นที่เสี่ยงซ้ำซ้อน (ท่วม+เผา)</span><span class="delta-pill neutral">HII 17 ปี</span></div>
         <div id="ovKpi5Val" class="kpi-hero-val">-</div>
         <div id="ovKpi5Sub" class="kpi-hero-sub">-</div>
       </div>
@@ -385,8 +366,8 @@ OVERVIEW_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">📈 ไทม์ไลน์ 59 เดือน: จุดความร้อนทั้งประเทศ ซ้อนทับสภาพอากาศจริง (2022–2026)</h2>
-          <div class="panel-sub" id="ovTimelineSub">แถบสีส้มอ่อน = ฤดูเผา (ม.ค.–เม.ย.) · แท่งส้ม = เกษตร+ส.ป.ก. · แท่งเขียว = ป่าไม้ · เส้นสีฟ้า = ตัวแปรสภาพอากาศ ERA5 เฉลี่ย 77 จังหวัด</div>
+          <h2 class="panel-title">ไทม์ไลน์ 59 เดือน: จุดความร้อนทั้งประเทศ ซ้อนทับสภาพอากาศจริง (2022–2026)</h2>
+          <div class="panel-sub" id="ovTimelineSub">แถบแรเงา = ฤดูเผา (ม.ค.–เม.ย.) · แท่งส้มอมน้ำตาล = เกษตร+ส.ป.ก. · แท่งเขียวหม่น = ป่าไม้ · เส้นฟ้าเทา = สภาพอากาศ ERA5 เฉลี่ย 77 จังหวัด</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <span id="ovCorrPill" class="badge">r = -</span>
@@ -408,7 +389,7 @@ OVERVIEW_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">🧭 เปรียบเทียบรายภูมิภาค</h3>
+            <h3 class="panel-title">เปรียบเทียบรายภูมิภาค</h3>
             <div class="panel-sub">สัดส่วนจุดความร้อนและเกษตร vs ป่า (คลิกเพื่อดูบนแผนที่)</div>
           </div>
         </div>
@@ -418,7 +399,7 @@ OVERVIEW_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">🌾 สัดส่วนชนิดพืช &amp; เวลาเกิดไฟ</h3>
+            <h3 class="panel-title">สัดส่วนชนิดพืช &amp; เวลาเกิดไฟ</h3>
             <div class="panel-sub">รอยเผา สสน. ฤดู 2569 แยกพืช + ช่วงเวลากลางวัน/กลางคืน</div>
           </div>
         </div>
@@ -431,7 +412,7 @@ OVERVIEW_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">🔥 10 อันดับพื้นที่เฝ้าระวัง</h3>
+            <h3 class="panel-title">10 อันดับพื้นที่เฝ้าระวัง</h3>
             <div class="panel-sub">คลิกชื่อจังหวัดเพื่อเจาะดูรายอำเภอ/ตำบลทันที</div>
           </div>
           <div class="pill-toggle" id="ovTopMode">
@@ -452,15 +433,15 @@ WEATHER_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">● CLIMATE &amp; FIRE-WEATHER INTELLIGENCE LAB · OPEN-METEO ERA5 (CC-BY-4.0)</div>
-          <h1 class="hero-title">🌦️ วิเคราะห์สภาพอากาศ × ไฟป่าและการเผาเกษตร (2016–2026 + พยากรณ์สด 7 วัน)</h1>
+          <div class="hero-kicker">CLIMATE &amp; FIRE-WEATHER LAB · OPEN-METEO ERA5 (CC-BY-4.0)</div>
+          <h1 class="hero-title">วิเคราะห์สภาพอากาศ × ไฟป่าและการเผาเกษตร (2016–2026 + พยากรณ์สด 7 วัน)</h1>
           <p class="hero-desc">
             วิเคราะห์ความสัมพันธ์ระหว่าง <strong>อุณหภูมิสูงสุด · ความชื้นสัมพัทธ์ต่ำสุด · ลมแรง · วันไม่ตกฝน · การระเหยน้ำ (ET0)</strong> กับจุดความร้อนรายเดือนตลอด 59 เดือน (2022–พ.ย. 2026) ครบ 77 จังหวัด พร้อมดึงพยากรณ์อากาศสด 7 วันล่วงหน้า
           </p>
         </div>
         <div class="hero-actions">
-          <button type="button" class="btn primary" id="wxRefreshForecastBtn">🔄 อัปเดตพยากรณ์สด 7 วัน</button>
-          <button type="button" class="btn" id="wxJumpMapBtn">🗺️ ดูดัชนี FWI บนแผนที่</button>
+          <button type="button" class="btn primary" id="wxRefreshForecastBtn">อัปเดตพยากรณ์สด 7 วัน</button>
+          <button type="button" class="btn" id="wxJumpMapBtn">ดูดัชนี FWI บนแผนที่</button>
         </div>
       </div>
     </div>
@@ -506,7 +487,7 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">📡 พยากรณ์อากาศ 7 วันล่วงหน้า &amp; ความเสี่ยงไฟจากอากาศ (Live Open-Meteo)</h2>
+          <h2 class="panel-title">พยากรณ์อากาศ 7 วันล่วงหน้า &amp; ความเสี่ยงไฟจากอากาศ (Live Open-Meteo)</h2>
           <div id="wxLiveSub" class="panel-sub">กำลังโหลดพยากรณ์อากาศ 7 วัน...</div>
         </div>
         <span id="wxLiveProvBadge" class="badge">จังหวัดเชียงใหม่</span>
@@ -517,7 +498,7 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">📊 ความสัมพันธ์รายเดือน (59 เดือน · 2022–2026): จุดความร้อน vs สภาพอากาศ</h2>
+          <h2 class="panel-title">ความสัมพันธ์รายเดือน (59 เดือน · 2022–2026): จุดความร้อน vs สภาพอากาศ</h2>
           <div id="wxInsightText" class="panel-sub">-</div>
         </div>
         <span id="wxCorrBadge" class="badge">r = -</span>
@@ -531,14 +512,14 @@ WEATHER_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">🗓️ ปฏิทินความร้อน × ไฟ (5 ปี × 12 เดือน)</h3>
-            <div class="panel-sub">เห็นช่วงพีคฤดูเผา ม.ค.–เม.ย. (คอลัมน์สีส้ม) เทียบข้ามปี 2022–2026 ในตารางเดียว</div>
+            <h3 class="panel-title">ปฏิทินความร้อน × ไฟ (5 ปี × 12 เดือน)</h3>
+            <div class="panel-sub">เห็นช่วงพีคฤดูเผา ม.ค.–เม.ย. เทียบข้ามปี 2022–2026 ในตารางเดียว</div>
           </div>
           <div class="matrix-legend">
-            <span><i class="matrix-legend-swatch" style="background:rgba(148,163,184,0.35)"></i>ต่ำ</span>
-            <span><i class="matrix-legend-swatch" style="background:rgba(217,119,6,0.65)"></i>ปานกลาง</span>
-            <span><i class="matrix-legend-swatch" style="background:rgba(234,88,12,0.85)"></i>สูง</span>
-            <span><i class="matrix-legend-swatch" style="background:rgba(220,38,38,0.9)"></i>วิกฤต</span>
+            <span><i class="matrix-legend-swatch" style="background:rgba(148,163,184,0.28)"></i>ต่ำ</span>
+            <span><i class="matrix-legend-swatch" style="background:rgba(196,148,76,0.52)"></i>ปานกลาง</span>
+            <span><i class="matrix-legend-swatch" style="background:rgba(209,104,54,0.78)"></i>สูง</span>
+            <span><i class="matrix-legend-swatch" style="background:rgba(168,58,48,0.90)"></i>วิกฤต</span>
           </div>
         </div>
         <div id="wxMatrixWrap" class="matrix-wrap"></div>
@@ -547,8 +528,8 @@ WEATHER_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">🌡️ แนวโน้มภูมิอากาศ 10 ปี (2016–2025 + 2026)</h3>
-            <div id="wxBaselineSub" class="panel-sub">เทียบอุณหภูมิสูงสุดเฉลี่ย (เส้นส้ม) และฝนรวม (แท่งฟ้า) กับค่าปกติ 10 ปี</div>
+            <h3 class="panel-title">แนวโน้มภูมิอากาศ 10 ปี (2016–2025 + 2026)</h3>
+            <div id="wxBaselineSub" class="panel-sub">เทียบอุณหภูมิสูงสุดเฉลี่ย (เส้นส้มอิฐ) และฝนรวม (แท่งฟ้าเทา) กับค่าปกติ 10 ปี</div>
           </div>
         </div>
         <div class="med-chart-box">
@@ -560,7 +541,7 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h3 class="panel-title">🔬 กราฟกระจาย 77 จังหวัด: ปัจจัยอากาศ × จุดความร้อน / รอยเผาไหม้</h3>
+          <h3 class="panel-title">กราฟกระจาย 77 จังหวัด: ปัจจัยอากาศ × จุดความร้อน / รอยเผาไหม้</h3>
           <div id="wxScatNote" class="panel-sub">คลิกจุดจังหวัดใดก็ได้เพื่อสลับดูข้อมูลสภาพอากาศของจังหวัดนั้น</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -582,11 +563,11 @@ WEATHER_PAGE_HTML = r"""
         </div>
       </div>
       <div class="reg-legend">
-        <span><i class="reg-legend-dot" style="background:#f97316"></i>ภาคเหนือ</span>
-        <span><i class="reg-legend-dot" style="background:#facc15"></i>ภาคอีสาน</span>
-        <span><i class="reg-legend-dot" style="background:#38bdf8"></i>ภาคกลาง</span>
-        <span><i class="reg-legend-dot" style="background:#a855f7"></i>ภาคตะวันออก</span>
-        <span><i class="reg-legend-dot" style="background:#10b981"></i>ภาคใต้</span>
+        <span><i class="reg-legend-dot" style="background:#df6a37"></i>ภาคเหนือ</span>
+        <span><i class="reg-legend-dot" style="background:#c99c4d"></i>ภาคอีสาน</span>
+        <span><i class="reg-legend-dot" style="background:#689cb8"></i>ภาคกลาง</span>
+        <span><i class="reg-legend-dot" style="background:#8e82a8"></i>ภาคตะวันออก</span>
+        <span><i class="reg-legend-dot" style="background:#55947a"></i>ภาคใต้</span>
       </div>
       <div class="scatter-lg-box">
         <canvas id="wxScatterCanvas" class="panel-canvas"></canvas>
@@ -602,15 +583,15 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">● SENTINEL-2 20M BURN SCAR ANALYTICS · สสน. ตามรอยเผา (ฤดู 2567–2569)</div>
-          <h1 class="hero-title">🔥 รอยเผาไหม้ 3 ฤดูแยกชนิดพืช &amp; เปรียบเทียบจังหวัดชนจังหวัด</h1>
+          <div class="hero-kicker">SENTINEL-2 20M BURN SCAR ANALYTICS · สสน. ตามรอยเผา (ฤดู 2567–2569)</div>
+          <h1 class="hero-title">รอยเผาไหม้ 3 ฤดูแยกชนิดพืช &amp; เปรียบเทียบจังหวัดชนจังหวัด</h1>
           <p class="hero-desc">
             เปรียบเทียบพื้นที่เผาไหม้จริงจากดาวเทียม Sentinel-2 ความละเอียด 20 เมตร (1 พิกเซล = 0.25 ไร่) ครบ 3 ฤดูฝุ่น <strong>2567 · 2568 · 2569</strong> ครอบคลุม 62 จังหวัด พร้อมเครื่องมือเทียบ 4 จังหวัดพร้อมกันและตารางจัดอันดับครบ 77 จังหวัด
           </p>
         </div>
         <div class="hero-actions">
-          <button type="button" class="btn primary" id="bsOpenTmsBtn">🛰️ เปิดภาพแปลงเผา 20 ม. (TMS) บนแผนที่</button>
-          <button type="button" class="btn" id="bsExportTableBtn">⬇ ส่งออกตาราง 77 จังหวัด (CSV)</button>
+          <button type="button" class="btn primary" id="bsOpenTmsBtn">เปิดภาพแปลงเผา 20 ม. (TMS) บนแผนที่</button>
+          <button type="button" class="btn" id="bsExportTableBtn">ส่งออกตาราง 77 จังหวัด (CSV)</button>
         </div>
       </div>
     </div>
@@ -619,7 +600,7 @@ BURNSCAR_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">📉 เปรียบเทียบ 3 ฤดูฝุ่น (2567 → 2568 → 2569) แยกพืชและป่า</h2>
+            <h2 class="panel-title">เปรียบเทียบ 3 ฤดูฝุ่น (2567 → 2568 → 2569) แยกพืชและป่า</h2>
             <div class="panel-sub">หน่วย: ไร่ (รวม 62 จังหวัดในขอบเขต สสน. · ประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดคงค่าว่าง)</div>
           </div>
         </div>
@@ -631,7 +612,7 @@ BURNSCAR_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">🌾 การเปลี่ยนแปลงรายกลุ่มพืช (ฤดู 2569 เทียบ 2567)</h2>
+            <h2 class="panel-title">การเปลี่ยนแปลงรายกลุ่มพืช (ฤดู 2569 เทียบ 2567)</h2>
             <div class="panel-sub">เห็นชัดว่าไฟป่าลดลงต่อเนื่อง แต่การเผาเศษวัสดุในนาข้าวและอ้อยยังเป็นโจทย์ใหญ่</div>
           </div>
         </div>
@@ -642,7 +623,7 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">⚖️ เปรียบเทียบจังหวัดชนจังหวัด (Side-by-Side Comparator)</h2>
+          <h2 class="panel-title">เปรียบเทียบจังหวัดชนจังหวัด (Side-by-Side Comparator)</h2>
           <div class="panel-sub">เลือกจังหวัดที่สนใจได้สูงสุด 4 จังหวัดเพื่อเทียบไฟป่า รอยเผาแยกพืช สภาพอากาศ และน้ำท่วมซ้ำในมุมมองเดียว</div>
         </div>
       </div>
@@ -658,7 +639,7 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">📋 ตารางจัดอันดับครบ 77 จังหวัด (คลิกหัวคอลัมน์เพื่อเรียง · คลิกแถวเพื่อเปิดบนแผนที่)</h2>
+          <h2 class="panel-title">ตารางจัดอันดับครบ 77 จังหวัด (คลิกหัวคอลัมน์เพื่อเรียง · คลิกแถวเพื่อเปิดบนแผนที่)</h2>
           <div class="panel-sub">รวมจุดความร้อน 5 ปี, รอยเผา สสน. ฤดู 2569 แยกพืช, ดัชนีอากาศเอื้อไฟ 2026 และน้ำท่วมซ้ำ HII</div>
         </div>
         <input id="bsTableSearch" class="search-input" style="max-width:260px;" type="search" placeholder="ค้นหาชื่อจังหวัดหรือภาค..." />
@@ -702,13 +683,13 @@ MULTI_PAGE_JS = r"""
   };
   const MONTH_TH_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
   const WX_LABELS = {
-    "8": { name: "ดัชนีอากาศเอื้อไฟ FWI", unit: "คะแนน", color: "#38bdf8" },
-    "0": { name: "อุณหภูมิสูงสุดเฉลี่ย", unit: "°C", color: "#f97316" },
-    "3": { name: "ความชื้นสัมพัทธ์ต่ำสุด", unit: "%", color: "#22d3ee" },
-    "2": { name: "ปริมาณฝนรวม", unit: "มม.", color: "#3b82f6" },
-    "4": { name: "ความเร็วลมสูงสุดเฉลี่ย", unit: "กม./ชม.", color: "#a855f7" },
-    "5": { name: "การระเหยน้ำ ET0", unit: "มม.", color: "#facc15" },
-    "6": { name: "จำนวนวันไม่ตกฝน", unit: "วัน", color: "#fb923c" },
+    "8": { name: "ดัชนีอากาศเอื้อไฟ FWI", unit: "คะแนน", color: "#689cb8" },
+    "0": { name: "อุณหภูมิสูงสุดเฉลี่ย", unit: "°C", color: "#689cb8" },
+    "3": { name: "ความชื้นสัมพัทธ์ต่ำสุด", unit: "%", color: "#689cb8" },
+    "2": { name: "ปริมาณฝนรวม", unit: "มม.", color: "#689cb8" },
+    "4": { name: "ความเร็วลมสูงสุดเฉลี่ย", unit: "กม./ชม.", color: "#689cb8" },
+    "5": { name: "การระเหยน้ำ ET0", unit: "มม.", color: "#689cb8" },
+    "6": { name: "จำนวนวันไม่ตกฝน", unit: "วัน", color: "#689cb8" },
   };
 
   let activePage = "overview";
@@ -856,7 +837,7 @@ MULTI_PAGE_JS = r"""
     // Peak-season shaded vertical bands (Jan-Apr each year)
     const step = pw / n;
     ctx.save();
-    ctx.fillStyle = isDark ? "rgba(249,115,22,0.065)" : "rgba(234,88,12,0.055)";
+    ctx.fillStyle = isDark ? "rgba(255,255,255,0.032)" : "rgba(15,23,42,0.035)";
     for (let i = 0; i < n; i++) {
       const mo = Number(months[i].slice(5, 7));
       if (mo >= 1 && mo <= 4) ctx.fillRect(pad.l + i * step, pad.t, step, ph);
@@ -879,7 +860,7 @@ MULTI_PAGE_JS = r"""
       }
     }
 
-    // Stacked monthly bars
+    // Stacked monthly bars (restrained amber + muted sage)
     const bw = Math.max(2.5, step * 0.68);
     for (let i = 0; i < n; i++) {
       const x = pad.l + i * step + (step - bw) / 2;
@@ -888,27 +869,27 @@ MULTI_PAGE_JS = r"""
       const forH = (fireFor[i] / maxF) * ph;
       const othH = Math.max(0, totH - agH - forH);
       let y = pad.t + ph;
-      if (agH > 0) { ctx.fillStyle = "rgba(245, 158, 11, 0.88)"; ctx.fillRect(x, y - agH, bw, agH); y -= agH; }
-      if (forH > 0) { ctx.fillStyle = "rgba(16, 185, 129, 0.85)"; ctx.fillRect(x, y - forH, bw, forH); y -= forH; }
-      if (othH > 0) { ctx.fillStyle = "rgba(148, 163, 184, 0.55)"; ctx.fillRect(x, y - othH, bw, othH); }
+      if (agH > 0) { ctx.fillStyle = "rgba(212, 137, 66, 0.90)"; ctx.fillRect(x, y - agH, bw, agH); y -= agH; }
+      if (forH > 0) { ctx.fillStyle = "rgba(85, 148, 122, 0.88)"; ctx.fillRect(x, y - forH, bw, forH); y -= forH; }
+      if (othH > 0) { ctx.fillStyle = "rgba(139, 149, 167, 0.45)"; ctx.fillRect(x, y - othH, bw, othH); }
 
       if (months[i].endsWith("-01")) {
         ctx.fillStyle = textCol;
         ctx.font = "700 10.5px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(months[i].slice(0, 4), pad.l + i * step + step * 2, pad.t + ph + 17);
-        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.11)" : "rgba(15,23,42,0.10)";
+        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
         ctx.beginPath(); ctx.moveTo(pad.l + i * step, pad.t); ctx.lineTo(pad.l + i * step, pad.t + ph); ctx.stroke();
       }
     }
 
     // Weather smooth overlay line + subtle translucent area fill
-    const wxMeta = WX_LABELS[String(wxKey)] || { name: "อากาศ", unit: "", color: "#38bdf8" };
+    const wxMeta = WX_LABELS[String(wxKey)] || { name: "อากาศ", unit: "", color: "#689cb8" };
     if (validW.length) {
       ctx.save();
       const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ph);
-      grad.addColorStop(0, isDark ? "rgba(56,189,248,0.16)" : "rgba(2,132,199,0.14)");
-      grad.addColorStop(1, "rgba(56,189,248,0.0)");
+      grad.addColorStop(0, isDark ? "rgba(104,156,184,0.13)" : "rgba(60,116,143,0.11)");
+      grad.addColorStop(1, "rgba(104,156,184,0.0)");
       ctx.beginPath();
       let firstX = null, lastX = null;
       for (let i = 0; i < n; i++) {
@@ -925,8 +906,8 @@ MULTI_PAGE_JS = r"""
         ctx.fillStyle = grad;
         ctx.fill();
       }
-      ctx.strokeStyle = wxMeta.color;
-      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = isDark ? "#7cb0cc" : "#3c748f";
+      ctx.lineWidth = 2.2;
       ctx.lineJoin = "round";
       ctx.beginPath();
       let started = false;
@@ -943,11 +924,11 @@ MULTI_PAGE_JS = r"""
     // Inline top legend
     ctx.textAlign = "left";
     ctx.font = "600 11px system-ui, sans-serif";
-    ctx.fillStyle = "#f59e0b"; ctx.fillRect(pad.l + 4, 4, 9, 9);
+    ctx.fillStyle = "#d48942"; ctx.fillRect(pad.l + 4, 4, 9, 9);
     ctx.fillStyle = textCol; ctx.fillText("เกษตร+ส.ป.ก.", pad.l + 17, 12);
-    ctx.fillStyle = "#10b981"; ctx.fillRect(pad.l + 96, 4, 9, 9);
+    ctx.fillStyle = "#55947a"; ctx.fillRect(pad.l + 96, 4, 9, 9);
     ctx.fillStyle = textCol; ctx.fillText("ป่าไม้", pad.l + 109, 12);
-    ctx.fillStyle = wxMeta.color; ctx.fillRect(pad.l + 156, 7, 16, 3);
+    ctx.fillStyle = isDark ? "#7cb0cc" : "#3c748f"; ctx.fillRect(pad.l + 156, 7, 16, 2.5);
     ctx.fillStyle = textCol; ctx.fillText(`${wxMeta.name} (${wxMeta.unit})`, pad.l + 176, 12);
 
     if (hoverStore) {
@@ -1060,7 +1041,7 @@ MULTI_PAGE_JS = r"""
     d3.className = "delta-pill " + (forChg <= 0 ? "down" : "up");
     document.getElementById("ovKpi3Sub").textContent = `ฤดู 2569 รวม ${(trp26Tot / 1e6).toFixed(2)} ล้านไร่ (62 จว. · Sentinel-2 20 ม.)`;
     const s1t = document.getElementById("ovStory1Title");
-    if (s1t && trpFor67 > 0) s1t.textContent = `🔥 รอยเผาป่าลด ${Math.abs(forChg).toFixed(0)}% แต่ฤดู 2569 ยังเผารวม ${(trp26Tot / 1e6).toFixed(2)} ล้านไร่`;
+    if (s1t && trpFor67 > 0) s1t.textContent = `รอยเผาป่าลด ${Math.abs(forChg).toFixed(0)}% แต่ฤดู 2569 ยังเผารวม ${(trp26Tot / 1e6).toFixed(2)} ล้านไร่`;
 
     // KPI 4: 2026 Peak-season Fire-Weather
     const wx26 = DATA.provinces.map(p => p.wx_y?.["2026"]).filter(Boolean);
@@ -1086,7 +1067,7 @@ MULTI_PAGE_JS = r"""
     const rVal = pearsonR(series.wxVals, series.fireTot);
     document.getElementById("ovCorrPill").textContent = rVal !== null ? `Pearson r = ${rVal.toFixed(2)}` : "r = n/a";
     const s2t = document.getElementById("ovStory2Title");
-    if (s2t && rVal !== null) s2t.textContent = `🌦️ อากาศเอื้อไฟสัมพันธ์กับจุดความร้อน (r = ${rVal.toFixed(2)})`;
+    if (s2t && rVal !== null) s2t.textContent = `อากาศเอื้อไฟสัมพันธ์กับจุดความร้อน (r = ${rVal.toFixed(2)})`;
     const ovCanvas = document.getElementById("ovTimelineCanvas");
     drawDualFireWeatherChart(ovCanvas, series, wxIdx, ovHoverStore);
     bindTimelineHover(ovCanvas, ovHoverStore);
@@ -1111,7 +1092,7 @@ MULTI_PAGE_JS = r"""
       div.className = "reg-row";
       div.innerHTML = `
         <div class="reg-top"><span>${escHtml(rg.name)} (${rg.provs} จว.)</span><span>${formatNum(rg.tot)} จุด</span></div>
-        <div class="split-bar"><div style="background:#f59e0b;width:${ap.toFixed(1)}%"></div><div style="background:#10b981;width:${fp.toFixed(1)}%"></div></div>
+        <div class="split-bar"><div style="background:#d48942;width:${ap.toFixed(1)}%"></div><div style="background:#55947a;width:${fp.toFixed(1)}%"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);">
           <span>เกษตร ${ap.toFixed(0)}% · ป่า ${fp.toFixed(0)}%</span>
           <span>สูงสุด: ${escHtml(rg.topProv?.name_th || "-")}</span>
@@ -1121,21 +1102,21 @@ MULTI_PAGE_JS = r"""
       regEl.appendChild(div);
     }
 
-    // Donut chart (TamRoyPao Season 2569 crop breakdown)
+    // Donut chart (TamRoyPao Season 2569 crop breakdown — cohesive earthy editorial palette)
     const donutCanvas = document.getElementById("ovDonutCanvas");
     const segs = [
-      { label: "นาข้าว", val: trp26Crops[0], color: "#facc15" },
-      { label: "อ้อย", val: trp26Crops[1], color: "#f472b6" },
-      { label: "ข้าวโพด", val: trp26Crops[2], color: "#a3e635" },
-      { label: "พืชผสม", val: trp26Crops[3], color: "#fb923c" },
-      { label: "ป่าไม้", val: trp26Crops[4], color: "#ef4444" },
+      { label: "นาข้าว", val: trp26Crops[0], color: "#d4a84f" },
+      { label: "อ้อย", val: trp26Crops[1], color: "#c96f53" },
+      { label: "ข้าวโพด", val: trp26Crops[2], color: "#7d9b65" },
+      { label: "พืชผสม", val: trp26Crops[3], color: "#8b8579" },
+      { label: "ป่าไม้", val: trp26Crops[4], color: "#a84438" },
     ];
     drawDonutChart(donutCanvas, segs, `${(trp26Tot / 1e6).toFixed(2)} ล.ไร่`, "ฤดู 2569");
     const dayPct = tot5y > 0 ? (day5y * 100 / tot5y) : 0;
     document.getElementById("ovDonutLegend").innerHTML = segs.map(s => {
       const pct = trp26Tot > 0 ? (s.val * 100 / trp26Tot).toFixed(1) : "0.0";
       return `<div class="donut-leg-item"><span><i style="display:inline-block;width:9px;height:9px;background:${s.color};border-radius:3px;margin-right:5px;"></i>${escHtml(s.label)}</span><strong>${pct}% <span style="color:var(--muted);font-weight:500;">(${(s.val / 1e6).toFixed(2)}M)</span></strong></div>`;
-    }).join("") + `<div class="donut-leg-item" style="grid-column:1/-1;justify-content:center;"><span>☀️ กลางวัน <strong>${dayPct.toFixed(1)}%</strong> · 🌙 กลางคืน <strong>${(100 - dayPct).toFixed(1)}%</strong></span></div>`;
+    }).join("") + `<div class="donut-leg-item" style="grid-column:1/-1;justify-content:center;"><span>กลางวัน <strong>${dayPct.toFixed(1)}%</strong> · กลางคืน <strong>${(100 - dayPct).toFixed(1)}%</strong></span></div>`;
 
     // Top 10 List
     const topEl = document.getElementById("ovTopList");
@@ -1283,14 +1264,14 @@ MULTI_PAGE_JS = r"""
       const eS = Math.max(0, Math.min(1, (et0 - 2.5) / 4));
       const score = Math.round(100 * (0.3 * tS + 0.3 * rhS + 0.2 * dryS + 0.1 * eS + 0.1 * wS));
 
-      const icon = rain >= 10 ? "⛈️" : rain >= 2 ? "🌦️" : tmax >= 36 ? "🔥" : rh < 40 ? "☀️" : "⛅";
       const [tier, cls, barCol] = score >= 70
-        ? ["เสี่ยงสูงมาก", "vhigh", "#ef4444"]
+        ? ["เสี่ยงสูงมาก", "vhigh", "#cf5648"]
         : score >= 52
-          ? ["เสี่ยงสูง", "high", "#f97316"]
+          ? ["เสี่ยงสูง", "high", "#df6a37"]
           : score >= 34
-            ? ["ปานกลาง", "med", "#eab308"]
-            : ["เสี่ยงต่ำ", "low", "#10b981"];
+            ? ["ปานกลาง", "med", "#c79a4b"]
+            : ["เสี่ยงต่ำ", "low", "#55947a"];
+      const rainTag = rain >= 10 ? "ฝนหนัก" : rain >= 2 ? "มีฝน" : rh < 40 ? "อากาศแห้ง" : "อากาศปกติ";
 
       const card = document.createElement("div");
       card.className = "fc-card";
@@ -1298,11 +1279,11 @@ MULTI_PAGE_JS = r"""
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong style="font-size:12.5px;">${escHtml(label)}</strong>
-          <span style="font-size:19px;">${icon}</span>
+          <span style="font-size:11px;color:var(--muted);">${rainTag}</span>
         </div>
-        <div style="font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;">${tmax !== null ? tmax.toFixed(0) : "-"}° <span style="font-size:12px;color:var(--muted);font-weight:600;">/ ${tmin !== null ? tmin.toFixed(0) : "-"}°C</span></div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">💧 RH ${rh.toFixed(0)}% · 💨 ${wind.toFixed(0)} กม./ชม.</div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">🌧️ ฝน ${rain.toFixed(1)} มม. · FWI <strong>${score}</strong>/100</div>
+        <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">${tmax !== null ? tmax.toFixed(0) : "-"}° <span style="font-size:12px;color:var(--muted);font-weight:500;">/ ${tmin !== null ? tmin.toFixed(0) : "-"}°C</span></div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">ความชื้น ${rh.toFixed(0)}% · ลม ${wind.toFixed(0)} กม./ชม.</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">ฝน ${rain.toFixed(1)} มม. · FWI <strong>${score}</strong>/100</div>
         <div class="fc-meter-bg"><div class="fc-meter-fg" style="width:${Math.max(6, Math.min(100, score))}%"></div></div>
         <span class="fc-risk ${cls}">${tier}</span>
       `;
@@ -1381,17 +1362,17 @@ MULTI_PAGE_JS = r"""
         if (matMode === "fire") t = Math.sqrt(Math.max(0, t));
         const isDark = state.theme === "dark";
         const bg = t > 0.78
-          ? "rgba(220,38,38,0.88)"
+          ? "rgba(168,58,48,0.88)"
           : t > 0.56
-            ? "rgba(234,88,12,0.82)"
+            ? "rgba(209,104,54,0.78)"
             : t > 0.34
-              ? (isDark ? "rgba(217,119,6,0.62)" : "rgba(245,158,11,0.34)")
-              : (isDark ? "rgba(30,41,59,0.65)" : "rgba(226,232,240,0.85)");
+              ? (isDark ? "rgba(196,148,76,0.44)" : "rgba(196,148,76,0.28)")
+              : (isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.06)");
         const fg = t > 0.56
           ? "#ffffff"
           : t > 0.34
-            ? (isDark ? "#fef3c7" : "#78350f")
-            : (isDark ? "#94a3b8" : "#475569");
+            ? (isDark ? "#f1e3c4" : "#6b4c14")
+            : (isDark ? "#8b95a7" : "#5c6675");
         const txt = matMode === "fire" ? (v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(v)) : (matMode === "rain" ? Math.round(v) : v.toFixed(0));
         html += `<td class="matrix-cell" style="background:${bg};color:${fg};" title="${ym}: ${v}">${txt}</td>`;
       }
@@ -1452,12 +1433,12 @@ MULTI_PAGE_JS = r"""
     const step = pw / rows.length;
     const bw = step * 0.52;
 
-    // Rain bars
+    // Rain bars (muted slate-blue)
     rows.forEach((r, i) => {
       const cx = pad.l + (i + 0.5) * step;
       if (r.rain !== null) {
         const bh = (r.rain / maxR) * ph;
-        ctx.fillStyle = r.year === 2026 ? "rgba(56,189,248,0.35)" : "rgba(56,189,248,0.55)";
+        ctx.fillStyle = r.year === 2026 ? "rgba(104,156,184,0.32)" : "rgba(104,156,184,0.52)";
         ctx.fillRect(cx - bw / 2, pad.t + ph - bh, bw, bh);
       }
       ctx.fillStyle = textCol;
@@ -1469,14 +1450,14 @@ MULTI_PAGE_JS = r"""
     // 10Y baseline dashed line
     const yBase = pad.t + ph - ((avgT10 - minT) / spanT) * ph;
     ctx.save();
-    ctx.strokeStyle = "rgba(250,204,21,0.7)";
+    ctx.strokeStyle = "rgba(196,156,77,0.68)";
     ctx.setLineDash([4, 4]);
     ctx.beginPath(); ctx.moveTo(pad.l, yBase); ctx.lineTo(pad.l + pw, yBase); ctx.stroke();
     ctx.restore();
 
     // Tmax line & points
-    ctx.strokeStyle = "#f97316";
-    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = "#df6a37";
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
     let started = false;
     rows.forEach((r, i) => {
@@ -1490,8 +1471,8 @@ MULTI_PAGE_JS = r"""
       if (r.tmax === null) return;
       const cx = pad.l + (i + 0.5) * step;
       const cy = pad.t + ph - ((r.tmax - minT) / spanT) * ph;
-      ctx.fillStyle = r.tmax > avgT10 ? "#ef4444" : "#38bdf8";
-      ctx.beginPath(); ctx.arc(cx, cy, 3.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = r.tmax > avgT10 ? "#df6a37" : "#689cb8";
+      ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2); ctx.fill();
     });
 
     ctx.fillStyle = textCol; ctx.font = "10px system-ui";
@@ -1501,11 +1482,11 @@ MULTI_PAGE_JS = r"""
     ctx.textAlign = "left";
     ctx.fillText(Math.round(maxR) + "มม.", pad.l + pw + 4, pad.t + 8);
     // Inline legend
-    ctx.fillStyle = "rgba(56,189,248,0.7)"; ctx.fillRect(pad.l + 2, 3, 9, 8);
+    ctx.fillStyle = "rgba(104,156,184,0.65)"; ctx.fillRect(pad.l + 2, 3, 9, 8);
     ctx.fillStyle = textCol; ctx.fillText("ฝนรวม(มม.)", pad.l + 14, 11);
-    ctx.fillStyle = "#f97316"; ctx.fillRect(pad.l + 78, 6, 12, 2.5);
+    ctx.fillStyle = "#df6a37"; ctx.fillRect(pad.l + 78, 6, 12, 2.2);
     ctx.fillStyle = textCol; ctx.fillText("Tmax(°C)", pad.l + 94, 11);
-    ctx.fillStyle = "#facc15"; ctx.fillRect(pad.l + 148, 6, 12, 2);
+    ctx.fillStyle = "#c49c4d"; ctx.fillRect(pad.l + 148, 6, 12, 2);
     ctx.fillStyle = textCol; ctx.fillText(`ปกติ10ปี ${avgT10.toFixed(1)}°`, pad.l + 164, 11);
 
     canvas._baseHover = { pad, step, rows, avgT10 };
@@ -1618,13 +1599,13 @@ MULTI_PAGE_JS = r"""
     }
 
     const topLabelSet = new Set(pts.slice().sort((a, b) => b.y - a.y).slice(0, 8).map(d => d.p.code));
-    const regColors = { north: "#f97316", northeast: "#facc15", central: "#38bdf8", east: "#a855f7", south: "#10b981" };
+    const regColors = { north: "#df6a37", northeast: "#c99c4d", central: "#689cb8", east: "#8e82a8", south: "#55947a" };
 
     for (const d of pts) {
       const cx = sx(d.x), cy = sy(d.y);
       const isSel = selProv === d.p.code;
-      ctx.fillStyle = isSel ? "#fde047" : (regColors[d.p.region] || "#38bdf8");
-      ctx.strokeStyle = isSel ? "#ef4444" : "rgba(15,23,42,0.7)";
+      ctx.fillStyle = isSel ? "#eceff4" : (regColors[d.p.region] || "#689cb8");
+      ctx.strokeStyle = isSel ? "#df6a37" : "rgba(15,23,42,0.6)";
       ctx.lineWidth = isSel ? 2.4 : 1;
       ctx.beginPath(); ctx.arc(cx, cy, isSel ? 6.5 : 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       if (isSel || topLabelSet.has(d.p.code)) {
@@ -1726,22 +1707,22 @@ MULTI_PAGE_JS = r"""
     // 4 crop delta cards
     const s67 = seasons[0].sums, s69 = seasons[2].sums;
     const cropDefs = [
-      { name: "นาข้าว", idx: 0, color: "#facc15" },
-      { name: "อ้อย", idx: 1, color: "#f472b6" },
-      { name: "ข้าวโพด", idx: 2, color: "#a3e635" },
-      { name: "ป่าไม้", idx: 4, color: "#ef4444" },
+      { name: "นาข้าว", idx: 0 },
+      { name: "อ้อย", idx: 1 },
+      { name: "ข้าวโพด", idx: 2 },
+      { name: "ป่าไม้", idx: 4 },
     ];
     const cardsEl = document.getElementById("bsCropCards");
     cardsEl.innerHTML = cropDefs.map(c => {
       const v67 = s67[c.idx], v69 = s69[c.idx];
       const chg = v67 > 0 ? ((v69 - v67) * 100 / v67) : 0;
       return `
-        <div class="kpi-hero" style="--stripe:${c.color};padding:13px 14px;">
+        <div class="kpi-hero" style="padding:13px 14px;">
           <div class="kpi-hero-top">
             <span class="kpi-hero-label">${escHtml(c.name)} (ฤดู 2569)</span>
             <span class="delta-pill ${chg <= 0 ? "down" : "up"}">${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</span>
           </div>
-          <div style="font-size:21px;font-weight:800;">${(v69 / 1e6).toFixed(2)} ล้านไร่</div>
+          <div style="font-size:21px;font-weight:700;">${(v69 / 1e6).toFixed(2)} ล้านไร่</div>
           <div class="kpi-hero-sub">ฤดู 2567: ${(v67 / 1e6).toFixed(2)} ล้านไร่</div>
         </div>
       `;
@@ -1763,10 +1744,10 @@ MULTI_PAGE_JS = r"""
     const w = rect.width, h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
-    const pad = { l: 58, r: 16, t: 24, b: 36 };
+    const pad = { l: 58, r: 16, t: 38, b: 36 };
     const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
     const maxV = Math.max(1e6, ...seasons.map(s => s.sums.reduce((a, b) => a + b, 0)));
-    const colors = ["#facc15", "#f472b6", "#a3e635", "#fb923c", "#ef4444"];
+    const colors = ["#d4a84f", "#c96f53", "#7d9b65", "#8b8579", "#a84438"];
     const names = ["ข้าว", "อ้อย", "ข้าวโพด", "ผสม", "ป่าไม้"];
     const textCol = state.theme === "dark" ? "#94a3b8" : "#475569";
 
@@ -1819,7 +1800,7 @@ MULTI_PAGE_JS = r"""
       const t26 = p.trp?.["2026"];
       const t26Tot = t26 ? (t26[0] + t26[1] + t26[2] + t26[3] + t26[4]) : null;
       const w26 = p.wx_y?.["2026"];
-      const cropBarColors = ["#facc15", "#f472b6", "#a3e635", "#fb923c", "#ef4444"];
+      const cropBarColors = ["#d4a84f", "#c96f53", "#7d9b65", "#8b8579", "#a84438"];
       const cropBarHtml = (t26 && t26Tot > 0)
         ? `<div class="split-bar" title="สัดส่วนรอยเผา 69: ข้าว / อ้อย / ข้าวโพด / ผสม / ป่า">${t26.map((v, k) => v > 0 ? `<div style="background:${cropBarColors[k]};width:${(v * 100 / t26Tot).toFixed(1)}%"></div>` : "").join("")}</div>`
         : `<div class="split-bar"></div>`;
@@ -1828,10 +1809,10 @@ MULTI_PAGE_JS = r"""
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
-            <strong style="font-size:15.5px;color:var(--accent);">${escHtml(p.name_th)}</strong>
+            <strong style="font-size:15.5px;color:var(--text);">${escHtml(p.name_th)}</strong>
             <span class="reg-pill" style="margin-left:5px;">${escHtml(REGION_TH[p.region] || p.region || "-")}</span>
           </div>
-          <button type="button" class="btn" style="padding:3px 9px;font-size:11px;">🗺️ ดูแผนที่</button>
+          <button type="button" class="btn" style="padding:3px 9px;font-size:11px;">ดูแผนที่</button>
         </div>
         ${cropBarHtml}
         <div class="cmp-metric"><span>จุดไฟในมุมมอง</span><span>${formatNum(rec.total)} จุด</span></div>

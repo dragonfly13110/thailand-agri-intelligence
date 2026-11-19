@@ -13,6 +13,7 @@
   - `.venv\Scripts\python.exe -X utf8 -m unittest discover -s hotspot-5y/tests -v` ผ่านครบ **16/16** (`4.986s`, รวม `test_weather.py` และ `node --check` ทั้งออฟไลน์ 4 หน้า `6.03 MB` และออนไลน์ 5 หน้า `257.6 KB`)
   - Deploy ขึ้น Netlify (`deployId: 6afec4545fcaabf233652848`) ที่ **`https://thailand-hotspot-5y.netlify.app`**
   - ตรวจเบราว์เซอร์จริงครบทั้ง 5 หน้า Desktop `1440×900` (Dark + Light Mode, Live 7-day Forecast 7 ใบ, FWI `r=0.81`, แผนที่ FWI 2026 + Heatmap hover ลื่น, DuckDB-Wasm preset `hot_months` คืน 30 แถวจาก HF Parquet) และ Mobile `390×844` (แก้ grid `minmax(0,1fr)` จนผ่าน **5/5 หน้า** `htmlW=390`, `0` overflow, **0 console/page/network errors**) · commit + push ขึ้น `origin/main` แล้ว
+- **ปรับคุมโทนสีสไตล์ Editorial (19 พ.ย. 2026):** ถอดแถบสีรุ้งและอีโมจิหลากสีออก เปลี่ยนเป็นคู่สีนิ่ง **Graphite & Ember** (โหมดมืด) / **Warm Paper & Ink** (โหมดสว่าง) ใช้สีเน้นหลักส้มอิฐ (`#df6a37`) + ฟ้าเทา (`#689cb8`) สำหรับอากาศ + โทนเอิร์ธโทนในกราฟพืช และขยับระยะหัวกราฟ 3 ฤดูไม่ให้ตัวเลขชน legend; deploy ขึ้น Netlify และตรวจเบราว์เซอร์จริงผ่าน `0` errors
 - **คำสั่งรับต่อ:** `.venv\Scripts\python.exe -X utf8 hotspot-5y/download_weather.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/publish_hf.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/build_web_app.py`
 
 ## แก้ปัญหาหน้าแผนที่กิน CPU/RAM และกระตุก (`map_template.py` + deploy Netlify) — 19 พ.ย. 2026 · 0 D1 writes

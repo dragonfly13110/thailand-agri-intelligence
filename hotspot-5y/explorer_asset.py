@@ -69,7 +69,7 @@ EXPLORER_CSS = r"""
 EXPLORER_BUTTON_HTML = (
     '<button id="openExplorerBtn" class="nav-tab" data-page="explorer" '
     'title="ค้นหาข้อมูลดิบ 1.28 ล้านจุด สภาพอากาศ และรอยเผาไหม้ตรงจาก Hugging Face ด้วย DuckDB-Wasm">'
-    '🦆 ค้นข้อมูล DuckDB</button>'
+    'ค้นข้อมูล DuckDB</button>'
 )
 
 EXPLORER_MODAL_HTML = r"""
@@ -78,9 +78,9 @@ EXPLORER_MODAL_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">● SERVERLESS PARQUET DATA STUDIO · DUCKDB-WASM + HUGGING FACE DATASETS</div>
+          <div class="hero-kicker">SERVERLESS PARQUET DATA STUDIO · DUCKDB-WASM + HUGGING FACE DATASETS</div>
           <h1 class="hero-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span>🦆 ศูนย์ค้นข้อมูลดิบ &amp; SQL Lab (DuckDB-Wasm)</span>
+            <span>ศูนย์ค้นข้อมูลดิบ &amp; SQL Lab (DuckDB-Wasm)</span>
             <span id="expEngineBadge" class="badge">พร้อมโหลดเมื่อกดค้นหา</span>
           </h1>
           <p class="hero-desc">
@@ -88,8 +88,8 @@ EXPLORER_MODAL_HTML = r"""
           </p>
         </div>
         <div class="hero-actions">
-          <a id="expHfLink" class="btn" href="https://huggingface.co/datasets/__HF_REPO__" target="_blank" rel="noopener" style="text-decoration:none;">📦 เปิดชุดข้อมูลบน Hugging Face</a>
-          <button id="expCsvBtn" class="btn primary" title="ดาวน์โหลดผลที่กรองทั้งหมดเป็น CSV (สูงสุด 50,000 แถว)">⬇ ดาวน์โหลด CSV</button>
+          <a id="expHfLink" class="btn" href="https://huggingface.co/datasets/__HF_REPO__" target="_blank" rel="noopener" style="text-decoration:none;">เปิดชุดข้อมูลบน Hugging Face</a>
+          <button id="expCsvBtn" class="btn primary" title="ดาวน์โหลดผลที่กรองทั้งหมดเป็น CSV (สูงสุด 50,000 แถว)">ดาวน์โหลด CSV</button>
         </div>
       </div>
     </div>
@@ -98,11 +98,11 @@ EXPLORER_MODAL_HTML = r"""
 
       <div class="preset-strip">
         <span style="font-size:11.5px;font-weight:700;color:var(--muted);">สูตรค้นด่วน 1 คลิก:</span>
-        <button class="preset-btn" data-preset="top_villages">🔥 20 หมู่บ้านไฟชุกปี 2026</button>
-        <button class="preset-btn" data-preset="top_rice">🌾 ตำบลเผานาข้าวสูงสุด (ฤดู 2569)</button>
-        <button class="preset-btn" data-preset="top_corn">🌽 ตำบลเผาข้าวโพดสูงสุด (ฤดู 2569)</button>
-        <button class="preset-btn" data-preset="hot_months">🌡️ เดือนที่อากาศเอื้อไฟแรงสุด (FWI)</button>
-        <button class="preset-btn" data-preset="static_spots">🏭 จุดซ้ำถาวร ≥25 วัน (โรงงาน/เตาเผา)</button>
+        <button class="preset-btn" data-preset="top_villages">20 หมู่บ้านไฟชุกปี 2026</button>
+        <button class="preset-btn" data-preset="top_rice">ตำบลเผานาข้าวสูงสุด (ฤดู 2569)</button>
+        <button class="preset-btn" data-preset="top_corn">ตำบลเผาข้าวโพดสูงสุด (ฤดู 2569)</button>
+        <button class="preset-btn" data-preset="hot_months">เดือนที่อากาศเอื้อไฟแรงสุด (FWI)</button>
+        <button class="preset-btn" data-preset="static_spots">จุดซ้ำถาวร ≥25 วัน (โรงงาน/เตาเผา)</button>
       </div>
 
       <div class="explorer-filters">
@@ -152,7 +152,7 @@ EXPLORER_MODAL_HTML = r"""
           <input id="expDateTo" class="search-input" style="width:100%" type="date" />
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <button id="expRunBtn" class="btn primary" style="width:100%;justify-content:center;">🔎 ค้นหา</button>
+          <button id="expRunBtn" class="btn primary" style="width:100%;justify-content:center;">ค้นหา</button>
         </div>
       </div>
 
@@ -165,7 +165,7 @@ EXPLORER_MODAL_HTML = r"""
       </div>
 
       <details id="expSqlDetails" class="explorer-sql-box">
-        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);">💻 โหมด SQL Lab (ดูหรือแก้ไขคำสั่ง DuckDB เพื่อสอนและวิเคราะห์เอง)</summary>
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);">โหมด SQL Lab (ดูหรือแก้ไขคำสั่ง DuckDB เพื่อสอนและวิเคราะห์เอง)</summary>
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
           <textarea id="expSqlInput" spellcheck="false"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
