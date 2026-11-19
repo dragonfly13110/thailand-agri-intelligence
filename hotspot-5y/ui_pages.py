@@ -181,14 +181,14 @@ html[data-theme="light"] .delta-pill.down { color: #2d6b52; }
   display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
   border-radius: 999px; align-self: flex-start;
 }
-.fc-risk.low { background: rgba(85,148,122,0.14); color: #7db89f; }
-.fc-risk.med { background: rgba(212,168,79,0.14); color: #d9b66b; }
-.fc-risk.high { background: rgba(223,106,55,0.16); color: #e88b61; }
-.fc-risk.vhigh { background: rgba(207,86,72,0.18); color: #e28074; }
-html[data-theme="light"] .fc-risk.low { color: #2d6b52; }
-html[data-theme="light"] .fc-risk.med { color: #8c6619; }
-html[data-theme="light"] .fc-risk.high { color: #b24b20; }
-html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
+.fc-risk.low { background: rgba(34,197,94,0.16); color: #4ade80; }
+.fc-risk.med { background: rgba(234,179,8,0.18); color: #facc15; }
+.fc-risk.high { background: rgba(234,88,12,0.24); color: #fb923c; }
+.fc-risk.vhigh { background: #991b1b; color: #ffffff; }
+html[data-theme="light"] .fc-risk.low { background: #dcfce7; color: #166534; }
+html[data-theme="light"] .fc-risk.med { background: #fef08a; color: #854d0e; }
+html[data-theme="light"] .fc-risk.high { background: #fed7aa; color: #9a3412; }
+html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
 
 /* 5x12 Calendar Heatmap Matrix */
 .matrix-wrap { overflow-x: auto; max-width: 100%; min-width: 0; }
@@ -359,14 +359,14 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
 .hz-pm-badge {
   display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
 }
-.hz-pm-good { background: rgba(85,148,122,0.16); color: #7db89f; }
-.hz-pm-mod { background: rgba(212,168,79,0.16); color: #d9b66b; }
-.hz-pm-high { background: rgba(223,106,55,0.18); color: #e88b61; }
-.hz-pm-crit { background: rgba(207,86,72,0.22); color: #e28074; }
-html[data-theme="light"] .hz-pm-good { color: #2d6b52; }
-html[data-theme="light"] .hz-pm-mod { color: #8c6619; }
-html[data-theme="light"] .hz-pm-high { color: #b24b20; }
-html[data-theme="light"] .hz-pm-crit { color: #9c3329; }
+.hz-pm-good { background: rgba(34,197,94,0.16); color: #4ade80; }
+.hz-pm-mod { background: rgba(234,179,8,0.18); color: #facc15; }
+.hz-pm-high { background: rgba(234,88,12,0.24); color: #fb923c; }
+.hz-pm-crit { background: #991b1b; color: #ffffff; }
+html[data-theme="light"] .hz-pm-good { background: #dcfce7; color: #166534; }
+html[data-theme="light"] .hz-pm-mod { background: #fef08a; color: #854d0e; }
+html[data-theme="light"] .hz-pm-high { background: #fed7aa; color: #9a3412; }
+html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
 
 @media (max-width: 1080px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -629,10 +629,10 @@ WEATHER_PAGE_HTML = r"""
             <div class="panel-sub">เห็นช่วงพีคฤดูเผา ม.ค.–เม.ย. เทียบข้ามปี 2022–2026 ในตารางเดียว</div>
           </div>
           <div class="matrix-legend">
-            <span><i class="matrix-legend-swatch" style="background:rgba(148,163,184,0.28)"></i>ต่ำ</span>
-            <span><i class="matrix-legend-swatch" style="background:rgba(196,148,76,0.52)"></i>ปานกลาง</span>
-            <span><i class="matrix-legend-swatch" style="background:rgba(209,104,54,0.78)"></i>สูง</span>
-            <span><i class="matrix-legend-swatch" style="background:rgba(168,58,48,0.90)"></i>วิกฤต</span>
+            <span><i class="matrix-legend-swatch" style="background:#fef3c7;border:1px solid rgba(148,163,184,0.35)"></i>ต่ำ (อ่อน)</span>
+            <span><i class="matrix-legend-swatch" style="background:#fcd34d"></i>ปานกลาง</span>
+            <span><i class="matrix-legend-swatch" style="background:#ea580c"></i>สูง</span>
+            <span><i class="matrix-legend-swatch" style="background:#991b1b"></i>วิกฤต (เข้มสุด)</span>
           </div>
         </div>
         <div id="wxMatrixWrap" class="matrix-wrap"></div>
@@ -2072,17 +2072,17 @@ MULTI_PAGE_JS = r"""
         if (matMode === "fire") t = Math.sqrt(Math.max(0, t));
         const isDark = state.theme === "dark";
         const bg = t > 0.78
-          ? "rgba(168,58,48,0.88)"
+          ? "#991b1b"
           : t > 0.56
-            ? "rgba(209,104,54,0.78)"
-            : t > 0.34
-              ? (isDark ? "rgba(196,148,76,0.44)" : "rgba(196,148,76,0.28)")
-              : (isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.06)");
+            ? "#ea580c"
+            : t > 0.32
+              ? (isDark ? "rgba(250, 204, 21, 0.34)" : "#fde047")
+              : (isDark ? "rgba(254, 243, 199, 0.11)" : "#fef3c7");
         const fg = t > 0.56
           ? "#ffffff"
-          : t > 0.34
-            ? (isDark ? "#f1e3c4" : "#6b4c14")
-            : (isDark ? "#8b95a7" : "#5c6675");
+          : t > 0.32
+            ? (isDark ? "#fef08a" : "#713f12")
+            : (isDark ? "#cbd5e1" : "#78350f");
         const txt = matMode === "fire" ? (v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(v)) : (matMode === "rain" ? Math.round(v) : v.toFixed(0));
         html += `<td class="matrix-cell" data-ym="${ym}" data-t="${t.toFixed(3)}" style="background:${bg};color:${fg};cursor:pointer;">${txt}</td>`;
       }
@@ -2614,7 +2614,10 @@ MULTI_PAGE_JS = r"""
         if (v === null) ctx.fillStyle = nullCol;
         else {
           const t = Math.sqrt(Math.max(0, Math.min(1, v / maxV)));
-          ctx.fillStyle = lerpHex("#1b2230", "#df6a37", t);
+          const pal = PALETTES.fire;
+          const idx = t * (pal.length - 1);
+          const i0 = Math.floor(idx), i1 = Math.min(pal.length - 1, i0 + 1);
+          ctx.fillStyle = lerpHex(pal[i0], pal[i1], idx - i0);
         }
         ctx.beginPath();
         for (const r of it._mRings) traceRingF32(ctx, r, toSx, toSy);
@@ -2796,10 +2799,13 @@ MULTI_PAGE_JS = r"""
         ctx.stroke();
       }
       if (bsMap.hoverItem) {
-        ctx.strokeStyle = "#fde047";
-        ctx.lineWidth = 2.0;
         ctx.beginPath();
         for (const ring of bsMap.hoverItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.85)";
+        ctx.lineWidth = 3.8;
+        ctx.stroke();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.0;
         ctx.stroke();
       }
       ctx.restore();

@@ -650,11 +650,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   "use strict";
 
   const PALETTES = {
-    fire: ["#1b2230", "#4b251f", "#843624", "#bc4f28", "#dd783e", "#edc078"],
-    agri: ["#1b2230", "#2f574b", "#558c73", "#a89d60", "#d48440", "#c24e38"],
-    rain: ["#7a3a26", "#b6733f", "#c9b382", "#7da9bd", "#4c84a3", "#2b5b80"],
-    heat: ["#1e2636", "#455c78", "#a88f5a", "#d67a3e", "#c94d34", "#912a24"],
-    hazard: ["#1c2331", "#31576b", "#598c96", "#c4944c", "#cf6339", "#a13b3b"],
+    fire: ["#fef3c7", "#fde047", "#f59e0b", "#ea580c", "#dc2626", "#7f1d1d"],
+    agri: ["#fef9c3", "#fde047", "#f59e0b", "#ea580c", "#c2410c", "#7c2d12"],
+    heat: ["#dcfce7", "#fef08a", "#fdba74", "#f97316", "#dc2626", "#6b1126"],
+    hazard: ["#fef3c7", "#fcd34d", "#f59e0b", "#ea580c", "#dc2626", "#6b1126"],
+    moisture: ["#7f1d1d", "#dc2626", "#f97316", "#fde047", "#7dd3fc", "#0284c7"],
+    rain: ["#fef3c7", "#bae6fd", "#38bdf8", "#0284c7", "#1d4ed8", "#1e3a8a"],
   };
   const CROPS = { all: null, agri: null, forest: null, rice: 1, sugarcane: 2, corn: 3 };
   const SEASON_MASKS = {
@@ -1215,14 +1216,19 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     return { level: "tambon", records: cs.tbRecords.filter(r => r.item.amphoe_code === state.selectedAmphoe) };
   }
 
+  function getPaletteForMetric(m) {
+    if (m === "agri_pct" || m === "burn_rate_agri") return PALETTES.agri;
+    if (m === "wx_rhmin" || m === "soil_wet") return PALETTES.moisture;
+    if (m === "era5_rain" || m === "wx_rain") return PALETTES.rain;
+    if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind" || m === "aq_pm25" || m === "aq_exceed" || m === "aq_co") return PALETTES.heat;
+    if (m === "hazard") return PALETTES.hazard;
+    return PALETTES.fire;
+  }
+
   function getPaletteAndColor(val, minV, maxV, nullFill) {
     if (val === null || val === undefined || Number.isNaN(val)) return nullFill || "#334155";
     const m = state.metric;
-    let pal = PALETTES.fire;
-    if (m === "agri_pct" || m === "burn_rate_agri") pal = PALETTES.agri;
-    else if (m === "era5_rain" || m === "wx_rain" || m === "wx_rhmin" || m === "soil_wet") pal = PALETTES.rain;
-    else if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind" || m === "aq_pm25" || m === "aq_exceed" || m === "aq_co") pal = PALETTES.heat;
-    else if (m === "hazard") pal = PALETTES.hazard;
+    const pal = getPaletteForMetric(m);
 
     const span = maxV - minV;
     if (span <= 0) return pal[val > 0 ? 3 : 0];
@@ -1513,9 +1519,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     ctx.save();
     ctx.globalAlpha = hasTms
       ? (state.zoom >= 13.5 ? 0.12 : 0.25)
-      : (hasTiles ? (state.zoom >= 14 ? 0.28 : 0.72) : 0.95);
-    ctx.lineWidth = level === "tambon" ? 0.55 : 0.9;
-    ctx.strokeStyle = strokeCol;
+      : (hasTiles ? (state.zoom >= 14 ? 0.32 : 0.78) : 0.96);
+    ctx.lineWidth = level === "tambon" ? 0.6 : 0.95;
+    ctx.strokeStyle = hasTiles ? "rgba(15, 23, 42, 0.55)" : (state.theme === "dark" ? "rgba(15, 23, 42, 0.62)" : "rgba(30, 41, 59, 0.42)");
     for (const rec of records) {
       ctx.beginPath();
       for (const ring of rec.item._mRings) traceRingF32(ctx, ring, toSx, toSy);
@@ -1623,18 +1629,18 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       const toSy = (my) => (my - state.camY) * worldPx + h / 2;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.save();
-      ctx.lineWidth = 2.2;
-      ctx.strokeStyle = "#fde047";
-      if (pinnedItem) {
+      const drawHighlightRing = (item, innerCol) => {
         ctx.beginPath();
-        for (const ring of pinnedItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        for (const ring of item._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.lineWidth = 3.8;
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.85)";
         ctx.stroke();
-      }
-      if (hoverItem && hoverItem !== pinnedItem) {
-        ctx.beginPath();
-        for (const ring of hoverItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.lineWidth = 2.0;
+        ctx.strokeStyle = innerCol;
         ctx.stroke();
-      }
+      };
+      if (pinnedItem) drawHighlightRing(pinnedItem, "#38bdf8");
+      if (hoverItem && hoverItem !== pinnedItem) drawHighlightRing(hoverItem, "#ffffff");
       ctx.restore();
     }
   }
@@ -1670,14 +1676,14 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       freq_rai: "พื้นที่เผาซ้ำซาก GISTDA (ไร่)",
       wx_fwi: "ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)",
       wx_tmax: "อุณหภูมิสูงสุดเฉลี่ย (°C · 2022–2026)",
-      wx_rhmin: "ความชื้นสัมพัทธ์ต่ำสุดเฉลี่ย (% · ฟ้า=ชื้น ส้ม=แห้ง)",
+      wx_rhmin: "ความชื้นสัมพัทธ์ต่ำสุดเฉลี่ย (% · แดงเข้ม=แห้งเสี่ยงไฟ ฟ้า=ชื้น)",
       wx_low_rh: "วันอากาศแห้งจัด RH<35% (วัน/ปี)",
       wx_wind: "ความเร็วลมสูงสุดเฉลี่ย (กม./ชม.)",
       wx_rain: "ปริมาณฝนรวม (มม. · 2022–2026)",
       aq_pm25: "ฝุ่น PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)",
       aq_exceed: "วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)",
       aq_co: "ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)",
-      soil_wet: "ความชื้นผิวดิน NASA GWETTOP (0–1 · ส้ม=แห้ง ฟ้า=ชื้น)",
+      soil_wet: "ความชื้นผิวดิน NASA GWETTOP (0–1 · แดงเข้ม=แห้ง ฟ้า=ชื้น)",
       burn_rate_agri: "อัตราเผาเกษตรเทียบพื้นที่ปลูก DOAE (% · 62 จว.)",
       era5_hot: "อากาศ ERA5: วันร้อนจัด ≥38°C (วัน)",
       era5_dry: "อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)",
@@ -1685,18 +1691,19 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       hazard: "ดัชนีเสี่ยงซ้ำซ้อน (ท่วมซ้ำ + เผาซ้ำ 0–100)",
     };
     els.legendTitle.textContent = titles[state.metric] || "";
-    const pal = (state.metric === "agri_pct" || state.metric === "burn_rate_agri") ? PALETTES.agri
-      : (state.metric === "era5_rain" || state.metric === "wx_rain" || state.metric === "wx_rhmin" || state.metric === "soil_wet") ? PALETTES.rain
-      : (state.metric === "era5_hot" || state.metric === "era5_dry" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_low_rh" || state.metric === "wx_wind" || state.metric === "aq_pm25" || state.metric === "aq_exceed" || state.metric === "aq_co") ? PALETTES.heat
-      : state.metric === "hazard" ? PALETTES.hazard : PALETTES.fire;
+    const pal = getPaletteForMetric(state.metric);
     els.legendBar.style.background = `linear-gradient(90deg, ${pal.join(",")})`;
     if (!hasValid) {
       els.legMin.textContent = "-"; els.legMid.textContent = "-"; els.legMax.textContent = "-";
     } else {
       const dec = state.metric === "soil_wet" ? 2 : (state.metric === "density" || state.metric === "agri_pct" || state.metric === "burn_rate_agri" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_rhmin" || state.metric === "wx_wind" || state.metric === "aq_pm25") ? 1 : 0;
-      els.legMin.textContent = formatNum(minV, dec);
+      const isMoist = state.metric === "wx_rhmin" || state.metric === "soil_wet";
+      const isRain = state.metric === "wx_rain" || state.metric === "era5_rain";
+      const minTag = isMoist ? " (แห้ง)" : isRain ? " (ฝนน้อย)" : " (น้อย)";
+      const maxTag = isMoist ? " (ชื้น)" : isRain ? " (ฝนมาก)" : " (มาก/วิกฤต)";
+      els.legMin.textContent = formatNum(minV, dec) + minTag;
       els.legMid.textContent = formatNum((minV + maxV) / 2, dec);
-      els.legMax.textContent = formatNum(maxV, dec);
+      els.legMax.textContent = formatNum(maxV, dec) + maxTag;
     }
     els.legendNullChip.style.display = hasNull ? "inline-flex" : "none";
     if (els.tmsLegendChip) {
