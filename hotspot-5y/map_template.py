@@ -220,14 +220,39 @@ html[data-theme="light"] .warn-pill { color: #92400e; background: rgba(245, 158,
 .null-swatch { width: 11px; height: 11px; border-radius: 3px; background: var(--null-fill); border: 1px solid var(--border); }
 
 .tooltip {
-  position: fixed; pointer-events: none; z-index: 90; display: none;
-  background: var(--panel-solid); border: 1px solid var(--accent); border-radius: 10px;
-  padding: 9px 11px; box-shadow: var(--shadow); font-size: 12px; min-width: 220px; max-width: 300px;
+  position: fixed; pointer-events: none; z-index: 160; display: none;
+  background: var(--panel); border: 1px solid var(--border-strong);
+  border-top: 3px solid var(--tt-accent, var(--accent));
+  border-radius: 12px; padding: 11px 13px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48), 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-size: 12px; min-width: 248px; max-width: 340px; line-height: 1.45;
+  color: var(--text);
 }
-.tooltip h4 { margin: 0 0 5px; font-size: 13px; color: var(--accent); }
-.tt-row { display: flex; justify-content: space-between; gap: 10px; margin: 2px 0; }
-.tt-k { color: var(--muted); }
-.tt-v { font-weight: 600; text-align: right; }
+html[data-theme="light"] .tooltip {
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16), 0 3px 10px rgba(15, 23, 42, 0.08);
+}
+.tooltip h4 { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--tt-accent, var(--accent)); line-height: 1.25; }
+.tt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.tt-sub { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 1px; }
+.tt-badge {
+  font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--tt-accent, var(--accent));
+  border: 1px solid rgba(223, 106, 55, 0.28); white-space: nowrap; flex-shrink: 0;
+}
+.tt-divider { height: 1px; background: var(--border); margin: 6px 0; }
+.tt-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 3.5px 0; font-size: 12px; }
+.tt-k { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.tt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.tt-v { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.tt-bar {
+  height: 6px; border-radius: 999px; background: rgba(148, 163, 184, 0.16);
+  overflow: hidden; display: flex; margin: 5px 0 4px;
+}
+.tt-bar > div { height: 100%; }
+.tt-foot {
+  font-size: 10.5px; color: var(--muted); margin-top: 7px; padding-top: 5px;
+  border-top: 1px dashed var(--border); display: flex; align-items: center; gap: 5px;
+}
 
 .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .kpi-card {
@@ -811,6 +836,44 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   function formatNum(n, dec = 0) {
     if (n === null || n === undefined || Number.isNaN(n)) return "ไม่มีข้อมูล";
     return Number(n).toLocaleString("th-TH", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+
+  function positionTooltip(clientX, clientY) {
+    const tt = els.tooltip;
+    if (!tt) return;
+    const tw = tt.offsetWidth || 270;
+    const th = tt.offsetHeight || 140;
+    const pad = 12;
+    let left = clientX + 16;
+    if (left + tw + pad > window.innerWidth) {
+      left = Math.max(pad, clientX - tw - 16);
+    }
+    let top = clientY - Math.round(th * 0.35);
+    if (top + th + pad > window.innerHeight) {
+      top = window.innerHeight - th - pad;
+    }
+    if (top < pad) top = pad;
+    tt.style.left = left + "px";
+    tt.style.top = top + "px";
+  }
+
+  function showTooltip(clientX, clientY, htmlContent, accentColor = "") {
+    const tt = els.tooltip;
+    if (!tt) return;
+    if (accentColor) tt.style.setProperty("--tt-accent", accentColor);
+    else tt.style.removeProperty("--tt-accent");
+    if (tt._lastHtml !== htmlContent) {
+      tt.innerHTML = htmlContent;
+      tt._lastHtml = htmlContent;
+    }
+    tt.style.display = "block";
+    positionTooltip(clientX, clientY);
+  }
+
+  function hideTooltip() {
+    const tt = els.tooltip;
+    if (!tt) return;
+    tt.style.display = "none";
   }
 
   function getEra5Metric(provObj, key) {
@@ -1950,6 +2013,30 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <span style="font-weight:700">${escHtml(valStr)}</span>
       `;
       row.onclick = () => selectFeature(r.item, level);
+      row.addEventListener("mousemove", (e) => {
+        const it = r.item;
+        const mLabel = els.metricSelect?.selectedOptions?.[0]?.textContent || "ตัวชี้วัด";
+        const agPct = r.agriPct !== null ? r.agriPct.toFixed(1) : "0.0";
+        const foPct = r.total > 0 ? (r.st.forest * 100 / r.total).toFixed(1) : "0.0";
+        const trpV = getTrpMetric(it);
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>#${idx + 1} ${escHtml(it.name_th)}</h4>
+              <div class="tt-sub">${level === "province" ? "ระดับจังหวัด" : level === "amphoe" ? "ระดับอำเภอ" : "ระดับตำบล"}</div>
+            </div>
+            <span class="tt-badge">${escHtml(valStr)}</span>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:var(--accent)"></i>${escHtml(mLabel)}</span><span class="tt-v">${escHtml(valStr)}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>จุดความร้อนในมุมมอง</span><span class="tt-v">${formatNum(r.total)} จุด</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ความหนาแน่น</span><span class="tt-v">${r.density !== null ? r.density.toFixed(1) + " /100 ตร.กม." : "-"}</span></div>
+          <div class="tt-bar"><div style="background:#d48942;width:${agPct}%"></div><div style="background:#55947a;width:${foPct}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${agPct}% / ${foPct}%</span></div>
+          ${trpV !== null ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>รอยเผา สสน.</span><span class="tt-v">${formatNum(trpV, 0)} ไร่</span></div>` : ""}
+          <div class="tt-foot">คลิกเพื่อซูมแผนที่ไปที่พื้นที่นี้</div>
+        `);
+      });
+      row.addEventListener("mouseleave", hideTooltip);
       els.rankList.appendChild(row);
     });
 
@@ -2121,11 +2208,20 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     for (const p of pts) {
       const cx = sx(p.x), cy = sy(p.y);
       const isSel = state.selectedProv === p.rec.item.code || state.selectedAmphoe === p.rec.item.code;
-      ctx.fillStyle = isSel ? "#df6a37" : "rgba(104, 156, 184, 0.85)";
-      ctx.strokeStyle = isSel ? "#f1f5f9" : "rgba(15, 23, 42, 0.7)";
-      ctx.lineWidth = isSel ? 2 : 1;
+      const isHov = state.scatterHoverCode === p.rec.item.code;
+      if (isHov) {
+        ctx.save();
+        ctx.fillStyle = "rgba(223, 106, 55, 0.25)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = isHov ? "#fde047" : (isSel ? "#df6a37" : "rgba(104, 156, 184, 0.85)");
+      ctx.strokeStyle = isHov ? "#df6a37" : (isSel ? "#f1f5f9" : "rgba(15, 23, 42, 0.7)");
+      ctx.lineWidth = isHov || isSel ? 2.2 : 1;
       ctx.beginPath();
-      ctx.arc(cx, cy, isSel ? 5.2 : 3.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, isHov ? 6.2 : (isSel ? 5.2 : 3.5), 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
       state.scatterDots.push({ cx, cy, ...p });
     }
@@ -2158,11 +2254,18 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const maxY = Math.max(1, ...rows.map(r => r.total));
     const pad = { l: 38, r: 10, t: 10, b: 48 };
     const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
-    const bw = Math.min(34, (pw / rows.length) * 0.56);
+    const step = pw / rows.length;
+    const bw = Math.min(34, step * 0.56);
+    state.trendHitBars = [];
 
     rows.forEach((r, idx) => {
-      const cx = pad.l + (idx + 0.5) * (pw / rows.length);
+      const cx = pad.l + (idx + 0.5) * step;
       const x = cx - bw / 2;
+      const isHov = state.trendHoverIdx === idx;
+      if (isHov) {
+        ctx.fillStyle = state.theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)";
+        ctx.fillRect(pad.l + idx * step, pad.t, step, ph + 16);
+      }
       const hAgri = (r.agri / maxY) * ph;
       const hFor = (r.forest / maxY) * ph;
       const hOth = (r.other / maxY) * ph;
@@ -2170,9 +2273,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       if (hAgri > 0) { ctx.fillStyle = "#d48942"; ctx.fillRect(x, y - hAgri, bw, hAgri); y -= hAgri; }
       if (hFor > 0) { ctx.fillStyle = "#55947a"; ctx.fillRect(x, y - hFor, bw, hFor); y -= hFor; }
       if (hOth > 0) { ctx.fillStyle = "#64748b"; ctx.fillRect(x, y - hOth, bw, hOth); }
-      ctx.fillStyle = "#8b95a7";
-      ctx.font = "11px system-ui";
+      if (isHov) {
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x - 0.5, pad.t + ph - (hAgri + hFor + hOth), bw + 1, hAgri + hFor + hOth);
+      }
+      ctx.fillStyle = isHov ? (state.theme === "dark" ? "#f8fafc" : "#0f172a") : "#8b95a7";
+      ctx.font = isHov ? "700 11px system-ui" : "11px system-ui";
       ctx.fillText(String(r.year), cx - 14, pad.t + ph + 12);
+      state.trendHitBars.push({ idx, x0: pad.l + idx * step, x1: pad.l + (idx + 1) * step, y0: pad.t, y1: pad.t + ph + 16, row: r, prev: idx > 0 ? rows[idx - 1] : null });
     });
     ctx.fillStyle = "#8b95a7";
     ctx.font = "10px system-ui";
@@ -2188,6 +2297,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     let tot = 0, day = 0;
     for (const r of kpiRecords) { tot += r.total; day += r.st.day; }
     const barY = h - 9, barW = w - pad.l - pad.r;
+    state.trendDayNightInfo = { y0: barY - 14, y1: h, tot, day, night: Math.max(0, tot - day) };
     if (tot > 0) {
       const dayFrac = day / tot;
       ctx.fillStyle = "#d4a85a";
@@ -2395,28 +2505,40 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             lastTooltipKey = tKey;
             if (ptHit.kind === "static") {
               const sp = ptHit.data;
-              els.tooltip.innerHTML = `
-                <h4 style="color:#38bdf8">จุดซ้ำถาวร (สงสัยโรงงาน/เตาเผา)</h4>
-                <div class="tt-row"><span class="tt-k">พิกัดพื้นที่</span><span class="tt-v">ต.${escHtml(sp.tambon)} อ.${escHtml(sp.amphoe)} จ.${escHtml(sp.prov)}</span></div>
-                <div class="tt-row"><span class="tt-k">ประเภทพื้นที่</span><span class="tt-v">${escHtml(sp.lu)}</span></div>
-                <div class="tt-row"><span class="tt-k">ซ้ำทั้งหมด</span><span class="tt-v">${formatNum(sp.points)} จุด (${sp.days} วัน)</span></div>
-                <div class="tt-row"><span class="tt-k">ความแรงเฉลี่ย</span><span class="tt-v">${sp.avg_frp.toFixed(2)} MW</span></div>
-              `;
+              showTooltip(e.clientX, e.clientY, `
+                <div class="tt-head">
+                  <div>
+                    <h4 style="color:#38bdf8">จุดความร้อนซ้ำถาวร</h4>
+                    <div class="tt-sub">ต.${escHtml(sp.tambon)} · อ.${escHtml(sp.amphoe)} · จ.${escHtml(sp.prov)}</div>
+                  </div>
+                  <span class="tt-badge" style="color:#38bdf8;border-color:rgba(56,189,248,0.35);background:rgba(56,189,248,0.12);">${sp.days} วัน</span>
+                </div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#38bdf8"></i>ประเภทพื้นที่</span><span class="tt-v">${escHtml(sp.lu)}</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>จำนวนครั้งที่ตรวจพบ</span><span class="tt-v">${formatNum(sp.points)} จุด</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>พลังงานความร้อน FRP</span><span class="tt-v">${sp.avg_frp.toFixed(2)} MW</span></div>
+                <div class="tt-foot">มักเป็นโรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล (เกิดซ้ำ ≥25 วัน)</div>
+              `, "#38bdf8");
             } else {
               const v = ptHit.data;
               const cnt = state.sat === "N" ? v.n : v.all;
               const ag = state.sat === "N" ? v.agri_n : v.agri_all;
-              els.tooltip.innerHTML = `
-                <h4 style="color:#facc15">${escHtml(v.name)}${v.moo ? " หมู่ " + escHtml(v.moo) : ""}</h4>
-                <div class="tt-row"><span class="tt-k">พื้นที่</span><span class="tt-v">ต.${escHtml(v.tambon)} อ.${escHtml(v.amphoe)} จ.${escHtml(v.prov)}</span></div>
-                <div class="tt-row"><span class="tt-k">จุดความร้อน (${escHtml(state.sat)})</span><span class="tt-v">${formatNum(cnt)} จุด (เกษตร ${formatNum(ag)})</span></div>
-                <div class="tt-row"><span class="tt-k">ระยะห่างเฉลี่ย</span><span class="tt-v">${v.dist_km !== null ? v.dist_km.toFixed(2) + " กม." : "-"}</span></div>
-              `;
+              const agPct = cnt > 0 ? (ag * 100 / cnt).toFixed(0) : "0";
+              showTooltip(e.clientX, e.clientY, `
+                <div class="tt-head">
+                  <div>
+                    <h4 style="color:#facc15">${escHtml(v.name)}${v.moo ? " หมู่ " + escHtml(v.moo) : ""}</h4>
+                    <div class="tt-sub">ต.${escHtml(v.tambon)} · อ.${escHtml(v.amphoe)} · จ.${escHtml(v.prov)}</div>
+                  </div>
+                  <span class="tt-badge" style="color:#facc15;border-color:rgba(250,204,21,0.35);background:rgba(250,204,21,0.12);">${formatNum(cnt)} จุด</span>
+                </div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>ในพื้นที่เกษตร+ส.ป.ก.</span><span class="tt-v">${formatNum(ag)} จุด (${agPct}%)</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>ในเขตป่า/อื่น ๆ</span><span class="tt-v">${formatNum(Math.max(0, cnt - ag))} จุด</span></div>
+                <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ระยะห่างจุดไฟเฉลี่ย</span><span class="tt-v">${v.dist_km !== null ? v.dist_km.toFixed(2) + " กม." : "-"}</span></div>
+              `, "#facc15");
             }
+          } else {
+            positionTooltip(e.clientX, e.clientY);
           }
-          els.tooltip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px";
-          els.tooltip.style.top = Math.min(window.innerHeight - 170, e.clientY + 14) + "px";
-          els.tooltip.style.display = "block";
           return;
         }
         const hit = hitTestMap(e.clientX, e.clientY);
@@ -2437,29 +2559,41 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             const soilG = level === "province" ? getSoilAnnualMetric(it, "gwettop_peak") : null;
             const trpB = getTrpBreakdown(it);
             const trpVal = getTrpMetric(it);
-            const dTxt = hit.density !== null ? `${hit.density.toFixed(1)}/100 ตร.กม.` : "ไม่มีพื้นที่";
-            els.tooltip.innerHTML = `
-              <h4>${escHtml(it.name_th)}</h4>
-              <div class="tt-row"><span class="tt-k">จุดความร้อน</span><span class="tt-v">${formatNum(hit.total)} จุด (${dTxt})</span></div>
-              <div class="tt-row"><span class="tt-k">เกษตร+ส.ป.ก.</span><span class="tt-v">${hit.agriPct !== null ? hit.agriPct.toFixed(1) + "%" : "-"}</span></div>
-              <div class="tt-row"><span class="tt-k">รอยเผา สสน.</span><span class="tt-v">${trpVal !== null ? formatNum(trpVal, 0) + " ไร่" + (trpB ? " (เกษตร " + formatNum(trpB.agri, 0) + " · ป่า " + formatNum(trpB.forest, 0) + ")" : "") : "ไม่มีข้อมูล"}</span></div>
-              <div class="tt-row"><span class="tt-k">รอยเผา GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
-              <div class="tt-row"><span class="tt-k">เผาซ้ำซาก GISTDA</span><span class="tt-v">${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
-              <div class="tt-row"><span class="tt-k">ท่วมซ้ำ 17 ปี</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง (" + escHtml(hit.hazardLabel || "") + ")" : "ไม่มีข้อมูล HII"}</span></div>
-              ${level === "province" ? `<div class="tt-row"><span class="tt-k">อากาศเอื้อไฟ (FWI)</span><span class="tt-v">${wxFwi !== null ? wxFwi.toFixed(1) + "/100 (" + (wxTmax !== null ? wxTmax.toFixed(1) + "°C · RH " + (wxRh !== null ? wxRh.toFixed(0) + "%" : "-") : "") + ")" : "ไม่มีข้อมูล"}</span></div>` : ""}
-              ${level === "province" && (aqPm !== null || soilG !== null) ? `<div class="tt-row"><span class="tt-k">PM2.5 แล้ง · ดิน NASA</span><span class="tt-v">${aqPm !== null ? aqPm.toFixed(1) + " µg/m³" : "-"} · ${soilG !== null ? "ดิน " + soilG.toFixed(2) : "-"}</span></div>` : ""}
-            `;
+            const dTxt = hit.density !== null ? `${hit.density.toFixed(1)} /100 ตร.กม.` : "ไม่มีพื้นที่";
+            const agPct = hit.agriPct !== null ? hit.agriPct : 0;
+            const foPct = hit.total > 0 ? (hit.st.forest * 100 / hit.total) : 0;
+            const lvlLabel = level === "province" ? "จังหวัด" : level === "amphoe" ? "อำเภอ" : "ตำบล";
+            showTooltip(e.clientX, e.clientY, `
+              <div class="tt-head">
+                <div>
+                  <h4>${escHtml(it.name_th)}</h4>
+                  <div class="tt-sub">${lvlLabel} · ความหนาแน่น ${dTxt}</div>
+                </div>
+                <span class="tt-badge">${formatNum(hit.total)} จุด</span>
+              </div>
+              <div class="tt-bar">
+                <div style="background:#d48942;width:${agPct.toFixed(1)}%"></div>
+                <div style="background:#55947a;width:${foPct.toFixed(1)}%"></div>
+              </div>
+              <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${hit.agriPct !== null ? `${agPct.toFixed(1)}% / ${foPct.toFixed(1)}%` : "-"}</span></div>
+              <div class="tt-divider"></div>
+              <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>รอยเผา สสน. (20 ม.)</span><span class="tt-v">${trpVal !== null ? formatNum(trpVal, 0) + " ไร่" + (trpB ? ` (เกษตร ${formatNum(trpB.agri, 0)})` : "") : "ไม่มีข้อมูล"}</span></div>
+              <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#df6a37"></i>รอยเผา / เผาซ้ำ GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) : "ไม่มีข้อมูล"} / ${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "-"}</span></div>
+              <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>น้ำท่วมซ้ำ 17 ปี (HII)</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง" : "ไม่มีข้อมูล"}</span></div>
+              ${level === "province" ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>อากาศเอื้อไฟ FWI</span><span class="tt-v">${wxFwi !== null ? `${wxFwi.toFixed(1)}/100 (${wxTmax !== null ? wxTmax.toFixed(1) + "°C" : "-"} · RH ${wxRh !== null ? wxRh.toFixed(0) + "%" : "-"})` : "ไม่มีข้อมูล"}</span></div>` : ""}
+              ${level === "province" && (aqPm !== null || soilG !== null) ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a855f7"></i>PM2.5 แล้ง · ความชื้นดิน</span><span class="tt-v">${aqPm !== null ? aqPm.toFixed(1) + " µg/m³" : "-"} · ${soilG !== null ? soilG.toFixed(2) : "-"}</span></div>` : ""}
+              <div class="tt-foot">คลิกพื้นที่เพื่อเจาะลึกบนแผนที่</div>
+            `);
+          } else {
+            positionTooltip(e.clientX, e.clientY);
           }
-          els.tooltip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px";
-          els.tooltip.style.top = Math.min(window.innerHeight - 170, e.clientY + 14) + "px";
-          els.tooltip.style.display = "block";
         } else {
           lastTooltipKey = null;
-          els.tooltip.style.display = "none";
+          hideTooltip();
         }
-      } else if (e.target !== els.scatterCanvas) {
+      } else if (e.target !== els.scatterCanvas && e.target !== els.trendCanvas && !e.target.closest?.("#rankList")) {
         lastTooltipKey = null;
-        els.tooltip.style.display = "none";
+        hideTooltip();
       }
     }
     window.addEventListener("mousemove", (e) => {
@@ -2498,26 +2632,49 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.scatterCanvas.addEventListener("mousemove", (e) => {
       const rect = els.scatterCanvas.getBoundingClientRect();
       const x = e.clientX - rect.left, y = e.clientY - rect.top;
-      let best = null, bestD = 11;
+      let best = null, bestD = 12;
       for (const d of state.scatterDots) {
         const dist = Math.hypot(d.cx - x, d.cy - y);
         if (dist < bestD) { bestD = dist; best = d; }
       }
+      const nextCode = best ? best.rec.item.code : null;
+      if (nextCode !== state.scatterHoverCode) {
+        state.scatterHoverCode = nextCode;
+        drawScatterPlot();
+      }
       if (best) {
-        els.tooltip.innerHTML = `
-          <h4>${escHtml(best.rec.item.name_th)}</h4>
-          <div class="tt-row"><span class="tt-k">แกน X</span><span class="tt-v">${formatNum(best.x, 1)}</span></div>
-          <div class="tt-row"><span class="tt-k">แกน Y</span><span class="tt-v">${formatNum(best.y, 1)}</span></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;">คลิกจุดเพื่อซูมบนแผนที่</div>
-        `;
-        els.tooltip.style.left = Math.min(window.innerWidth - 260, e.clientX + 12) + "px";
-        els.tooltip.style.top = Math.max(10, e.clientY - 75) + "px";
-        els.tooltip.style.display = "block";
-      } else if (e.target !== els.scatterCanvas) {
-        els.tooltip.style.display = "none";
+        const it = best.rec.item;
+        const xLabel = els.scatterX?.selectedOptions?.[0]?.textContent || "แกน X";
+        const yLabel = els.scatterY?.selectedOptions?.[0]?.textContent || "แกน Y";
+        const xDec = state.scatterX === "soil_wet" ? 2 : (state.scatterX.includes("rai") || state.scatterX.includes("flood") || state.scatterX.includes("days") || state.scatterX === "aq_exceed" ? 0 : 1);
+        const yDec = state.scatterY === "count" ? 0 : 1;
+        const agPct = best.rec.agriPct !== null ? best.rec.agriPct.toFixed(1) : "0.0";
+        const foPct = best.rec.total > 0 ? (best.rec.st.forest * 100 / best.rec.total).toFixed(1) : "0.0";
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(it.name_th)}</h4>
+              <div class="tt-sub">${best.isProv ? "ระดับจังหวัด" : "พื้นที่ในมุมมอง"}</div>
+            </div>
+            <span class="tt-badge">${formatNum(best.rec.total)} จุด</span>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>${escHtml(xLabel)}</span><span class="tt-v">${formatNum(best.x, xDec)}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:var(--accent)"></i>${escHtml(yLabel)}</span><span class="tt-v">${formatNum(best.y, yDec)}</span></div>
+          <div class="tt-bar"><div style="background:#d48942;width:${agPct}%"></div><div style="background:#55947a;width:${foPct}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${agPct}% / ${foPct}%</span></div>
+          <div class="tt-foot">คลิกจุดเพื่อซูมบนแผนที่</div>
+        `);
+      } else {
+        hideTooltip();
       }
     });
-    els.scatterCanvas.addEventListener("mouseleave", () => { els.tooltip.style.display = "none"; });
+    els.scatterCanvas.addEventListener("mouseleave", () => {
+      if (state.scatterHoverCode) {
+        state.scatterHoverCode = null;
+        drawScatterPlot();
+      }
+      hideTooltip();
+    });
     els.scatterCanvas.addEventListener("click", (e) => {
       const rect = els.scatterCanvas.getBoundingClientRect();
       const x = e.clientX - rect.left, y = e.clientY - rect.top;
@@ -2527,6 +2684,67 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (dist < bestD) { bestD = dist; best = d; }
       }
       if (best) selectFeature(best.rec.item, best.isProv ? "province" : getVisibleRecords().level);
+    });
+
+    // Yearly trend & Day/Night bar hover
+    els.trendCanvas.addEventListener("mousemove", (e) => {
+      const rect = els.trendCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const dn = state.trendDayNightInfo;
+      if (dn && dn.tot > 0 && y >= dn.y0) {
+        if (state.trendHoverIdx !== null) { state.trendHoverIdx = null; drawTrendChart(); }
+        const dPct = (dn.day * 100 / dn.tot).toFixed(1);
+        const nPct = (dn.night * 100 / dn.tot).toFixed(1);
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>สัดส่วนเวลาที่ตรวจพบจุดความร้อน</h4>
+              <div class="tt-sub">เปรียบเทียบรอบดาวเทียมกลางวัน vs กลางคืน</div>
+            </div>
+            <span class="tt-badge">${formatNum(dn.tot)} จุด</span>
+          </div>
+          <div class="tt-bar"><div style="background:#d4a85a;width:${dPct}%"></div><div style="background:#5c8ba8;width:${nPct}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a85a"></i>กลางวัน (~13:30 น.)</span><span class="tt-v">${formatNum(dn.day)} จุด (${dPct}%)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#5c8ba8"></i>กลางคืน (~01:30 น.)</span><span class="tt-v">${formatNum(dn.night)} จุด (${nPct}%)</span></div>
+        `, "#d4a85a");
+        return;
+      }
+      const hit = (state.trendHitBars || []).find(b => x >= b.x0 && x <= b.x1 && y <= b.y1);
+      const nextIdx = hit ? hit.idx : null;
+      if (nextIdx !== state.trendHoverIdx) {
+        state.trendHoverIdx = nextIdx;
+        drawTrendChart();
+      }
+      if (hit) {
+        const r = hit.row;
+        const agPct = r.total > 0 ? (r.agri * 100 / r.total).toFixed(1) : "0.0";
+        const foPct = r.total > 0 ? (r.forest * 100 / r.total).toFixed(1) : "0.0";
+        const otPct = r.total > 0 ? (r.other * 100 / r.total).toFixed(1) : "0.0";
+        const yoy = hit.prev && hit.prev.total > 0 ? ((r.total - hit.prev.total) * 100 / hit.prev.total) : null;
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>ปี ${r.year} (พ.ศ. ${r.year + 543})</h4>
+              <div class="tt-sub">${state.janOct ? "ช่วงเทียบมาตรฐาน ม.ค.–ต.ค." : "รวมทุกเดือนในตัวกรอง"}</div>
+            </div>
+            <span class="tt-badge">${yoy !== null ? `${yoy >= 0 ? "+" : ""}${yoy.toFixed(1)}% YoY` : formatNum(r.total) + " จุด"}</span>
+          </div>
+          <div class="tt-row"><span class="tt-k">จุดความร้อนรวม</span><span class="tt-v">${formatNum(r.total)} จุด</span></div>
+          <div class="tt-bar"><div style="background:#d48942;width:${agPct}%"></div><div style="background:#55947a;width:${foPct}%"></div><div style="background:#64748b;width:${otPct}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร + ส.ป.ก.</span><span class="tt-v">${formatNum(r.agri)} (${agPct}%)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>ป่าไม้</span><span class="tt-v">${formatNum(r.forest)} (${foPct}%)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#64748b"></i>พื้นที่อื่น ๆ</span><span class="tt-v">${formatNum(r.other)} (${otPct}%)</span></div>
+        `);
+      } else {
+        hideTooltip();
+      }
+    });
+    els.trendCanvas.addEventListener("mouseleave", () => {
+      if (state.trendHoverIdx !== null) {
+        state.trendHoverIdx = null;
+        drawTrendChart();
+      }
+      hideTooltip();
     });
     let resizeTimer = null;
     window.addEventListener("resize", () => {

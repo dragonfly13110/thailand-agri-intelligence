@@ -1260,7 +1260,19 @@ MULTI_PAGE_JS = r"""
       }
     }
 
-    // Stacked monthly bars (restrained amber + muted sage)
+    // Stacked monthly bars (restrained amber + muted sage) + hover column highlight
+    const hovIdx = (hoverStore && typeof hoverStore.hoverIdx === "number") ? hoverStore.hoverIdx : -1;
+    if (hovIdx >= 0 && hovIdx < n) {
+      ctx.save();
+      ctx.fillStyle = isDark ? "rgba(223, 106, 55, 0.12)" : "rgba(197, 83, 37, 0.10)";
+      ctx.fillRect(pad.l + hovIdx * step, pad.t, step, ph);
+      ctx.strokeStyle = isDark ? "rgba(253, 224, 71, 0.55)" : "rgba(197, 83, 37, 0.55)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      const hcx = pad.l + (hovIdx + 0.5) * step;
+      ctx.beginPath(); ctx.moveTo(hcx, pad.t); ctx.lineTo(hcx, pad.t + ph); ctx.stroke();
+      ctx.restore();
+    }
     const bw = Math.max(2.5, step * 0.68);
     for (let i = 0; i < n; i++) {
       const x = pad.l + i * step + (step - bw) / 2;
@@ -1272,6 +1284,11 @@ MULTI_PAGE_JS = r"""
       if (agH > 0) { ctx.fillStyle = "rgba(212, 137, 66, 0.90)"; ctx.fillRect(x, y - agH, bw, agH); y -= agH; }
       if (forH > 0) { ctx.fillStyle = "rgba(85, 148, 122, 0.88)"; ctx.fillRect(x, y - forH, bw, forH); y -= forH; }
       if (othH > 0) { ctx.fillStyle = "rgba(139, 149, 167, 0.45)"; ctx.fillRect(x, y - othH, bw, othH); }
+      if (i === hovIdx && totH > 0) {
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(x - 0.5, pad.t + ph - totH, bw + 1, totH);
+      }
 
       if (months[i].endsWith("-01")) {
         ctx.fillStyle = textCol;
@@ -1284,7 +1301,7 @@ MULTI_PAGE_JS = r"""
     }
 
     // Weather smooth overlay line + subtle translucent area fill
-    const wxMeta = WX_LABELS[String(wxKey)] || { name: "อากาศ", unit: "", color: "#689cb8" };
+    const wxMeta = (hoverStore && hoverStore.customMeta) || WX_LABELS[String(wxKey)] || { name: "อากาศ", unit: "", color: "#689cb8" };
     if (validW.length) {
       ctx.save();
       const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ph);
@@ -1318,6 +1335,16 @@ MULTI_PAGE_JS = r"""
         if (!started) { ctx.moveTo(cx, cy); started = true; } else ctx.lineTo(cx, cy);
       }
       ctx.stroke();
+      if (hovIdx >= 0 && hovIdx < n && wxVals[hovIdx] !== null) {
+        const hcx = pad.l + (hovIdx + 0.5) * step;
+        const hcy = pad.t + ph - ((wxVals[hovIdx] - minW) / spanW) * ph;
+        ctx.fillStyle = "rgba(124, 176, 204, 0.28)";
+        ctx.beginPath(); ctx.arc(hcx, hcy, 8.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fde047";
+        ctx.strokeStyle = isDark ? "#0f131b" : "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(hcx, hcy, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -1332,7 +1359,9 @@ MULTI_PAGE_JS = r"""
     ctx.fillStyle = textCol; ctx.fillText(`${wxMeta.name} (${wxMeta.unit})`, pad.l + 176, 12);
 
     if (hoverStore) {
+      hoverStore.canvas = canvas; hoverStore.wxKey = wxKey;
       hoverStore.pad = pad; hoverStore.step = step; hoverStore.series = series; hoverStore.wxMeta = wxMeta;
+      hoverStore.avgWx = validW.length ? (validW.reduce((a, b) => a + b, 0) / validW.length) : null;
     }
   }
 
@@ -1345,20 +1374,64 @@ MULTI_PAGE_JS = r"""
       const x = e.clientX - rect.left;
       const idx = Math.floor((x - hoverStore.pad.l) / hoverStore.step);
       const s = hoverStore.series;
-      if (idx < 0 || idx >= s.months.length) { els.tooltip.style.display = "none"; return; }
+      if (idx < 0 || idx >= s.months.length) {
+        if (hoverStore.hoverIdx !== -1) {
+          hoverStore.hoverIdx = -1;
+          drawDualFireWeatherChart(canvas, hoverStore.series, hoverStore.wxKey, hoverStore);
+        }
+        hideTooltip();
+        return;
+      }
+      if (hoverStore.hoverIdx !== idx) {
+        hoverStore.hoverIdx = idx;
+        drawDualFireWeatherChart(canvas, hoverStore.series, hoverStore.wxKey, hoverStore);
+      }
       const ym = s.months[idx];
-      const moName = MONTH_TH_SHORT[Number(ym.slice(5, 7)) - 1] + " " + ym.slice(0, 4);
-      els.tooltip.innerHTML = `
-        <h4>${escHtml(moName)}</h4>
-        <div class="tt-row"><span class="tt-k">จุดความร้อนรวม</span><span class="tt-v">${formatNum(s.fireTot[idx])} จุด</span></div>
-        <div class="tt-row"><span class="tt-k">เกษตร+ส.ป.ก. / ป่า</span><span class="tt-v">${formatNum(s.fireAgri[idx])} / ${formatNum(s.fireFor[idx])}</span></div>
-        <div class="tt-row"><span class="tt-k">${escHtml(hoverStore.wxMeta.name)}</span><span class="tt-v">${s.wxVals[idx] !== null ? s.wxVals[idx] + " " + escHtml(hoverStore.wxMeta.unit) : "ไม่มีข้อมูล"}</span></div>
-      `;
-      els.tooltip.style.left = Math.min(window.innerWidth - 280, e.clientX + 14) + "px";
-      els.tooltip.style.top = Math.max(12, e.clientY - 95) + "px";
-      els.tooltip.style.display = "block";
+      const moNum = Number(ym.slice(5, 7));
+      const yrNum = Number(ym.slice(0, 4));
+      const moName = `${MONTH_TH_SHORT[moNum - 1]} ${yrNum} (พ.ศ. ${yrNum + 543})`;
+      const isPeak = moNum >= 1 && moNum <= 4;
+      const tot = s.fireTot[idx] || 0;
+      const ag = s.fireAgri[idx] || 0;
+      const fo = s.fireFor[idx] || 0;
+      const ot = Math.max(0, tot - ag - fo);
+      const agPct = tot > 0 ? (ag * 100 / tot).toFixed(1) : "0.0";
+      const foPct = tot > 0 ? (fo * 100 / tot).toFixed(1) : "0.0";
+      const otPct = tot > 0 ? (ot * 100 / tot).toFixed(1) : "0.0";
+      const wVal = s.wxVals[idx];
+      const avgW = hoverStore.avgWx;
+      let wDiffTxt = "";
+      if (wVal !== null && avgW !== null && Math.abs(avgW) > 1e-6) {
+        const diffPct = ((wVal - avgW) * 100 / avgW);
+        wDiffTxt = ` <span style="font-weight:500;color:var(--muted);">(${diffPct >= 0 ? "+" : ""}${diffPct.toFixed(0)}% vs เฉลี่ย)</span>`;
+      }
+      showTooltip(e.clientX, e.clientY, `
+        <div class="tt-head">
+          <div>
+            <h4>${escHtml(moName)}</h4>
+            <div class="tt-sub">${isPeak ? "ฤดูเผาพีค (ม.ค.–เม.ย.)" : "นอกฤดูเผาหลัก"}</div>
+          </div>
+          <span class="tt-badge">${formatNum(tot)} จุด</span>
+        </div>
+        <div class="tt-bar">
+          <div style="background:#d48942;width:${agPct}%"></div>
+          <div style="background:#55947a;width:${foPct}%"></div>
+          <div style="background:#8b95a7;width:${otPct}%"></div>
+        </div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร + ส.ป.ก.</span><span class="tt-v">${formatNum(ag)} จุด (${agPct}%)</span></div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>ป่าไม้</span><span class="tt-v">${formatNum(fo)} จุด (${foPct}%)</span></div>
+        ${ot > 0 ? `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#8b95a7"></i>พื้นที่อื่น ๆ</span><span class="tt-v">${formatNum(ot)} จุด (${otPct}%)</span></div>` : ""}
+        <div class="tt-divider"></div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#7cb0cc"></i>${escHtml(hoverStore.wxMeta.name)}</span><span class="tt-v">${wVal !== null ? wVal + " " + escHtml(hoverStore.wxMeta.unit) + wDiffTxt : "ไม่มีข้อมูล"}</span></div>
+      `);
     });
-    canvas.addEventListener("mouseleave", () => { els.tooltip.style.display = "none"; });
+    canvas.addEventListener("mouseleave", () => {
+      if (hoverStore.hoverIdx !== -1) {
+        hoverStore.hoverIdx = -1;
+        drawDualFireWeatherChart(canvas, hoverStore.series, hoverStore.wxKey, hoverStore);
+      }
+      hideTooltip();
+    });
   }
 
   const ovHoverStore = {};
@@ -1405,8 +1478,30 @@ MULTI_PAGE_JS = r"""
       const mxY = Math.max(1, ...yrTot);
       sparkEl.innerHTML = yrTot.map((v, i) => {
         const pct = Math.max(12, Math.round(v * 100 / mxY));
-        return `<div class="mini-spark-col" title="${2022 + i}: ${formatNum(v)} จุด"><div class="mini-spark-track"><div class="mini-spark-bar" style="height:${pct}%"></div></div><span class="mini-spark-yr">${String(2022 + i).slice(2)}</span></div>`;
+        return `<div class="mini-spark-col" data-sp-idx="${i}"><div class="mini-spark-track"><div class="mini-spark-bar" style="height:${pct}%"></div></div><span class="mini-spark-yr">${String(2022 + i).slice(2)}</span></div>`;
       }).join("");
+      sparkEl.querySelectorAll(".mini-spark-col[data-sp-idx]").forEach(col => {
+        const i = Number(col.dataset.spIdx);
+        const yr = 2022 + i;
+        const v = yrTot[i] || 0;
+        const prev = i > 0 ? yrTot[i - 1] : null;
+        const yoyP = prev && prev > 0 ? ((v - prev) * 100 / prev) : null;
+        const shPct = tot5y > 0 ? (v * 100 / tot5y).toFixed(1) : "0.0";
+        col.addEventListener("mousemove", (e) => {
+          showTooltip(e.clientX, e.clientY, `
+            <div class="tt-head">
+              <div>
+                <h4>ปี ${yr} (พ.ศ. ${yr + 543})</h4>
+                <div class="tt-sub">ช่วงเทียบมาตรฐาน ม.ค.–ต.ค. (${satOnlyN ? "Suomi NPP" : "ทุกดาวเทียม"})</div>
+              </div>
+              <span class="tt-badge">${yoyP !== null ? `${yoyP >= 0 ? "+" : ""}${yoyP.toFixed(1)}% YoY` : shPct + "% ของ 5 ปี"}</span>
+            </div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:var(--accent)"></i>จุดความร้อนทั้งปี</span><span class="tt-v">${formatNum(v)} จุด</span></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>สัดส่วนต่อยอด 5 ปี</span><span class="tt-v">${shPct}%</span></div>
+          `);
+        });
+        col.addEventListener("mouseleave", hideTooltip);
+      });
     }
 
     // KPI 2: Agri vs Forest
@@ -1499,24 +1594,109 @@ MULTI_PAGE_JS = r"""
         </div>
       `;
       if (rg.topProv) div.onclick = () => jumpToProvinceOnMap(rg.topProv.code);
+      div.addEventListener("mousemove", (e) => {
+        const shNat = tot5y > 0 ? (rg.tot * 100 / tot5y).toFixed(1) : "0.0";
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(rg.name)} (${rg.provs} จังหวัด)</h4>
+              <div class="tt-sub">คิดเป็น ${shNat}% ของจุดความร้อนทั้งประเทศ</div>
+            </div>
+            <span class="tt-badge">${formatNum(rg.tot)} จุด</span>
+          </div>
+          <div class="tt-bar">
+            <div style="background:#d48942;width:${ap.toFixed(1)}%"></div>
+            <div style="background:#55947a;width:${fp.toFixed(1)}%"></div>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร + ส.ป.ก.</span><span class="tt-v">${formatNum(rg.agri)} จุด (${ap.toFixed(1)}%)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>เขตป่าไม้</span><span class="tt-v">${formatNum(rg.forest)} จุด (${fp.toFixed(1)}%)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:var(--accent)"></i>จังหวัดสูงสุดในภาค</span><span class="tt-v">${escHtml(rg.topProv?.name_th || "-")} (${formatNum(rg.topCnt)} จุด)</span></div>
+          <div class="tt-foot">คลิกเพื่อซูมแผนที่ไปที่ จ.${escHtml(rg.topProv?.name_th || "")}</div>
+        `);
+      });
+      div.addEventListener("mouseleave", hideTooltip);
       regEl.appendChild(div);
     }
 
     // Donut chart (TamRoyPao Season 2569 crop breakdown — cohesive earthy editorial palette)
+    const trp24Crops = [0, 0, 0, 0, 0];
+    const trp25Crops = [0, 0, 0, 0, 0];
+    for (const p of DATA.provinces) {
+      if (!p.trp) continue;
+      if (p.trp["2024"]) for (let k = 0; k < 5; k++) trp24Crops[k] += p.trp["2024"][k] || 0;
+      if (p.trp["2025"]) for (let k = 0; k < 5; k++) trp25Crops[k] += p.trp["2025"][k] || 0;
+    }
+    const fuelFactors = [0.58, 1.12, 0.88, 0.70, 2.40];
     const donutCanvas = document.getElementById("ovDonutCanvas");
     const segs = [
-      { label: "นาข้าว", val: trp26Crops[0], color: "#d4a84f" },
-      { label: "อ้อย", val: trp26Crops[1], color: "#c96f53" },
-      { label: "ข้าวโพด", val: trp26Crops[2], color: "#7d9b65" },
-      { label: "พืชผสม", val: trp26Crops[3], color: "#8b8579" },
-      { label: "ป่าไม้", val: trp26Crops[4], color: "#a84438" },
+      { label: "นาข้าว", val: trp26Crops[0], v24: trp24Crops[0], v25: trp25Crops[0], fuel: fuelFactors[0], color: "#d4a84f" },
+      { label: "อ้อย", val: trp26Crops[1], v24: trp24Crops[1], v25: trp25Crops[1], fuel: fuelFactors[1], color: "#c96f53" },
+      { label: "ข้าวโพด", val: trp26Crops[2], v24: trp24Crops[2], v25: trp25Crops[2], fuel: fuelFactors[2], color: "#7d9b65" },
+      { label: "พืชผสม", val: trp26Crops[3], v24: trp24Crops[3], v25: trp25Crops[3], fuel: fuelFactors[3], color: "#8b8579" },
+      { label: "ป่าไม้", val: trp26Crops[4], v24: trp24Crops[4], v25: trp25Crops[4], fuel: fuelFactors[4], color: "#a84438" },
     ];
     drawDonutChart(donutCanvas, segs, `${(trp26Tot / 1e6).toFixed(2)} ล.ไร่`, "ฤดู 2569");
     const dayPct = tot5y > 0 ? (day5y * 100 / tot5y) : 0;
-    document.getElementById("ovDonutLegend").innerHTML = segs.map(s => {
+    const legContainer = document.getElementById("ovDonutLegend");
+    legContainer.innerHTML = segs.map((s, idx) => {
       const pct = trp26Tot > 0 ? (s.val * 100 / trp26Tot).toFixed(1) : "0.0";
-      return `<div class="donut-leg-item"><span><i style="display:inline-block;width:9px;height:9px;background:${s.color};border-radius:3px;margin-right:5px;"></i>${escHtml(s.label)}</span><strong>${pct}% <span style="color:var(--muted);font-weight:500;">(${(s.val / 1e6).toFixed(2)}M)</span></strong></div>`;
-    }).join("") + `<div class="donut-leg-item" style="grid-column:1/-1;justify-content:center;"><span>กลางวัน <strong>${dayPct.toFixed(1)}%</strong> · กลางคืน <strong>${(100 - dayPct).toFixed(1)}%</strong></span></div>`;
+      return `<div class="donut-leg-item" data-seg-idx="${idx}" style="cursor:pointer;"><span><i style="display:inline-block;width:9px;height:9px;background:${s.color};border-radius:3px;margin-right:5px;"></i>${escHtml(s.label)}</span><strong>${pct}% <span style="color:var(--muted);font-weight:500;">(${(s.val / 1e6).toFixed(2)}M)</span></strong></div>`;
+    }).join("") + `<div class="donut-leg-item" data-daynight="1" style="grid-column:1/-1;justify-content:center;cursor:pointer;"><span>กลางวัน <strong>${dayPct.toFixed(1)}%</strong> · กลางคืน <strong>${(100 - dayPct).toFixed(1)}%</strong></span></div>`;
+    const showDonutSegTooltip = (e, idx) => {
+      const s = segs[idx];
+      if (!s) return;
+      const pct = trp26Tot > 0 ? (s.val * 100 / trp26Tot).toFixed(1) : "0.0";
+      const chg24 = s.v24 > 0 ? ((s.val - s.v24) * 100 / s.v24) : null;
+      const pm25Est = Math.round(s.val * s.fuel * 0.0085);
+      showTooltip(e.clientX, e.clientY, `
+        <div class="tt-head">
+          <div>
+            <h4 style="color:${s.color}">${escHtml(s.label)} · ฤดูฝุ่น 2569</h4>
+            <div class="tt-sub">รอยเผา Sentinel-2 20 ม. (สสน. 62 จังหวัด)</div>
+          </div>
+          <span class="tt-badge" style="color:${s.color};border-color:${s.color}55;background:${s.color}1f;">${pct}%</span>
+        </div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${s.color}"></i>พื้นที่เผาฤดู 2569</span><span class="tt-v">${formatNum(s.val, 0)} ไร่ (${(s.val / 1e6).toFixed(2)} ล.ไร่)</span></div>
+        <div class="tt-row"><span class="tt-k">ฤดู 2568 / ฤดู 2567</span><span class="tt-v">${(s.v25 / 1e6).toFixed(2)} / ${(s.v24 / 1e6).toFixed(2)} ล.ไร่</span></div>
+        ${chg24 !== null ? `<div class="tt-row"><span class="tt-k">เปลี่ยนแปลงเทียบฤดู 2567</span><span class="tt-v" style="color:${chg24 <= 0 ? "#55947a" : "#df6a37"}">${chg24 >= 0 ? "+" : ""}${chg24.toFixed(1)}%</span></div>` : ""}
+        <div class="tt-row"><span class="tt-k">ประมาณการปล่อย PM2.5</span><span class="tt-v">~${formatNum(pm25Est)} ตัน</span></div>
+      `, s.color);
+    };
+    legContainer.querySelectorAll(".donut-leg-item[data-seg-idx]").forEach(el => {
+      const idx = Number(el.dataset.segIdx);
+      el.addEventListener("mousemove", (e) => {
+        if (donutCanvas._hovIdx !== idx) {
+          donutCanvas._hovIdx = idx;
+          drawDonutChart(donutCanvas, segs, `${(trp26Tot / 1e6).toFixed(2)} ล.ไร่`, "ฤดู 2569");
+        }
+        showDonutSegTooltip(e, idx);
+      });
+      el.addEventListener("mouseleave", () => {
+        donutCanvas._hovIdx = -1;
+        drawDonutChart(donutCanvas, segs, `${(trp26Tot / 1e6).toFixed(2)} ล.ไร่`, "ฤดู 2569");
+        hideTooltip();
+      });
+    });
+    const dnEl = legContainer.querySelector(".donut-leg-item[data-daynight]");
+    if (dnEl) {
+      dnEl.addEventListener("mousemove", (e) => {
+        const night5y = Math.max(0, tot5y - day5y);
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>เวลาที่ตรวจพบจุดความร้อน (5 ปี)</h4>
+              <div class="tt-sub">เปรียบเทียบรอบโคจรดาวเทียมกลางวัน vs กลางคืน</div>
+            </div>
+            <span class="tt-badge">${formatNum(tot5y)} จุด</span>
+          </div>
+          <div class="tt-bar"><div style="background:#d4a84f;width:${dayPct.toFixed(1)}%"></div><div style="background:#689cb8;width:${(100 - dayPct).toFixed(1)}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>รอบกลางวัน (~13:30 น.)</span><span class="tt-v">${formatNum(day5y)} จุด (${dayPct.toFixed(1)}%)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>รอบกลางคืน (~01:30 น.)</span><span class="tt-v">${formatNum(night5y)} จุด (${(100 - dayPct).toFixed(1)}%)</span></div>
+        `);
+      });
+      dnEl.addEventListener("mouseleave", hideTooltip);
+    }
+    donutCanvas._showSegTooltip = showDonutSegTooltip;
 
     // Top 10 List
     const topEl = document.getElementById("ovTopList");
@@ -1536,6 +1716,32 @@ MULTI_PAGE_JS = r"""
           <span style="font-weight:700">${formatNum(it.cnt)}</span>
         `;
         row.onclick = () => jumpToProvinceOnMap(it.p.code);
+        row.addEventListener("mousemove", (e) => {
+          const p = it.p;
+          const ag = provAgri.get(p.code) || 0;
+          const fo = provFor.get(p.code) || 0;
+          const ap = it.cnt > 0 ? (ag * 100 / it.cnt).toFixed(1) : "0.0";
+          const fp = it.cnt > 0 ? (fo * 100 / it.cnt).toFixed(1) : "0.0";
+          const t26 = p.trp?.["2026"];
+          const trp26V = t26 ? (t26[0] + t26[1] + t26[2] + t26[3] + t26[4]) : null;
+          const fwi26 = p.wx_y?.["2026"]?.peak_fwi ?? null;
+          const pm26 = p.aq_y?.["2026"]?.pm25_peak ?? null;
+          showTooltip(e.clientX, e.clientY, `
+            <div class="tt-head">
+              <div>
+                <h4>อันดับ #${idx + 1} จ.${escHtml(p.name_th)}</h4>
+                <div class="tt-sub">${escHtml(REGION_TH[p.region] || p.region || "-")} · คิดเป็น ${tot5y > 0 ? (it.cnt * 100 / tot5y).toFixed(1) : "0"}% ของประเทศ</div>
+              </div>
+              <span class="tt-badge">${formatNum(it.cnt)} จุด</span>
+            </div>
+            <div class="tt-bar"><div style="background:#d48942;width:${ap}%"></div><div style="background:#55947a;width:${fp}%"></div></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${ap}% / ${fp}%</span></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>รอยเผา สสน. ฤดู 2569</span><span class="tt-v">${trp26V !== null ? formatNum(trp26V, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>FWI หน้าแล้ง · PM2.5</span><span class="tt-v">${fwi26 !== null ? fwi26.toFixed(1) + "/100" : "-"} · ${pm26 !== null ? pm26.toFixed(1) + " µg/m³" : "-"}</span></div>
+            <div class="tt-foot">คลิกเพื่อเปิดดู จ.${escHtml(p.name_th)} บนแผนที่เจาะลึก</div>
+          `);
+        });
+        row.addEventListener("mouseleave", hideTooltip);
         topEl.appendChild(row);
       });
     } else {
@@ -1543,6 +1749,7 @@ MULTI_PAGE_JS = r"""
       const mx = (satOnlyN ? topVils[0]?.n : topVils[0]?.all) || 1;
       topVils.forEach((v, idx) => {
         const cnt = satOnlyN ? v.n : v.all;
+        const ag = satOnlyN ? v.agri_n : v.agri_all;
         const row = document.createElement("div");
         row.className = "rank-item";
         row.innerHTML = `
@@ -1554,6 +1761,23 @@ MULTI_PAGE_JS = r"""
           <span style="font-weight:700">${formatNum(cnt)}</span>
         `;
         row.onclick = () => jumpToProvinceOnMap(v.prov_code);
+        row.addEventListener("mousemove", (e) => {
+          const ap = cnt > 0 ? (ag * 100 / cnt).toFixed(0) : "0";
+          showTooltip(e.clientX, e.clientY, `
+            <div class="tt-head">
+              <div>
+                <h4>#${idx + 1} ${escHtml(v.name)}${v.moo ? " หมู่ " + escHtml(v.moo) : ""}</h4>
+                <div class="tt-sub">ต.${escHtml(v.tambon)} · อ.${escHtml(v.amphoe)} · จ.${escHtml(v.prov)}</div>
+              </div>
+              <span class="tt-badge">${formatNum(cnt)} จุด</span>
+            </div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>ในเขตเกษตร + ส.ป.ก.</span><span class="tt-v">${formatNum(ag)} จุด (${ap}%)</span></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>ในเขตป่าไม้/อื่น ๆ</span><span class="tt-v">${formatNum(Math.max(0, cnt - ag))} จุด</span></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ระยะห่างจุดไฟเฉลี่ย</span><span class="tt-v">${v.dist_km !== null ? v.dist_km.toFixed(2) + " กม." : "-"}</span></div>
+            <div class="tt-foot">คลิกเพื่อซูมแผนที่ไปที่ จ.${escHtml(v.prov)}</div>
+          `);
+        });
+        row.addEventListener("mouseleave", hideTooltip);
         topEl.appendChild(row);
       });
     }
@@ -1577,27 +1801,72 @@ MULTI_PAGE_JS = r"""
     const sum = segs.reduce((a, s) => a + s.val, 0) || 1;
     let ang = -Math.PI / 2;
     const sepCol = state.theme === "dark" ? "#121b2e" : "#ffffff";
-    for (const s of segs) {
+    const hovIdx = typeof canvas._hovIdx === "number" ? canvas._hovIdx : -1;
+    const arcRanges = [];
+    segs.forEach((s, idx) => {
       const da = (s.val / sum) * Math.PI * 2;
-      if (da <= 0) continue;
+      if (da <= 0) return;
+      const isHov = idx === hovIdx;
+      const ro = isHov ? rOut + 4 : rOut;
+      const ri = isHov ? rIn - 2 : rIn;
       ctx.beginPath();
-      ctx.arc(cx, cy, rOut, ang, ang + da);
-      ctx.arc(cx, cy, rIn, ang + da, ang, true);
+      ctx.arc(cx, cy, ro, ang, ang + da);
+      ctx.arc(cx, cy, ri, ang + da, ang, true);
       ctx.closePath();
       ctx.fillStyle = s.color;
       ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = sepCol;
+      ctx.lineWidth = isHov ? 2.5 : 2;
+      ctx.strokeStyle = isHov ? "#fde047" : sepCol;
       ctx.stroke();
+      arcRanges.push({ idx, a0: ang, a1: ang + da });
       ang += da;
-    }
+    });
+    const hovSeg = hovIdx >= 0 && segs[hovIdx] ? segs[hovIdx] : null;
     ctx.textAlign = "center";
-    ctx.fillStyle = state.theme === "dark" ? "#f8fafc" : "#0f172a";
-    ctx.font = "800 17px system-ui, sans-serif";
-    ctx.fillText(centerTop, cx, cy - 2);
+    ctx.fillStyle = hovSeg ? hovSeg.color : (state.theme === "dark" ? "#f8fafc" : "#0f172a");
+    ctx.font = "800 16.5px system-ui, sans-serif";
+    ctx.fillText(hovSeg ? `${(hovSeg.val / 1e6).toFixed(2)} ล.ไร่` : centerTop, cx, cy - 2);
     ctx.fillStyle = state.theme === "dark" ? "#94a3b8" : "#475569";
     ctx.font = "600 11.5px system-ui, sans-serif";
-    ctx.fillText(centerSub, cx, cy + 16);
+    ctx.fillText(hovSeg ? `${hovSeg.label} (${(hovSeg.val * 100 / sum).toFixed(1)}%)` : centerSub, cx, cy + 16);
+
+    canvas._donutMeta = { cx, cy, rIn: rIn - 6, rOut: rOut + 8, arcRanges, segs, centerTop, centerSub };
+    if (!canvas._donutBound) {
+      canvas._donutBound = true;
+      canvas.addEventListener("mousemove", (e) => {
+        const dm = canvas._donutMeta;
+        if (!dm) return;
+        const r = canvas.getBoundingClientRect();
+        const dx = e.clientX - r.left - dm.cx;
+        const dy = e.clientY - r.top - dm.cy;
+        const dist = Math.hypot(dx, dy);
+        let found = -1;
+        if (dist >= dm.rIn && dist <= dm.rOut) {
+          let a = Math.atan2(dy, dx);
+          if (a < -Math.PI / 2) a += Math.PI * 2;
+          for (const ar of dm.arcRanges) {
+            if (a >= ar.a0 && a <= ar.a1) { found = ar.idx; break; }
+          }
+        }
+        if (found !== canvas._hovIdx) {
+          canvas._hovIdx = found;
+          drawDonutChart(canvas, dm.segs, dm.centerTop, dm.centerSub);
+        }
+        if (found >= 0 && canvas._showSegTooltip) {
+          canvas._showSegTooltip(e, found);
+        } else {
+          hideTooltip();
+        }
+      });
+      canvas.addEventListener("mouseleave", () => {
+        const dm = canvas._donutMeta;
+        if (canvas._hovIdx !== -1 && dm) {
+          canvas._hovIdx = -1;
+          drawDonutChart(canvas, dm.segs, dm.centerTop, dm.centerSub);
+        }
+        hideTooltip();
+      });
+    }
   }
 
   // ===== Page 3: Fire-Weather Intelligence Lab =====
@@ -1687,6 +1956,24 @@ MULTI_PAGE_JS = r"""
         <div class="fc-meter-bg"><div class="fc-meter-fg" style="width:${Math.max(6, Math.min(100, score))}%"></div></div>
         <span class="fc-risk ${cls}">${tier}</span>
       `;
+      card.addEventListener("mousemove", (e) => {
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(label)} (${escHtml(d.time[i])})</h4>
+              <div class="tt-sub">พยากรณ์อากาศเอื้อไฟ · จ.${escHtml(provObj.name_th)}</div>
+            </div>
+            <span class="tt-badge" style="color:${barCol};border-color:${barCol}55;background:${barCol}1f;">FWI ${score}/100 · ${tier}</span>
+          </div>
+          <div class="tt-bar"><div style="background:${barCol};width:${Math.max(6, Math.min(100, score))}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#df6a37"></i>ความร้อนสูงสุด / ต่ำสุด (30%)</span><span class="tt-v">${tmax !== null ? tmax.toFixed(1) : "-"}° / ${tmin !== null ? tmin.toFixed(1) : "-"}°C (${Math.round(tS * 30)}/30)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>ความชื้นสัมพัทธ์ต่ำสุด (30%)</span><span class="tt-v">${rh.toFixed(0)}% (${Math.round(rhS * 30)}/30)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ปริมาณฝนพยากรณ์ (20%)</span><span class="tt-v">${rain.toFixed(1)} มม. (${Math.round(dryS * 20)}/20)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a855f7"></i>การระเหยน้ำ ET0 (10%)</span><span class="tt-v">${et0.toFixed(1)} มม./วัน (${Math.round(eS * 10)}/10)</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#55947a"></i>ลมกระโชกสูงสุด 10 ม. (10%)</span><span class="tt-v">${wind.toFixed(1)} กม./ชม. (${Math.round(wS * 10)}/10)</span></div>
+        `, barCol);
+      });
+      card.addEventListener("mouseleave", hideTooltip);
       grid.appendChild(card);
     }
   }
@@ -1735,17 +2022,40 @@ MULTI_PAGE_JS = r"""
     if (!wrap) return;
     const idxMap = { fwi: 8, tmax: 0, rhmin: 3, rain: 2 };
     const series = getMonthlySeries(pCode, satMode, idxMap[matMode] ?? 8);
+    const sFwi = matMode === "fwi" ? series : getMonthlySeries(pCode, satMode, 8);
+    const sTmax = matMode === "tmax" ? series : getMonthlySeries(pCode, satMode, 0);
+    const sRh = matMode === "rhmin" ? series : getMonthlySeries(pCode, satMode, 3);
+    const sRain = matMode === "rain" ? series : getMonthlySeries(pCode, satMode, 2);
+
     const grid = {};
+    const detailByYm = {};
     const vals = [];
     for (let i = 0; i < series.months.length; i++) {
       const ym = series.months[i];
       const v = matMode === "fire" ? series.fireTot[i] : series.wxVals[i];
       grid[ym] = v;
+      detailByYm[ym] = {
+        fireTot: series.fireTot[i],
+        fireAgri: series.fireAgri[i],
+        fireFor: series.fireFor[i],
+        fwi: sFwi.wxVals[i],
+        tmax: sTmax.wxVals[i],
+        rhmin: sRh.wxVals[i],
+        rain: sRain.wxVals[i],
+      };
       if (v !== null && v !== undefined) vals.push(v);
     }
     const minV = vals.length ? Math.min(...vals) : 0;
     const maxV = vals.length ? Math.max(...vals) : 1;
     const span = Math.max(1e-6, maxV - minV);
+    const modeNames = {
+      fwi: { label: "ดัชนีอากาศเอื้อไฟ FWI", unit: "/ 100" },
+      fire: { label: "จุดความร้อนรายเดือน", unit: "จุด" },
+      tmax: { label: "อุณหภูมิสูงสุดเฉลี่ย", unit: "°C" },
+      rhmin: { label: "ความชื้นสัมพัทธ์ต่ำสุด", unit: "%" },
+      rain: { label: "ปริมาณฝนรวมรายเดือน", unit: "มม." },
+    };
+    const scopeName = pCode === "all" ? "ค่าเฉลี่ยทั้งประเทศ (77 จังหวัด)" : `จ.${PROV_MAP.get(pCode)?.name_th || pCode}`;
 
     let html = `<table class="matrix-table"><thead><tr><th>ปี</th>${MONTH_TH_SHORT.map((m, idx) => `<th class="${idx < 4 ? "peak-mo" : ""}">${m}</th>`).join("")}</tr></thead><tbody>`;
     for (const yr of [2022, 2023, 2024, 2025, 2026]) {
@@ -1774,12 +2084,52 @@ MULTI_PAGE_JS = r"""
             ? (isDark ? "#f1e3c4" : "#6b4c14")
             : (isDark ? "#8b95a7" : "#5c6675");
         const txt = matMode === "fire" ? (v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(v)) : (matMode === "rain" ? Math.round(v) : v.toFixed(0));
-        html += `<td class="matrix-cell" style="background:${bg};color:${fg};" title="${ym}: ${v}">${txt}</td>`;
+        html += `<td class="matrix-cell" data-ym="${ym}" data-t="${t.toFixed(3)}" style="background:${bg};color:${fg};cursor:pointer;">${txt}</td>`;
       }
       html += `</tr>`;
     }
     html += `</tbody></table>`;
     wrap.innerHTML = html;
+
+    const mMeta = modeNames[matMode] || modeNames.fwi;
+    wrap.querySelectorAll(".matrix-cell[data-ym]").forEach(td => {
+      td.addEventListener("mousemove", (e) => {
+        const ym = td.dataset.ym;
+        const t = Number(td.dataset.t || 0);
+        const info = detailByYm[ym];
+        if (!info) return;
+        const moNum = Number(ym.slice(5, 7));
+        const yrNum = Number(ym.slice(0, 4));
+        const moLabel = `${MONTH_TH_SHORT[moNum - 1]} ${yrNum} (พ.ศ. ${yrNum + 543})`;
+        const [riskTxt, riskCol] = t > 0.78
+          ? ["ระดับวิกฤต", "#cf5648"]
+          : t > 0.56
+            ? ["ระดับสูง", "#df6a37"]
+            : t > 0.34
+              ? ["ปานกลาง", "#d4a84f"]
+              : ["ระดับต่ำ", "#55947a"];
+        const agPct = info.fireTot > 0 ? (info.fireAgri * 100 / info.fireTot).toFixed(0) : "0";
+        const foPct = info.fireTot > 0 ? (info.fireFor * 100 / info.fireTot).toFixed(0) : "0";
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(moLabel)}</h4>
+              <div class="tt-sub">${escHtml(scopeName)} · ${escHtml(mMeta.label)}</div>
+            </div>
+            <span class="tt-badge" style="color:${riskCol};border-color:${riskCol}55;background:${riskCol}1f;">${riskTxt}</span>
+          </div>
+          <div class="tt-bar"><div style="background:${riskCol};width:${Math.max(6, Math.round(t * 100))}%"></div></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#df6a37"></i>จุดความร้อนรวม</span><span class="tt-v">${formatNum(info.fireTot)} จุด</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${formatNum(info.fireAgri)} (${agPct}%) / ${formatNum(info.fireFor)} (${foPct}%)</span></div>
+          <div class="tt-divider"></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#eab308"></i>ดัชนีอากาศเอื้อไฟ FWI</span><span class="tt-v">${info.fwi !== null ? info.fwi.toFixed(1) + " / 100" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>อุณหภูมิสูงสุดเฉลี่ย (Tmax)</span><span class="tt-v">${info.tmax !== null ? info.tmax.toFixed(1) + " °C" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#38bdf8"></i>ความชื้นสัมพัทธ์ต่ำสุด (RH)</span><span class="tt-v">${info.rhmin !== null ? info.rhmin.toFixed(1) + " %" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ปริมาณฝนรวมทั้งเดือน</span><span class="tt-v">${info.rain !== null ? formatNum(Math.round(info.rain)) + " มม." : "-"}</span></div>
+        `, riskCol);
+      });
+      td.addEventListener("mouseleave", hideTooltip);
+    });
   }
 
   function drawTenYearBaseline(pCode) {
@@ -1818,6 +2168,8 @@ MULTI_PAGE_JS = r"""
 
     const base10 = rows.filter(r => r.year <= 2025 && r.tmax !== null);
     const avgT10 = base10.length ? base10.reduce((a, r) => a + r.tmax, 0) / base10.length : 33;
+    const baseRain10 = rows.filter(r => r.year <= 2025 && r.rain !== null);
+    const avgRain10 = baseRain10.length ? baseRain10.reduce((a, r) => a + r.rain, 0) / baseRain10.length : 1200;
     const sub = document.getElementById("wxBaselineSub");
     if (sub) sub.textContent = `ค่าปกติ Tmax 10 ปี (2016–2025): ${avgT10.toFixed(2)}°C (เส้นประสีเหลือง) · แท่งสีฟ้า = ฝนรวม (มม.) · ปี 2026 นับถึง 15 พ.ย.`;
 
@@ -1829,20 +2181,27 @@ MULTI_PAGE_JS = r"""
     const maxT = Math.ceil((validT.length ? Math.max(...validT) : 36) + 0.8);
     const spanT = Math.max(1, maxT - minT);
 
-    const textCol = state.theme === "dark" ? "#94a3b8" : "#475569";
+    const isDark = state.theme === "dark";
+    const textCol = isDark ? "#94a3b8" : "#475569";
     const step = pw / rows.length;
     const bw = step * 0.52;
+    const hovIdx = typeof canvas._hovIdx === "number" ? canvas._hovIdx : -1;
 
-    // Rain bars (muted slate-blue)
+    // Rain bars (muted slate-blue) + hover highlight
     rows.forEach((r, i) => {
       const cx = pad.l + (i + 0.5) * step;
+      const isHov = i === hovIdx;
+      if (isHov) {
+        ctx.fillStyle = isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)";
+        ctx.fillRect(pad.l + i * step, pad.t, step, ph);
+      }
       if (r.rain !== null) {
         const bh = (r.rain / maxR) * ph;
-        ctx.fillStyle = r.year === 2026 ? "rgba(104,156,184,0.32)" : "rgba(104,156,184,0.52)";
+        ctx.fillStyle = isHov ? "rgba(104,156,184,0.82)" : (r.year === 2026 ? "rgba(104,156,184,0.32)" : "rgba(104,156,184,0.52)");
         ctx.fillRect(cx - bw / 2, pad.t + ph - bh, bw, bh);
       }
-      ctx.fillStyle = textCol;
-      ctx.font = "10px system-ui";
+      ctx.fillStyle = isHov ? (isDark ? "#f8fafc" : "#0f172a") : textCol;
+      ctx.font = isHov ? "700 10.5px system-ui" : "10px system-ui";
       ctx.textAlign = "center";
       ctx.fillText(String(r.year).slice(2), cx, pad.t + ph + 14);
     });
@@ -1871,8 +2230,13 @@ MULTI_PAGE_JS = r"""
       if (r.tmax === null) return;
       const cx = pad.l + (i + 0.5) * step;
       const cy = pad.t + ph - ((r.tmax - minT) / spanT) * ph;
-      ctx.fillStyle = r.tmax > avgT10 ? "#df6a37" : "#689cb8";
-      ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2); ctx.fill();
+      const isHov = i === hovIdx;
+      if (isHov) {
+        ctx.fillStyle = "rgba(223,106,55,0.28)";
+        ctx.beginPath(); ctx.arc(cx, cy, 8.5, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = isHov ? "#fde047" : (r.tmax > avgT10 ? "#df6a37" : "#689cb8");
+      ctx.beginPath(); ctx.arc(cx, cy, isHov ? 5 : 3.5, 0, Math.PI * 2); ctx.fill();
     });
 
     ctx.fillStyle = textCol; ctx.font = "10px system-ui";
@@ -1889,7 +2253,7 @@ MULTI_PAGE_JS = r"""
     ctx.fillStyle = "#c49c4d"; ctx.fillRect(pad.l + 148, 6, 12, 2);
     ctx.fillStyle = textCol; ctx.fillText(`ปกติ10ปี ${avgT10.toFixed(1)}°`, pad.l + 164, 11);
 
-    canvas._baseHover = { pad, step, rows, avgT10 };
+    canvas._baseHover = { pad, step, rows, avgT10, avgRain10, pCode };
     if (!canvas._baseBound) {
       canvas._baseBound = true;
       canvas.addEventListener("mousemove", (e) => {
@@ -1897,18 +2261,44 @@ MULTI_PAGE_JS = r"""
         if (!bh) return;
         const r = canvas.getBoundingClientRect();
         const idx = Math.floor((e.clientX - r.left - bh.pad.l) / bh.step);
-        if (idx < 0 || idx >= bh.rows.length) { els.tooltip.style.display = "none"; return; }
+        if (idx < 0 || idx >= bh.rows.length) {
+          if (canvas._hovIdx !== -1) { canvas._hovIdx = -1; drawTenYearBaseline(bh.pCode); }
+          hideTooltip();
+          return;
+        }
+        if (canvas._hovIdx !== idx) {
+          canvas._hovIdx = idx;
+          drawTenYearBaseline(bh.pCode);
+        }
         const row = bh.rows[idx];
         const diff = row.tmax !== null ? (row.tmax - bh.avgT10) : null;
-        els.tooltip.innerHTML = `<h4>ปี ${row.year}${row.year === 2026 ? " (ถึง 15 พ.ย.)" : ""}</h4>
-          <div class="tt-row"><span class="tt-k">Tmax เฉลี่ย</span><span class="tt-v">${row.tmax !== null ? row.tmax.toFixed(2) + " °C" : "-"}</span></div>
-          <div class="tt-row"><span class="tt-k">เทียบค่าปกติ 10 ปี</span><span class="tt-v" style="color:${diff > 0 ? "#f87171" : "#38bdf8"}">${diff !== null ? (diff >= 0 ? "+" : "") + diff.toFixed(2) + " °C" : "-"}</span></div>
-          <div class="tt-row"><span class="tt-k">ปริมาณฝนรวม</span><span class="tt-v">${row.rain !== null ? formatNum(Math.round(row.rain)) + " มม." : "-"}</span></div>`;
-        els.tooltip.style.left = Math.min(window.innerWidth - 260, e.clientX + 12) + "px";
-        els.tooltip.style.top = Math.max(12, e.clientY - 90) + "px";
-        els.tooltip.style.display = "block";
+        const rDiffPct = (row.rain !== null && bh.avgRain10 > 0) ? ((row.rain - bh.avgRain10) * 100 / bh.avgRain10) : null;
+        const badgeCol = diff !== null && diff > 0 ? "#df6a37" : "#38bdf8";
+        const scopeTxt = bh.pCode === "all" ? "ค่าเฉลี่ย 77 จังหวัด" : `จ.${PROV_MAP.get(bh.pCode)?.name_th || bh.pCode}`;
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>ปี ${row.year} (พ.ศ. ${row.year + 543})${row.year === 2026 ? " · ถึง 15 พ.ย." : ""}</h4>
+              <div class="tt-sub">${escHtml(scopeTxt)} · แนวโน้มภูมิอากาศ 10 ปี</div>
+            </div>
+            <span class="tt-badge" style="color:${badgeCol};border-color:${badgeCol}55;background:${badgeCol}1f;">${diff !== null ? `${diff >= 0 ? "+" : ""}${diff.toFixed(2)} °C` : "-"}</span>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#df6a37"></i>อุณหภูมิสูงสุดเฉลี่ย (Tmax)</span><span class="tt-v">${row.tmax !== null ? row.tmax.toFixed(2) + " °C" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c49c4d"></i>ค่าปกติ 10 ปี (2016–2025)</span><span class="tt-v">${bh.avgT10.toFixed(2)} °C</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${badgeCol}"></i>ส่วนต่างอุณหภูมิ</span><span class="tt-v" style="color:${badgeCol}">${diff !== null ? (diff >= 0 ? "ร้อนกว่าปกติ +" : "เย็นกว่าปกติ ") + diff.toFixed(2) + " °C" : "-"}</span></div>
+          <div class="tt-divider"></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ปริมาณฝนรวมทั้งปี</span><span class="tt-v">${row.rain !== null ? formatNum(Math.round(row.rain)) + " มม." : "-"}</span></div>
+          ${rDiffPct !== null ? `<div class="tt-row"><span class="tt-k">เทียบฝนเฉลี่ย 10 ปี (${formatNum(Math.round(bh.avgRain10))} มม.)</span><span class="tt-v">${rDiffPct >= 0 ? "+" : ""}${rDiffPct.toFixed(0)}%</span></div>` : ""}
+        `, badgeCol);
       });
-      canvas.addEventListener("mouseleave", () => { els.tooltip.style.display = "none"; });
+      canvas.addEventListener("mouseleave", () => {
+        const bh = canvas._baseHover;
+        if (canvas._hovIdx !== -1 && bh) {
+          canvas._hovIdx = -1;
+          drawTenYearBaseline(bh.pCode);
+        }
+        hideTooltip();
+      });
     }
   }
 
@@ -2004,17 +2394,25 @@ MULTI_PAGE_JS = r"""
     for (const d of pts) {
       const cx = sx(d.x), cy = sy(d.y);
       const isSel = selProv === d.p.code;
-      ctx.fillStyle = isSel ? "#eceff4" : (regColors[d.p.region] || "#689cb8");
-      ctx.strokeStyle = isSel ? "#df6a37" : "rgba(15,23,42,0.6)";
-      ctx.lineWidth = isSel ? 2.4 : 1;
-      ctx.beginPath(); ctx.arc(cx, cy, isSel ? 6.5 : 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      if (isSel || topLabelSet.has(d.p.code)) {
+      const isHov = canvas._hovProv === d.p.code;
+      const dotCol = regColors[d.p.region] || "#689cb8";
+      if (isHov) {
+        ctx.save();
+        ctx.fillStyle = "rgba(253, 224, 71, 0.25)";
+        ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = isHov ? "#fde047" : (isSel ? "#eceff4" : dotCol);
+      ctx.strokeStyle = isHov || isSel ? "#df6a37" : "rgba(15,23,42,0.6)";
+      ctx.lineWidth = isHov || isSel ? 2.4 : 1;
+      ctx.beginPath(); ctx.arc(cx, cy, isHov ? 7 : (isSel ? 6.5 : 4.5), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (isHov || isSel || topLabelSet.has(d.p.code)) {
         ctx.fillStyle = isDark ? "#f1f5f9" : "#0f172a";
-        ctx.font = "600 10.5px system-ui, sans-serif";
+        ctx.font = (isHov ? "700 " : "600 ") + "10.5px system-ui, sans-serif";
         ctx.textAlign = "left";
         ctx.fillText(d.p.name_th, cx + 7, cy + 3);
       }
-      wxScatDots.push({ cx, cy, ...d });
+      wxScatDots.push({ cx, cy, col: dotCol, ...d });
     }
 
     ctx.fillStyle = textCol; ctx.font = "10.5px system-ui";
@@ -2031,24 +2429,58 @@ MULTI_PAGE_JS = r"""
       canvas.addEventListener("mousemove", (e) => {
         const r = canvas.getBoundingClientRect();
         const x = e.clientX - r.left, y = e.clientY - r.top;
-        let best = null, bd = 12;
+        let best = null, bd = 13;
         for (const d of wxScatDots) {
           const dist = Math.hypot(d.cx - x, d.cy - y);
           if (dist < bd) { bd = dist; best = d; }
         }
+        const nextCode = best ? best.p.code : null;
+        if (nextCode !== canvas._hovProv) {
+          canvas._hovProv = nextCode;
+          drawWxProvinceScatter();
+        }
         if (best) {
-          els.tooltip.innerHTML = `<h4>${escHtml(best.p.name_th)}</h4>
-            <div class="tt-row"><span class="tt-k">แกน X</span><span class="tt-v">${formatNum(best.x, 1)}</span></div>
-            <div class="tt-row"><span class="tt-k">แกน Y</span><span class="tt-v">${formatNum(best.y, 1)}</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:3px;">คลิกจุดเพื่อดูสภาพอากาศจังหวัดนี้</div>`;
-          els.tooltip.style.left = Math.min(window.innerWidth - 260, e.clientX + 12) + "px";
-          els.tooltip.style.top = Math.max(12, e.clientY - 80) + "px";
-          els.tooltip.style.display = "block";
+          const p = best.p;
+          const xSel = document.getElementById("wxScatX");
+          const ySel = document.getElementById("wxScatY");
+          const xLabel = (xSel?.selectedOptions?.[0]?.textContent || "แกน X").replace(/^แกน X:\s*/, "");
+          const yLabel = (ySel?.selectedOptions?.[0]?.textContent || "แกน Y").replace(/^แกน Y:\s*/, "");
+          const yKeyCur = ySel?.value || "fire_2026";
+          const xKeyCur = xSel?.value || "peak_fwi";
+          const xDec = (xKeyCur === "flood" || xKeyCur === "low_rh_35" || xKeyCur === "dry_days") ? 0 : 1;
+          const yDec = yKeyCur === "density" ? 1 : 0;
+          const w26 = p.wx_y?.["2026"] || {};
+          const t26 = p.trp?.["2026"];
+          const trp26V = t26 ? (t26[0] + t26[1] + t26[2] + t26[3] + t26[4]) : null;
+          const pm26 = p.aq_y?.["2026"]?.pm25_peak ?? null;
+          const regName = REGION_TH[p.region] || p.region || "-";
+          showTooltip(e.clientX, e.clientY, `
+            <div class="tt-head">
+              <div>
+                <h4 style="color:${best.col}">จ.${escHtml(p.name_th)}</h4>
+                <div class="tt-sub">${escHtml(regName)} · เปรียบเทียบความเสี่ยงรายจังหวัด</div>
+              </div>
+              <span class="tt-badge" style="color:${best.col};border-color:${best.col}55;background:${best.col}1f;">${escHtml(regName)}</span>
+            </div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>${escHtml(xLabel)}</span><span class="tt-v">${formatNum(best.x, xDec)}</span></div>
+            <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:var(--accent)"></i>${escHtml(yLabel)}</span><span class="tt-v">${formatNum(best.y, yDec)}</span></div>
+            <div class="tt-divider"></div>
+            <div class="tt-row"><span class="tt-k">Tmax · ความชื้นต่ำสุด (2026)</span><span class="tt-v">${w26.tmax != null ? w26.tmax + "°C" : "-"} · RH ${w26.rh_min != null ? w26.rh_min + "%" : "-"}</span></div>
+            <div class="tt-row"><span class="tt-k">รอยเผา สสน. ฤดู 2569</span><span class="tt-v">${trp26V !== null ? formatNum(trp26V, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+            <div class="tt-row"><span class="tt-k">ฝุ่น PM2.5 หน้าแล้ง (CAMS)</span><span class="tt-v">${pm26 !== null ? pm26.toFixed(1) + " µg/m³" : "-"}</span></div>
+            <div class="tt-foot">คลิกจุดเพื่อสลับดูข้อมูลสภาพอากาศจังหวัดนี้</div>
+          `, best.col);
         } else {
-          els.tooltip.style.display = "none";
+          hideTooltip();
         }
       });
-      canvas.addEventListener("mouseleave", () => { els.tooltip.style.display = "none"; });
+      canvas.addEventListener("mouseleave", () => {
+        if (canvas._hovProv) {
+          canvas._hovProv = null;
+          drawWxProvinceScatter();
+        }
+        hideTooltip();
+      });
       canvas.addEventListener("click", (e) => {
         const r = canvas.getBoundingClientRect();
         const x = e.clientX - r.left, y = e.clientY - r.top;
@@ -2564,6 +2996,46 @@ MULTI_PAGE_JS = r"""
       dragging = true; lastX = e.clientX; lastY = e.clientY;
     });
     window.addEventListener("mouseup", () => { dragging = false; });
+    function buildBsItemTooltip(item, prefix) {
+      const title = (prefix || "") + item.name_th;
+      if (item.trp === null || item.trp === undefined) {
+        return `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(title)}</h4>
+              <div class="tt-sub">อยู่นอกขอบเขตข้อมูล สสน. ตามรอยเผา (62 จังหวัด)</div>
+            </div>
+            <span class="tt-badge">ไม่มีข้อมูล</span>
+          </div>
+          <div class="tt-row"><span class="tt-k">หมายเหตุ</span><span class="tt-v">คงค่าว่าง (ไม่ตีความเป็น 0)</span></div>
+        `;
+      }
+      const sumArr = (a) => a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : 0;
+      const t67 = sumArr(item.trp["2024"]);
+      const t68 = sumArr(item.trp["2025"]);
+      const a69 = item.trp["2026"] || [0, 0, 0, 0, 0];
+      const t69 = sumArr(a69);
+      const chg = t67 > 0 ? ((t69 - t67) * 100 / t67) : null;
+      const cols = ["#d4a84f", "#c96f53", "#7d9b65", "#8b8579", "#a84438"];
+      const barSegs = t69 > 0 ? a69.map((v, k) => `<div style="background:${cols[k]};width:${(v * 100 / t69).toFixed(1)}%"></div>`).join("") : "";
+      return `
+        <div class="tt-head">
+          <div>
+            <h4>${escHtml(title)}</h4>
+            <div class="tt-sub">รอยเผาไหม้ Sentinel-2 20 ม. (สสน.)</div>
+          </div>
+          <span class="tt-badge">${formatNum(t69, 0)} ไร่</span>
+        </div>
+        <div class="tt-bar">${barSegs}</div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>นาข้าว (ฤดู 2569)</span><span class="tt-v">${formatNum(a69[0], 0)} ไร่</span></div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>อ้อย</span><span class="tt-v">${formatNum(a69[1], 0)} ไร่</span></div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#7d9b65"></i>ข้าวโพด</span><span class="tt-v">${formatNum(a69[2], 0)} ไร่</span></div>
+        <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a84438"></i>ป่าไม้</span><span class="tt-v">${formatNum(a69[4], 0)} ไร่</span></div>
+        <div class="tt-divider"></div>
+        <div class="tt-row"><span class="tt-k">ย้อนหลัง ฤดู 67 → 68 → 69</span><span class="tt-v">${formatNum(t67, 0)} → ${formatNum(t68, 0)} → ${formatNum(t69, 0)}</span></div>
+        ${chg !== null ? `<div class="tt-row"><span class="tt-k">เปลี่ยนแปลง 69 เทียบ 67</span><span class="tt-v" style="color:${chg <= 0 ? "#55947a" : "#df6a37"}">${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</span></div>` : ""}
+      `;
+    }
     function processBsHover() {
       hoverPending = false;
       if (!lastEvt || dragging || swiping || activePage !== "burnscar") return;
@@ -2572,17 +3044,23 @@ MULTI_PAGE_JS = r"""
       if (nextCode !== bsMap.lastHoverCode) {
         bsMap.lastHoverCode = nextCode;
         bsMap.hoverItem = hit ? hit.item : null;
-        if (hit) updateBsAreaReadout(hit.item, hit.prefix);
-        else {
+        if (hit) {
+          updateBsAreaReadout(hit.item, hit.prefix);
+          showTooltip(lastEvt.clientX, lastEvt.clientY, buildBsItemTooltip(hit.item, hit.prefix));
+        } else {
           const cur = bsMap.focusAmp ? AMP_MAP.get(bsMap.focusAmp) : (bsMap.focusProv ? PROV_MAP.get(bsMap.focusProv) : null);
           updateBsAreaReadout(cur, bsMap.focusAmp ? "อ." : "จ.");
+          hideTooltip();
         }
         requestDrawBsMap();
+      } else if (hit) {
+        positionTooltip(lastEvt.clientX, lastEvt.clientY);
       }
     }
     canvas.addEventListener("mousemove", (e) => {
       if (swiping) return;
       if (dragging) {
+        hideTooltip();
         const dx = e.clientX - lastX, dy = e.clientY - lastY;
         const worldPx = 256 * Math.pow(2, bsMap.zoom);
         bsMap.camX -= dx / worldPx;
@@ -2597,6 +3075,7 @@ MULTI_PAGE_JS = r"""
     canvas.addEventListener("mouseleave", () => {
       bsMap.lastHoverCode = null;
       bsMap.hoverItem = null;
+      hideTooltip();
       const cur = bsMap.focusAmp ? AMP_MAP.get(bsMap.focusAmp) : (bsMap.focusProv ? PROV_MAP.get(bsMap.focusProv) : null);
       updateBsAreaReadout(cur, bsMap.focusAmp ? "อ." : "จ.");
       requestDrawBsMap();
@@ -2706,12 +3185,21 @@ MULTI_PAGE_JS = r"""
     const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
     const maxV = Math.max(1e6, ...seasons.map(s => s.sums.reduce((a, b) => a + b, 0)));
     const colors = ["#d4a84f", "#c96f53", "#7d9b65", "#8b8579", "#a84438"];
-    const names = ["ข้าว", "อ้อย", "ข้าวโพด", "ผสม", "ป่าไม้"];
-    const textCol = state.theme === "dark" ? "#94a3b8" : "#475569";
+    const names = ["นาข้าว", "อ้อย", "ข้าวโพด", "พืชผสม", "ป่าไม้"];
+    const shortNames = ["ข้าว", "อ้อย", "ข้าวโพด", "ผสม", "ป่าไม้"];
+    const isDark = state.theme === "dark";
+    const textCol = isDark ? "#94a3b8" : "#475569";
 
-    const bw = Math.min(82, (pw / seasons.length) * 0.46);
+    const step = pw / seasons.length;
+    const bw = Math.min(82, step * 0.46);
+    const hovIdx = typeof canvas._hovIdx === "number" ? canvas._hovIdx : -1;
     seasons.forEach((s, idx) => {
-      const cx = pad.l + (idx + 0.5) * (pw / seasons.length);
+      const cx = pad.l + (idx + 0.5) * step;
+      const isHov = idx === hovIdx;
+      if (isHov) {
+        ctx.fillStyle = isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.05)";
+        ctx.fillRect(pad.l + idx * step, pad.t - 10, step, ph + 14);
+      }
       let y = pad.t + ph;
       let tot = 0;
       for (let k = 0; k < 5; k++) {
@@ -2723,12 +3211,18 @@ MULTI_PAGE_JS = r"""
           y -= bh;
         }
       }
-      ctx.fillStyle = state.theme === "dark" ? "#f8fafc" : "#0f172a";
+      if (isHov && tot > 0) {
+        const totH = (tot / maxV) * ph;
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.8;
+        ctx.strokeRect(cx - bw / 2 - 0.5, pad.t + ph - totH, bw + 1, totH);
+      }
+      ctx.fillStyle = isDark ? "#f8fafc" : "#0f172a";
       ctx.font = "700 12px system-ui";
       ctx.textAlign = "center";
       ctx.fillText(`${(tot / 1e6).toFixed(2)} ล.ไร่`, cx, y - 6);
-      ctx.fillStyle = textCol;
-      ctx.font = "600 11px system-ui";
+      ctx.fillStyle = isHov ? (isDark ? "#f8fafc" : "#0f172a") : textCol;
+      ctx.font = (isHov ? "700 " : "600 ") + "11px system-ui";
       ctx.fillText(w < 420 ? s.label.slice(0, 8) : s.label, cx, pad.t + ph + 18);
     });
 
@@ -2741,8 +3235,58 @@ MULTI_PAGE_JS = r"""
     ctx.textAlign = "left";
     for (let k = 0; k < 5; k++) {
       ctx.fillStyle = colors[k]; ctx.fillRect(lx, 5, 9, 9);
-      ctx.fillStyle = textCol; ctx.fillText(names[k], lx + 12, 13);
+      ctx.fillStyle = textCol; ctx.fillText(shortNames[k], lx + 12, 13);
       lx += lStep;
+    }
+
+    canvas._bsSeasonMeta = { pad, step, seasons, colors, names };
+    if (!canvas._bsSeasonBound) {
+      canvas._bsSeasonBound = true;
+      canvas.addEventListener("mousemove", (e) => {
+        const m = canvas._bsSeasonMeta;
+        if (!m) return;
+        const r = canvas.getBoundingClientRect();
+        const idx = Math.floor((e.clientX - r.left - m.pad.l) / m.step);
+        if (idx < 0 || idx >= m.seasons.length) {
+          if (canvas._hovIdx !== -1) { canvas._hovIdx = -1; drawSeasonBurnChart(canvas, m.seasons); }
+          hideTooltip();
+          return;
+        }
+        if (canvas._hovIdx !== idx) {
+          canvas._hovIdx = idx;
+          drawSeasonBurnChart(canvas, m.seasons);
+        }
+        const s = m.seasons[idx];
+        const s0 = m.seasons[0];
+        const tot = s.sums.reduce((a, b) => a + b, 0) || 1;
+        const tot0 = s0.sums.reduce((a, b) => a + b, 0) || 1;
+        const chg = idx > 0 ? ((tot - tot0) * 100 / tot0) : null;
+        const barHtml = s.sums.map((v, k) => `<div style="background:${m.colors[k]};width:${(v * 100 / tot).toFixed(1)}%"></div>`).join("");
+        const rowsHtml = s.sums.map((v, k) => {
+          const pct = (v * 100 / tot).toFixed(1);
+          return `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${m.colors[k]}"></i>${escHtml(m.names[k])}</span><span class="tt-v">${formatNum(v, 0)} ไร่ (${pct}%)</span></div>`;
+        }).join("");
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(s.label)}</h4>
+              <div class="tt-sub">รอยเผา Sentinel-2 20 ม. (62 จังหวัด)</div>
+            </div>
+            <span class="tt-badge">${(tot / 1e6).toFixed(2)} ล.ไร่</span>
+          </div>
+          <div class="tt-bar">${barHtml}</div>
+          ${rowsHtml}
+          ${chg !== null ? `<div class="tt-divider"></div><div class="tt-row"><span class="tt-k">เทียบฤดู 2567</span><span class="tt-v" style="color:${chg <= 0 ? "#55947a" : "#df6a37"}">${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</span></div>` : ""}
+        `);
+      });
+      canvas.addEventListener("mouseleave", () => {
+        const m = canvas._bsSeasonMeta;
+        if (canvas._hovIdx !== -1 && m) {
+          canvas._hovIdx = -1;
+          drawSeasonBurnChart(canvas, m.seasons);
+        }
+        hideTooltip();
+      });
     }
   }
 
@@ -2849,6 +3393,32 @@ MULTI_PAGE_JS = r"""
     `).join("");
     tbody.querySelectorAll("tr[data-pcode]").forEach(tr => {
       tr.onclick = () => flyBsMapToProvince(tr.dataset.pcode, { scrollToMap: true });
+      tr.addEventListener("mousemove", (e) => {
+        const p = PROV_MAP.get(tr.dataset.pcode);
+        if (!p) return;
+        const sumA = (a) => a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : null;
+        const t67 = p.trp ? sumA(p.trp["2024"]) : null;
+        const t68 = p.trp ? sumA(p.trp["2025"]) : null;
+        const a69 = p.trp?.["2026"];
+        const t69 = p.trp ? sumA(a69) : null;
+        const cols = ["#d4a84f", "#c96f53", "#7d9b65", "#8b8579", "#a84438"];
+        const barHtml = (a69 && t69 > 0) ? `<div class="tt-bar">${a69.map((v, k) => `<div style="background:${cols[k]};width:${(v * 100 / t69).toFixed(1)}%"></div>`).join("")}</div>` : "";
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>จ.${escHtml(p.name_th)}</h4>
+              <div class="tt-sub">${escHtml(REGION_TH[p.region] || p.region || "-")}</div>
+            </div>
+            <span class="tt-badge">${t69 !== null ? formatNum(t69, 0) + " ไร่" : "นอกเขต สสน."}</span>
+          </div>
+          ${barHtml}
+          <div class="tt-row"><span class="tt-k">รอยเผา 3 ฤดู (67 → 68 → 69)</span><span class="tt-v">${t69 !== null ? `${formatNum(t67, 0)} → ${formatNum(t68, 0)} → ${formatNum(t69, 0)}` : "ไม่มีข้อมูล"}</span></div>
+          ${a69 ? `<div class="tt-row"><span class="tt-k">ข้าว · อ้อย · ข้าวโพด (69)</span><span class="tt-v">${formatNum(a69[0], 0)} · ${formatNum(a69[1], 0)} · ${formatNum(a69[2], 0)} ไร่</span></div>
+          <div class="tt-row"><span class="tt-k">ป่าไม้ (69)</span><span class="tt-v">${formatNum(a69[4], 0)} ไร่</span></div>` : ""}
+          <div class="tt-foot">คลิกแถวเพื่อบินไปซูมดูแปลงเผา 20 ม. บนแผนที่ด้านบน</div>
+        `);
+      });
+      tr.addEventListener("mouseleave", hideTooltip);
     });
   }
 
@@ -3082,6 +3652,32 @@ MULTI_PAGE_JS = r"""
 
     grid.querySelectorAll(".hz-prov-card[data-hz-prov]").forEach(btn => {
       btn.onclick = () => inspectLiveHazeProv(btn.dataset.hzProv);
+      btn.addEventListener("mousemove", (e) => {
+        const code = btn.dataset.hzProv;
+        const r = sorted.find(x => x.code === code);
+        const p = PROV_MAP.get(code);
+        if (!r) return;
+        const [tierTxt] = pm25Tier(r.pm25);
+        const pmCol = r.pm25 > 75 ? "#cf5648" : r.pm25 > 37.5 ? "#df6a37" : r.pm25 > 25 ? "#d4a84f" : "#55947a";
+        const camsPeak = p?.aq_y?.["2026"]?.pm25_peak ?? null;
+        const t26 = p?.trp?.["2026"];
+        const trp26 = t26 ? (t26[0] + t26[1] + t26[2] + t26[3] + t26[4]) : null;
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>จ.${escHtml(r.name_th)}</h4>
+              <div class="tt-sub">GISTDA เช็คฝุ่นสด · ${escHtml(REGION_TH[p?.region] || "")}</div>
+            </div>
+            <span class="tt-badge" style="color:${pmCol};border-color:${pmCol}55;background:${pmCol}1f;">${tierTxt}</span>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${pmCol}"></i>ค่าฝุ่น PM2.5 ชั่วโมงนี้</span><span class="tt-v">${r.pm25.toFixed(1)} µg/m³</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ค่าเฉลี่ย 24 ชั่วโมง</span><span class="tt-v">${r.pm25_24h != null ? r.pm25_24h.toFixed(1) + " µg/m³" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a855f7"></i>เฉลี่ยหน้าแล้ง 2026 (CAMS)</span><span class="tt-v">${camsPeak !== null ? camsPeak.toFixed(1) + " µg/m³" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>รอยเผา สสน. ฤดู 2569</span><span class="tt-v">${trp26 !== null ? formatNum(trp26, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+          <div class="tt-foot">คลิกการ์ดเพื่อดูฝุ่นรายอำเภอและพยากรณ์ล่วงหน้า 5 วัน</div>
+        `, pmCol);
+      });
+      btn.addEventListener("mouseleave", hideTooltip);
     });
   }
 
@@ -3217,8 +3813,8 @@ MULTI_PAGE_JS = r"""
     }
 
     // Reuse drawDualFireWeatherChart with custom meta
+    hzHoverStore.customMeta = { name: series.meta.name, unit: series.meta.unit, color: "#689cb8" };
     drawDualFireWeatherChart(canvas, series, "8", hzHoverStore);
-    if (hzHoverStore) hzHoverStore.wxMeta = { name: series.meta.name, unit: series.meta.unit, color: "#689cb8" };
     bindTimelineHover(canvas, hzHoverStore);
   }
 
@@ -3291,20 +3887,35 @@ MULTI_PAGE_JS = r"""
     const step = pw / n;
     const bw = Math.max(3, step * 0.72);
     const maxStack = Math.max(100, ...idxs.map(i => activeCountries.reduce((a, c) => a + (tb.countries[c].monthly[i] || 0), 0)));
-    const textCol = state.theme === "dark" ? "#94a3b8" : "#475569";
+    const isDark = state.theme === "dark";
+    const textCol = isDark ? "#94a3b8" : "#475569";
+    const hovJ = typeof canvas._hovJ === "number" ? canvas._hovJ : -1;
 
     for (let j = 0; j < n; j++) {
       const mi = idxs[j];
+      const isHov = j === hovJ;
+      if (isHov) {
+        ctx.fillStyle = isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)";
+        ctx.fillRect(pad.l + j * step, pad.t, step, ph);
+      }
       const x = pad.l + j * step + (step - bw) / 2;
       let y = pad.t + ph;
+      let colSum = 0;
       for (const c of activeCountries) {
         const val = tb.countries[c].monthly[mi] || 0;
+        colSum += val;
         const bh = (val / maxStack) * ph;
         if (bh > 0) {
           ctx.fillStyle = (COUNTRY_TH[c] || { color: "#689cb8" }).color;
           ctx.fillRect(x, y - bh, bw, bh);
           y -= bh;
         }
+      }
+      if (isHov && colSum > 0) {
+        const totH = (colSum / maxStack) * ph;
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(x - 0.5, pad.t + ph - totH, bw + 1, totH);
       }
       const ym = tb.months[mi];
       if (yrSel !== "all" || ym.endsWith("-01")) {
@@ -3325,6 +3936,60 @@ MULTI_PAGE_JS = r"""
       ctx.fillStyle = m.color; ctx.fillRect(lx, 4, 9, 9);
       ctx.fillStyle = textCol; ctx.fillText(m.label, lx + 12, 12);
       lx += Math.max(54, Math.min(78, pw / activeCountries.length));
+    }
+
+    canvas._transMeta = { pad, step, idxs, activeCountries, tb };
+    if (!canvas._transBound) {
+      canvas._transBound = true;
+      canvas.addEventListener("mousemove", (e) => {
+        const m = canvas._transMeta;
+        if (!m) return;
+        const r = canvas.getBoundingClientRect();
+        const j = Math.floor((e.clientX - r.left - m.pad.l) / m.step);
+        if (j < 0 || j >= m.idxs.length) {
+          if (canvas._hovJ !== -1) { canvas._hovJ = -1; renderTransboundarySection(); }
+          hideTooltip();
+          return;
+        }
+        if (canvas._hovJ !== j) {
+          canvas._hovJ = j;
+          renderTransboundarySection();
+        }
+        const mi = m.idxs[j];
+        const ym = m.tb.months[mi];
+        const moNum = Number(ym.slice(5, 7));
+        const yrNum = Number(ym.slice(0, 4));
+        const moTitle = `${MONTH_TH_SHORT[moNum - 1]} ${yrNum} (พ.ศ. ${yrNum + 543})`;
+        const cItems = m.activeCountries.map(c => ({
+          c,
+          meta: COUNTRY_TH[c] || { label: c, color: "#689cb8" },
+          v: m.tb.countries[c].monthly[mi] || 0,
+        })).sort((a, b) => b.v - a.v);
+        const mTot = cItems.reduce((a, x) => a + x.v, 0) || 1;
+        const barHtml = cItems.map(x => `<div style="background:${x.meta.color};width:${(x.v * 100 / mTot).toFixed(1)}%"></div>`).join("");
+        const rowsHtml = cItems.map(x => {
+          const pct = (x.v * 100 / mTot).toFixed(1);
+          return `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${x.meta.color}"></i>${escHtml(x.meta.label)}</span><span class="tt-v">${formatNum(x.v)} จุด (${pct}%)</span></div>`;
+        }).join("");
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(moTitle)}</h4>
+              <div class="tt-sub">จุดความร้อน VIIRS-SNPP 6 ประเทศ GMS</div>
+            </div>
+            <span class="tt-badge">${formatNum(mTot)} จุด</span>
+          </div>
+          <div class="tt-bar">${barHtml}</div>
+          ${rowsHtml}
+        `);
+      });
+      canvas.addEventListener("mouseleave", () => {
+        if (canvas._hovJ !== -1) {
+          canvas._hovJ = -1;
+          renderTransboundarySection();
+        }
+        hideTooltip();
+      });
     }
   }
 
@@ -3349,11 +4014,23 @@ MULTI_PAGE_JS = r"""
     const step = pw / n;
     const isDark = state.theme === "dark";
     const textCol = isDark ? "#94a3b8" : "#475569";
+    const hovIdx = typeof canvas._hovIdx === "number" ? canvas._hovIdx : -1;
 
     ctx.fillStyle = isDark ? "rgba(255,255,255,0.032)" : "rgba(15,23,42,0.035)";
     for (let i = 0; i < n; i++) {
       const mo = Number(months[i].slice(5, 7));
       if (mo >= 1 && mo <= 4) ctx.fillRect(pad.l + i * step, pad.t, step, ph);
+    }
+
+    if (hovIdx >= 0 && hovIdx < n) {
+      ctx.save();
+      ctx.fillStyle = isDark ? "rgba(104,156,184,0.12)" : "rgba(60,116,143,0.10)";
+      ctx.fillRect(pad.l + hovIdx * step, pad.t, step, ph);
+      ctx.strokeStyle = isDark ? "rgba(253,224,71,0.55)" : "rgba(60,116,143,0.55)";
+      ctx.setLineDash([3, 3]);
+      const hcx = pad.l + (hovIdx + 0.5) * step;
+      ctx.beginPath(); ctx.moveTo(hcx, pad.t); ctx.lineTo(hcx, pad.t + ph); ctx.stroke();
+      ctx.restore();
     }
 
     ctx.strokeStyle = isDark ? "rgba(148,163,184,0.14)" : "rgba(15,23,42,0.1)";
@@ -3390,6 +4067,15 @@ MULTI_PAGE_JS = r"""
       }
       ctx.stroke();
 
+      if (hovIdx >= 0 && hovIdx < n && arr[hovIdx] !== null && arr[hovIdx] !== undefined) {
+        const hcx = pad.l + (hovIdx + 0.5) * step;
+        const hcy = pad.t + ph - (Math.max(0, Math.min(115, arr[hovIdx])) / 115) * ph;
+        ctx.fillStyle = col;
+        ctx.strokeStyle = isDark ? "#0f131b" : "#ffffff";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.arc(hcx, hcy, 4.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+
       ctx.fillStyle = col; ctx.fillRect(lx, 5, 11, 3);
       ctx.fillStyle = textCol; ctx.textAlign = "left";
       const shortNm = reg.replace("ภาคตะวันออกเฉียงเหนือ", "อีสาน").replace("ภาค", "");
@@ -3402,6 +4088,53 @@ MULTI_PAGE_JS = r"""
         ctx.fillStyle = textCol; ctx.textAlign = "center";
         ctx.fillText(months[i].slice(0, 4), pad.l + (i + 0.5) * step, pad.t + ph + 15);
       }
+    }
+
+    canvas._ridMeta = { pad, step, months, rid, regPalette };
+    if (!canvas._ridBound) {
+      canvas._ridBound = true;
+      canvas.addEventListener("mousemove", (e) => {
+        const m = canvas._ridMeta;
+        if (!m) return;
+        const r = canvas.getBoundingClientRect();
+        const idx = Math.floor((e.clientX - r.left - m.pad.l) / m.step);
+        if (idx < 0 || idx >= m.months.length) {
+          if (canvas._hovIdx !== -1) { canvas._hovIdx = -1; renderRidWaterChart(); }
+          hideTooltip();
+          return;
+        }
+        if (canvas._hovIdx !== idx) {
+          canvas._hovIdx = idx;
+          renderRidWaterChart();
+        }
+        const ym = m.months[idx];
+        const moNum = Number(ym.slice(5, 7));
+        const yrNum = Number(ym.slice(0, 4));
+        const moLabel = `${MONTH_TH_SHORT[moNum - 1]} ${yrNum} (พ.ศ. ${yrNum + 543})`;
+        const isDry = moNum >= 1 && moNum <= 4;
+        const rowsHtml = Object.entries(m.regPalette).map(([reg, col]) => {
+          const v = m.rid.regions?.[reg]?.[idx];
+          const disp = reg.replace("ภาคตะวันออกเฉียงเหนือ", "ภาคอีสาน");
+          return `<div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${col}"></i>${escHtml(disp)}</span><span class="tt-v">${v !== null && v !== undefined ? v.toFixed(1) + "% ความจุ" : "-"}</span></div>`;
+        }).join("");
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>${escHtml(moLabel)}</h4>
+              <div class="tt-sub">น้ำกักเก็บอ่างขนาดกลาง 461 แห่ง (RID)</div>
+            </div>
+            <span class="tt-badge" style="color:#689cb8;border-color:rgba(104,156,184,0.35);background:rgba(104,156,184,0.14);">${isDry ? "ช่วงหน้าแล้ง" : "ช่วงฤดูฝน/ปลายปี"}</span>
+          </div>
+          ${rowsHtml}
+        `, "#689cb8");
+      });
+      canvas.addEventListener("mouseleave", () => {
+        if (canvas._hovIdx !== -1) {
+          canvas._hovIdx = -1;
+          renderRidWaterChart();
+        }
+        hideTooltip();
+      });
     }
   }
 
@@ -3512,6 +4245,30 @@ MULTI_PAGE_JS = r"""
         if (pSel) { pSel.value = tr.dataset.hzPcode; renderHazeDualLab(); }
         inspectLiveHazeProv(tr.dataset.hzPcode);
       };
+      tr.addEventListener("mousemove", (e) => {
+        const p = PROV_MAP.get(tr.dataset.hzPcode);
+        const r = filtered.find(x => x.code === tr.dataset.hzPcode);
+        if (!p || !r) return;
+        const a = p.trp?.[yrKey];
+        const d = p.doae_2566 || {};
+        showTooltip(e.clientX, e.clientY, `
+          <div class="tt-head">
+            <div>
+              <h4>จ.${escHtml(p.name_th)} · ฤดู ${Number(yrKey) + 543}</h4>
+              <div class="tt-sub">${escHtml(r.region)} · เทียบรอยเผา สสน. 20 ม. กับพื้นที่ปลูก DOAE 2566</div>
+            </div>
+            <span class="tt-badge">${r.ratePct !== null ? r.ratePct.toFixed(1) + "% เผา/ปลูก" : "นอกเขต สสน."}</span>
+          </div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>นาข้าว (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[0], 0) : "ไม่มีข้อมูล"} / ${d.paddy_rai != null ? formatNum(d.paddy_rai, 0) + " ไร่" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>อ้อยโรงงาน (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[1], 0) : "ไม่มีข้อมูล"} / ${d.sugarcane_rai != null ? formatNum(d.sugarcane_rai, 0) + " ไร่" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#7d9b65"></i>ข้าวโพด (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[2], 0) : "ไม่มีข้อมูล"} / ${d.corn_rai != null ? formatNum(d.corn_rai, 0) + " ไร่" : "-"}</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a84438"></i>เขตป่าไม้ (รอยเผา สสน.)</span><span class="tt-v">${a ? formatNum(a[4], 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+          <div class="tt-divider"></div>
+          <div class="tt-row"><span class="tt-k">PM2.5 เฉลี่ยฤดู · ปล่อย PM2.5</span><span class="tt-v">${r.pmPeak !== null ? r.pmPeak.toFixed(1) + " µg/m³" : "-"} · ${r.pmCrop !== null ? "~" + formatNum(r.pmCrop, 0) + " ตัน" : "ไม่มีข้อมูล"}</span></div>
+          <div class="tt-foot">คลิกแถวเพื่อดูกราฟแนวโน้มฝุ่นและตรวจรายอำเภอของจังหวัดนี้</div>
+        `);
+      });
+      tr.addEventListener("mouseleave", hideTooltip);
     });
   }
 
