@@ -1,3 +1,20 @@
+## ยกเครื่องเว็บ Atlas 5 หน้า + เชื่อมสภาพอากาศเอื้อไฟ 5 ปี (77 จว.) & พยากรณ์สด 7 วัน — 19 พ.ย. 2026 · 0 D1 writes
+
+- **ข้อมูลสภาพอากาศเอื้อไฟ 5 ปีครบ 77 จังหวัด (`hotspot-5y/download_weather.py`, Open-Meteo ERA5 `CC-BY-4.0`):**
+  - ดึงข้อมูลรายวัน `2022-01-01..2026-11-15` (1,780 วัน × 77 จังหวัด) สรุปรายเดือน 59 เดือนได้ **`4,543` แถว** ลงตาราง `era5_monthly_fire_weather` และวิว `v_era5_annual_fire_weather` ใน `hotspot_5y.duckdb` พร้อมดัชนีอากาศเอื้อไฟ (`fire_weather_index` 0–100: ความร้อน 30% + ความแห้ง RH ต่ำสุด 30% + วันไม่ตกฝน 20% + ET0 10% + ลมแรง 10%) เติมช่องว่างอากาศปี 2026 (`FWI=42.9`, `Tmax=32.5°C`, `RHmin=52.8%`) และเชื่อมฐาน ERA5 10 ปี (`2016–2025`)
+  - อัปโหลดขึ้น Hugging Face Datasets (`dragonfly13110/thailand-hotspot-5y`, commit `e5465015`): **14 ไฟล์ Parquet** (รวม `parquet/era5_monthly_fire_weather.parquet` `4,543` แถว / `0.10 MB`) + `summary/map_payload.json.gz` (`4.36 MB`) รวม **`28.80 MB`**
+- **ยกเครื่อง UI เป็น 5 หน้าแบบ Editorial Atlas (`hotspot-5y/ui_pages.py`, `map_template.py`, `explorer_asset.py`, `map_data.py`):**
+  1. **`📊 ภาพรวม (#overview)`:** แบนเนอร์สรุปประเทศ + 3 ชิปประเด็นสำคัญ + การ์ด KPI 5 ใบพร้อมสปาร์กไลน์ 5 ปี + กราฟไทม์ไลน์ 59 เดือนซ้อนสภาพอากาศ (`Pearson r = 0.81`) + การ์ด 5 ภูมิภาค + โดนัทชนิดพืชฤดู 2569 + 10 อันดับจังหวัด/หมู่บ้าน
+  2. **`🗺️ แผนที่เจาะลึก (#map)`:** เพิ่มตัวชี้วัดอากาศ 2022–2026 6 ตัว (`wx_fwi`, `wx_tmax`, `wx_rhmin`, `wx_low_rh`, `wx_wind`, `wx_rain`), เส้นกริดพิกัดภูมิศาสตร์บน `baseCanvas`, แถบปุ่มสลับมุมมองด่วนด้านล่างแผนที่ (`#mapDock`), คงการแคช `baseCanvas` + `Float32Array`/`Int32Array` ไม่กิน CPU/RAM
+  3. **`🌦️ อากาศ × ไฟ (#weather)`:** พยากรณ์สด 7 วันจาก Open-Meteo Forecast API (ปรับตามจังหวัดที่เลือก) + กราฟความสัมพันธ์ 59 เดือน + ปฏิทินความร้อน 5 ปี × 12 เดือน + กราฟเทียบค่าปกติ 10 ปี (2016–2026) + กราฟกระจาย 77 จังหวัดแยกสีตามภาค
+  4. **`🔥 รอยเผา & เทียบจังหวัด (#burnscar)`:** กราฟ 3 ฤดูฝุ่น (`2567–2569`) + การ์ดเปลี่ยนแปลง 4 พืช/ป่า + เครื่องมือเทียบ 4 จังหวัดพร้อมกัน (`Side-by-Side Comparator`) พร้อมแท่งสัดส่วนพืช + ตารางเรียงลำดับ 77 จังหวัดส่งออก CSV ได้
+  5. **`🦆 ค้นข้อมูล DuckDB (#explorer)`:** ศูนย์ค้นข้อมูลดิบเต็มหน้า + 5 สูตรค้นด่วน 1 คลิก + ค้น `era5_monthly_fire_weather.parquet` และแก้ไข SQL เองได้
+- **หลักฐานตรวจรับ & Deploy:**
+  - `.venv\Scripts\python.exe -X utf8 -m unittest discover -s hotspot-5y/tests -v` ผ่านครบ **16/16** (`4.986s`, รวม `test_weather.py` และ `node --check` ทั้งออฟไลน์ 4 หน้า `6.03 MB` และออนไลน์ 5 หน้า `257.6 KB`)
+  - Deploy ขึ้น Netlify (`deployId: 6afec4545fcaabf233652848`) ที่ **`https://thailand-hotspot-5y.netlify.app`**
+  - ตรวจเบราว์เซอร์จริงครบทั้ง 5 หน้า Desktop `1440×900` (Dark + Light Mode, Live 7-day Forecast 7 ใบ, FWI `r=0.81`, แผนที่ FWI 2026 + Heatmap hover ลื่น, DuckDB-Wasm preset `hot_months` คืน 30 แถวจาก HF Parquet) และ Mobile `390×844` (แก้ grid `minmax(0,1fr)` จนผ่าน **5/5 หน้า** `htmlW=390`, `0` overflow, **0 console/page/network errors**) · commit + push ขึ้น `origin/main` แล้ว
+- **คำสั่งรับต่อ:** `.venv\Scripts\python.exe -X utf8 hotspot-5y/download_weather.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/publish_hf.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/build_web_app.py`
+
 ## แก้ปัญหาหน้าแผนที่กิน CPU/RAM และกระตุก (`map_template.py` + deploy Netlify) — 19 พ.ย. 2026 · 0 D1 writes
 
 - **สาเหตุที่ทำให้เครื่องกระตุก:** (1) `showHeat` เปิดไว้เป็นค่าเริ่มต้นและวาดวง `createRadialGradient()` + `arc()` ซ้ำ ~18,000 วงภายใต้ `ctx.clip()` 45,000 จุดทุกครั้งที่ขยับเมาส์/ซูม; (2) ขยับเมาส์ข้ามจังหวัดสั่งวาดแผนที่ทั้งใบ + เรียก `getComputedStyle()` ในลูป polygon และเขียน `tooltip.innerHTML` ซ้ำทุกพิกเซล; (3) `backdrop-filter: blur()` บน sidebar/HUD เหนือ canvas; (4) เก็บ `rings`/`cube`/`grid` เป็น JS Array ซ้อนกัน (~120 MB V8 heap)

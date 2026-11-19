@@ -1,175 +1,204 @@
-"""DuckDB-Wasm Daily Point Explorer & SQL Lab UI injected into the online web app."""
+"""Full-page DuckDB-Wasm Data Studio & SQL Lab injected into the online web app (Page 5)."""
 
 from __future__ import annotations
 
 EXPLORER_CSS = r"""
-  .explorer-backdrop {
-    position: fixed; inset: 0; background: rgba(2,6,23,0.82); z-index: 65;
-    display: none; align-items: center; justify-content: center; padding: 14px;
+  .explorer-page {
+    max-width: 1440px; width: 100%; min-width: 0; margin: 0 auto; padding: 22px 24px 64px;
+    display: flex; flex-direction: column; gap: 16px;
   }
   .explorer-card {
-    background: var(--panel-solid); border: 1px solid var(--border); border-radius: 14px;
-    width: min(1240px, 98vw); height: min(88vh, 860px);
-    display: flex; flex-direction: column; overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    background: var(--card-elev); border: 1px solid var(--border); border-radius: 18px;
+    display: flex; flex-direction: column; overflow: hidden; min-width: 0; max-width: 100%;
+    box-shadow: var(--shadow-sm);
   }
-  .explorer-head {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--card);
+  .preset-strip {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--card);
   }
-  .explorer-head h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .preset-btn {
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--panel-solid); color: var(--text);
+    cursor: pointer; font-family: inherit; transition: border-color .15s, background .15s, transform .12s;
+  }
+  .preset-btn:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); transform: translateY(-1px); }
   .explorer-filters {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;
-    padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel-solid);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px;
+    padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--panel-solid);
     align-items: end;
   }
   .explorer-bar {
-    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
-    padding: 8px 16px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--muted);
   }
   .explorer-sql-box {
-    padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--card);
+    padding: 11px 20px; border-bottom: 1px solid var(--border); background: var(--card);
   }
   .explorer-sql-box textarea {
-    width: 100%; min-height: 82px; font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+    width: 100%; min-height: 96px; font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 12.5px;
     background: var(--bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px; resize: vertical;
+    border-radius: 10px; padding: 10px 12px; resize: vertical; line-height: 1.55;
   }
   .explorer-table-wrap {
-    flex: 1; overflow: auto; padding: 0;
+    max-height: 540px; overflow: auto; max-width: 100%; min-width: 0;
   }
   .explorer-table {
-    width: 100%; border-collapse: collapse; font-size: 12px;
+    width: 100%; border-collapse: collapse; font-size: 12.5px;
   }
   .explorer-table th {
     position: sticky; top: 0; background: var(--panel-solid); color: var(--muted);
-    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border);
-    white-space: nowrap; font-weight: 700;
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border);
+    white-space: nowrap; font-weight: 700; z-index: 2;
   }
   .explorer-table td {
-    padding: 6px 10px; border-bottom: 1px solid rgba(148,163,184,0.12);
-    white-space: nowrap;
+    padding: 8.5px 12px; border-bottom: 1px solid rgba(148,163,184,0.11);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
   }
-  .explorer-table tr:hover td { background: rgba(249,115,22,0.08); }
+  .explorer-table tbody tr:nth-child(even) td { background: rgba(148,163,184,0.03); }
+  .explorer-table tr:hover td { background: var(--accent-soft); }
   .explorer-foot {
     display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
-    padding: 8px 16px; border-top: 1px solid var(--border); background: var(--card); font-size: 12px;
+    padding: 11px 20px; border-top: 1px solid var(--border); background: var(--card); font-size: 12.5px;
+  }
+  @media (max-width: 1080px) {
+    .explorer-page { padding: 14px 12px 34px; }
+    .preset-strip, .explorer-filters, .explorer-bar, .explorer-sql-box, .explorer-foot { padding-left: 14px; padding-right: 14px; }
   }
 """
 
 EXPLORER_BUTTON_HTML = (
-    '<button id="openExplorerBtn" class="btn primary" '
-    'title="ค้นหาจุดความร้อนรายวันทั้ง 1.28 ล้านจุดและรอยเผาไหม้ตรงจาก Hugging Face ด้วย DuckDB-Wasm">'
-    '🔍 ค้นจุดไฟรายวัน (DuckDB)</button>'
+    '<button id="openExplorerBtn" class="nav-tab" data-page="explorer" '
+    'title="ค้นหาข้อมูลดิบ 1.28 ล้านจุด สภาพอากาศ และรอยเผาไหม้ตรงจาก Hugging Face ด้วย DuckDB-Wasm">'
+    '🦆 ค้นข้อมูล DuckDB</button>'
 )
 
 EXPLORER_MODAL_HTML = r"""
-<div id="explorerModal" class="explorer-backdrop" role="dialog" aria-modal="true" aria-label="ค้นหาข้อมูลจุดความร้อนรายวันด้วย DuckDB-Wasm">
-  <div class="explorer-card">
-    <div class="explorer-head">
-      <h3>
-        <span>🦆 ค้นหาข้อมูลละเอียดตรงจาก Hugging Face (DuckDB-Wasm)</span>
-        <span id="expEngineBadge" class="badge">พร้อมโหลดเมื่อกดค้นหา</span>
-      </h3>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <a id="expHfLink" class="btn" href="https://huggingface.co/datasets/__HF_REPO__" target="_blank" rel="noopener" style="text-decoration:none;">📦 เปิดชุดข้อมูล HF</a>
-        <button id="closeExplorerBtn" class="btn">ปิด</button>
-      </div>
-    </div>
-
-    <div class="explorer-filters">
-      <div>
-        <label class="field-label" for="expTable">ชุดข้อมูล (Parquet)</label>
-        <select id="expTable">
-          <option value="hotspots" selected>จุดความร้อนรายวัน VIIRS (1.28 ล้านจุด)</option>
-          <option value="tamroypao">รอยเผา สสน. รายตำบล (19,023 แถว)</option>
-          <option value="burn_scar">รอยเผาไหม้ GISTDA (79,435 แปลง)</option>
-          <option value="burn_freq">พื้นที่เผาซ้ำซาก GISTDA (79,088 แปลง)</option>
-        </select>
-      </div>
-      <div id="expYearWrap">
-        <label class="field-label" for="expYear">ปี (ค.ศ.)</label>
-        <select id="expYear">
-          <option value="2026" selected>2026</option>
-          <option value="2025">2025</option>
-          <option value="2024">2024</option>
-          <option value="2023">2023</option>
-          <option value="2022">2022</option>
-        </select>
-      </div>
-      <div>
-        <label class="field-label" for="expProv">จังหวัด</label>
-        <select id="expProv">
-          <option value="all" selected>ทุกจังหวัด</option>
-        </select>
-      </div>
-      <div>
-        <label class="field-label" for="expKeyword">ค้นหา อำเภอ / ตำบล / หมู่บ้าน</label>
-        <input id="expKeyword" class="search-input" style="width:100%" type="search" placeholder="เช่น แม่แจ่ม, ศรีภูมิ, บ้าน..." />
-      </div>
-      <div id="expSatWrap">
-        <label class="field-label" for="expSat">ดาวเทียม</label>
-        <select id="expSat">
-          <option value="ALL" selected>ทุกดาวเทียม</option>
-          <option value="N">เฉพาะ Suomi NPP (N)</option>
-        </select>
-      </div>
-      <div id="expDateFromWrap">
-        <label class="field-label" for="expDateFrom">ตั้งแต่วันที่</label>
-        <input id="expDateFrom" class="search-input" style="width:100%" type="date" />
-      </div>
-      <div id="expDateToWrap">
-        <label class="field-label" for="expDateTo">ถึงวันที่</label>
-        <input id="expDateTo" class="search-input" style="width:100%" type="date" />
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <button id="expRunBtn" class="btn primary" style="flex:1;">🔎 ค้นหา</button>
-        <button id="expCsvBtn" class="btn" title="ดาวน์โหลดผลที่กรองทั้งหมดเป็น CSV (สูงสุด 50,000 แถว)">⬇ CSV</button>
-      </div>
-    </div>
-
-    <div class="explorer-bar">
-      <div id="expStatus">เลือกเงื่อนไขแล้วกด <strong>ค้นหา</strong> — เบราว์เซอร์จะเจาะอ่านเฉพาะส่วนที่ต้องการจากไฟล์ Parquet บน Hugging Face (ไม่โหลดทั้งไฟล์)</div>
-      <label class="check-row" style="font-size:11.5px;">
-        <input id="expExcludeStatic" type="checkbox" checked />
-        <span>ตัดจุดซ้ำถาวร ≥25 วัน</span>
-      </label>
-    </div>
-
-    <details class="explorer-sql-box">
-      <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);">💻 โหมด SQL (ดูหรือแก้ไขคำสั่ง DuckDB เพื่อสอน/วิเคราะห์เอง)</summary>
-      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
-        <textarea id="expSqlInput" spellcheck="false"></textarea>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="font-size:11px;color:var(--muted);">รองรับคำสั่ง SELECT ตรงบนไฟล์ Parquet ของ Hugging Face (Read-only ในเบราว์เซอร์)</span>
-          <button id="expRunSqlBtn" class="btn primary">▶ รัน SQL นี้</button>
+<section id="page-explorer" class="page-view">
+  <div id="explorerModal" class="explorer-page">
+    <div class="hero-banner">
+      <div class="hero-row">
+        <div>
+          <div class="hero-kicker">● SERVERLESS PARQUET DATA STUDIO · DUCKDB-WASM + HUGGING FACE DATASETS</div>
+          <h1 class="hero-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span>🦆 ศูนย์ค้นข้อมูลดิบ &amp; SQL Lab (DuckDB-Wasm)</span>
+            <span id="expEngineBadge" class="badge">พร้อมโหลดเมื่อกดค้นหา</span>
+          </h1>
+          <p class="hero-desc">
+            เจาะอ่านไฟล์ Apache Parquet 14 ชุดบน Hugging Face แบบ <strong>HTTP Range Request</strong> โดยตรงในเบราว์เซอร์ (ค่าเช่าเซิร์ฟเวอร์ 0 บาท · ไม่ต้องโหลดทั้งไฟล์) รองรับทั้งตัวกรองสำเร็จรูป สูตรค้นด่วน 1 คลิก และเขียนคำสั่ง SQL เองเพื่อนำไปสอนต่อ
+          </p>
+        </div>
+        <div class="hero-actions">
+          <a id="expHfLink" class="btn" href="https://huggingface.co/datasets/__HF_REPO__" target="_blank" rel="noopener" style="text-decoration:none;">📦 เปิดชุดข้อมูลบน Hugging Face</a>
+          <button id="expCsvBtn" class="btn primary" title="ดาวน์โหลดผลที่กรองทั้งหมดเป็น CSV (สูงสุด 50,000 แถว)">⬇ ดาวน์โหลด CSV</button>
         </div>
       </div>
-    </details>
-
-    <div class="explorer-table-wrap" role="region" tabindex="0" aria-label="ตารางผลลัพธ์จาก DuckDB-Wasm">
-      <table class="explorer-table">
-        <thead id="expThead"></thead>
-        <tbody id="expTbody">
-          <tr><td style="padding:24px;text-align:center;color:var(--muted);">กดปุ่ม <strong>🔎 ค้นหา</strong> เพื่อเริ่มเจาะอ่านข้อมูลจาก Hugging Face</td></tr>
-        </tbody>
-      </table>
     </div>
 
-    <div class="explorer-foot">
-      <div id="expPageInfo">หน้า 0 / 0</div>
-      <div style="display:flex;gap:8px;">
-        <button id="expPrevBtn" class="btn" disabled>◀ ก่อนหน้า</button>
-        <button id="expNextBtn" class="btn" disabled>ถัดไป ▶</button>
+    <div class="explorer-card">
+
+      <div class="preset-strip">
+        <span style="font-size:11.5px;font-weight:700;color:var(--muted);">สูตรค้นด่วน 1 คลิก:</span>
+        <button class="preset-btn" data-preset="top_villages">🔥 20 หมู่บ้านไฟชุกปี 2026</button>
+        <button class="preset-btn" data-preset="top_rice">🌾 ตำบลเผานาข้าวสูงสุด (ฤดู 2569)</button>
+        <button class="preset-btn" data-preset="top_corn">🌽 ตำบลเผาข้าวโพดสูงสุด (ฤดู 2569)</button>
+        <button class="preset-btn" data-preset="hot_months">🌡️ เดือนที่อากาศเอื้อไฟแรงสุด (FWI)</button>
+        <button class="preset-btn" data-preset="static_spots">🏭 จุดซ้ำถาวร ≥25 วัน (โรงงาน/เตาเผา)</button>
+      </div>
+
+      <div class="explorer-filters">
+        <div>
+          <label class="field-label" for="expTable">ชุดข้อมูล (Parquet)</label>
+          <select id="expTable">
+            <option value="hotspots" selected>จุดความร้อนรายวัน VIIRS (1.28 ล้านจุด)</option>
+            <option value="weather">สภาพอากาศเอื้อไฟ ERA5 รายเดือน (77 จว. · 2022–2026)</option>
+            <option value="tamroypao">รอยเผา สสน. รายตำบล (19,023 แถว)</option>
+            <option value="burn_scar">รอยเผาไหม้ GISTDA (79,435 แปลง)</option>
+            <option value="burn_freq">พื้นที่เผาซ้ำซาก GISTDA (79,088 แปลง)</option>
+          </select>
+        </div>
+        <div id="expYearWrap">
+          <label class="field-label" for="expYear">ปี (ค.ศ.)</label>
+          <select id="expYear">
+            <option value="2026" selected>2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="expProv">จังหวัด</label>
+          <select id="expProv">
+            <option value="all" selected>ทุกจังหวัด</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="expKeyword">ค้นหา อำเภอ / ตำบล / หมู่บ้าน</label>
+          <input id="expKeyword" class="search-input" style="width:100%" type="search" placeholder="เช่น แม่แจ่ม, ศรีภูมิ, บ้าน..." />
+        </div>
+        <div id="expSatWrap">
+          <label class="field-label" for="expSat">ดาวเทียม</label>
+          <select id="expSat">
+            <option value="ALL" selected>ทุกดาวเทียม</option>
+            <option value="N">เฉพาะ Suomi NPP (N)</option>
+          </select>
+        </div>
+        <div id="expDateFromWrap">
+          <label class="field-label" for="expDateFrom">ตั้งแต่วันที่</label>
+          <input id="expDateFrom" class="search-input" style="width:100%" type="date" />
+        </div>
+        <div id="expDateToWrap">
+          <label class="field-label" for="expDateTo">ถึงวันที่</label>
+          <input id="expDateTo" class="search-input" style="width:100%" type="date" />
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="expRunBtn" class="btn primary" style="width:100%;justify-content:center;">🔎 ค้นหา</button>
+        </div>
+      </div>
+
+      <div class="explorer-bar">
+        <div id="expStatus">เลือกเงื่อนไขด้านบนหรือกดสูตรค้นด่วน 1 คลิก เพื่อเริ่มเจาะอ่านไฟล์ Parquet จาก Hugging Face</div>
+        <label class="check-row" style="font-size:12px;">
+          <input id="expExcludeStatic" type="checkbox" checked />
+          <span>ตัดจุดซ้ำถาวร ≥25 วัน</span>
+        </label>
+      </div>
+
+      <details id="expSqlDetails" class="explorer-sql-box">
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);">💻 โหมด SQL Lab (ดูหรือแก้ไขคำสั่ง DuckDB เพื่อสอนและวิเคราะห์เอง)</summary>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <textarea id="expSqlInput" spellcheck="false"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11.5px;color:var(--muted);">รองรับคำสั่ง SELECT ตรงบนไฟล์ Parquet บน Hugging Face (ทำงานในเบราว์เซอร์ Read-only)</span>
+            <button id="expRunSqlBtn" class="btn primary">▶ รัน SQL นี้</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="explorer-table-wrap" role="region" tabindex="0" aria-label="ตารางผลลัพธ์จาก DuckDB-Wasm">
+        <table class="explorer-table">
+          <thead id="expThead"></thead>
+          <tbody id="expTbody">
+            <tr><td style="padding:36px;text-align:center;color:var(--muted);">กดปุ่ม <strong>🔎 ค้นหา</strong> หรือเลือก <strong>สูตรค้นด่วน 1 คลิก</strong> ด้านบนเพื่อดึงข้อมูลสดจาก Hugging Face</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="explorer-foot">
+        <div id="expPageInfo">หน้า 0 / 0</div>
+        <div style="display:flex;gap:8px;">
+          <button id="expPrevBtn" class="btn" disabled>◀ ก่อนหน้า</button>
+          <button id="expNextBtn" class="btn" disabled>ถัดไป ▶</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 """
 
 EXPLORER_JS = r"""
   // =========================================================================
-  // DuckDB-Wasm Remote Parquet Explorer (loads on demand when modal opens)
+  // Page 5: DuckDB-Wasm Remote Parquet Data Studio (loads lazily on demand)
   // =========================================================================
   const HF_REPO = "__HF_REPO__";
   const HF_BASE = `https://huggingface.co/datasets/${HF_REPO}/resolve/main`;
@@ -181,8 +210,6 @@ EXPLORER_JS = r"""
 
   const expEls = {
     openBtn: document.getElementById("openExplorerBtn"),
-    modal: document.getElementById("explorerModal"),
-    closeBtn: document.getElementById("closeExplorerBtn"),
     badge: document.getElementById("expEngineBadge"),
     table: document.getElementById("expTable"),
     yearWrap: document.getElementById("expYearWrap"),
@@ -199,6 +226,7 @@ EXPLORER_JS = r"""
     runBtn: document.getElementById("expRunBtn"),
     csvBtn: document.getElementById("expCsvBtn"),
     status: document.getElementById("expStatus"),
+    sqlDetails: document.getElementById("expSqlDetails"),
     sqlInput: document.getElementById("expSqlInput"),
     runSqlBtn: document.getElementById("expRunSqlBtn"),
     thead: document.getElementById("expThead"),
@@ -252,10 +280,12 @@ EXPLORER_JS = r"""
   }
 
   function syncExplorerFilterVisibility() {
+    if (!expEls.table) return;
     const t = expEls.table.value;
     const isHot = t === "hotspots";
     const isTrp = t === "tamroypao";
-    expEls.yearWrap.style.display = (isHot || isTrp) ? "block" : "none";
+    const isWx = t === "weather";
+    expEls.yearWrap.style.display = (isHot || isTrp || isWx) ? "block" : "none";
     expEls.satWrap.style.display = isHot ? "block" : "none";
     expEls.dateFromWrap.style.display = isHot ? "block" : "none";
     expEls.dateToWrap.style.display = isHot ? "block" : "none";
@@ -282,6 +312,15 @@ EXPLORER_JS = r"""
       }
       const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
       return `SELECT acq_date_th AS "วันที่", th_time AS "เวลา", prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", village_name AS "หมู่บ้านใกล้สุด", lu_name AS "การใช้ที่ดิน", lu_hp_name AS "พืช", satellite AS "ดาวเทียม", frp_mw AS "FRP(MW)", latitude AS "Lat", longitude AS "Lon"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY acq_date_th DESC, th_time DESC`;
+    }
+
+    if (t === "weather") {
+      const url = `${HF_BASE}/parquet/era5_monthly_fire_weather.parquet`;
+      if (yr) where.push(`year_th = ${Number(yr)}`);
+      if (prov !== "all") where.push(`prov_code = ${sqlStr(prov)}`);
+      if (kw) where.push(`coalesce(prov_name_th, '') ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT ym AS "เดือน", prov_name_th AS "จังหวัด", fire_weather_index AS "ดัชนีเอื้อไฟ(FWI)", tmax_mean_c AS "สูงสุดเฉลี่ย(°C)", tmax_peak_c AS "สูงสุดพีค(°C)", rh_min_mean_pct AS "ความชื้นต่ำสุด(%)", low_rh_days_35pct AS "วันแห้งจัด(<35%)", rain_mm AS "ฝนรวม(มม.)", dry_days AS "วันไม่ตกฝน", wind_max_mean_kmh AS "ลมเฉลี่ย(กม./ชม.)", et0_sum_mm AS "การระเหยET0(มม.)"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY fire_weather_index DESC, ym DESC`;
     }
 
     if (t === "tamroypao") {
@@ -317,6 +356,14 @@ EXPLORER_JS = r"""
     return `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", freq AS "ความถี่(ปี)", area_rai AS "พื้นที่(ไร่)", y2017, y2023, y2024, y2025, centroid_lat AS "Lat", centroid_lon AS "Lon"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY freq DESC, area_rai DESC`;
   }
 
+  const PRESET_SQLS = {
+    top_villages: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", village_name AS "หมู่บ้านใกล้สุด", count(*) AS "จุดไฟ(2026)", round(avg(frp_mw), 1) AS "FRPเฉลี่ย(MW)"\nFROM read_parquet('${HF_BASE}/parquet/hotspots_2026.parquet')\nWHERE NOT is_suspected_static AND village_name IS NOT NULL\nGROUP BY 1,2,3,4\nORDER BY 5 DESC\nLIMIT 20`,
+    top_rice: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", paddy_rai AS "นาข้าว(ไร่)", total_rai AS "รวมทั้งหมด(ไร่)"\nFROM read_parquet('${HF_BASE}/parquet/tamroypao_burn_tambon.parquet')\nWHERE year_th = 2026\nORDER BY paddy_rai DESC\nLIMIT 30`,
+    top_corn: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", corn_rai AS "ข้าวโพด(ไร่)", forest_rai AS "ป่าไม้(ไร่)", total_rai AS "รวม(ไร่)"\nFROM read_parquet('${HF_BASE}/parquet/tamroypao_burn_tambon.parquet')\nWHERE year_th = 2026\nORDER BY corn_rai DESC\nLIMIT 30`,
+    hot_months: () => `SELECT ym AS "เดือน", prov_name_th AS "จังหวัด", fire_weather_index AS "ดัชนีเอื้อไฟ(FWI)", tmax_mean_c AS "สูงสุดเฉลี่ย(°C)", rh_min_mean_pct AS "ความชื้นต่ำสุด(%)", low_rh_days_35pct AS "วันแห้งจัด(<35%)", rain_mm AS "ฝนรวม(มม.)"\nFROM read_parquet('${HF_BASE}/parquet/era5_monthly_fire_weather.parquet')\nORDER BY fire_weather_index DESC\nLIMIT 30`,
+    static_spots: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", lu_name AS "การใช้ที่ดิน", count(*) AS "จำนวนจุดซ้ำ", round(avg(latitude),4) AS "Lat", round(avg(longitude),4) AS "Lon"\nFROM read_parquet('${HF_BASE}/parquet/hotspots_2026.parquet')\nWHERE is_suspected_static\nGROUP BY 1,2,3,4\nORDER BY 5 DESC\nLIMIT 30`,
+  };
+
   function arrowTableToRows(arrowTbl) {
     const cols = arrowTbl.schema.fields.map(f => f.name);
     const rows = [];
@@ -336,7 +383,7 @@ EXPLORER_JS = r"""
   function renderExplorerTable(cols, rows) {
     expEls.thead.innerHTML = `<tr>${cols.map(c => `<th>${escHtml(c)}</th>`).join("")}</tr>`;
     if (!rows.length) {
-      expEls.tbody.innerHTML = `<tr><td colspan="${Math.max(1, cols.length)}" style="padding:20px;text-align:center;color:var(--muted);">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+      expEls.tbody.innerHTML = `<tr><td colspan="${Math.max(1, cols.length)}" style="padding:24px;text-align:center;color:var(--muted);">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
       return;
     }
     expEls.tbody.innerHTML = rows.map(r =>
@@ -409,26 +456,35 @@ EXPLORER_JS = r"""
     }
   }
 
+  function onExplorerPageActivated() {
+    populateExplorerProvinces();
+    if (state.selectedProv && expEls.prov) expEls.prov.value = state.selectedProv;
+    if (state.year && state.year !== "all" && expEls.year) expEls.year.value = state.year;
+    syncExplorerFilterVisibility();
+    if (!expState.lastBaseSql) {
+      expEls.sqlInput.value = buildExplorerSql();
+    }
+  }
+
   function bindExplorerEvents() {
-    if (!expEls.openBtn) return;
-    expEls.openBtn.onclick = () => {
-      populateExplorerProvinces();
-      if (state.selectedProv) expEls.prov.value = state.selectedProv;
-      if (state.year && state.year !== "all") expEls.year.value = state.year;
-      syncExplorerFilterVisibility();
-      expEls.modal.style.display = "flex";
-      if (!expState.lastBaseSql) runExplorerQuery({ page: 0, useCustomSql: false });
-    };
-    expEls.closeBtn.onclick = () => { expEls.modal.style.display = "none"; };
-    expEls.modal.onclick = (e) => { if (e.target === expEls.modal) expEls.modal.style.display = "none"; };
+    if (!expEls.table) return;
     expEls.table.onchange = () => { syncExplorerFilterVisibility(); runExplorerQuery({ page: 0, useCustomSql: false }); };
     expEls.runBtn.onclick = () => runExplorerQuery({ page: 0, useCustomSql: false });
     expEls.runSqlBtn.onclick = () => runExplorerQuery({ page: 0, useCustomSql: true });
     expEls.csvBtn.onclick = exportExplorerCsv;
     expEls.prevBtn.onclick = () => { if (expState.page > 0) runExplorerQuery({ page: expState.page - 1, useCustomSql: !!expState.customSql }); };
-    expEls.nextBtn.onclick = () => runExplorerQuery({ page: expState.page + 1, useCustomSql: !!expState.customSql });
+    expEls.nextBtn.onclick = () => { runExplorerQuery({ page: expState.page + 1, useCustomSql: !!expState.customSql }); };
     expEls.keyword.addEventListener("keydown", (e) => {
       if (e.key === "Enter") runExplorerQuery({ page: 0, useCustomSql: false });
+    });
+    document.querySelectorAll(".preset-btn[data-preset]").forEach(btn => {
+      btn.onclick = () => {
+        const fn = PRESET_SQLS[btn.dataset.preset];
+        if (!fn) return;
+        expEls.sqlInput.value = fn();
+        if (expEls.sqlDetails) expEls.sqlDetails.open = true;
+        runExplorerQuery({ page: 0, useCustomSql: true });
+      };
     });
   }
 """

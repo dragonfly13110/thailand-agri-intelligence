@@ -111,22 +111,28 @@ def extract_rings(geom_json_str: str | None, precision: int = 4) -> list[list[li
     return rings
 
 
-def _load_era5(era5_path: Path) -> dict[str, dict]:
+def _load_era5(era5_path: Path) -> tuple[dict[str, dict], dict[str, dict]]:
     if not era5_path.exists():
-        return {}
+        return {}, {}
     raw = json.loads(era5_path.read_text(encoding="utf-8"))
     provinces = raw.get("provinces") or {}
-    out: dict[str, dict] = {}
+    years_out: dict[str, dict] = {}
+    meta_out: dict[str, dict] = {}
     items = provinces.values() if isinstance(provinces, dict) else provinces
     for item in items:
         code = str(item.get("province_code") or "").zfill(2)
         if not code:
             continue
+        meta_out[code] = {
+            "region": item.get("region") or "",
+            "lat": item.get("requested_latitude"),
+            "lon": item.get("requested_longitude"),
+        }
         years_map: dict[str, dict] = {}
         for y in item.get("years") or []:
             yr = y.get("year")
-            if yr in (2022, 2023, 2024, 2025):
-                years_map[str(yr)] = {
+            if yr is not None and 2016 <= int(yr) <= 2026:
+                years_map[str(int(yr))] = {
                     "tmean_c": y.get("tmean_c"),
                     "tmax_mean_c": y.get("tmax_mean_c"),
                     "tmin_mean_c": y.get("tmin_mean_c"),
@@ -135,8 +141,111 @@ def _load_era5(era5_path: Path) -> dict[str, dict]:
                     "longest_dry_spell_days": y.get("longest_dry_spell_days"),
                     "dry_spell_events_5d": y.get("dry_spell_events_5d"),
                 }
-        out[code] = years_map
-    return out
+        years_out[code] = years_map
+    return years_out, meta_out
+
+
+def _load_fire_weather(
+    con: duckdb.DuckDBPyConnection,
+    existing_tables: set[str],
+) -> tuple[list[str], dict[str, list], dict[str, dict]]:
+    if "era5_monthly_fire_weather" not in existing_tables:
+        return [], {}, {}
+
+    months = [
+        str(r[0])
+        for r in con.execute(
+            "SELECT DISTINCT ym FROM era5_monthly_fire_weather WHERE ym IS NOT NULL ORDER BY 1"
+        ).fetchall()
+    ]
+    m_idx = {ym: idx for idx, ym in enumerate(months)}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               ym, year_th, month_th,
+               round(tmax_mean_c, 1), round(tmean_c, 1), round(rain_mm, 1),
+               round(rh_min_mean_pct, 1), round(wind_max_mean_kmh, 1),
+               round(et0_sum_mm, 1), dry_days, hot_days_35c,
+               round(fire_weather_index, 1), hot_days_38c, low_rh_days_35pct
+        FROM era5_monthly_fire_weather
+        ORDER BY pcode, ym
+    """).fetchall()
+
+    wx_m: dict[str, list] = {}
+    yr_acc: dict[tuple[str, str], list] = {}
+    for pcode, ym, yr, mo, tmax, tmean, rain, rhmin, wind, et0, dry_d, hot35, fwi, hot38, low_rh in rows:
+        arr = wx_m.setdefault(pcode, [None] * len(months))
+        arr[m_idx[str(ym)]] = [tmax, tmean, rain, rhmin, wind, et0, dry_d, hot35, fwi]
+        yr_acc.setdefault((pcode, str(yr)), []).append(
+            (mo, tmax, tmean, rain, rhmin, wind, et0, dry_d, hot35, fwi, hot38, low_rh)
+        )
+
+    wx_y: dict[str, dict] = {}
+    for (pcode, yr_s), items in yr_acc.items():
+        def _avg(idx_c):
+            vals = [x[idx_c] for x in items if x[idx_c] is not None]
+            return round(sum(vals) / len(vals), 1) if vals else None
+
+        def _sum(idx_c):
+            vals = [x[idx_c] for x in items if x[idx_c] is not None]
+            return round(sum(vals), 1) if vals else None
+
+        peak_fwis = [x[9] for x in items if 1 <= x[0] <= 4 and x[9] is not None]
+        wx_y.setdefault(pcode, {})[yr_s] = {
+            "months": len(items),
+            "tmax": _avg(1),
+            "tmean": _avg(2),
+            "rain": _sum(3),
+            "rh_min": _avg(4),
+            "wind_max": _avg(5),
+            "et0": _sum(6),
+            "dry_days": int(_sum(7) or 0),
+            "hot_35": int(_sum(8) or 0),
+            "fwi": _avg(9),
+            "peak_fwi": round(sum(peak_fwis) / len(peak_fwis), 1) if peak_fwis else None,
+            "hot_38": int(_sum(10) or 0),
+            "low_rh_35": int(_sum(11) or 0),
+        }
+
+    return months, wx_m, wx_y
+
+
+def _load_hotspots_monthly(
+    con: duckdb.DuckDBPyConnection,
+    weather_months: list[str],
+) -> tuple[list[str], dict[str, list]]:
+    months = list(weather_months)
+    if not months:
+        months = [
+            f"{int(r[0]):04d}-{int(r[1]):02d}"
+            for r in con.execute("""
+                SELECT DISTINCT year_th, month_th
+                FROM hotspots
+                WHERE year_th BETWEEN 2022 AND 2026 AND month_th BETWEEN 1 AND 12
+                ORDER BY 1, 2
+            """).fetchall()
+        ]
+    m_idx = {ym: idx for idx, ym in enumerate(months)}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               year_th, month_th,
+               count(*) FILTER (WHERE satellite = 'N' AND NOT is_suspected_static) AS n_tot,
+               count(*) FILTER (WHERE satellite = 'N' AND NOT is_suspected_static AND lu_name IN ('พื้นที่เกษตร', 'เขต สปก.')) AS n_agri,
+               count(*) FILTER (WHERE satellite = 'N' AND NOT is_suspected_static AND lu_name LIKE 'ป่า%') AS n_for,
+               count(*) FILTER (WHERE NOT is_suspected_static) AS all_tot,
+               count(*) FILTER (WHERE NOT is_suspected_static AND lu_name IN ('พื้นที่เกษตร', 'เขต สปก.')) AS all_agri,
+               count(*) FILTER (WHERE NOT is_suspected_static AND lu_name LIKE 'ป่า%') AS all_for
+        FROM hotspots
+        WHERE year_th BETWEEN 2022 AND 2026 AND month_th BETWEEN 1 AND 12
+        GROUP BY 1, 2, 3
+    """).fetchall()
+    out: dict[str, list] = {}
+    for pcode, yr, mo, nt, na, nf, at, aa, af in rows:
+        ym = f"{int(yr):04d}-{int(mo):02d}"
+        if ym not in m_idx:
+            continue
+        arr = out.setdefault(str(pcode), [[0, 0, 0, 0, 0, 0] for _ in months])
+        arr[m_idx[ym]] = [int(nt), int(na), int(nf), int(at), int(aa), int(af)]
+    return months, out
 
 
 def _load_flood_risk(tadih_db_path: Path | None) -> tuple[dict[str, dict], dict[str, dict], dict[str, dict]]:
@@ -329,10 +438,12 @@ def build_map_payload(
             ).fetchall()
         }
 
-        era5_map = _load_era5(Path(era5_path))
+        era5_map, era5_meta = _load_era5(Path(era5_path))
         flood_tambon, flood_amphoe, flood_prov = _load_flood_risk(tadih_db_path)
         scar_maps, freq_maps = _load_burn_stats(con, existing_tables)
         trp_maps, covered_trp_provs, trp_years = _load_tamroypao_stats(con, existing_tables)
+        weather_months, wx_m_map, wx_y_map = _load_fire_weather(con, existing_tables)
+        timeline_months, hs_m_map = _load_hotspots_monthly(con, weather_months)
         covered_scar_provs = set(scar_maps["prov"].keys())
         covered_freq_provs = set(freq_maps["prov"].keys())
 
@@ -352,10 +463,14 @@ def build_map_payload(
             freq = freq_maps["prov"].get(pcode)
             fl = flood_prov.get(pcode)
             trp = trp_maps["prov"].get(pcode, {}) if pcode in covered_trp_provs else None
+            em = era5_meta.get(pcode, {})
             provinces.append({
                 "code": pcode,
                 "name_th": nth,
                 "name_en": nen,
+                "region": em.get("region") or "",
+                "lat": em.get("lat") if em.get("lat") is not None else round((y0 + y1) / 2, 4),
+                "lon": em.get("lon") if em.get("lon") is not None else round((x0 + x1) / 2, 4),
                 "bbox": [round(x0, 4), round(y0, 4), round(x1, 4), round(y1, 4)],
                 "area_sqkm": float(sqkm or 0.0),
                 "rings": extract_rings(gjson),
@@ -370,6 +485,9 @@ def build_map_payload(
                 "flood_high_tambons": fl["high_tambons"] if fl else None,
                 "flood_matched_tambons": fl["matched_tambons"] if fl else None,
                 "era5": era5_map.get(pcode, {}),
+                "wx_y": wx_y_map.get(pcode, {}),
+                "wx_m": wx_m_map.get(pcode),
+                "hs_m": hs_m_map.get(pcode),
                 "trp": trp,
             })
 
@@ -698,11 +816,14 @@ def build_map_payload(
                 "freq_covered_provinces": len(covered_freq_provs),
                 "trp_covered_provinces": len(covered_trp_provs),
                 "trp_years": trp_years,
+                "weather_covered_provinces": len(wx_m_map),
+                "weather_months_count": len(weather_months),
                 "flood_covered_provinces": len(flood_prov),
                 "flood_covered_tambons": len(flood_tambon),
                 "years": [2022, 2023, 2024, 2025, 2026],
                 "seasons": ["ม.ค.–ก.พ.", "มี.ค.–เม.ย.", "พ.ค.–ต.ค.", "พ.ย.–ธ.ค."],
             },
+            "weather_months": timeline_months,
             "provinces": provinces,
             "amphoes": amphoes,
             "tambons": tambons,

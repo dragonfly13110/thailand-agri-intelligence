@@ -123,6 +123,19 @@ def _create_synthetic_sources(root: Path, *, include_tadih: bool = True) -> tupl
         ('2568', '202412_202504', 2025, '50', '5001', '500101', 80.0, 15.0, 200.0, 0.0, 295.0, 450.0, 745.0, 'b3a_2024.tif', 'b3f_2024.tif'),
         ('2569', '202512_202604', 2026, '50', '5001', '500101', 90.0, 10.0, 150.0, 2.5, 252.5, 310.0, 562.5, 'b3a_2025.tif', 'b3f_2025.tif');
 
+        CREATE TABLE era5_monthly_fire_weather (
+            prov_code VARCHAR, year_th INTEGER, month_th INTEGER, ym VARCHAR, days_count INTEGER,
+            tmax_mean_c DOUBLE, tmax_peak_c DOUBLE, tmean_c DOUBLE, hot_days_35c INTEGER, hot_days_38c INTEGER,
+            rain_mm DOUBLE, dry_days INTEGER, longest_dry_spell_days INTEGER,
+            wind_max_mean_kmh DOUBLE, wind_peak_kmh DOUBLE, et0_sum_mm DOUBLE,
+            rh_mean_pct DOUBLE, rh_min_mean_pct DOUBLE, low_rh_days_35pct INTEGER, fire_weather_index DOUBLE
+        );
+        INSERT INTO era5_monthly_fire_weather VALUES
+        ('50', 2024, 3, '2024-03', 31, 36.2, 39.5, 28.4, 22, 6, 4.2, 29, 18, 12.4, 22.0, 165.0, 48.0, 26.5, 24, 79.4),
+        ('50', 2026, 3, '2026-03', 31, 35.4, 38.8, 27.9, 19, 3, 12.0, 27, 14, 11.8, 20.5, 158.0, 51.0, 30.2, 18, 72.6),
+        ('83', 2024, 3, '2024-03', 31, 32.1, 33.8, 28.5, 0, 0, 145.0, 14, 5, 13.0, 21.0, 142.0, 76.0, 61.0, 0, 34.2),
+        ('83', 2026, 3, '2026-03', 31, 31.8, 33.2, 28.2, 0, 0, 180.0, 11, 4, 12.5, 19.5, 136.0, 78.0, 63.5, 0, 31.0);
+
         CREATE VIEW v_suspected_static_hotspots AS
         SELECT prov_name_th, amphoe_name_th, tambon_name_th, lu_name,
                lat_grid3, lon_grid3, count(*) AS total_points,
@@ -150,20 +163,26 @@ def _create_synthetic_sources(root: Path, *, include_tadih: bool = True) -> tupl
         "provinces": {
             "50": {
                 "province_code": "50",
+                "region": "north",
+                "requested_latitude": 18.7883,
+                "requested_longitude": 98.9853,
                 "years": [
                     {"year": y, "tmean_c": 26.5, "tmax_mean_c": 32.0, "tmin_mean_c": 21.0,
                      "hot_days_38c": 12 + (y - 2022), "rainfall_total_mm": 1200.0,
                      "longest_dry_spell_days": 45, "dry_spell_events_5d": 8, "complete_year": True}
-                    for y in (2022, 2023, 2024, 2025)
+                    for y in (2016, 2022, 2023, 2024, 2025)
                 ],
             },
             "83": {
                 "province_code": "83",
+                "region": "south",
+                "requested_latitude": 7.8804,
+                "requested_longitude": 98.3923,
                 "years": [
                     {"year": y, "tmean_c": 28.0, "tmax_mean_c": 32.5, "tmin_mean_c": 24.5,
                      "hot_days_38c": 0, "rainfall_total_mm": 2400.0,
                      "longest_dry_spell_days": 14, "dry_spell_events_5d": 2, "complete_year": True}
-                    for y in (2022, 2023, 2024, 2025)
+                    for y in (2016, 2022, 2023, 2024, 2025)
                 ],
             },
         },
@@ -224,11 +243,18 @@ class InteractiveMapDataTests(unittest.TestCase):
             self.assertGreater(provs["83"]["area_sqkm"], 0)
             self.assertTrue(len(provs["83"]["rings"]) >= 1)
 
-            # Chiang Mai (50) has burn_scar, burn_freq, TamRoyPao (2024..2026), flood, and ERA5 2022..2025 (no 2026)
+            # Chiang Mai (50) has burn_scar, burn_freq, TamRoyPao (2024..2026), flood, ERA5 10Y + Fire-Weather 2024 & 2026
             self.assertAlmostEqual(provs["50"]["scar_rai"], 120.5)
             self.assertAlmostEqual(provs["50"]["freq_rai"], 500.0)
             self.assertEqual(provs["50"]["flood_max_17yr"], 8)
-            self.assertEqual(sorted(provs["50"]["era5"].keys()), ["2022", "2023", "2024", "2025"])
+            self.assertEqual(sorted(provs["50"]["era5"].keys()), ["2016", "2022", "2023", "2024", "2025"])
+            self.assertEqual(provs["50"]["region"], "north")
+            self.assertAlmostEqual(provs["50"]["lat"], 18.7883)
+            self.assertEqual(payload["weather_months"], ["2024-03", "2026-03"])
+            self.assertEqual(payload["meta"]["weather_covered_provinces"], 2)
+            self.assertAlmostEqual(provs["50"]["wx_y"]["2026"]["peak_fwi"], 72.6)
+            self.assertEqual(len(provs["50"]["wx_m"]), 2)
+            self.assertEqual(provs["50"]["hs_m"][0][0], 1)  # 2024-03 N hotspot in Chiang Mai
             self.assertEqual(sorted(provs["50"]["trp"].keys()), ["2024", "2025", "2026"])
             self.assertEqual(provs["50"]["trp"]["2024"], [100.5, 20.0, 300.3, 5.0, 600.0])
             self.assertEqual(payload["meta"]["trp_covered_provinces"], 1)
@@ -364,11 +390,15 @@ class InteractiveMapDataTests(unittest.TestCase):
     def test_render_online_web_html_valid_js_and_hf_urls(self) -> None:
         html_text = render_online_web_html("dragonfly13110/thailand-hotspot-5y")
         self.assertIn("https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y/resolve/main/summary/map_payload.json.gz", html_text)
+        for page_id in ("page-overview", "page-map", "page-weather", "page-burnscar", "page-explorer"):
+            self.assertIn(f'id="{page_id}"', html_text)
         self.assertIn('id="openExplorerBtn"', html_text)
         self.assertIn('id="explorerModal"', html_text)
+        self.assertIn('value="wx_fwi"', html_text)
         self.assertIn("ensureDuckDb", html_text)
-        self.assertNotIn("__PAYLOAD_B64__", html_text)
-        self.assertNotIn("__HF_REPO__", html_text)
+        self.assertIn("switchPage", html_text)
+        for leftover in ("__PAYLOAD_B64__", "__HF_REPO__", "__MULTI_PAGE_CSS__", "__OVERVIEW_PAGE__", "__WEATHER_PAGE__", "__BURNSCAR_PAGE__", "__MULTI_PAGE_JS__"):
+            self.assertNotIn(leftover, html_text)
         script_body = html_text.split('<script id="payloadB64" type="text/plain">', 1)[1].split("<script>\n", 1)[1].rsplit("</script>", 1)[0]
         import shutil, subprocess
         node_exe = shutil.which("node")

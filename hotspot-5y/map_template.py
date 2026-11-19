@@ -7,20 +7,37 @@ import json
 
 from explorer_asset import EXPLORER_BUTTON_HTML, EXPLORER_CSS, EXPLORER_JS, EXPLORER_MODAL_HTML
 from map_data import encode_payload_b64
+from ui_pages import (
+    BURNSCAR_PAGE_HTML,
+    MULTI_PAGE_CSS,
+    MULTI_PAGE_JS,
+    OVERVIEW_PAGE_HTML,
+    WEATHER_PAGE_HTML,
+)
 
 HTML_SHELL = r"""<!DOCTYPE html>
 <html lang="th" data-theme="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Thailand 5-Year Hotspot & Multi-Factor Interactive Map (GISTDA · ERA5 · HII)</title>
+<title>Thailand Fire, Burn Scar & Climate Intelligence Atlas (2022–2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --bg: #070b14;
-  --panel: rgba(15, 23, 42, 0.88);
-  --panel-solid: #0f172a;
-  --card: rgba(30, 41, 59, 0.72);
-  --border: rgba(148, 163, 184, 0.22);
+  --bg: #080c15;
+  --bg-mesh: radial-gradient(ellipse 80% 45% at 15% -5%, rgba(249, 115, 22, 0.14), transparent 55%),
+             radial-gradient(ellipse 65% 45% at 90% 5%, rgba(56, 189, 248, 0.10), transparent 55%),
+             #080c15;
+  --topbar-bg: #0c1220;
+  --hero-bg: linear-gradient(135deg, rgba(24, 34, 54, 0.96), rgba(14, 21, 38, 0.96));
+  --panel: rgba(13, 20, 36, 0.94);
+  --panel-solid: #0d1424;
+  --card: rgba(24, 34, 54, 0.72);
+  --card-elev: #121b2e;
+  --border: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(249, 115, 22, 0.30);
   --text: #f1f5f9;
   --muted: #94a3b8;
   --accent: #f97316;
@@ -30,49 +47,61 @@ HTML_SHELL = r"""<!DOCTYPE html>
   --flood: #38bdf8;
   --danger: #ef4444;
   --null-fill: #334155;
-  --map-land-stroke: rgba(148, 163, 184, 0.45);
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --map-land-stroke: rgba(148, 163, 184, 0.42);
+  --shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 html[data-theme="light"] {
-  --bg: #eef2f7;
-  --panel: rgba(255, 255, 255, 0.94);
+  --bg: #f3f5f9;
+  --bg-mesh: radial-gradient(ellipse 80% 45% at 15% -5%, rgba(234, 88, 12, 0.08), transparent 55%),
+             radial-gradient(ellipse 65% 45% at 90% 5%, rgba(2, 132, 199, 0.07), transparent 55%),
+             #f3f5f9;
+  --topbar-bg: #ffffff;
+  --hero-bg: linear-gradient(135deg, #ffffff, #fff7ed);
+  --panel: rgba(255, 255, 255, 0.96);
   --panel-solid: #ffffff;
   --card: #f8fafc;
-  --border: rgba(15, 23, 42, 0.14);
+  --card-elev: #ffffff;
+  --border: rgba(15, 23, 42, 0.11);
+  --border-strong: rgba(234, 88, 12, 0.26);
   --text: #0f172a;
   --muted: #475569;
   --accent: #ea580c;
-  --accent-soft: rgba(234, 88, 12, 0.12);
+  --accent-soft: rgba(234, 88, 12, 0.10);
   --agri: #d97706;
   --forest: #059669;
   --flood: #0284c7;
   --danger: #dc2626;
   --null-fill: #cbd5e1;
-  --map-land-stroke: rgba(51, 65, 85, 0.45);
-  --shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+  --map-land-stroke: rgba(51, 65, 85, 0.42);
+  --shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+  --shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.06);
 }
 * { box-sizing: border-box; }
 html, body {
-  margin: 0; padding: 0; width: 100%; height: 100%;
+  margin: 0; padding: 0; width: 100%; max-width: 100%; height: 100%;
   background: var(--bg); color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", Tahoma, sans-serif;
+  font-family: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", Tahoma, sans-serif;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 #app {
   display: grid;
-  grid-template-rows: 54px 1fr;
-  height: 100vh; width: 100vw;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 58px 1fr;
+  height: 100vh; width: 100%; max-width: 100%; overflow-x: hidden;
 }
 .topbar {
-  display: flex; align-items: center; gap: 10px; padding: 0 14px;
-  background: var(--panel-solid); border-bottom: 1px solid var(--border);
-  z-index: 30; overflow-x: auto; white-space: nowrap;
+  display: flex; align-items: center; gap: 10px; padding: 0 16px;
+  background: var(--topbar-bg); border-bottom: 1px solid var(--border);
+  z-index: 30; overflow-x: auto; white-space: nowrap; scrollbar-width: thin;
+  min-width: 0; max-width: 100%;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
 .brand-dot {
-  width: 10px; height: 10px; border-radius: 50%;
+  width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
   background: radial-gradient(circle, #fde047, #f97316 65%, #dc2626);
-  box-shadow: 0 0 10px #f97316;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.85);
 }
 .badge {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
@@ -80,16 +109,15 @@ html, body {
   font-weight: 600;
 }
 .breadcrumbs {
-  display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted);
-  margin-left: 6px;
+  display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--muted);
 }
 .crumb-btn {
   background: transparent; border: 1px solid transparent; color: var(--text);
-  padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit;
+  padding: 2px 7px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit;
 }
-.crumb-btn:hover { background: var(--card); border-color: var(--border); }
+.crumb-btn:hover { background: var(--accent-soft); color: var(--accent); }
 .spacer { flex: 1; }
-.search-wrap { position: relative; min-width: 210px; max-width: 260px; }
+.search-wrap { position: relative; min-width: 180px; max-width: 230px; }
 .search-input {
   width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 12px;
   background: var(--card); color: var(--text); border: 1px solid var(--border);
@@ -108,25 +136,29 @@ html, body {
 .search-item:hover { background: var(--accent-soft); }
 .search-tag { font-size: 10px; color: var(--muted); }
 .btn {
-  padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  padding: 6px 11px; border-radius: 9px; font-size: 12px; font-weight: 600;
   border: 1px solid var(--border); background: var(--card); color: var(--text);
   cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 5px;
+  transition: border-color .15s, color .15s, background .15s;
 }
 .btn:hover { border-color: var(--accent); color: var(--accent); }
-.btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+.btn.primary {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.28);
+}
 .btn.primary:hover { filter: brightness(1.08); color: #fff; }
 
 .workspace {
-  display: grid;
-  grid-template-columns: 292px 1fr 376px;
-  height: calc(100vh - 54px);
+  grid-template-columns: 296px 1fr 378px;
+  height: 100%;
   position: relative;
   overflow: hidden;
 }
 .workspace.presentation { grid-template-columns: 0px 1fr 0px; }
 .sidebar {
   background: var(--panel-solid);
-  border-right: 1px solid var(--border); padding: 12px;
+  border-right: 1px solid var(--border); padding: 12px 12px 58px;
   overflow-y: auto; display: flex; flex-direction: column; gap: 11px;
   z-index: 20;
 }
@@ -135,7 +167,7 @@ html, body {
 
 .section {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 7px;
+  border-radius: 12px; padding: 11px; display: flex; flex-direction: column; gap: 7px;
 }
 .section-title {
   font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: var(--muted);
@@ -158,7 +190,7 @@ select {
 }
 html[data-theme="light"] .warn-pill { color: #92400e; background: rgba(245, 158, 11, 0.16); }
 
-.map-stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+.map-stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg-mesh); }
 #mapCanvas { width: 100%; height: 100%; display: block; cursor: grab; }
 #mapCanvas:active { cursor: grabbing; }
 
@@ -172,16 +204,16 @@ html[data-theme="light"] .warn-pill { color: #92400e; background: rgba(245, 158,
   font-size: 12px;
 }
 .map-controls {
-  position: absolute; right: 14px; bottom: 92px; display: flex; flex-direction: column; gap: 6px; z-index: 15;
+  position: absolute; right: 14px; bottom: 66px; display: flex; flex-direction: column; gap: 6px; z-index: 15;
 }
 .zoom-btn {
-  width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
-  background: var(--panel); color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer;
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--panel-solid); color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer;
   box-shadow: var(--shadow);
 }
 .zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
 .legend-box {
-  position: absolute; left: 14px; bottom: 14px; z-index: 15; min-width: 225px; max-width: 320px;
+  position: absolute; left: 14px; bottom: 66px; z-index: 15; min-width: 225px; max-width: 310px;
 }
 .legend-bar { height: 10px; border-radius: 999px; margin: 6px 0 4px; border: 1px solid var(--border); }
 .legend-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
@@ -202,10 +234,14 @@ html[data-theme="light"] .warn-pill { color: #92400e; background: rgba(245, 158,
 
 .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .kpi-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 9px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 11px;
+  border-top: 2.5px solid var(--accent);
 }
-.kpi-label { font-size: 11px; color: var(--muted); }
-.kpi-val { font-size: 18px; font-weight: 800; margin-top: 2px; line-height: 1.15; }
+.kpi-card:nth-child(2) { border-top-color: var(--forest); }
+.kpi-card:nth-child(3) { border-top-color: var(--agri); }
+.kpi-card:nth-child(4) { border-top-color: var(--flood); }
+.kpi-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+.kpi-val { font-size: 18px; font-weight: 800; margin-top: 3px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
 .chart-box { width: 100%; height: 186px; position: relative; }
@@ -246,8 +282,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 .workspace.presentation ~ .pres-exit, .pres-exit.visible { display: inline-flex; }
 
 @media (max-width: 1080px) {
-  .workspace { grid-template-columns: 1fr; grid-template-rows: 52vh auto auto; overflow-y: auto; height: auto; }
-  body { overflow-y: auto; }
+  .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: 52vh auto auto; overflow-y: auto; height: auto; }
+  html, body { overflow-y: auto; overflow-x: hidden; }
   #app { height: auto; min-height: 100vh; }
   .sidebar { border: none; border-top: 1px solid var(--border); max-height: none; overflow: visible; }
   .map-stage { grid-row: 1; height: 52vh; }
@@ -255,35 +291,44 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   .map-controls { right: 8px; bottom: 16px; }
   .hud-box { padding: 5px 8px; font-size: 11px; }
 }
+/*__MULTI_PAGE_CSS__*/
 /*__EXPLORER_CSS__*/
 </style>
 </head>
 <body>
 <div id="loadingMask" class="loading-mask">
   <div class="brand-dot" style="width:18px;height:18px;"></div>
-  <div>กำลังถอดรหัสแผนที่และข้อมูล 1.27 ล้านจุดในเครื่อง...</div>
+  <div>กำลังถอดรหัสแผนที่ สภาพอากาศ และข้อมูล 1.28 ล้านจุด...</div>
 </div>
 
 <div id="app">
   <header class="topbar">
-    <div class="brand">
+    <div class="brand" data-goto="overview" title="กลับหน้าภาพรวมประเทศ">
       <span class="brand-dot"></span>
-      <span>Hotspot 5Y · Multi-Factor Atlas</span>
+      <span>Thailand Fire Atlas</span>
       <span id="dateBadge" class="badge">2022–2026</span>
     </div>
-    <nav id="breadcrumbs" class="breadcrumbs"></nav>
+    <nav class="nav-tabs" aria-label="เมนูหลัก">
+      <button type="button" class="nav-tab active" data-page="overview">📊 ภาพรวม</button>
+      <button type="button" class="nav-tab" data-page="map">🗺️ แผนที่เจาะลึก</button>
+      <button type="button" class="nav-tab" data-page="weather">🌦️ อากาศ × ไฟ</button>
+      <button type="button" class="nav-tab" data-page="burnscar">🔥 รอยเผา &amp; เทียบจังหวัด</button>
+      <!--__EXPLORER_BTN__-->
+    </nav>
     <div class="spacer"></div>
-    <div class="search-wrap">
+    <div class="search-wrap" style="display:none;">
       <input id="searchInput" class="search-input" type="search" placeholder="ค้นหาจังหวัด / อำเภอ / ตำบล..." autocomplete="off" />
     </div>
-    <!--__EXPLORER_BTN__-->
-    <button id="exportCsvBtn" class="btn" title="ส่งออกตารางเป็น CSV สำหรับ Excel">⬇ Export CSV</button>
+    <button id="exportCsvBtn" class="btn" style="display:none;" title="ส่งออกตารางเป็น CSV สำหรับ Excel">⬇ CSV</button>
     <button id="provenanceBtn" class="btn" title="ที่มาข้อมูลและข้อควรระวัง">ℹ ข้อควรรู้</button>
     <button id="themeToggle" class="btn" title="สลับโหมดสีมืด/สว่าง">☀ โหมดสว่าง</button>
-    <button id="presentationBtn" class="btn primary" title="ขยายแผนที่เต็มจอสำหรับสอน/นำเสนอ">⛶ เต็มจอ</button>
+    <button id="presentationBtn" class="btn primary" style="display:none;" title="ขยายแผนที่เต็มจอสำหรับสอน/นำเสนอ">⛶ เต็มจอ</button>
   </header>
 
-  <main id="workspace" class="workspace">
+  <div class="app-body">
+  <!--__OVERVIEW_PAGE__-->
+
+  <main id="page-map" class="page-view workspace">
     <aside class="sidebar left">
       <div class="section">
         <div class="section-title"><span>1. มาตรฐานดาวเทียม & เวลา</span></div>
@@ -348,16 +393,28 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <div>
           <label class="field-label" for="metricSelect">ระบายสีพื้นที่ตามตัวชี้วัด</label>
           <select id="metricSelect">
-            <option value="count" selected>จำนวนจุดความร้อน (จุด)</option>
-            <option value="density">ความหนาแน่น (จุด / 100 ตร.กม.)</option>
-            <option value="agri_pct">สัดส่วนเผาในเกษตร+ส.ป.ก. (%)</option>
-            <option value="trp_rai">รอยเผา สสน. ตามรอยเผา (ไร่ · แยกพืช/ฤดู 24–26)</option>
-            <option value="scar_rai">รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)</option>
-            <option value="freq_rai">พื้นที่เผาซ้ำซาก GISTDA (ไร่)</option>
-            <option value="era5_hot">อากาศ ERA5: วันร้อนจัด ≥38°C</option>
-            <option value="era5_dry">อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)</option>
-            <option value="era5_rain">อากาศ ERA5: ฝนรวมทั้งปี (มม.)</option>
-            <option value="hazard">พื้นที่เสี่ยงซ้ำซ้อน (ท่วมซ้ำ HII + เผาซ้ำ N)</option>
+            <optgroup label="🔥 จุดความร้อน &amp; รอยเผาไหม้">
+              <option value="count" selected>จำนวนจุดความร้อน (จุด)</option>
+              <option value="density">ความหนาแน่น (จุด / 100 ตร.กม.)</option>
+              <option value="agri_pct">สัดส่วนเผาในเกษตร+ส.ป.ก. (%)</option>
+              <option value="trp_rai">รอยเผา สสน. ตามรอยเผา (ไร่ · แยกพืช/ฤดู 24–26)</option>
+              <option value="scar_rai">รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)</option>
+              <option value="freq_rai">พื้นที่เผาซ้ำซาก GISTDA (ไร่)</option>
+            </optgroup>
+            <optgroup label="🌦️ สภาพอากาศเอื้อไฟ 2022–2026 (ครบ 77 จว.)">
+              <option value="wx_fwi">ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)</option>
+              <option value="wx_tmax">อุณหภูมิสูงสุดเฉลี่ย (°C · 2022–2026)</option>
+              <option value="wx_rhmin">ความชื้นสัมพัทธ์ต่ำสุดเฉลี่ย (%)</option>
+              <option value="wx_low_rh">วันอากาศแห้งจัด RH&lt;35% (วัน/ปี)</option>
+              <option value="wx_wind">ความเร็วลมสูงสุดเฉลี่ย (กม./ชม.)</option>
+              <option value="wx_rain">ปริมาณฝนรวม (มม. · 2022–2026)</option>
+            </optgroup>
+            <optgroup label="🌡️ ภูมิอากาศ 10 ปี (2022–2025) &amp; ภัยซ้ำซ้อน">
+              <option value="era5_hot">อากาศ ERA5: วันร้อนจัด ≥38°C</option>
+              <option value="era5_dry">อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)</option>
+              <option value="era5_rain">อากาศ ERA5: ฝนรวมทั้งปี (มม.)</option>
+              <option value="hazard">พื้นที่เสี่ยงซ้ำซ้อน (ท่วมซ้ำ HII + เผาซ้ำ N)</option>
+            </optgroup>
           </select>
         </div>
         <div>
@@ -420,7 +477,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     <section class="map-stage">
       <canvas id="mapCanvas"></canvas>
       <div class="map-hud-top">
-        <div id="scopePill" class="hud-box">ประเทศไทย (77 จังหวัด)</div>
+        <div class="hud-box" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <nav id="breadcrumbs" class="breadcrumbs"></nav>
+          <span style="color:var(--border);">|</span>
+          <span id="scopePill" style="font-size:11.5px;color:var(--muted);">ประเทศไทย (77 จังหวัด)</span>
+        </div>
         <button id="resetZoomBtn" class="hud-box btn" style="cursor:pointer">↺ กลับภาพรวมทั้งประเทศ</button>
       </div>
       <div class="map-controls">
@@ -433,6 +494,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <div class="legend-labels"><span id="legMin">0</span><span id="legMid">-</span><span id="legMax">-</span></div>
         <div id="legendNullChip" class="null-chip" style="display:none;"><span class="null-swatch"></span><span>ไม่มีข้อมูลต้นทาง (ไม่ใช่ 0)</span></div>
         <div id="tmsLegendChip" class="null-chip" style="display:none;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:10.5px;"></div>
+      </div>
+      <div id="mapDock" class="map-dock" aria-label="สลับมุมมองแผนที่ด่วน">
+        <button type="button" class="dock-btn active" data-dock-metric="count">🔥 จุดไฟ</button>
+        <button type="button" class="dock-btn" data-dock-metric="trp_rai">🛰️ รอยเผา สสน.</button>
+        <button type="button" class="dock-btn" data-dock-metric="wx_fwi">🌡️ อากาศ FWI</button>
+        <button type="button" class="dock-btn" data-dock-metric="hazard">🌊 ท่วม+เผา</button>
+        <button type="button" class="dock-btn" id="dockHeatBtn">✨ Heatmap</button>
       </div>
     </section>
 
@@ -471,9 +539,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <div>
             <label class="field-label" for="scatterX">แกน X (ปัจจัย)</label>
             <select id="scatterX">
-              <option value="hot_days_38c" selected>วันร้อนจัด ≥38°C (ERA5)</option>
-              <option value="longest_dry_spell_days">ช่วงแล้งยาวสุด (วัน)</option>
-              <option value="rainfall_total_mm">ฝนรวมทั้งปี (มม.)</option>
+              <option value="wx_peak_fwi" selected>ดัชนีอากาศเอื้อไฟ FWI (2022–2026)</option>
+              <option value="wx_low_rh_35">วันอากาศแห้งจัด RH&lt;35% (2022–2026)</option>
+              <option value="hot_days_38c">วันร้อนจัด ≥38°C (ERA5 22–25)</option>
+              <option value="longest_dry_spell_days">ช่วงแล้งยาวสุด (วัน · ERA5)</option>
+              <option value="rainfall_total_mm">ฝนรวมทั้งปี (มม. · ERA5)</option>
               <option value="flood_max_17yr">น้ำท่วมซ้ำ 17 ปี (ครั้ง · HII)</option>
               <option value="trp_rai">รอยเผาไหม้ (ไร่ · สสน. ตามรอยเผา)</option>
               <option value="scar_rai">รอยเผาไหม้ (ไร่ · GISTDA)</option>
@@ -508,6 +578,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     </aside>
   </main>
 
+  <!--__WEATHER_PAGE__-->
+  <!--__BURNSCAR_PAGE__-->
+  <!--__EXPLORER_MODAL__-->
+  </div>
+
   <button id="exitPresBtn" class="btn primary pres-exit">✕ ออกจากโหมดเต็มจอ</button>
 </div>
 
@@ -524,15 +599,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     <ul style="padding-left:18px;margin:8px 0;">
       <li><strong>จุดความร้อน 5 ปี (`1,278,326` จุด, `2022-01-01` ถึง `2026-11-17`):</strong> จาก GISTDA STAC VIIRS ทุกรายการจับคู่กับขอบเขต ปภ. (77 จังหวัด / 926 อำเภอ / 7,658 ตำบล) และหมู่บ้านใกล้เคียง</li>
       <li><strong>ทำไมค่าเริ่มต้นใช้ Suomi NPP (`N`) + ม.ค.–ต.ค.:</strong> ปี 2022–2023 มีดาวเทียมดวงเดียว (`N`) แต่ปี 2024–2026 มี 3 ดวง (`N`, `N20`, `N21`) ทำให้เกิดจุดซ้ำวันเดียวกันถึง ~33% นอกจากนี้ `N` หยุดส่งข้อมูลหลังวันที่ `1 พ.ย. 2026` จึงตัดเทียบ `ม.ค.–ต.ค.` เพื่อให้ 5 ปีเทียบเท่ากันจริง</li>
-      <li><strong>ร่องรอยเผาไหม้ (`gistda_burn_scar` 57 จังหวัด) & เผาซ้ำซาก (`gistda_burn_freq` 53 จังหวัด):</strong> ไม่ครบทั้ง 77 จังหวัด (อีสานหาย 15 จังหวัด ใต้หาย 9 จังหวัดใน `burn_freq`) พื้นที่ที่ไม่มีข้อมูลจึงแสดงเป็น <strong>สีเทา ("ไม่มีข้อมูลต้นทาง")</strong> ห้ามแปลเป็น 0</li>
+      <li><strong>สภาพอากาศเอื้อไฟรายเดือน 5 ปี (`2022-01` ถึง `2026-11`) + พยากรณ์สด 7 วัน (Open-Meteo ERA5 · `CC-BY-4.0`):</strong> ครบทั้ง 77 จังหวัด เก็บอุณหภูมิสูงสุด ความชื้นสัมพัทธ์ต่ำสุด ลมแรง การระเหยน้ำ (ET0) และจำนวนวันไม่ตกฝน โดยคำนวณดัชนีอากาศเอื้อไฟ (FWI 0–100) จาก 30% ความร้อน + 30% ความแห้งอากาศ (RH ต่ำสุด) + 20% สัดส่วนวันไม่ตกฝน + 10% ET0 + 10% ความเร็วลม (เป็นระดับจุดกริดจังหวัด ไม่แบ่งอำเภอ/ตำบล)</li>
+      <li><strong>ร่องรอยเผาไหม้ (`gistda_burn_scar` 57 จังหวัด) &amp; เผาซ้ำซาก (`gistda_burn_freq` 53 จังหวัด):</strong> ไม่ครบทั้ง 77 จังหวัด (อีสานหาย 15 จังหวัด ใต้หาย 9 จังหวัดใน `burn_freq`) พื้นที่ที่ไม่มีข้อมูลจึงแสดงเป็น <strong>สีเทา ("ไม่มีข้อมูลต้นทาง")</strong> ห้ามแปลเป็น 0</li>
       <li><strong>รอยเผาไหม้ สสน. "ตามรอยเผา" (`tamroypao.hii.or.th`, Sentinel-2 20 ม.):</strong> ครอบคลุม 62 จังหวัด (`TH10`–`TH76`, ขาดประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดซึ่งแสดงเป็นสีเทา "ไม่มีข้อมูล") ทั้งแบบตัวเลขออฟไลน์ระดับจังหวัด/อำเภอ/ตำบล 3 ฤดูฝุ่น (`2567–2569` = `2024–2026`) แยกข้าว/อ้อย/ข้าวโพด/พืชผสม/ป่า (1 พิกเซล 20×20 ม. = 0.25 ไร่) และชั้นภาพ TMS ออนไลน์ความละเอียด 20 ม.</li>
-      <li><strong>อากาศ ERA5 (`approved_public`, ปี 2022–2025):</strong> เป็นค่าจุดกริดศูนย์กลางจังหวัดทั้ง 77 จังหวัด (ไม่มีระดับอำเภอ/ตำบล และยังไม่มีรายปี 2026) กราฟความสัมพันธ์ ERA5 จึงล็อกไว้ที่ระดับ 77 จังหวัดเสมอ</li>
+      <li><strong>ภูมิอากาศฐาน 10 ปี ERA5 (`approved_public`, 2016–2025):</strong> ค่าเฉลี่ยอุณหภูมิ/ฝน/วันร้อนจัดระดับ 77 จังหวัด ใช้เป็นเส้นฐาน (Baseline) เพื่อดูว่าปี 2022–2026 ร้อนและแล้งกว่าค่าปกติแค่ไหน</li>
       <li><strong>ความเสี่ยงน้ำท่วมซ้ำซาก HII (`pending` ใช้ภายในเครื่อง):</strong> ครอบคลุม 6,434 ตำบลที่เคยท่วมในรอบ 17 ปี (ขาดภูเก็ต/ระนอง และ 1,224 ตำบลที่ไม่อยู่ในบัญชี) พื้นที่ขาดข้อมูลแสดงเป็นสีเทา</li>
       <li><strong>จุดซ้ำถาวร (`143` พิกัด / `7,324` จุด):</strong> เกิดซ้ำจุดเดิม ≥25 วัน มักเป็นโรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล (92% โผล่ตอนกลางคืน) ถูกตัดออกโดยค่าเริ่มต้น</li>
     </ul>
   </div>
 </div>
-<!--__EXPLORER_MODAL__-->
 
 <script id="payloadB64" type="text/plain">__PAYLOAD_B64__</script>
 <script>
@@ -581,7 +656,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     showVillages: false,
     tmsOverlay: "none",
     basemap: "none",
-    scatterX: "hot_days_38c",
+    scatterX: "wx_peak_fwi",
     scatterY: "count",
     theme: "dark",
     presentation: false,
@@ -597,7 +672,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   const els = {};
   const ids = [
     "loadingMask","dateBadge","breadcrumbs","searchInput","searchResults","exportCsvBtn",
-    "provenanceBtn","themeToggle","presentationBtn","exitPresBtn","workspace",
+    "provenanceBtn","themeToggle","presentationBtn","exitPresBtn",
     "satSelect","janOctCheck","satWarnPill","yearSelect","seasonSelect","cropSelect",
     "excludeStaticCheck","metricSelect","levelModeSelect","grainWarnPill",
     "showHeatCheck","showStaticCheck","showVillagesCheck","tmsOverlaySelect","basemapSelect",
@@ -608,6 +683,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     "trendCanvas","rankTitle","rankList","provenanceModal","closeModalBtn"
   ];
   for (const id of ids) els[id] = document.getElementById(id);
+  els.workspace = document.getElementById("page-map");
 
   function lonToMx(lon) { return (lon + 180) / 360; }
   function latToMy(lat) {
@@ -734,6 +810,16 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       return e[state.year]?.[key] ?? null;
     }
     const vals = ["2022", "2023", "2024", "2025"].map(y => e[y]?.[key]).filter(v => v !== null && v !== undefined);
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+
+  function getWxAnnualMetric(provObj, key) {
+    const w = provObj.wx_y || {};
+    if (state.year !== "all") {
+      return w[state.year]?.[key] ?? null;
+    }
+    const vals = ["2022", "2023", "2024", "2025", "2026"].map(y => w[y]?.[key]).filter(v => v !== null && v !== undefined);
     if (!vals.length) return null;
     return vals.reduce((a, b) => a + b, 0) / vals.length;
   }
@@ -979,6 +1065,18 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       const keyMap = { era5_hot: "hot_days_38c", era5_dry: "longest_dry_spell_days", era5_rain: "rainfall_total_mm" };
       return getEra5Metric(it, keyMap[m]);
     }
+    if (m.startsWith("wx_")) {
+      if (level !== "province") return null;
+      const wxMap = {
+        wx_fwi: "peak_fwi",
+        wx_tmax: "tmax",
+        wx_rhmin: "rh_min",
+        wx_low_rh: "low_rh_35",
+        wx_wind: "wind_max",
+        wx_rain: "rain",
+      };
+      return getWxAnnualMetric(it, wxMap[m]);
+    }
     return rec.total;
   }
 
@@ -1006,8 +1104,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const m = state.metric;
     let pal = PALETTES.fire;
     if (m === "agri_pct") pal = PALETTES.agri;
-    else if (m === "era5_rain") pal = PALETTES.rain;
-    else if (m === "era5_hot" || m === "era5_dry") pal = PALETTES.heat;
+    else if (m === "era5_rain" || m === "wx_rain" || m === "wx_rhmin") pal = PALETTES.rain;
+    else if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind") pal = PALETTES.heat;
     else if (m === "hazard") pal = PALETTES.hazard;
 
     const span = maxV - minV;
@@ -1188,6 +1286,29 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const toSx = (mx) => (mx - state.camX) * worldPx + w / 2;
     const toSy = (my) => (my - state.camY) * worldPx + h / 2;
 
+    // Subtle cartographic lat/lon graticule grid when using pure vector canvas (drawn once on baseCanvas)
+    if (state.basemap === "none") {
+      const stepDeg = state.zoom >= 7.5 ? 1 : 2;
+      ctx.save();
+      ctx.strokeStyle = state.theme === "dark" ? "rgba(148,163,184,0.08)" : "rgba(15,23,42,0.065)";
+      ctx.fillStyle = state.theme === "dark" ? "rgba(148,163,184,0.36)" : "rgba(71,85,105,0.45)";
+      ctx.lineWidth = 0.8;
+      ctx.font = "500 9.5px 'JetBrains Mono', monospace";
+      for (let lon = 96; lon <= 108; lon += stepDeg) {
+        const sx = toSx(lonToMx(lon));
+        if (sx < 0 || sx > w) continue;
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
+        ctx.fillText(lon + "°E", sx + 3, h - 6);
+      }
+      for (let lat = 6; lat <= 22; lat += stepDeg) {
+        const sy = toSy(latToMy(lat));
+        if (sy < 0 || sy > h) continue;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
+        ctx.fillText(lat + "°N", 6, sy - 3);
+      }
+      ctx.restore();
+    }
+
     const { level, records } = getVisibleRecords();
     const validVals = records.map(r => r.metricValue).filter(v => v !== null && v !== undefined && !Number.isNaN(v));
     const minV = validVals.length ? Math.min(...validVals) : 0;
@@ -1223,11 +1344,23 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       ctx.restore();
     }
 
-    // Draw active polygons
+    // Draw active polygons (with subtle glowing country silhouette once on baseCanvas)
     const hasTiles = state.basemap !== "none";
     const hasTms = state.tmsOverlay !== "none";
+    if (level === "province" && !hasTiles && !hasTms) {
+      ctx.save();
+      ctx.shadowColor = state.theme === "dark" ? "rgba(249, 115, 22, 0.24)" : "rgba(15, 23, 42, 0.16)";
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = state.theme === "dark" ? "#0f172a" : "#e2e8f0";
+      ctx.beginPath();
+      for (const rec of records) {
+        for (const ring of rec.item._mRings) traceRingF32(ctx, ring, toSx, toSy);
+      }
+      ctx.fill("evenodd");
+      ctx.restore();
+    }
     ctx.save();
-    ctx.globalAlpha = hasTms ? 0.30 : (hasTiles ? 0.78 : 0.94);
+    ctx.globalAlpha = hasTms ? 0.30 : (hasTiles ? 0.78 : 0.95);
     ctx.lineWidth = level === "tambon" ? 0.55 : 0.9;
     ctx.strokeStyle = strokeCol;
     for (const rec of records) {
@@ -1381,6 +1514,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       trp_rai: "รอยเผาไหม้ สสน. ตามรอยเผา (ไร่)",
       scar_rai: "รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)",
       freq_rai: "พื้นที่เผาซ้ำซาก GISTDA (ไร่)",
+      wx_fwi: "ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)",
+      wx_tmax: "อุณหภูมิสูงสุดเฉลี่ย (°C · 2022–2026)",
+      wx_rhmin: "ความชื้นสัมพัทธ์ต่ำสุดเฉลี่ย (% · ฟ้า=ชื้น ส้ม=แห้ง)",
+      wx_low_rh: "วันอากาศแห้งจัด RH<35% (วัน/ปี)",
+      wx_wind: "ความเร็วลมสูงสุดเฉลี่ย (กม./ชม.)",
+      wx_rain: "ปริมาณฝนรวม (มม. · 2022–2026)",
       era5_hot: "อากาศ ERA5: วันร้อนจัด ≥38°C (วัน)",
       era5_dry: "อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)",
       era5_rain: "อากาศ ERA5: ฝนรวมทั้งปี (มม.)",
@@ -1388,14 +1527,14 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     };
     els.legendTitle.textContent = titles[state.metric] || "";
     const pal = state.metric === "agri_pct" ? PALETTES.agri
-      : state.metric === "era5_rain" ? PALETTES.rain
-      : (state.metric === "era5_hot" || state.metric === "era5_dry") ? PALETTES.heat
+      : (state.metric === "era5_rain" || state.metric === "wx_rain" || state.metric === "wx_rhmin") ? PALETTES.rain
+      : (state.metric === "era5_hot" || state.metric === "era5_dry" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_low_rh" || state.metric === "wx_wind") ? PALETTES.heat
       : state.metric === "hazard" ? PALETTES.hazard : PALETTES.fire;
     els.legendBar.style.background = `linear-gradient(90deg, ${pal.join(",")})`;
     if (!hasValid) {
       els.legMin.textContent = "-"; els.legMid.textContent = "-"; els.legMax.textContent = "-";
     } else {
-      const dec = state.metric === "density" || state.metric === "agri_pct" ? 1 : 0;
+      const dec = (state.metric === "density" || state.metric === "agri_pct" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_rhmin" || state.metric === "wx_wind") ? 1 : 0;
       els.legMin.textContent = formatNum(minV, dec);
       els.legMid.textContent = formatNum((minV + maxV) / 2, dec);
       els.legMax.textContent = formatNum(maxV, dec);
@@ -1522,8 +1661,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.satWarnPill.textContent = warns.join(" · ");
 
     const gWarns = [];
-    if (state.metric.startsWith("era5_")) {
-      if (state.year === "2026") gWarns.push("ERA5 รายปียังไม่มีปี 2026 (แสดงเป็นไม่มีข้อมูล)");
+    if (state.metric.startsWith("wx_")) {
+      if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลสภาพอากาศเอื้อไฟ 2022–2026 มีเฉพาะระดับ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
+    } else if (state.metric.startsWith("era5_")) {
+      if (state.year === "2026") gWarns.push("ERA5 รายปียังไม่มีปี 2026 (ใช้หมวด 'สภาพอากาศเอื้อไฟ 2022–2026' ด้านบนแทนได้)");
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลอากาศ ERA5 มีเฉพาะ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
     } else if (state.metric === "trp_rai") {
       if (state.year === "2022" || state.year === "2023") {
@@ -1646,19 +1787,25 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       }
     }
 
-    // Factor snapshot
+    // Factor snapshot (uses 2022-2026 fire-weather FWI + HII flood risk)
     const activeProv = state.selectedProv ? PROV_MAP.get(state.selectedProv) : null;
     if (activeProv) {
-      const hotD = getEra5Metric(activeProv, "hot_days_38c");
-      const dryD = getEra5Metric(activeProv, "longest_dry_spell_days");
+      const fwiV = getWxAnnualMetric(activeProv, "peak_fwi");
+      const tmaxV = getWxAnnualMetric(activeProv, "tmax");
+      const rhV = getWxAnnualMetric(activeProv, "rh_min");
       const fl = state.selectedTambon ? TB_MAP.get(state.selectedTambon)?.flood_max_17yr : activeProv.flood_max_17yr;
-      els.kpiFactor.textContent = hotD !== null ? `${formatNum(hotD, 0)} วันร้อน` : (fl !== null && fl !== undefined ? `ท่วม ${fl} ครั้ง` : "ไม่มีข้อมูล");
-      els.kpiFactorSub.textContent = `แล้งสุด ${dryD !== null ? formatNum(dryD, 0) + " วัน" : "-"} · ท่วมซ้ำ 17 ปี ${fl !== null && fl !== undefined ? fl + " ครั้ง" : "ไม่มีข้อมูล HII"}`;
+      els.kpiFactor.textContent = fwiV !== null
+        ? `FWI ${fwiV.toFixed(1)}/100`
+        : (fl !== null && fl !== undefined ? `ท่วม ${fl} ครั้ง` : "ไม่มีข้อมูล");
+      const wxPart = tmaxV !== null ? `Tmax ${tmaxV.toFixed(1)}°C · RH ${rhV !== null ? rhV.toFixed(0) + "%" : "-"}` : "ไม่มีอากาศ";
+      els.kpiFactorSub.textContent = `${wxPart} · ท่วม 17 ปี ${fl !== null && fl !== undefined ? fl + " ครั้ง" : "ไม่มีข้อมูล HII"}`;
     } else {
-      const hotAll = DATA.provinces.map(p => getEra5Metric(p, "hot_days_38c")).filter(v => v !== null);
-      const avgHot = hotAll.length ? hotAll.reduce((a, b) => a + b, 0) / hotAll.length : null;
-      els.kpiFactor.textContent = avgHot !== null ? `${avgHot.toFixed(1)} วัน/ปี` : "ไม่มีข้อมูล 2026";
-      els.kpiFactorSub.textContent = "เฉลี่ยวันร้อนจัด ≥38°C (77 จว.)";
+      const fwiAll = DATA.provinces.map(p => getWxAnnualMetric(p, "peak_fwi")).filter(v => v !== null);
+      const tmaxAll = DATA.provinces.map(p => getWxAnnualMetric(p, "tmax")).filter(v => v !== null);
+      const avgFwi = fwiAll.length ? fwiAll.reduce((a, b) => a + b, 0) / fwiAll.length : null;
+      const avgTmax = tmaxAll.length ? tmaxAll.reduce((a, b) => a + b, 0) / tmaxAll.length : null;
+      els.kpiFactor.textContent = avgFwi !== null ? `FWI ${avgFwi.toFixed(1)}/100` : "ไม่มีข้อมูล";
+      els.kpiFactorSub.textContent = avgTmax !== null ? `เฉลี่ย 77 จว. · Tmax ${avgTmax.toFixed(1)}°C (หน้าแล้ง)` : "รอดึงข้อมูลสภาพอากาศ";
     }
 
     // Insight Card
@@ -1738,7 +1885,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
   function drawScatterPlot() {
     const canvas = els.scatterCanvas;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     canvas.width = Math.round(rect.width * dpr);
@@ -1749,9 +1896,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
     const xKey = state.scatterX, yKey = state.scatterY;
     const isEraX = xKey === "hot_days_38c" || xKey === "longest_dry_spell_days" || xKey === "rainfall_total_mm";
+    const isWxX = xKey === "wx_peak_fwi" || xKey === "wx_low_rh_35";
 
-    // Strict grain rule: ERA5 is ONLY 77-province level; never duplicate onto amphoes/tambons!
-    const useProvGrain = isEraX || getActiveScopeLevel() === "province";
+    // Strict grain rule: ERA5 & Fire-Weather are ONLY 77-province level; never duplicate onto amphoes/tambons!
+    const useProvGrain = isEraX || isWxX || getActiveScopeLevel() === "province";
     const sourceRecords = useProvGrain ? state.computedStats.provRecords : getVisibleRecords().records;
 
     // For ERA5 + "all 5y", align hotspots cleanly to 2022-2025 4y total if needed, else use current record
@@ -1781,7 +1929,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const pts = [];
     for (const r of sourceRecords) {
       let xv = null;
-      if (isEraX) xv = getEra5Metric(r.item, xKey);
+      if (isWxX) xv = getWxAnnualMetric(r.item, xKey === "wx_peak_fwi" ? "peak_fwi" : "low_rh_35");
+      else if (isEraX) xv = getEra5Metric(r.item, xKey);
       else if (xKey === "flood_max_17yr") xv = r.item.flood_max_17yr;
       else if (xKey === "trp_rai") xv = getTrpMetric(r.item);
       else if (xKey === "scar_rai") xv = r.item.scar_rai;
@@ -1827,9 +1976,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const den = Math.sqrt(sxx * syy);
     const rVal = den > 1e-12 ? (sxy / den) : null;
     els.corrBadge.textContent = rVal !== null ? `r = ${rVal.toFixed(2)}` : "r = n/a";
-    els.scatterNote.textContent = isEraX
-      ? `ระดับ 77 จังหวัด${state.year === "all" ? " (เทียบช่วง 2022–2025 ให้ตรง ERA5)" : ""}${state.selectedProv ? " · สีส้ม = จังหวัดที่เลือก" : ""}`
-      : `จำนวน ${n} พื้นที่ในมุมมองปัจจุบัน`;
+    els.scatterNote.textContent = isWxX
+      ? `ระดับ 77 จังหวัด (สภาพอากาศเอื้อไฟ ${state.year === "all" ? "เฉลี่ย 2022–2026" : "ปี " + state.year})${state.selectedProv ? " · สีเหลือง = จังหวัดที่เลือก" : ""}`
+      : isEraX
+        ? `ระดับ 77 จังหวัด${state.year === "all" ? " (เทียบช่วง 2022–2025 ให้ตรง ERA5)" : ""}${state.selectedProv ? " · สีเหลือง = จังหวัดที่เลือก" : ""}`
+        : `จำนวน ${n} พื้นที่ในมุมมองปัจจุบัน`;
 
     const pad = { l: 42, r: 12, t: 10, b: 22 };
     const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
@@ -1887,7 +2038,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
   function drawTrendChart() {
     const canvas = els.trendCanvas;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     canvas.width = Math.round(rect.width * dpr);
@@ -1975,7 +2126,16 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     URL.revokeObjectURL(url);
   }
 
+  function syncMapDock() {
+    document.querySelectorAll("#mapDock .dock-btn[data-dock-metric]").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.dockMetric === state.metric);
+    });
+    const hb = document.getElementById("dockHeatBtn");
+    if (hb) hb.classList.toggle("active", !!state.showHeat);
+  }
+
   function refreshAll() {
+    syncMapDock();
     updateWarnings();
     computeFilteredStats();
     updateBreadcrumbsAndScope();
@@ -2021,6 +2181,21 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     syncControl(els.scatterY, "scatterY");
 
     els.resetZoomBtn.onclick = resetToThailand;
+    document.querySelectorAll("#mapDock .dock-btn[data-dock-metric]").forEach(btn => {
+      btn.onclick = () => {
+        state.metric = btn.dataset.dockMetric;
+        els.metricSelect.value = state.metric;
+        refreshAll();
+      };
+    });
+    const dockHeat = document.getElementById("dockHeatBtn");
+    if (dockHeat) {
+      dockHeat.onclick = () => {
+        state.showHeat = !state.showHeat;
+        els.showHeatCheck.checked = state.showHeat;
+        refreshAll();
+      };
+    }
     els.zoomInBtn.onclick = () => { state.zoom = Math.min(13, state.zoom + 0.7); requestDrawMap(); };
     els.zoomOutBtn.onclick = () => { state.zoom = Math.max(3.6, state.zoom - 0.7); requestDrawMap(); };
     els.exportCsvBtn.onclick = exportCurrentCsv;
@@ -2032,7 +2207,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       state.theme = state.theme === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", state.theme);
       els.themeToggle.textContent = state.theme === "dark" ? "☀ โหมดสว่าง" : "🌙 โหมดมืด";
-      refreshAll();
+      if (activePage === "map") refreshAll();
+      else if (activePage === "overview") renderOverviewPage();
+      else if (activePage === "weather") renderWeatherPage();
+      else if (activePage === "burnscar") renderBurnScarPage();
     };
     const togglePres = (on) => {
       state.presentation = on;
@@ -2097,6 +2275,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     });
     function processHover() {
       hoverPending = false;
+      if (activePage !== "map") return;
       const e = hoverEvt;
       if (!e || dragging) return;
       if (e.target === els.mapCanvas) {
@@ -2144,7 +2323,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           const tKey = `poly:${level}:${it.code}:${state.sat}:${state.year}:${state.crop}:${state.metric}`;
           if (tKey !== lastTooltipKey) {
             lastTooltipKey = tKey;
-            const eHot = level === "province" ? getEra5Metric(it, "hot_days_38c") : null;
+            const wxFwi = level === "province" ? getWxAnnualMetric(it, "peak_fwi") : null;
+            const wxTmax = level === "province" ? getWxAnnualMetric(it, "tmax") : null;
+            const wxRh = level === "province" ? getWxAnnualMetric(it, "rh_min") : null;
             const trpB = getTrpBreakdown(it);
             const trpVal = getTrpMetric(it);
             const dTxt = hit.density !== null ? `${hit.density.toFixed(1)}/100 ตร.กม.` : "ไม่มีพื้นที่";
@@ -2156,7 +2337,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <div class="tt-row"><span class="tt-k">รอยเผา GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
               <div class="tt-row"><span class="tt-k">เผาซ้ำซาก GISTDA</span><span class="tt-v">${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
               <div class="tt-row"><span class="tt-k">ท่วมซ้ำ 17 ปี</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง (" + escHtml(hit.hazardLabel || "") + ")" : "ไม่มีข้อมูล HII"}</span></div>
-              ${level === "province" ? `<div class="tt-row"><span class="tt-k">วันร้อนจัด ≥38°C</span><span class="tt-v">${eHot !== null ? formatNum(eHot, 1) + " วัน" : "ไม่มีข้อมูล 2026"}</span></div>` : ""}
+              ${level === "province" ? `<div class="tt-row"><span class="tt-k">อากาศเอื้อไฟ (FWI)</span><span class="tt-v">${wxFwi !== null ? wxFwi.toFixed(1) + "/100 (" + (wxTmax !== null ? wxTmax.toFixed(1) + "°C · RH " + (wxRh !== null ? wxRh.toFixed(0) + "%" : "-") : "") + ")" : "ไม่มีข้อมูล"}</span></div>` : ""}
             `;
           }
           els.tooltip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px";
@@ -2172,6 +2353,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       }
     }
     window.addEventListener("mousemove", (e) => {
+      if (activePage !== "map") return;
       if (dragging) {
         const dx = e.clientX - lastX, dy = e.clientY - lastY;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
@@ -2236,12 +2418,21 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       }
       if (best) selectFeature(best.rec.item, best.isProv ? "province" : getVisibleRecords().level);
     });
+    let resizeTimer = null;
     window.addEventListener("resize", () => {
-      if (!state.selectedProv && !state.selectedAmphoe) fitBbox(THAI_BBOX);
-      requestDrawMap(); drawScatterPlot(); drawTrendChart();
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (activePage === "map") {
+          if (!state.selectedProv && !state.selectedAmphoe) fitBbox(THAI_BBOX);
+          requestDrawMap(true); drawScatterPlot(); drawTrendChart();
+        } else if (activePage === "overview") renderOverviewPage();
+        else if (activePage === "weather") renderWeatherPage();
+        else if (activePage === "burnscar") renderBurnScarPage();
+      }, 90);
     });
   }
 
+/*__MULTI_PAGE_JS__*/
 /*__EXPLORER_JS__*/
 
   async function init() {
@@ -2249,10 +2440,18 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       const decoded = await decodePayload();
       prepareData(decoded);
       bindEvents();
+      bindMultiPageEvents();
       if (typeof bindExplorerEvents === "function") bindExplorerEvents();
       els.loadingMask.style.display = "none";
-      fitBbox(THAI_BBOX);
-      refreshAll();
+      updateWarnings();
+      computeFilteredStats();
+      updateBreadcrumbsAndScope();
+      updateSidebarMetrics();
+      const rawHash = (window.location.hash || "").replace(/^#/, "");
+      const startPage = ["overview", "map", "weather", "burnscar", "explorer"].includes(rawHash)
+        && document.getElementById("page-" + rawHash)
+        ? rawHash : "overview";
+      switchPage(startPage, { updateHash: false });
     } catch (err) {
       els.loadingMask.textContent = "เกิดข้อผิดพลาดในการโหลดข้อมูล: " + (err?.message || err);
     }
@@ -2265,13 +2464,24 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 """
 
 
+def _apply_multi_page(shell: str) -> str:
+    return (
+        shell
+        .replace("/*__MULTI_PAGE_CSS__*/", MULTI_PAGE_CSS)
+        .replace("<!--__OVERVIEW_PAGE__-->", OVERVIEW_PAGE_HTML)
+        .replace("<!--__WEATHER_PAGE__-->", WEATHER_PAGE_HTML)
+        .replace("<!--__BURNSCAR_PAGE__-->", BURNSCAR_PAGE_HTML)
+        .replace("/*__MULTI_PAGE_JS__*/", MULTI_PAGE_JS)
+    )
+
+
 def render_interactive_html(payload: dict) -> str:
-    """Render the self-contained offline interactive map HTML with gzip-compressed payload."""
+    """Render the self-contained offline interactive atlas HTML (4 pages) with gzip-compressed payload."""
     encoded = encode_payload_b64(payload)
     # Guard any potential HTML tag sequence safely (base64 never has '<', escape defensively anyway).
     safe_b64 = html.escape(encoded, quote=False)
     return (
-        HTML_SHELL
+        _apply_multi_page(HTML_SHELL)
         .replace("/*__EXPLORER_CSS__*/", "")
         .replace("<!--__EXPLORER_BTN__-->", "")
         .replace("<!--__EXPLORER_MODAL__-->", "")
@@ -2282,11 +2492,11 @@ def render_interactive_html(payload: dict) -> str:
 
 
 def render_online_web_html(hf_repo: str = "dragonfly13110/thailand-hotspot-5y") -> str:
-    """Render the lightweight online web app backed by Hugging Face Datasets + DuckDB-Wasm."""
+    """Render the lightweight 5-page online web atlas backed by Hugging Face Datasets + DuckDB-Wasm."""
     safe_repo = html.escape(hf_repo.strip(), quote=True)
     payload_url = f"https://huggingface.co/datasets/{safe_repo}/resolve/main/summary/map_payload.json.gz"
     return (
-        HTML_SHELL
+        _apply_multi_page(HTML_SHELL)
         .replace("/*__EXPLORER_CSS__*/", EXPLORER_CSS)
         .replace("<!--__EXPLORER_BTN__-->", EXPLORER_BUTTON_HTML)
         .replace("<!--__EXPLORER_MODAL__-->", EXPLORER_MODAL_HTML.replace("__HF_REPO__", safe_repo))

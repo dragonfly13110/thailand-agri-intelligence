@@ -113,8 +113,8 @@ tags:
    - *ข้อควรระวัง:* ครอบคลุม **62 จังหวัด** (`TH10`–`TH76`) ไม่รวมประจวบคีรีขันธ์ (`77`) และภาคใต้ 14 จังหวัด (`80`–`96`); ข้อมูลเขตป่าต้นทางระบุว่ายังอยู่ระหว่างพัฒนา
 3. **รอยเผาไหม้ & พื้นที่เผาซ้ำซาก (`gistda_burn_scar.parquet`, `gistda_burn_freq.parquet`):**  
    จาก **GISTDA** (ครอบคลุม 57 จังหวัดสำหรับ `burn_scar` รอบ พ.ค. 2026 และ 53 จังหวัดสำหรับ `burn_freq` อ้างอิง 4 ปี `2017, 2023–2025`)
-4. **สภาพอากาศรายปี (`era5_annual_2016_2025.parquet`):**  
-   จาก **Open-Meteo ERA5 Reanalysis** (`ECMWF`, 77 จุดกริดศูนย์กลางจังหวัด ปี 2016–2025, ยังไม่มีรายปี 2026)
+4. **สภาพอากาศรายปี & รายเดือนเอื้อไฟ (`era5_annual_2016_2025.parquet`, `era5_monthly_fire_weather.parquet`):**  
+   จาก **Open-Meteo ERA5 Reanalysis** (`ECMWF`, `CC-BY-4.0`, 77 จุดกริดศูนย์กลางจังหวัด ปี 2016–2025 รายปี และรายเดือน 2022–พ.ย. 2026 ครบอุณหภูมิสูงสุด ฝน ความชื้นต่ำสุด ลม การระเหยน้ำ ET0 และดัชนีอากาศเอื้อไฟ 0–100)
 5. **ความเสี่ยงน้ำท่วมซ้ำ 17 ปี (`hii_flood_risk.parquet`):**  
    จาก **สสน. (HII)** (`data.hii.or.th`, ระดับตำบล, ไม่ครอบคลุมภูเก็ต/ระนองและตำบลนอกบัญชี — ใช้เพื่อการศึกษา/ภายในพร้อมอ้างอิง สสน.)
 6. **ขอบเขตการปกครอง (`dim_areas.parquet`):**  
@@ -238,6 +238,23 @@ def export_hf_bundle(
                     con,
                     "SELECT * FROM tamroypao_burn_forest ORDER BY month, province_code",
                     parquet_dir / "tamroypao_monthly_forest.parquet",
+                )
+            )
+        if "era5_monthly_fire_weather" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT w.prov_code, p.prov_name_th, w.year_th, w.month_th, w.ym, w.days_count,
+                           w.tmax_mean_c, w.tmax_peak_c, w.tmean_c, w.hot_days_35c, w.hot_days_38c,
+                           w.rain_mm, w.dry_days, w.longest_dry_spell_days,
+                           w.wind_max_mean_kmh, w.wind_peak_kmh, w.et0_sum_mm,
+                           w.rh_mean_pct, w.rh_min_mean_pct, w.low_rh_days_35pct, w.fire_weather_index
+                    FROM era5_monthly_fire_weather w
+                    LEFT JOIN dim_province p ON p.prov_code = w.prov_code
+                    ORDER BY w.prov_code, w.ym
+                    """,
+                    parquet_dir / "era5_monthly_fire_weather.parquet",
                 )
             )
 
