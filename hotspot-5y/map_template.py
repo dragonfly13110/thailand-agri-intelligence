@@ -9,6 +9,7 @@ from explorer_asset import EXPLORER_BUTTON_HTML, EXPLORER_CSS, EXPLORER_JS, EXPL
 from map_data import encode_payload_b64
 from ui_pages import (
     BURNSCAR_PAGE_HTML,
+    HAZE_PAGE_HTML,
     MULTI_PAGE_CSS,
     MULTI_PAGE_JS,
     OVERVIEW_PAGE_HTML,
@@ -304,6 +305,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <button type="button" class="nav-tab active" data-page="overview">ภาพรวม</button>
       <button type="button" class="nav-tab" data-page="map">แผนที่เจาะลึก</button>
       <button type="button" class="nav-tab" data-page="weather">อากาศ × ไฟ</button>
+      <button type="button" class="nav-tab" data-page="haze">ฝุ่น PM2.5 &amp; ข้ามแดน</button>
       <button type="button" class="nav-tab" data-page="burnscar">รอยเผา &amp; เทียบจังหวัด</button>
       <!--__EXPLORER_BTN__-->
     </nav>
@@ -392,6 +394,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <option value="trp_rai">รอยเผา สสน. ตามรอยเผา (ไร่ · แยกพืช/ฤดู 24–26)</option>
               <option value="scar_rai">รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)</option>
               <option value="freq_rai">พื้นที่เผาซ้ำซาก GISTDA (ไร่)</option>
+            </optgroup>
+            <optgroup label="ฝุ่น PM2.5 · ความชื้นดิน · อัตราเผาเกษตร">
+              <option value="aq_pm25">PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)</option>
+              <option value="aq_exceed">วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)</option>
+              <option value="aq_co">ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)</option>
+              <option value="soil_wet">ความชื้นผิวดิน NASA GWETTOP (0–1)</option>
+              <option value="burn_rate_agri">อัตราเผาเกษตรเทียบปลูก DOAE (% · 62 จว.)</option>
             </optgroup>
             <optgroup label="สภาพอากาศเอื้อไฟ 2022–2026 (ครบ 77 จว.)">
               <option value="wx_fwi">ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)</option>
@@ -491,6 +500,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <div id="mapDock" class="map-dock" aria-label="สลับมุมมองแผนที่ด่วน">
         <button type="button" class="dock-btn active" data-dock-metric="count">จุดความร้อน</button>
         <button type="button" class="dock-btn" data-dock-metric="trp_rai">รอยเผา สสน.</button>
+        <button type="button" class="dock-btn" data-dock-metric="aq_pm25">ฝุ่น PM2.5</button>
         <button type="button" class="dock-btn" data-dock-metric="wx_fwi">อากาศ FWI</button>
         <button type="button" class="dock-btn" data-dock-metric="hazard">ท่วม+เผา</button>
         <button type="button" class="dock-btn" id="dockHeatBtn">Heatmap</button>
@@ -533,6 +543,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             <label class="field-label" for="scatterX">แกน X (ปัจจัย)</label>
             <select id="scatterX">
               <option value="wx_peak_fwi" selected>ดัชนีอากาศเอื้อไฟ FWI (2022–2026)</option>
+              <option value="aq_pm25">PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)</option>
+              <option value="aq_exceed">วันฝุ่นเกิน 37.5 µg/m³ (วัน/ปี)</option>
+              <option value="soil_wet">ความชื้นผิวดิน NASA GWETTOP (0–1)</option>
               <option value="wx_low_rh_35">วันอากาศแห้งจัด RH&lt;35% (2022–2026)</option>
               <option value="hot_days_38c">วันร้อนจัด ≥38°C (ERA5 22–25)</option>
               <option value="longest_dry_spell_days">ช่วงแล้งยาวสุด (วัน · ERA5)</option>
@@ -572,6 +585,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   </main>
 
   <!--__WEATHER_PAGE__-->
+  <!--__HAZE_PAGE__-->
   <!--__BURNSCAR_PAGE__-->
   <!--__EXPLORER_MODAL__-->
   </div>
@@ -597,6 +611,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <li><strong>รอยเผาไหม้ สสน. "ตามรอยเผา" (`tamroypao.hii.or.th`, Sentinel-2 20 ม.):</strong> ครอบคลุม 62 จังหวัด (`TH10`–`TH76`, ขาดประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดซึ่งแสดงเป็นสีเทา "ไม่มีข้อมูล") ทั้งแบบตัวเลขออฟไลน์ระดับจังหวัด/อำเภอ/ตำบล 3 ฤดูฝุ่น (`2567–2569` = `2024–2026`) แยกข้าว/อ้อย/ข้าวโพด/พืชผสม/ป่า (1 พิกเซล 20×20 ม. = 0.25 ไร่) และชั้นภาพ TMS ออนไลน์ความละเอียด 20 ม.</li>
       <li><strong>ภูมิอากาศฐาน 10 ปี ERA5 (`approved_public`, 2016–2025):</strong> ค่าเฉลี่ยอุณหภูมิ/ฝน/วันร้อนจัดระดับ 77 จังหวัด ใช้เป็นเส้นฐาน (Baseline) เพื่อดูว่าปี 2022–2026 ร้อนและแล้งกว่าค่าปกติแค่ไหน</li>
       <li><strong>ความเสี่ยงน้ำท่วมซ้ำซาก HII (`pending` ใช้ภายในเครื่อง):</strong> ครอบคลุม 6,434 ตำบลที่เคยท่วมในรอบ 17 ปี (ขาดภูเก็ต/ระนอง และ 1,224 ตำบลที่ไม่อยู่ในบัญชี) พื้นที่ขาดข้อมูลแสดงเป็นสีเทา</li>
+      <li><strong>ฝุ่น PM2.5, CO &amp; AOD (Open-Meteo CAMS `CC-BY-4.0` 2022-08..2026-11 + GISTDA เช็คฝุ่นสด):</strong> ข้อมูลรายวัน/รายเดือน 77 จังหวัดระดับกริด (และค่ารายจังหวัด/อำเภอสดจาก `pm25.gistda.or.th`)</li>
+      <li><strong>หมอกควันข้ามแดน 6 ประเทศอาเซียน (NASA FIRMS VIIRS-SNPP `Public Domain` 2022–2025):</strong> เทียบมาตรฐานดาวเทียม N เดียวกันระหว่าง ไทย, เมียนมา, ลาว, กัมพูชา, เวียดนาม, มาเลเซีย</li>
+      <li><strong>ความชื้นดิน NASA POWER (`Public Domain`), พื้นที่ปลูก DOAE (`Open Data Common` 2566–2567), อ่างเก็บน้ำ 461 แห่ง (RID `2022–2026`), ราคาสินค้าเกษตร (สศก./NABC):</strong> แปลงค่าขาดเป็น `null` ทั้งหมด; % เผาเทียบพื้นที่ปลูกใช้ DOAE ปี 2566 เพื่อไม่ให้นับซ้ำข้ามงวด</li>
       <li><strong>จุดซ้ำถาวร (`143` พิกัด / `7,324` จุด):</strong> เกิดซ้ำจุดเดิม ≥25 วัน มักเป็นโรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล (92% โผล่ตอนกลางคืน) ถูกตัดออกโดยค่าเริ่มต้น</li>
     </ul>
   </div>
@@ -815,6 +832,44 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const vals = ["2022", "2023", "2024", "2025", "2026"].map(y => w[y]?.[key]).filter(v => v !== null && v !== undefined);
     if (!vals.length) return null;
     return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+
+  function getAqAnnualMetric(provObj, key) {
+    const a = provObj.aq_y || {};
+    if (state.year !== "all") {
+      return a[state.year]?.[key] ?? null;
+    }
+    const vals = ["2023", "2024", "2025", "2026"].map(y => a[y]?.[key]).filter(v => v !== null && v !== undefined);
+    if (!vals.length) return null;
+    return vals.reduce((x, y) => x + y, 0) / vals.length;
+  }
+
+  function getSoilAnnualMetric(provObj, key) {
+    const s = provObj.soil_y || {};
+    if (state.year !== "all") {
+      return s[state.year]?.[key] ?? null;
+    }
+    const vals = ["2022", "2023", "2024", "2025", "2026"].map(y => s[y]?.[key]).filter(v => v !== null && v !== undefined);
+    if (!vals.length) return null;
+    return vals.reduce((x, y) => x + y, 0) / vals.length;
+  }
+
+  function getBurnRateMetric(provObj) {
+    if (!provObj || provObj.trp === null || provObj.trp === undefined || !provObj.doae_2566) return null;
+    const yr = state.year === "all" ? "2026" : state.year;
+    const a = provObj.trp[yr];
+    if (!a) return null;
+    const d = provObj.doae_2566;
+    let burn = 0, plant = 0;
+    if (state.crop === "rice") { burn = a[0] || 0; plant = d.paddy_rai || 0; }
+    else if (state.crop === "sugarcane") { burn = a[1] || 0; plant = d.sugarcane_rai || 0; }
+    else if (state.crop === "corn") { burn = a[2] || 0; plant = d.corn_rai || 0; }
+    else {
+      burn = (a[0] || 0) + (a[1] || 0) + (a[2] || 0);
+      plant = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
+    }
+    if (!plant || plant <= 0) return null;
+    return Math.min(100, +(burn * 100 / plant).toFixed(2));
   }
 
   function getTrpBreakdown(item) {
@@ -1070,6 +1125,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       };
       return getWxAnnualMetric(it, wxMap[m]);
     }
+    if (m === "aq_pm25") return level === "province" ? getAqAnnualMetric(it, "pm25_peak") : null;
+    if (m === "aq_exceed") return level === "province" ? getAqAnnualMetric(it, "days_37_5") : null;
+    if (m === "aq_co") return level === "province" ? getAqAnnualMetric(it, "co_peak") : null;
+    if (m === "soil_wet") return level === "province" ? getSoilAnnualMetric(it, "gwettop_peak") : null;
+    if (m === "burn_rate_agri") return level === "province" ? getBurnRateMetric(it) : null;
     return rec.total;
   }
 
@@ -1096,9 +1156,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     if (val === null || val === undefined || Number.isNaN(val)) return nullFill || "#334155";
     const m = state.metric;
     let pal = PALETTES.fire;
-    if (m === "agri_pct") pal = PALETTES.agri;
-    else if (m === "era5_rain" || m === "wx_rain" || m === "wx_rhmin") pal = PALETTES.rain;
-    else if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind") pal = PALETTES.heat;
+    if (m === "agri_pct" || m === "burn_rate_agri") pal = PALETTES.agri;
+    else if (m === "era5_rain" || m === "wx_rain" || m === "wx_rhmin" || m === "soil_wet") pal = PALETTES.rain;
+    else if (m === "era5_hot" || m === "era5_dry" || m === "wx_fwi" || m === "wx_tmax" || m === "wx_low_rh" || m === "wx_wind" || m === "aq_pm25" || m === "aq_exceed" || m === "aq_co") pal = PALETTES.heat;
     else if (m === "hazard") pal = PALETTES.hazard;
 
     const span = maxV - minV;
@@ -1551,21 +1611,26 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       wx_low_rh: "วันอากาศแห้งจัด RH<35% (วัน/ปี)",
       wx_wind: "ความเร็วลมสูงสุดเฉลี่ย (กม./ชม.)",
       wx_rain: "ปริมาณฝนรวม (มม. · 2022–2026)",
+      aq_pm25: "ฝุ่น PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)",
+      aq_exceed: "วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)",
+      aq_co: "ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)",
+      soil_wet: "ความชื้นผิวดิน NASA GWETTOP (0–1 · ส้ม=แห้ง ฟ้า=ชื้น)",
+      burn_rate_agri: "อัตราเผาเกษตรเทียบพื้นที่ปลูก DOAE (% · 62 จว.)",
       era5_hot: "อากาศ ERA5: วันร้อนจัด ≥38°C (วัน)",
       era5_dry: "อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)",
       era5_rain: "อากาศ ERA5: ฝนรวมทั้งปี (มม.)",
       hazard: "ดัชนีเสี่ยงซ้ำซ้อน (ท่วมซ้ำ + เผาซ้ำ 0–100)",
     };
     els.legendTitle.textContent = titles[state.metric] || "";
-    const pal = state.metric === "agri_pct" ? PALETTES.agri
-      : (state.metric === "era5_rain" || state.metric === "wx_rain" || state.metric === "wx_rhmin") ? PALETTES.rain
-      : (state.metric === "era5_hot" || state.metric === "era5_dry" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_low_rh" || state.metric === "wx_wind") ? PALETTES.heat
+    const pal = (state.metric === "agri_pct" || state.metric === "burn_rate_agri") ? PALETTES.agri
+      : (state.metric === "era5_rain" || state.metric === "wx_rain" || state.metric === "wx_rhmin" || state.metric === "soil_wet") ? PALETTES.rain
+      : (state.metric === "era5_hot" || state.metric === "era5_dry" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_low_rh" || state.metric === "wx_wind" || state.metric === "aq_pm25" || state.metric === "aq_exceed" || state.metric === "aq_co") ? PALETTES.heat
       : state.metric === "hazard" ? PALETTES.hazard : PALETTES.fire;
     els.legendBar.style.background = `linear-gradient(90deg, ${pal.join(",")})`;
     if (!hasValid) {
       els.legMin.textContent = "-"; els.legMid.textContent = "-"; els.legMax.textContent = "-";
     } else {
-      const dec = (state.metric === "density" || state.metric === "agri_pct" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_rhmin" || state.metric === "wx_wind") ? 1 : 0;
+      const dec = state.metric === "soil_wet" ? 2 : (state.metric === "density" || state.metric === "agri_pct" || state.metric === "burn_rate_agri" || state.metric === "wx_fwi" || state.metric === "wx_tmax" || state.metric === "wx_rhmin" || state.metric === "wx_wind" || state.metric === "aq_pm25") ? 1 : 0;
       els.legMin.textContent = formatNum(minV, dec);
       els.legMid.textContent = formatNum((minV + maxV) / 2, dec);
       els.legMax.textContent = formatNum(maxV, dec);
@@ -1694,6 +1759,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const gWarns = [];
     if (state.metric.startsWith("wx_")) {
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลสภาพอากาศเอื้อไฟ 2022–2026 มีเฉพาะระดับ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
+    } else if (state.metric.startsWith("aq_") || state.metric === "soil_wet") {
+      if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูล PM2.5 (CAMS) และความชื้นดิน (NASA POWER) มีเฉพาะระดับ 77 จังหวัด");
+      if (state.metric.startsWith("aq_") && state.year === "2022") gWarns.push("CAMS PM2.5 เริ่ม ส.ค. 2022 (ไม่มี ม.ค.–เม.ย. 2022)");
+    } else if (state.metric === "burn_rate_agri") {
+      if (getActiveScopeLevel() !== "province") gWarns.push("อัตราเผาเทียบพื้นที่ปลูกคำนวณระดับจังหวัด (DOAE 2566 × สสน. 2567–2569)");
+      gWarns.push("ครอบคลุม 62 จังหวัดในเขต สสน. (15 จังหวัดภาคใต้คงค่าไม่มีข้อมูล)");
     } else if (state.metric.startsWith("era5_")) {
       if (state.year === "2026") gWarns.push("ERA5 รายปียังไม่มีปี 2026 (ใช้หมวด 'สภาพอากาศเอื้อไฟ 2022–2026' ด้านบนแทนได้)");
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลอากาศ ERA5 มีเฉพาะ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
@@ -1928,9 +1999,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const xKey = state.scatterX, yKey = state.scatterY;
     const isEraX = xKey === "hot_days_38c" || xKey === "longest_dry_spell_days" || xKey === "rainfall_total_mm";
     const isWxX = xKey === "wx_peak_fwi" || xKey === "wx_low_rh_35";
+    const isAqSoilX = xKey === "aq_pm25" || xKey === "aq_exceed" || xKey === "soil_wet";
 
-    // Strict grain rule: ERA5 & Fire-Weather are ONLY 77-province level; never duplicate onto amphoes/tambons!
-    const useProvGrain = isEraX || isWxX || getActiveScopeLevel() === "province";
+    // Strict grain rule: ERA5, Fire-Weather, CAMS AQ & NASA Soil are ONLY 77-province level; never duplicate onto amphoes/tambons!
+    const useProvGrain = isEraX || isWxX || isAqSoilX || getActiveScopeLevel() === "province";
     const sourceRecords = useProvGrain ? state.computedStats.provRecords : getVisibleRecords().records;
 
     // For ERA5 + "all 5y", align hotspots cleanly to 2022-2025 4y total if needed, else use current record
@@ -1961,6 +2033,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     for (const r of sourceRecords) {
       let xv = null;
       if (isWxX) xv = getWxAnnualMetric(r.item, xKey === "wx_peak_fwi" ? "peak_fwi" : "low_rh_35");
+      else if (xKey === "aq_pm25") xv = getAqAnnualMetric(r.item, "pm25_peak");
+      else if (xKey === "aq_exceed") xv = getAqAnnualMetric(r.item, "days_37_5");
+      else if (xKey === "soil_wet") xv = getSoilAnnualMetric(r.item, "gwettop_peak");
       else if (isEraX) xv = getEra5Metric(r.item, xKey);
       else if (xKey === "flood_max_17yr") xv = r.item.flood_max_17yr;
       else if (xKey === "trp_rai") xv = getTrpMetric(r.item);
@@ -2241,6 +2316,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       if (activePage === "map") refreshAll();
       else if (activePage === "overview") renderOverviewPage();
       else if (activePage === "weather") renderWeatherPage();
+      else if (activePage === "haze") renderHazePage();
       else if (activePage === "burnscar") renderBurnScarPage();
     };
     const togglePres = (on) => {
@@ -2357,6 +2433,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             const wxFwi = level === "province" ? getWxAnnualMetric(it, "peak_fwi") : null;
             const wxTmax = level === "province" ? getWxAnnualMetric(it, "tmax") : null;
             const wxRh = level === "province" ? getWxAnnualMetric(it, "rh_min") : null;
+            const aqPm = level === "province" ? getAqAnnualMetric(it, "pm25_peak") : null;
+            const soilG = level === "province" ? getSoilAnnualMetric(it, "gwettop_peak") : null;
             const trpB = getTrpBreakdown(it);
             const trpVal = getTrpMetric(it);
             const dTxt = hit.density !== null ? `${hit.density.toFixed(1)}/100 ตร.กม.` : "ไม่มีพื้นที่";
@@ -2369,6 +2447,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <div class="tt-row"><span class="tt-k">เผาซ้ำซาก GISTDA</span><span class="tt-v">${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
               <div class="tt-row"><span class="tt-k">ท่วมซ้ำ 17 ปี</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง (" + escHtml(hit.hazardLabel || "") + ")" : "ไม่มีข้อมูล HII"}</span></div>
               ${level === "province" ? `<div class="tt-row"><span class="tt-k">อากาศเอื้อไฟ (FWI)</span><span class="tt-v">${wxFwi !== null ? wxFwi.toFixed(1) + "/100 (" + (wxTmax !== null ? wxTmax.toFixed(1) + "°C · RH " + (wxRh !== null ? wxRh.toFixed(0) + "%" : "-") : "") + ")" : "ไม่มีข้อมูล"}</span></div>` : ""}
+              ${level === "province" && (aqPm !== null || soilG !== null) ? `<div class="tt-row"><span class="tt-k">PM2.5 แล้ง · ดิน NASA</span><span class="tt-v">${aqPm !== null ? aqPm.toFixed(1) + " µg/m³" : "-"} · ${soilG !== null ? "ดิน " + soilG.toFixed(2) : "-"}</span></div>` : ""}
             `;
           }
           els.tooltip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px";
@@ -2458,6 +2537,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           requestDrawMap(true); drawScatterPlot(); drawTrendChart();
         } else if (activePage === "overview") renderOverviewPage();
         else if (activePage === "weather") renderWeatherPage();
+        else if (activePage === "haze") renderHazePage();
         else if (activePage === "burnscar") renderBurnScarPage();
       }, 90);
     });
@@ -2479,7 +2559,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       updateBreadcrumbsAndScope();
       updateSidebarMetrics();
       const rawHash = (window.location.hash || "").replace(/^#/, "");
-      const startPage = ["overview", "map", "weather", "burnscar", "explorer"].includes(rawHash)
+      const startPage = ["overview", "map", "weather", "haze", "burnscar", "explorer"].includes(rawHash)
         && document.getElementById("page-" + rawHash)
         ? rawHash : "overview";
       switchPage(startPage, { updateHash: false });
@@ -2501,6 +2581,7 @@ def _apply_multi_page(shell: str) -> str:
         .replace("/*__MULTI_PAGE_CSS__*/", MULTI_PAGE_CSS)
         .replace("<!--__OVERVIEW_PAGE__-->", OVERVIEW_PAGE_HTML)
         .replace("<!--__WEATHER_PAGE__-->", WEATHER_PAGE_HTML)
+        .replace("<!--__HAZE_PAGE__-->", HAZE_PAGE_HTML)
         .replace("<!--__BURNSCAR_PAGE__-->", BURNSCAR_PAGE_HTML)
         .replace("/*__MULTI_PAGE_JS__*/", MULTI_PAGE_JS)
     )

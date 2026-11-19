@@ -335,6 +335,39 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
   display: flex; flex-direction: column; gap: 5px;
 }
 
+/* Page 6: Live Haze, Transboundary & Agri Burn Rate */
+.hz-live-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 10px;
+}
+.hz-prov-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 11px 13px; display: flex; flex-direction: column; gap: 5px;
+  cursor: pointer; transition: border-color .15s, transform .12s; text-align: left; font-family: inherit; color: var(--text);
+}
+.hz-prov-card:hover, .hz-prov-card.active { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+.hz-detail-box {
+  background: var(--card); border: 1px solid var(--border); border-radius: 13px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.hz-amp-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;
+}
+.hz-amp-chip {
+  background: var(--panel-solid); border: 1px solid var(--border); border-radius: 9px;
+  padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px;
+}
+.hz-pm-badge {
+  display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+}
+.hz-pm-good { background: rgba(85,148,122,0.16); color: #7db89f; }
+.hz-pm-mod { background: rgba(212,168,79,0.16); color: #d9b66b; }
+.hz-pm-high { background: rgba(223,106,55,0.18); color: #e88b61; }
+.hz-pm-crit { background: rgba(207,86,72,0.22); color: #e28074; }
+html[data-theme="light"] .hz-pm-good { color: #2d6b52; }
+html[data-theme="light"] .hz-pm-mod { color: #8c6619; }
+html[data-theme="light"] .hz-pm-high { color: #b24b20; }
+html[data-theme="light"] .hz-pm-crit { color: #9c3329; }
+
 @media (max-width: 1080px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .app-body { height: auto; min-height: calc(100vh - 58px); overflow-y: visible; overflow-x: hidden; }
@@ -349,6 +382,8 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
   .story-strip { grid-template-columns: 1fr; }
   .kpi-hero-grid { grid-template-columns: 1fr; }
   .fc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hz-live-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hz-amp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bs-map-stage { height: 410px; }
   .bs-map-hud-bottom { max-width: calc(100% - 62px); font-size: 11px; padding: 7px 9px; }
   .hero-title { font-size: 18px; }
@@ -367,7 +402,7 @@ OVERVIEW_PAGE_HTML = r"""
           <div class="hero-kicker">THAILAND FIRE, BURN SCAR &amp; CLIMATE INTELLIGENCE ATLAS</div>
           <h1 class="hero-title">ศูนย์วิเคราะห์ไฟป่า การเผาเกษตร และสภาพอากาศประเทศไทย (2022–2026)</h1>
           <p class="hero-desc">
-            รวมจุดความร้อน 5 ปี (GISTDA VIIRS 1.28 ล้านจุด) · รอยเผาไหม้แยกพืช 20 ม. 3 ฤดู (สสน. ตามรอยเผา) · สภาพอากาศเอื้อไฟรายเดือน 77 จังหวัด (Open-Meteo ERA5 2016–2026) · และพื้นที่น้ำท่วมซ้ำซาก 17 ปี (HII)
+            รวมจุดความร้อน 5 ปี (GISTDA VIIRS 1.28 ล้านจุด) · ฝุ่น PM2.5 &amp; หมอกควัน 6 ประเทศอาเซียน · รอยเผา 20 ม. 3 ฤดูเทียบพื้นที่ปลูก DOAE · อากาศ ERA5 · ความชื้นดิน NASA · อ่างเก็บน้ำ RID 461 แห่ง และพื้นที่น้ำท่วมซ้ำ 17 ปี
           </p>
         </div>
         <div class="hero-actions">
@@ -376,7 +411,7 @@ OVERVIEW_PAGE_HTML = r"""
             <button type="button" data-sat="ALL">ทุกดาวเทียม (N+N20+N21)</button>
           </div>
           <button type="button" class="btn primary" data-goto="map">เปิดแผนที่เจาะลึก</button>
-          <button type="button" class="btn" data-goto="weather">วิเคราะห์อากาศ × ไฟ</button>
+          <button type="button" class="btn" data-goto="haze">ฝุ่น PM2.5 &amp; ข้ามแดน</button>
         </div>
       </div>
       <div class="story-strip">
@@ -394,10 +429,17 @@ OVERVIEW_PAGE_HTML = r"""
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
+        <button type="button" class="story-chip" data-goto="haze">
+          <div>
+            <span id="ovStory3Title" class="story-chip-title">ฝุ่น PM2.5 สด &amp; หมอกควันข้ามแดน 6 ประเทศ</span>
+            <span id="ovStory3Sub" class="story-chip-sub">เช็คฝุ่นรายจังหวัด/อำเภอ + เทียบไทย-เมียนมา-ลาว-กัมพูชา</span>
+          </div>
+          <span class="story-chip-arrow">→</span>
+        </button>
         <button type="button" class="story-chip" id="ovStoryTmsBtn">
           <div>
             <span class="story-chip-title">ส่องภาพแปลงเผาจริงความละเอียด 20 ม.</span>
-            <span class="story-chip-sub">เปิดชั้นภาพ TMS สสน. ซ้อนแผนที่เจาะลึกเชียงใหม่ทันที</span>
+            <span class="story-chip-sub">เปิดแผนที่รอยเผา + ลากเส้นเทียบก่อน-หลัง 2 ปี</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
@@ -846,6 +888,187 @@ BURNSCAR_PAGE_HTML = r"""
 </section>
 """
 
+HAZE_PAGE_HTML = r"""
+<section id="page-haze" class="page-view">
+  <div class="page-wrap">
+    <div class="hero-banner">
+      <div class="hero-row">
+        <div>
+          <div class="hero-kicker">PM2.5 HAZE · TRANSBOUNDARY ASEAN · DOAE BURN INTENSITY · RID WATER</div>
+          <h1 class="hero-title">ศูนย์ติดตามฝุ่น PM2.5 สด หมอกควันข้ามแดน 6 ประเทศ &amp; อัตราเผาเกษตร</h1>
+          <p class="hero-desc">
+            เชื่อมข้อมูลดาวเทียมเช็คฝุ่น <strong>GISTDA รายชั่วโมง (จังหวัด/อำเภอ)</strong> · <strong>Open-Meteo CAMS PM2.5/CO/AOD 52 เดือน</strong> · <strong>NASA FIRMS 6 ประเทศอาเซียน (2022–2025)</strong> · <strong>พื้นที่ปลูก DOAE เทียบรอยเผา 20 ม.</strong> · <strong>ความชื้นดิน NASA POWER</strong> และ <strong>น้ำ 461 อ่างเก็บน้ำ RID</strong>
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button type="button" class="btn primary" id="hzRefreshBtn">อัปเดตฝุ่น PM2.5 สด</button>
+          <button type="button" class="btn" id="hzJumpMapBtn">ดูแผนที่ฝุ่น PM2.5</button>
+          <button type="button" class="btn" data-goto="explorer">SQL ค้นข้อมูลดิบ</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-hero-grid" id="hzLiveKpis">
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">จังหวัดฝุ่นเกินเกณฑ์ไทย (&gt;37.5)</span><span class="delta-pill neutral" id="hzLiveTimeBadge">กำลังโหลด</span></div>
+        <div id="hzKpiExceed" class="kpi-hero-val">-</div>
+        <div id="hzKpiExceedSub" class="kpi-hero-sub">GISTDA เช็คฝุ่น 77 จังหวัด</div>
+      </div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">จังหวัด PM2.5 สูงสุดขณะนี้</span><span class="delta-pill neutral">µg/m³</span></div>
+        <div id="hzKpiTop" class="kpi-hero-val">-</div>
+        <div id="hzKpiTopSub" class="kpi-hero-sub">-</div>
+      </div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">ไทย vs เพื่อนบ้าน 6 ประเทศ (2022–25)</span><span class="delta-pill neutral">VIIRS-N</span></div>
+        <div id="hzKpiTrans" class="kpi-hero-val">-</div>
+        <div id="hzKpiTransSub" class="kpi-hero-sub">-</div>
+      </div>
+      <div class="kpi-hero">
+        <div class="kpi-hero-top"><span class="kpi-hero-label">ประมาณการฝุ่น PM2.5 จากการเผา (ฤดู 69)</span><span class="delta-pill neutral">62 จว.</span></div>
+        <div id="hzKpiEmit" class="kpi-hero-val">-</div>
+        <div id="hzKpiEmitSub" class="kpi-hero-sub">-</div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">1. สถานการณ์ฝุ่น PM2.5 รายชั่วโมง (GISTDA เช็คฝุ่น 77 จังหวัด · คลิกเพื่อดูรายอำเภอ)</h2>
+          <div id="hzLiveSub" class="panel-sub">กำลังดึงค่า PM2.5 ล่าสุดจาก pm25.gistda.or.th...</div>
+        </div>
+        <select id="hzLiveProvSel" style="width:auto;min-width:205px;" aria-label="เลือกจังหวัดตรวจฝุ่นสด"></select>
+      </div>
+      <div id="hzLiveGrid" class="hz-live-grid"></div>
+      <div id="hzLiveDetail" class="hz-detail-box" style="display:none;"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">2. ห้องแล็บความสัมพันธ์ 52 เดือน: จุดความร้อน vs ฝุ่น PM2.5 · ก๊าซ CO · AOD · ความชื้นดิน</h2>
+          <div id="hzInsightText" class="panel-sub">เลือกจังหวัดและตัวแปรเพื่อตรวจความสัมพันธ์รายเดือน (2022–2026)</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span id="hzCorrBadge" class="badge">r = -</span>
+          <select id="hzProvSelect" style="width:auto;min-width:170px;">
+            <option value="all" selected>ทั้งประเทศ (77 จังหวัด)</option>
+          </select>
+          <select id="hzMetricSelect" style="width:auto;min-width:210px;">
+            <option value="aq_pm25" selected>PM2.5 เฉลี่ยรายเดือน (µg/m³)</option>
+            <option value="aq_pm25_max">PM2.5 สูงสุดในเดือน (µg/m³)</option>
+            <option value="aq_exceed">วันฝุ่นเกินเกณฑ์ไทย &gt;37.5 (วัน)</option>
+            <option value="aq_co">ก๊าซคาร์บอนมอนอกไซด์ CO (µg/m³)</option>
+            <option value="aq_aod">ความหนาแน่นควัน AOD (550nm)</option>
+            <option value="soil_wet">ความชื้นผิวดิน NASA GWETTOP (0–1)</option>
+          </select>
+          <select id="hzSatSelect" style="width:auto;min-width:130px;">
+            <option value="N" selected>Suomi NPP (N)</option>
+            <option value="ALL">ทุกดาวเทียม</option>
+          </select>
+        </div>
+      </div>
+      <div class="big-chart-box">
+        <canvas id="hzDualCanvas" class="panel-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel-card">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">3. หมอกควันข้ามแดน: จุดความร้อน 6 ประเทศอาเซียน (2022–2025)</h2>
+            <div class="panel-sub">เทียบมาตรฐานเดียวกันด้วย NASA FIRMS VIIRS Suomi-NPP (ไม่นับซ้ำดาวเทียม)</div>
+          </div>
+          <select id="hzTransYearSel" style="width:auto;min-width:125px;">
+            <option value="all" selected>รวม 4 ปี (22–25)</option>
+            <option value="2025">ปี 2025</option>
+            <option value="2024">ปี 2024</option>
+            <option value="2023">ปี 2023</option>
+            <option value="2022">ปี 2022</option>
+          </select>
+        </div>
+        <div class="big-chart-box">
+          <canvas id="hzTransCanvas" class="panel-canvas"></canvas>
+        </div>
+        <div class="data-table-wrap" style="max-height:245px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>ประเทศ</th>
+                <th>กลุ่ม</th>
+                <th>จุดไฟ VIIRS-N</th>
+                <th>สัดส่วน</th>
+                <th>ความเชื่อมั่นสูง</th>
+                <th>พลังงานไฟ FRP (MW)</th>
+              </tr>
+            </thead>
+            <tbody id="hzTransTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">4. น้ำอ่างเก็บน้ำ 461 แห่ง (RID) &amp; ความชื้นผิวดิน 5 ปี (2022–2026)</h2>
+            <div class="panel-sub">ปริมาณน้ำกักเก็บรายภาค (% ความจุ) เทียบช่วงฤดูแล้ง ม.ค.–เม.ย.</div>
+          </div>
+        </div>
+        <div class="big-chart-box">
+          <canvas id="hzWaterCanvas" class="panel-canvas"></canvas>
+        </div>
+        <div id="hzEmissionCards" class="kpi-hero-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;"></div>
+        <div style="font-size:11.5px;color:var(--muted);line-height:1.5;">
+          <strong>หมายเหตุวิธีคำนวณการปล่อยมลพิษ (Screening Estimate):</strong> ใช้พื้นที่เผาไหม้ Sentinel-2 สสน. คูณปริมาณเชื้อเพลิงแห้งมาตรฐาน (ข้าว 0.58, อ้อย 1.12, ข้าวโพด 0.88, พืชผสม 0.70, ป่า 2.40 ตัน/ไร่) และค่าการปล่อยมลพิษเฉลี่ย (PM2.5 ≈ 8.5 กก./ตันเชื้อเพลิง, CO₂e ≈ 1.58 ตัน/ตันเชื้อเพลิง ตามกรอบ Andreae / IPCC)
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">5. อัตราการเผาเทียบพื้นที่เพาะปลูกจริง (% Burn Rate · DOAE 2566 × รอยเผา สสน. 20 ม.)</h2>
+          <div class="panel-sub">เห็นชัดว่าจังหวัดใดปลูกเยอะและเผาจริงกี่เปอร์เซ็นต์ (15 จังหวัดภาคใต้คงค่า "ไม่มีข้อมูล" ตามขอบเขต สสน.)</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select id="hzBurnSeasonSel" style="width:auto;min-width:140px;">
+            <option value="2026" selected>ฤดู 2569 (2026)</option>
+            <option value="2025">ฤดู 2568 (2025)</option>
+            <option value="2024">ฤดู 2567 (2024)</option>
+          </select>
+          <select id="hzBurnCropSel" style="width:auto;min-width:145px;">
+            <option value="all" selected>รวม ข้าว+อ้อย+ข้าวโพด</option>
+            <option value="paddy">เฉพาะ นาข้าว</option>
+            <option value="sugarcane">เฉพาะ อ้อยโรงงาน</option>
+            <option value="corn">เฉพาะ ข้าวโพด</option>
+          </select>
+          <input id="hzBurnSearch" class="search-input" style="max-width:200px;" type="search" placeholder="กรองชื่อจังหวัด..." />
+        </div>
+      </div>
+      <div class="data-table-wrap" role="region" tabindex="0" aria-label="ตารางอัตราเผาเทียบพื้นที่ปลูก 77 จังหวัด">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>จังหวัด</th>
+              <th>ภาค</th>
+              <th>พื้นที่เผา (ไร่)</th>
+              <th>พื้นที่ปลูก DOAE 66 (ไร่)</th>
+              <th>% เผาเทียบปลูก</th>
+              <th>PM2.5 เฉลี่ยฤดู</th>
+              <th>ประมาณการปล่อย PM2.5 (ตัน)</th>
+            </tr>
+          </thead>
+          <tbody id="hzBurnRateTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+"""
+
 MULTI_PAGE_JS = r"""
   // =========================================================================
   // Multi-Page Navigation, Overview, Fire-Weather Lab & Burn Scar Comparator
@@ -906,6 +1129,7 @@ MULTI_PAGE_JS = r"""
         drawTrendChart();
       });
     } else if (pageId === "weather") renderWeatherPage();
+    else if (pageId === "haze") renderHazePage();
     else if (pageId === "burnscar") renderBurnScarPage();
     else if (pageId === "explorer" && typeof onExplorerPageActivated === "function") onExplorerPageActivated();
   }
@@ -2686,6 +2910,26 @@ MULTI_PAGE_JS = r"""
       if (selP && selP !== "all") jumpToProvinceOnMap(selP);
       else { switchPage("map"); requestAnimationFrame(() => refreshAll()); }
     });
+
+    ["hzProvSelect","hzMetricSelect","hzSatSelect"].forEach(id => {
+      document.getElementById(id)?.addEventListener("change", renderHazeDualLab);
+    });
+    document.getElementById("hzTransYearSel")?.addEventListener("change", renderTransboundarySection);
+    ["hzBurnSeasonSel","hzBurnCropSel"].forEach(id => {
+      document.getElementById(id)?.addEventListener("change", renderBurnIntensityAndEmissions);
+    });
+    document.getElementById("hzBurnSearch")?.addEventListener("input", renderBurnIntensityAndEmissions);
+    document.getElementById("hzRefreshBtn")?.addEventListener("click", () => loadLiveHazeData(true));
+    document.getElementById("hzLiveProvSel")?.addEventListener("change", (e) => {
+      if (e.target.value) inspectLiveHazeProv(e.target.value);
+    });
+    document.getElementById("hzJumpMapBtn")?.addEventListener("click", () => {
+      state.metric = "aq_pm25";
+      if (els.metricSelect) els.metricSelect.value = "aq_pm25";
+      switchPage("map");
+      requestAnimationFrame(() => refreshAll());
+    });
+
     bindBsMapEvents();
     document.getElementById("bsOpenTmsBtn")?.addEventListener("click", () => jumpToProvinceOnMap(bsMap.focusProv || "16", { openTms: true }));
     document.getElementById("bsExportTableBtn")?.addEventListener("click", exportMasterProvinceCsv);
@@ -2701,9 +2945,583 @@ MULTI_PAGE_JS = r"""
 
     window.addEventListener("hashchange", () => {
       const h = (window.location.hash || "").replace(/^#/, "");
-      if (["overview","map","weather","burnscar","explorer"].includes(h) && h !== activePage) {
+      if (["overview","map","weather","haze","burnscar","explorer"].includes(h) && h !== activePage) {
         switchPage(h, { updateHash: false });
       }
     });
+  }
+
+  // ===== Page 6: Live Haze, Transboundary 6 ASEAN, Burn Rate & RID Water =====
+  const HAZE_METRICS_META = {
+    aq_pm25: { name: "PM2.5 เฉลี่ย (CAMS)", unit: "µg/m³", src: "aq", idx: 0 },
+    aq_pm25_max: { name: "PM2.5 สูงสุดในเดือน", unit: "µg/m³", src: "aq", idx: 1 },
+    aq_exceed: { name: "วันฝุ่นเกิน 37.5 µg/m³", unit: "วัน", src: "aq", idx: 4 },
+    aq_co: { name: "ก๊าซ CO จากการเผา", unit: "µg/m³", src: "aq", idx: 2 },
+    aq_aod: { name: "ความหนาควัน AOD", unit: "AOD", src: "aq", idx: 3 },
+    soil_wet: { name: "ความชื้นผิวดิน NASA", unit: "(0–1)", src: "soil", idx: 0 },
+  };
+  const COUNTRY_TH = {
+    Myanmar: { label: "เมียนมา", color: "#cf5648", note: "เพื่อนบ้าน" },
+    Lao_PDR: { label: "สปป.ลาว", color: "#d48942", note: "เพื่อนบ้าน" },
+    Thailand: { label: "ไทย", color: "#689cb8", note: "ประเทศไทย" },
+    Cambodia: { label: "กัมพูชา", color: "#c49c4d", note: "เพื่อนบ้าน" },
+    Vietnam: { label: "เวียดนาม", color: "#55947a", note: "เพื่อนบ้าน" },
+    Malaysia: { label: "มาเลเซีย", color: "#8e82a8", note: "เพื่อนบ้าน" },
+  };
+  const hzHoverStore = {};
+  let liveHazeProvRows = null;
+  let selectedLiveHazeProv = null;
+
+  function populateHazeSelects() {
+    if (!DATA) return;
+    const sorted = DATA.provinces.slice().sort((a, b) => a.name_th.localeCompare(b.name_th, "th"));
+    const pSel = document.getElementById("hzProvSelect");
+    if (pSel && pSel.options.length <= 1) {
+      for (const p of sorted) {
+        const opt = document.createElement("option");
+        opt.value = p.code;
+        opt.textContent = p.name_th;
+        pSel.appendChild(opt);
+      }
+    }
+    const lSel = document.getElementById("hzLiveProvSel");
+    if (lSel && lSel.options.length === 0) {
+      for (const p of sorted) {
+        const opt = document.createElement("option");
+        opt.value = p.code;
+        opt.textContent = "ตรวจรายอำเภอ: " + p.name_th;
+        lSel.appendChild(opt);
+      }
+      if (PROV_MAP.has("50")) lSel.value = "50";
+    }
+  }
+
+  function pm25Tier(v) {
+    if (v === null || v === undefined) return ["ไม่มีข้อมูล", "hz-pm-mod"];
+    if (v <= 15) return ["ดีมาก (≤15)", "hz-pm-good"];
+    if (v <= 25) return ["ดี (≤25)", "hz-pm-good"];
+    if (v <= 37.5) return ["ปานกลาง", "hz-pm-mod"];
+    if (v <= 75) return ["เริ่มกระทบสุขภาพ", "hz-pm-high"];
+    return ["วิกฤต (>75)", "hz-pm-crit"];
+  }
+
+  async function loadLiveHazeData(force = false) {
+    const grid = document.getElementById("hzLiveGrid");
+    const sub = document.getElementById("hzLiveSub");
+    const tBadge = document.getElementById("hzLiveTimeBadge");
+    if (!grid || !DATA) return;
+    if (!force && liveHazeProvRows) {
+      renderLiveHazeGrid(liveHazeProvRows, false);
+      return;
+    }
+    sub.textContent = "กำลังดึงค่า PM2.5 สด 77 จังหวัดจาก GISTDA เช็คฝุ่น...";
+    try {
+      const resp = await fetch("https://pm25.gistda.or.th/rest/getPm25byProvince");
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const j = await resp.json();
+      const rows = (j.data || []).map(d => ({
+        code: String(d.pv_idn).padStart(2, "0"),
+        name_th: d.pv_tn || PROV_MAP.get(String(d.pv_idn).padStart(2, "0"))?.name_th || "",
+        pm25: d.pm25 != null ? Number(d.pm25) : null,
+        pm25_24h: d.pm25Avg24hr != null ? Number(d.pm25Avg24hr) : null,
+        dt: d.dt || "",
+      })).filter(r => r.pm25 !== null);
+      if (!rows.length) throw new Error("empty");
+      liveHazeProvRows = rows;
+      renderLiveHazeGrid(rows, false);
+    } catch (_) {
+      const fallback = DATA.provinces
+        .filter(p => p.pm25_snap && p.pm25_snap.pm25 !== null)
+        .map(p => ({
+          code: p.code,
+          name_th: p.name_th,
+          pm25: p.pm25_snap.pm25,
+          pm25_24h: p.pm25_snap.pm25_24h,
+          dt: p.pm25_snap.dt || "",
+        }));
+      liveHazeProvRows = fallback;
+      renderLiveHazeGrid(fallback, true);
+      if (tBadge) tBadge.textContent = "แคชล่าสุด";
+    }
+  }
+
+  function renderLiveHazeGrid(rows, isFallback) {
+    const grid = document.getElementById("hzLiveGrid");
+    const sub = document.getElementById("hzLiveSub");
+    const tBadge = document.getElementById("hzLiveTimeBadge");
+    if (!grid) return;
+    const sorted = rows.slice().sort((a, b) => (b.pm25 || 0) - (a.pm25 || 0));
+    const exceedCnt = sorted.filter(r => r.pm25 > 37.5).length;
+    const avgPm = sorted.length ? (sorted.reduce((a, r) => a + r.pm25, 0) / sorted.length) : null;
+    const top = sorted[0];
+
+    document.getElementById("hzKpiExceed").textContent = `${exceedCnt} / ${sorted.length} จว.`;
+    document.getElementById("hzKpiExceedSub").textContent = avgPm !== null ? `ค่าเฉลี่ยทั้งประเทศ ${avgPm.toFixed(1)} µg/m³` : "-";
+    document.getElementById("hzKpiTop").textContent = top ? `${top.pm25.toFixed(1)} µg/m³` : "-";
+    document.getElementById("hzKpiTopSub").textContent = top ? `จ.${top.name_th} (เฉลี่ย 24 ชม. ${top.pm25_24h != null ? top.pm25_24h.toFixed(1) : "-"})` : "-";
+    const dtTxt = top?.dt ? top.dt.slice(0, 16).replace("T", " ") + " UTC" : "";
+    if (tBadge) tBadge.textContent = isFallback ? "Snapshot ล่าสุด" : (dtTxt || "อัปเดตสด");
+    sub.textContent = isFallback
+      ? `แสดงผลจากข้อมูลบันทึก GISTDA เช็คฝุ่นล่าสุด (${dtTxt}) · คลิกจังหวัดเพื่อดูแนวโน้มรายอำเภอ`
+      : `ข้อมูลสด 77 จังหวัดจาก GISTDA เช็คฝุ่น (${dtTxt}) · คลิกการ์ดจังหวัดเพื่อดูค่ารายอำเภอ + พยากรณ์ฝุ่น 5 วัน`;
+
+    grid.innerHTML = sorted.slice(0, 15).map((r, i) => {
+      const [tierTxt, tierCls] = pm25Tier(r.pm25);
+      const act = selectedLiveHazeProv === r.code ? "active" : "";
+      return `
+        <button type="button" class="hz-prov-card ${act}" data-hz-prov="${escHtml(r.code)}">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <strong style="font-size:13px;">#${i + 1} ${escHtml(r.name_th)}</strong>
+            <span class="hz-pm-badge ${tierCls}">${tierTxt}</span>
+          </div>
+          <div style="font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;">${r.pm25.toFixed(1)} <span style="font-size:11px;font-weight:500;color:var(--muted);">µg/m³</span></div>
+          <div style="font-size:11px;color:var(--muted);">เฉลี่ย 24 ชม.: ${r.pm25_24h != null ? r.pm25_24h.toFixed(1) : "-"} µg/m³</div>
+        </button>
+      `;
+    }).join("");
+
+    grid.querySelectorAll(".hz-prov-card[data-hz-prov]").forEach(btn => {
+      btn.onclick = () => inspectLiveHazeProv(btn.dataset.hzProv);
+    });
+  }
+
+  async function inspectLiveHazeProv(provCode) {
+    const prov = PROV_MAP.get(provCode);
+    const box = document.getElementById("hzLiveDetail");
+    const lSel = document.getElementById("hzLiveProvSel");
+    if (!prov || !box) return;
+    selectedLiveHazeProv = provCode;
+    if (lSel) lSel.value = provCode;
+    document.querySelectorAll(".hz-prov-card").forEach(el => {
+      el.classList.toggle("active", el.dataset.hzProv === provCode);
+    });
+    box.style.display = "flex";
+    box.innerHTML = `<div style="font-size:12.5px;color:var(--muted);">กำลังดึงฝุ่น PM2.5 รายอำเภอของ จ.${escHtml(prov.name_th)} และพยากรณ์ 5 วันล่วงหน้า...</div>`;
+
+    let ampHtml = "";
+    try {
+      const rAmp = await fetch(`https://pm25.gistda.or.th/rest/getPm25byAmphoe?pv_idn=${Number(provCode)}`);
+      if (rAmp.ok) {
+        const jAmp = await rAmp.json();
+        const amps = (jAmp.data || []).filter(a => a.pm25 != null).sort((a, b) => b.pm25 - a.pm25).slice(0, 12);
+        if (amps.length) {
+          ampHtml = `<div style="font-size:12px;font-weight:700;">รายอำเภอสูงสุด จ.${escHtml(prov.name_th)} (GISTDA สด):</div>
+            <div class="hz-amp-grid">${amps.map(a => {
+              const [, cls] = pm25Tier(a.pm25);
+              return `<div class="hz-amp-chip"><span>อ.${escHtml(a.ap_tn || "")}</span><span class="hz-pm-badge ${cls}">${Number(a.pm25).toFixed(1)}</span></div>`;
+            }).join("")}</div>`;
+        }
+      }
+    } catch (_) {}
+
+    let fcHtml = "";
+    try {
+      const rFc = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${prov.lat}&longitude=${prov.lon}&hourly=pm2_5,us_aqi&forecast_days=5&timezone=Asia%2FBangkok`);
+      if (rFc.ok) {
+        const jFc = await rFc.json();
+        const times = jFc.hourly?.time || [];
+        const pms = jFc.hourly?.pm2_5 || [];
+        const byDay = new Map();
+        for (let i = 0; i < times.length; i++) {
+          if (pms[i] == null) continue;
+          const d = times[i].slice(0, 10);
+          const cur = byDay.get(d) || [];
+          cur.push(Number(pms[i]));
+          byDay.set(d, cur);
+        }
+        const days = Array.from(byDay.entries()).slice(0, 5);
+        if (days.length) {
+          fcHtml = `<div style="font-size:12px;font-weight:700;">พยากรณ์ฝุ่น PM2.5 ล่วงหน้า 5 วัน (Open-Meteo CAMS):</div>
+            <div class="hz-amp-grid">${days.map(([d, vals]) => {
+              const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+              const mx = Math.max(...vals);
+              const [, cls] = pm25Tier(avg);
+              return `<div class="hz-amp-chip"><span>${escHtml(d.slice(5))}</span><span class="hz-pm-badge ${cls}">เฉลี่ย ${avg.toFixed(1)} · พีค ${mx.toFixed(0)}</span></div>`;
+            }).join("")}</div>`;
+        }
+      }
+    } catch (_) {}
+
+    if (!ampHtml && !fcHtml) {
+      box.innerHTML = `<div style="font-size:12px;color:var(--muted);">ไม่สามารถเชื่อมต่อ API รายอำเภอ/พยากรณ์ฝุ่นได้ขณะนี้</div>`;
+    } else {
+      box.innerHTML = ampHtml + fcHtml;
+    }
+  }
+
+  function getHazeMonthlySeries(provCode, satMode, metricKey) {
+    const months = DATA.weather_months || [];
+    const n = months.length;
+    const meta = HAZE_METRICS_META[metricKey] || HAZE_METRICS_META.aq_pm25;
+    const fireAgri = new Array(n).fill(0);
+    const fireFor = new Array(n).fill(0);
+    const fireTot = new Array(n).fill(0);
+    const mSum = new Array(n).fill(0);
+    const mCnt = new Array(n).fill(0);
+
+    const provs = provCode === "all" ? DATA.provinces : [PROV_MAP.get(provCode)].filter(Boolean);
+    const off = satMode === "N" ? 0 : 3;
+    for (const p of provs) {
+      if (p.hs_m) {
+        for (let i = 0; i < n && i < p.hs_m.length; i++) {
+          const h = p.hs_m[i];
+          if (h) {
+            fireTot[i] += h[off] || 0;
+            fireAgri[i] += h[off + 1] || 0;
+            fireFor[i] += h[off + 2] || 0;
+          }
+        }
+      }
+      const arr = meta.src === "aq" ? p.aq_m : p.soil_m;
+      if (arr) {
+        for (let i = 0; i < n && i < arr.length; i++) {
+          const row = arr[i];
+          if (row && row[meta.idx] !== null && row[meta.idx] !== undefined) {
+            mSum[i] += row[meta.idx];
+            mCnt[i] += 1;
+          }
+        }
+      }
+    }
+    const dec = meta.src === "soil" || metricKey === "aq_aod" ? 2 : 1;
+    const wxVals = mSum.map((s, i) => mCnt[i] > 0 ? +(s / mCnt[i]).toFixed(dec) : null);
+    return { months, fireTot, fireAgri, fireFor, wxVals, meta };
+  }
+
+  function renderHazeDualLab() {
+    const canvas = document.getElementById("hzDualCanvas");
+    if (!canvas || !DATA) return;
+    const pCode = document.getElementById("hzProvSelect")?.value || "all";
+    const mKey = document.getElementById("hzMetricSelect")?.value || "aq_pm25";
+    const satMode = document.getElementById("hzSatSelect")?.value || "N";
+    const series = getHazeMonthlySeries(pCode, satMode, mKey);
+
+    // Pair only months where metric is non-null for Pearson r
+    const xs = [], ys = [];
+    for (let i = 0; i < series.months.length; i++) {
+      if (series.wxVals[i] !== null) {
+        xs.push(series.wxVals[i]);
+        ys.push(series.fireTot[i]);
+      }
+    }
+    const rVal = pearsonR(xs, ys);
+    document.getElementById("hzCorrBadge").textContent = rVal !== null ? `Pearson r = ${rVal.toFixed(2)}` : "r = n/a";
+    const ins = document.getElementById("hzInsightText");
+    if (ins) {
+      if (rVal !== null) {
+        const dir = rVal >= 0 ? `ยิ่งจุดไฟพุ่ง ${series.meta.name} ยิ่งสูงตาม` : `ยิ่ง ${series.meta.name} ต่ำ (แห้งแล้ง) จุดความร้อนยิ่งสูงขึ้น`;
+        ins.textContent = `ความสัมพันธ์รายเดือน (${xs.length} เดือนที่มีข้อมูลคู่ · r = ${rVal.toFixed(2)}): ${dir}`;
+      } else {
+        ins.textContent = "ไม่มีข้อมูลรายเดือนเพียงพอสำหรับคำนวณความสัมพันธ์";
+      }
+    }
+
+    // Reuse drawDualFireWeatherChart with custom meta
+    drawDualFireWeatherChart(canvas, series, "8", hzHoverStore);
+    if (hzHoverStore) hzHoverStore.wxMeta = { name: series.meta.name, unit: series.meta.unit, color: "#689cb8" };
+    bindTimelineHover(canvas, hzHoverStore);
+  }
+
+  function renderTransboundarySection() {
+    const tb = DATA?.transboundary;
+    const canvas = document.getElementById("hzTransCanvas");
+    const tbody = document.getElementById("hzTransTbody");
+    if (!tb || !canvas || !tbody) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px;">ยังไม่มีข้อมูลหมอกควันข้ามแดนใน payload</td></tr>`;
+      return;
+    }
+    const yrSel = document.getElementById("hzTransYearSel")?.value || "all";
+    const order = ["Myanmar", "Lao_PDR", "Thailand", "Cambodia", "Vietnam", "Malaysia"];
+    const activeCountries = order.filter(c => tb.countries[c]);
+    const rows = activeCountries.map(c => {
+      const yMap = tb.countries[c].yearly || {};
+      const yrs = yrSel === "all" ? Object.keys(yMap) : (yMap[yrSel] ? [yrSel] : []);
+      let hs = 0, high = 0, frp = 0;
+      for (const y of yrs) {
+        hs += yMap[y].hs || 0;
+        high += yMap[y].high || 0;
+        frp += yMap[y].frp || 0;
+      }
+      return { country: c, hs, high, frp };
+    }).sort((a, b) => b.hs - a.hs);
+
+    const grandTot = rows.reduce((a, r) => a + r.hs, 0) || 1;
+    const thRow = rows.find(r => r.country === "Thailand");
+    const mmRow = rows.find(r => r.country === "Myanmar");
+    if (thRow) {
+      document.getElementById("hzKpiTrans").textContent = `${(thRow.hs * 100 / grandTot).toFixed(1)}% ไทย`;
+      document.getElementById("hzKpiTransSub").textContent = `ไทย ${formatNum(thRow.hs)} จาก ${formatNum(grandTot)} จุด (เมียนมา ${mmRow ? (mmRow.hs * 100 / grandTot).toFixed(1) + "%" : "-"})`;
+    }
+
+    tbody.innerHTML = rows.map((r, i) => {
+      const meta = COUNTRY_TH[r.country] || { label: r.country, color: "#689cb8", note: "-" };
+      const pct = (r.hs * 100 / grandTot).toFixed(1);
+      return `
+        <tr>
+          <td>${i + 1}</td>
+          <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${meta.color};margin-right:6px;"></span>${escHtml(meta.label)}</td>
+          <td><span class="reg-pill">${escHtml(meta.note)}</span></td>
+          <td style="font-weight:700;">${formatNum(r.hs)}</td>
+          <td>${pct}%</td>
+          <td>${formatNum(r.high)}</td>
+          <td>${formatNum(r.frp, 0)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    // Draw stacked monthly bar chart across selected year or all 48 months (2022-2025)
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const idxs = [];
+    for (let i = 0; i < tb.months.length; i++) {
+      if (yrSel === "all" || tb.months[i].startsWith(yrSel + "-")) idxs.push(i);
+    }
+    const n = idxs.length;
+    if (!n) return;
+    const pad = { l: 52, r: 14, t: 28, b: 28 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const step = pw / n;
+    const bw = Math.max(3, step * 0.72);
+    const maxStack = Math.max(100, ...idxs.map(i => activeCountries.reduce((a, c) => a + (tb.countries[c].monthly[i] || 0), 0)));
+    const textCol = state.theme === "dark" ? "#94a3b8" : "#475569";
+
+    for (let j = 0; j < n; j++) {
+      const mi = idxs[j];
+      const x = pad.l + j * step + (step - bw) / 2;
+      let y = pad.t + ph;
+      for (const c of activeCountries) {
+        const val = tb.countries[c].monthly[mi] || 0;
+        const bh = (val / maxStack) * ph;
+        if (bh > 0) {
+          ctx.fillStyle = (COUNTRY_TH[c] || { color: "#689cb8" }).color;
+          ctx.fillRect(x, y - bh, bw, bh);
+          y -= bh;
+        }
+      }
+      const ym = tb.months[mi];
+      if (yrSel !== "all" || ym.endsWith("-01")) {
+        ctx.fillStyle = textCol;
+        ctx.font = "600 10px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText(yrSel === "all" ? ym.slice(0, 4) : MONTH_TH_SHORT[Number(ym.slice(5, 7)) - 1], pad.l + (j + 0.5) * step, pad.t + ph + 15);
+      }
+    }
+    ctx.fillStyle = textCol; ctx.font = "10px system-ui"; ctx.textAlign = "right";
+    ctx.fillText(formatNum(maxStack), pad.l - 6, pad.t + 8);
+    ctx.fillText("0", pad.l - 6, pad.t + ph);
+
+    let lx = pad.l;
+    ctx.textAlign = "left";
+    for (const c of activeCountries) {
+      const m = COUNTRY_TH[c];
+      ctx.fillStyle = m.color; ctx.fillRect(lx, 4, 9, 9);
+      ctx.fillStyle = textCol; ctx.fillText(m.label, lx + 12, 12);
+      lx += Math.max(54, Math.min(78, pw / activeCountries.length));
+    }
+  }
+
+  function renderRidWaterChart() {
+    const canvas = document.getElementById("hzWaterCanvas");
+    const rid = DATA?.rid_monthly;
+    if (!canvas || !rid || !rid.months?.length) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const months = rid.months;
+    const n = months.length;
+    const pad = { l: 42, r: 16, t: 28, b: 28 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const step = pw / n;
+    const isDark = state.theme === "dark";
+    const textCol = isDark ? "#94a3b8" : "#475569";
+
+    ctx.fillStyle = isDark ? "rgba(255,255,255,0.032)" : "rgba(15,23,42,0.035)";
+    for (let i = 0; i < n; i++) {
+      const mo = Number(months[i].slice(5, 7));
+      if (mo >= 1 && mo <= 4) ctx.fillRect(pad.l + i * step, pad.t, step, ph);
+    }
+
+    ctx.strokeStyle = isDark ? "rgba(148,163,184,0.14)" : "rgba(15,23,42,0.1)";
+    ctx.lineWidth = 1;
+    ctx.font = "10px system-ui";
+    ctx.fillStyle = textCol;
+    for (const g of [25, 50, 75, 100]) {
+      const y = pad.t + ph - (g / 100) * ph;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+      ctx.textAlign = "right";
+      ctx.fillText(g + "%", pad.l - 5, y + 3);
+    }
+
+    const regPalette = {
+      "ภาคเหนือ": "#df6a37",
+      "ภาคตะวันออกเฉียงเหนือ": "#c49c4d",
+      "ภาคกลาง": "#689cb8",
+      "ภาคตะวันออก": "#8e82a8",
+      "ภาคใต้": "#55947a",
+    };
+    let lx = pad.l;
+    for (const [reg, col] of Object.entries(regPalette)) {
+      const arr = rid.regions?.[reg];
+      if (!arr) continue;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < n; i++) {
+        if (arr[i] === null || arr[i] === undefined) { started = false; continue; }
+        const cx = pad.l + (i + 0.5) * step;
+        const cy = pad.t + ph - (Math.max(0, Math.min(115, arr[i])) / 115) * ph;
+        if (!started) { ctx.moveTo(cx, cy); started = true; } else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = col; ctx.fillRect(lx, 5, 11, 3);
+      ctx.fillStyle = textCol; ctx.textAlign = "left";
+      const shortNm = reg.replace("ภาคตะวันออกเฉียงเหนือ", "อีสาน").replace("ภาค", "");
+      ctx.fillText(shortNm, lx + 14, 11);
+      lx += Math.min(82, Math.max(54, pw / 5));
+    }
+
+    for (let i = 0; i < n; i++) {
+      if (months[i].endsWith("-01")) {
+        ctx.fillStyle = textCol; ctx.textAlign = "center";
+        ctx.fillText(months[i].slice(0, 4), pad.l + (i + 0.5) * step, pad.t + ph + 15);
+      }
+    }
+  }
+
+  function renderBurnIntensityAndEmissions() {
+    if (!DATA || !state.computedStats) return;
+    const yrKey = document.getElementById("hzBurnSeasonSel")?.value || "2026";
+    const cropMode = document.getElementById("hzBurnCropSel")?.value || "all";
+    const q = (document.getElementById("hzBurnSearch")?.value || "").trim().toLowerCase();
+
+    // Standard biomass dry fuel (t/rai) & emission factors (Andreae/IPCC screening)
+    const FUEL_T_PER_RAI = [0.58, 1.12, 0.88, 0.70, 2.40]; // paddy, sugarcane, corn, mixed, forest
+    const EF_PM25_T_PER_T = 0.0085;
+    const EF_CO2E_T_PER_T = 1.58;
+
+    let burnAgriRai = 0, burnTotalRai = 0, biomassTons = 0, pm25Tons = 0, co2eTons = 0;
+    const tableRows = [];
+
+    for (const p of DATA.provinces) {
+      const covered = p.trp !== null && p.trp !== undefined;
+      const a = covered ? (p.trp[yrKey] || [0, 0, 0, 0, 0]) : null;
+      let provBm = null, provPm = null;
+      if (a) {
+        burnTotalRai += a[0] + a[1] + a[2] + a[3] + a[4];
+        burnAgriRai += a[0] + a[1] + a[2] + a[3];
+        provBm = 0;
+        for (let k = 0; k < 5; k++) provBm += a[k] * FUEL_T_PER_RAI[k];
+        biomassTons += provBm;
+        provPm = provBm * EF_PM25_T_PER_T;
+        pm25Tons += provPm;
+        co2eTons += provBm * EF_CO2E_T_PER_T;
+      }
+
+      const d = p.doae_2566 || {};
+      let burnVal = null, plantVal = null, pmCrop = null;
+      if (a) {
+        if (cropMode === "paddy") { burnVal = a[0]; plantVal = d.paddy_rai ?? null; pmCrop = a[0] * FUEL_T_PER_RAI[0] * EF_PM25_T_PER_T; }
+        else if (cropMode === "sugarcane") { burnVal = a[1]; plantVal = d.sugarcane_rai ?? null; pmCrop = a[1] * FUEL_T_PER_RAI[1] * EF_PM25_T_PER_T; }
+        else if (cropMode === "corn") { burnVal = a[2]; plantVal = d.corn_rai ?? null; pmCrop = a[2] * FUEL_T_PER_RAI[2] * EF_PM25_T_PER_T; }
+        else {
+          burnVal = a[0] + a[1] + a[2];
+          const sumPl = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
+          plantVal = sumPl > 0 ? sumPl : null;
+          pmCrop = (a[0] * FUEL_T_PER_RAI[0] + a[1] * FUEL_T_PER_RAI[1] + a[2] * FUEL_T_PER_RAI[2]) * EF_PM25_T_PER_T;
+        }
+      } else {
+        if (cropMode === "paddy") plantVal = d.paddy_rai ?? null;
+        else if (cropMode === "sugarcane") plantVal = d.sugarcane_rai ?? null;
+        else if (cropMode === "corn") plantVal = d.corn_rai ?? null;
+        else {
+          const sumPl = (d.paddy_rai || 0) + (d.sugarcane_rai || 0) + (d.corn_rai || 0);
+          plantVal = sumPl > 0 ? sumPl : null;
+        }
+      }
+      const ratePct = (burnVal !== null && plantVal !== null && plantVal > 0) ? (burnVal * 100 / plantVal) : null;
+      const pmPeak = p.aq_y?.[yrKey]?.pm25_peak ?? p.aq_y?.[yrKey]?.pm25_mean ?? null;
+      tableRows.push({
+        code: p.code,
+        name_th: p.name_th,
+        region: REGION_TH[p.region] || p.region || "-",
+        burnVal,
+        plantVal,
+        ratePct,
+        pmPeak,
+        pmCrop,
+      });
+    }
+
+    document.getElementById("hzKpiEmit").textContent = `${formatNum(pm25Tons, 0)} ตัน`;
+    document.getElementById("hzKpiEmitSub").textContent = `ชีวมวล ${(biomassTons / 1e6).toFixed(2)} ล้านตัน · CO₂e ${(co2eTons / 1e6).toFixed(2)} ล้านตัน`;
+
+    const emCards = document.getElementById("hzEmissionCards");
+    if (emCards) {
+      emCards.innerHTML = `
+        <div class="kpi-hero" style="padding:12px 13px;">
+          <div class="kpi-hero-label">รอยเผาเกษตรรวม (ฤดู ${Number(yrKey) + 543})</div>
+          <div style="font-size:20px;font-weight:700;">${(burnAgriRai / 1e6).toFixed(2)} ล้านไร่</div>
+          <div class="kpi-hero-sub">รวมป่าไม้ ${(burnTotalRai / 1e6).toFixed(2)} ล้านไร่</div>
+        </div>
+        <div class="kpi-hero" style="padding:12px 13px;">
+          <div class="kpi-hero-label">มวลชีวภาพถูกเผาไหม้</div>
+          <div style="font-size:20px;font-weight:700;">${(biomassTons / 1e6).toFixed(2)} ล้านตัน</div>
+          <div class="kpi-hero-sub">ปล่อย PM2.5 ~${formatNum(pm25Tons, 0)} ตัน</div>
+        </div>
+      `;
+    }
+
+    const tbody = document.getElementById("hzBurnRateTbody");
+    if (!tbody) return;
+    let filtered = tableRows;
+    if (q) filtered = filtered.filter(r => r.name_th.toLowerCase().includes(q) || r.region.toLowerCase().includes(q));
+    filtered.sort((a, b) => (b.burnVal ?? -1) - (a.burnVal ?? -1));
+    const fmt = (v, d = 0) => (v === null || v === undefined ? '<span style="color:var(--muted)">ไม่มีข้อมูล</span>' : formatNum(v, d));
+    tbody.innerHTML = filtered.map((r, i) => `
+      <tr data-hz-pcode="${escHtml(r.code)}">
+        <td>${i + 1}</td>
+        <td>${escHtml(r.name_th)}</td>
+        <td><span class="reg-pill">${escHtml(r.region)}</span></td>
+        <td style="font-weight:700;color:var(--accent);">${fmt(r.burnVal)}</td>
+        <td>${fmt(r.plantVal)}</td>
+        <td style="font-weight:700;">${r.ratePct !== null ? r.ratePct.toFixed(1) + "%" : '<span style="color:var(--muted)">ไม่มีข้อมูล</span>'}</td>
+        <td>${r.pmPeak !== null ? r.pmPeak.toFixed(1) + " µg/m³" : "-"}</td>
+        <td>${fmt(r.pmCrop)}</td>
+      </tr>
+    `).join("");
+    tbody.querySelectorAll("tr[data-hz-pcode]").forEach(tr => {
+      tr.onclick = () => {
+        const pSel = document.getElementById("hzProvSelect");
+        if (pSel) { pSel.value = tr.dataset.hzPcode; renderHazeDualLab(); }
+        inspectLiveHazeProv(tr.dataset.hzPcode);
+      };
+    });
+  }
+
+  function renderHazePage() {
+    if (!DATA) return;
+    populateHazeSelects();
+    loadLiveHazeData(false);
+    renderHazeDualLab();
+    renderTransboundarySection();
+    renderRidWaterChart();
+    renderBurnIntensityAndEmissions();
   }
 """

@@ -84,7 +84,7 @@ EXPLORER_MODAL_HTML = r"""
             <span id="expEngineBadge" class="badge">พร้อมโหลดเมื่อกดค้นหา</span>
           </h1>
           <p class="hero-desc">
-            เจาะอ่านไฟล์ Apache Parquet 14 ชุดบน Hugging Face แบบ <strong>HTTP Range Request</strong> โดยตรงในเบราว์เซอร์ (ค่าเช่าเซิร์ฟเวอร์ 0 บาท · ไม่ต้องโหลดทั้งไฟล์) รองรับทั้งตัวกรองสำเร็จรูป สูตรค้นด่วน 1 คลิก และเขียนคำสั่ง SQL เองเพื่อนำไปสอนต่อ
+            เจาะอ่านไฟล์ Apache Parquet (ZSTD) บน Hugging Face แบบ <strong>HTTP Range Request</strong> โดยตรงในเบราว์เซอร์ (ค่าเช่าเซิร์ฟเวอร์ 0 บาท · เล็กกว่า ZIP · ไม่ต้องแตกไฟล์) รองรับทั้งจุดความร้อน 1.28 ล้านจุด, ฝุ่น PM2.5, หมอกควัน 6 ประเทศอาเซียน, พืช DOAE, ความชื้นดิน NASA, อ่างเก็บน้ำ RID และราคาสินค้าเกษตร สศก.
           </p>
         </div>
         <div class="hero-actions">
@@ -99,6 +99,10 @@ EXPLORER_MODAL_HTML = r"""
       <div class="preset-strip">
         <span style="font-size:11.5px;font-weight:700;color:var(--muted);">สูตรค้นด่วน 1 คลิก:</span>
         <button class="preset-btn" data-preset="top_villages">20 หมู่บ้านไฟชุกปี 2026</button>
+        <button class="preset-btn" data-preset="top_pm25_days">วันที่ฝุ่น PM2.5 พุ่งสูงสุด</button>
+        <button class="preset-btn" data-preset="gms_compare">เทียบไฟ 6 ประเทศอาเซียน (22–25)</button>
+        <button class="preset-btn" data-preset="burn_vs_planted">% เผาเทียบพื้นที่ปลูก (DOAE × สสน.)</button>
+        <button class="preset-btn" data-preset="dry_soil_fire">จังหวัดที่ดินแห้งจัด &amp; ฝุ่นสูง</button>
         <button class="preset-btn" data-preset="top_rice">ตำบลเผานาข้าวสูงสุด (ฤดู 2569)</button>
         <button class="preset-btn" data-preset="top_corn">ตำบลเผาข้าวโพดสูงสุด (ฤดู 2569)</button>
         <button class="preset-btn" data-preset="hot_months">เดือนที่อากาศเอื้อไฟแรงสุด (FWI)</button>
@@ -110,7 +114,14 @@ EXPLORER_MODAL_HTML = r"""
           <label class="field-label" for="expTable">ชุดข้อมูล (Parquet)</label>
           <select id="expTable">
             <option value="hotspots" selected>จุดความร้อนรายวัน VIIRS (1.28 ล้านจุด)</option>
-            <option value="weather">สภาพอากาศเอื้อไฟ ERA5 รายเดือน (77 จว. · 2022–2026)</option>
+            <option value="air_quality_daily">ฝุ่น PM2.5 &amp; อากาศรายวัน 77 จว. (CAMS)</option>
+            <option value="air_quality_monthly">ฝุ่น PM2.5 &amp; วันเกินเกณฑ์รายเดือน 77 จว.</option>
+            <option value="transboundary">หมอกควันข้ามแดน 6 ประเทศ (NASA FIRMS)</option>
+            <option value="nasa_soil">ความชื้นดิน &amp; แสงอาทิตย์รายวัน (NASA POWER)</option>
+            <option value="doae_crops">พื้นที่เพาะปลูกพืชรายตำบล (DOAE 2566–2567)</option>
+            <option value="rid_reservoirs">ปริมาณน้ำ 461 อ่างเก็บน้ำรายเดือน (RID)</option>
+            <option value="oae_prices">ราคาสินค้าเกษตรรายเดือน (สศก./NABC)</option>
+            <option value="weather">สภาพอากาศเอื้อไฟ ERA5 รายเดือน (77 จว.)</option>
             <option value="tamroypao">รอยเผา สสน. รายตำบล (19,023 แถว)</option>
             <option value="burn_scar">รอยเผาไหม้ GISTDA (79,435 แปลง)</option>
             <option value="burn_freq">พื้นที่เผาซ้ำซาก GISTDA (79,088 แปลง)</option>
@@ -283,12 +294,14 @@ EXPLORER_JS = r"""
     if (!expEls.table) return;
     const t = expEls.table.value;
     const isHot = t === "hotspots";
-    const isTrp = t === "tamroypao";
-    const isWx = t === "weather";
-    expEls.yearWrap.style.display = (isHot || isTrp || isWx) ? "block" : "none";
+    const hasYear = ["hotspots", "tamroypao", "weather", "air_quality_daily", "air_quality_monthly", "transboundary", "nasa_soil", "rid_reservoirs"].includes(t);
+    const hasDates = ["hotspots", "air_quality_daily", "nasa_soil"].includes(t);
+    const hasProv = !["transboundary", "rid_reservoirs", "oae_prices"].includes(t);
+    expEls.yearWrap.style.display = hasYear ? "block" : "none";
     expEls.satWrap.style.display = isHot ? "block" : "none";
-    expEls.dateFromWrap.style.display = isHot ? "block" : "none";
-    expEls.dateToWrap.style.display = isHot ? "block" : "none";
+    expEls.dateFromWrap.style.display = hasDates ? "block" : "none";
+    expEls.dateToWrap.style.display = hasDates ? "block" : "none";
+    if (expEls.prov && expEls.prov.parentElement) expEls.prov.parentElement.style.display = hasProv ? "block" : "none";
     expEls.exclStatic.parentElement.style.display = isHot ? "flex" : "none";
   }
 
@@ -312,6 +325,74 @@ EXPLORER_JS = r"""
       }
       const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
       return `SELECT acq_date_th AS "วันที่", th_time AS "เวลา", prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", village_name AS "หมู่บ้านใกล้สุด", lu_name AS "การใช้ที่ดิน", lu_hp_name AS "พืช", satellite AS "ดาวเทียม", frp_mw AS "FRP(MW)", latitude AS "Lat", longitude AS "Lon"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY acq_date_th DESC, th_time DESC`;
+    }
+
+    if (t === "air_quality_daily") {
+      const url = `${HF_BASE}/parquet/air_quality_daily_77prov.parquet`;
+      if (yr) where.push(`year_th = ${Number(yr)}`);
+      if (prov !== "all") where.push(`prov_code = ${sqlStr(prov)}`);
+      if (expEls.dateFrom.value) where.push(`date >= ${sqlStr(expEls.dateFrom.value)}`);
+      if (expEls.dateTo.value) where.push(`date <= ${sqlStr(expEls.dateTo.value)}`);
+      if (kw) where.push(`coalesce(prov_name_th, '') ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT date AS "วันที่", prov_name_th AS "จังหวัด", pm25_mean AS "PM2.5เฉลี่ย", pm25_max AS "PM2.5สูงสุด", pm10_mean AS "PM10", co_mean AS "CO", aod_mean AS "AOD", us_aqi_max AS "US_AQI", hours_gt_37_5 AS "ชม.>37.5"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY date DESC, pm25_mean DESC NULLS LAST`;
+    }
+
+    if (t === "air_quality_monthly") {
+      const url = `${HF_BASE}/parquet/air_quality_monthly_77prov.parquet`;
+      if (yr) where.push(`year_th = ${Number(yr)}`);
+      if (prov !== "all") where.push(`prov_code = ${sqlStr(prov)}`);
+      if (kw) where.push(`coalesce(prov_name_th, '') ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT ym AS "เดือน", prov_name_th AS "จังหวัด", pm25_mean AS "PM2.5เฉลี่ย", pm25_p90 AS "PM2.5_P90", pm25_max AS "PM2.5สูงสุด", co_mean AS "COเฉลี่ย", aod_mean AS "AOD", days_exceed_37_5 AS "วันเกิน37.5(ไทย)", days_exceed_15_who AS "วันเกิน15(WHO)"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY pm25_mean DESC NULLS LAST, ym DESC`;
+    }
+
+    if (t === "transboundary") {
+      const fYr = Number(yr) >= 2022 && Number(yr) <= 2025 ? Number(yr) : 2025;
+      const url = `${HF_BASE}/parquet/transboundary_firms_${fYr}.parquet`;
+      if (kw) where.push(`country ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT country AS "ประเทศ", acq_date AS "วันที่", acq_time AS "เวลาUTC", latitude AS "Lat", longitude AS "Lon", frp_mw AS "FRP(MW)", confidence AS "ความเชื่อมั่น", daynight AS "กลางวัน/คืน"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY acq_date DESC, frp_mw DESC`;
+    }
+
+    if (t === "nasa_soil") {
+      const url = `${HF_BASE}/parquet/nasa_power_soil_daily_77prov.parquet`;
+      if (yr) where.push(`year_th = ${Number(yr)}`);
+      if (prov !== "all") where.push(`prov_code = ${sqlStr(prov)}`);
+      if (expEls.dateFrom.value) where.push(`date >= ${sqlStr(expEls.dateFrom.value)}`);
+      if (expEls.dateTo.value) where.push(`date <= ${sqlStr(expEls.dateTo.value)}`);
+      if (kw) where.push(`coalesce(prov_name_th, '') ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT date AS "วันที่", prov_name_th AS "จังหวัด", gwettop AS "ความชื้นผิวดิน(0-1)", gwetroot AS "ความชื้นรากพืช(0-1)", solar_mj AS "แสงอาทิตย์(MJ/m2)", dewpoint_c AS "จุดน้ำค้าง(°C)", ws10m_ms AS "ลม(m/s)"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY date DESC, gwettop ASC NULLS LAST`;
+    }
+
+    if (t === "doae_crops") {
+      const url = `${HF_BASE}/parquet/doae_crop_tambon.parquet`;
+      if (prov !== "all") where.push(`prov_code = ${sqlStr(prov)}`);
+      if (kw) {
+        const pat = sqlStr("%" + kw + "%");
+        where.push(`(coalesce(crop_name, '') ILIKE ${pat} OR coalesce(amphoe_name_th, '') ILIKE ${pat} OR coalesce(tambon_name_th, '') ILIKE ${pat})`);
+      }
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT source_year_be AS "ปีข้อมูล(พ.ศ.)", prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", crop_name AS "ชนิดพืช", variety_name AS "พันธุ์", crop_group AS "กลุ่มพืช", planted_rai AS "เนื้อที่ปลูก(ไร่)", harvested_rai AS "เก็บเกี่ยว(ไร่)", production_kg AS "ผลผลิต(กก.)"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY planted_rai DESC NULLS LAST`;
+    }
+
+    if (t === "rid_reservoirs") {
+      const url = `${HF_BASE}/parquet/rid_reservoirs_monthly_2022_2026.parquet`;
+      if (yr) where.push(`year_th = ${Number(yr)}`);
+      if (kw) {
+        const pat = sqlStr("%" + kw + "%");
+        where.push(`(coalesce(reservoir_name, '') ILIKE ${pat} OR coalesce(region, '') ILIKE ${pat})`);
+      }
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT snapshot_date AS "วันที่", region AS "ภาค", reservoir_name AS "อ่างเก็บน้ำ", storage_mcm AS "ความจุ(ล้านลบ.ม.)", volume_mcm AS "น้ำปัจจุบัน(ล้านลบ.ม.)", percent_storage AS "%ความจุ", inflow AS "น้ำไหลเข้า", outflow AS "ระบายออก"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY snapshot_date DESC, storage_mcm DESC NULLS LAST`;
+    }
+
+    if (t === "oae_prices") {
+      const url = `${HF_BASE}/parquet/oae_monthly_crop_prices.parquet`;
+      if (kw) where.push(`coalesce(commodity_name, '') ILIKE ${sqlStr("%" + kw + "%")}`);
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT observed_date AS "วันที่", commodity_name AS "สินค้าเกษตร", unit AS "หน่วย", price_value AS "ราคาเฉลี่ยประเทศ"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY observed_date DESC, commodity_name ASC`;
     }
 
     if (t === "weather") {
@@ -358,6 +439,10 @@ EXPLORER_JS = r"""
 
   const PRESET_SQLS = {
     top_villages: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", village_name AS "หมู่บ้านใกล้สุด", count(*) AS "จุดไฟ(2026)", round(avg(frp_mw), 1) AS "FRPเฉลี่ย(MW)"\nFROM read_parquet('${HF_BASE}/parquet/hotspots_2026.parquet')\nWHERE NOT is_suspected_static AND village_name IS NOT NULL\nGROUP BY 1,2,3,4\nORDER BY 5 DESC\nLIMIT 20`,
+    top_pm25_days: () => `SELECT date AS "วันที่", prov_name_th AS "จังหวัด", pm25_mean AS "PM2.5เฉลี่ย", pm25_max AS "PM2.5สูงสุด", co_mean AS "CO", aod_mean AS "AOD", us_aqi_max AS "US_AQI"\nFROM read_parquet('${HF_BASE}/parquet/air_quality_daily_77prov.parquet')\nORDER BY pm25_mean DESC NULLS LAST\nLIMIT 30`,
+    gms_compare: () => `SELECT country AS "ประเทศ", year_th AS "ปี", sum(hotspot_count) AS "จุดไฟ(VIIRS-N)", sum(high_conf_count) AS "ความเชื่อมั่นสูง", round(sum(frp_sum_mw), 0) AS "FRPรวม(MW)"\nFROM read_parquet('${HF_BASE}/parquet/transboundary_monthly.parquet')\nGROUP BY 1,2\nORDER BY 2 DESC, 3 DESC`,
+    burn_vs_planted: () => `WITH trp AS (SELECT prov_code, sum(paddy_rai) AS burn_paddy, sum(sugarcane_rai) AS burn_sugar, sum(corn_rai) AS burn_corn FROM read_parquet('${HF_BASE}/parquet/tamroypao_burn_tambon.parquet') WHERE year_th = 2026 GROUP BY 1)\nSELECT d.prov_name_th AS "จังหวัด", round(t.burn_paddy,0) AS "เผาข้าว(ไร่)", round(d.paddy_rai,0) AS "ปลูกข้าว2566(ไร่)", round(t.burn_paddy*100.0/nullif(d.paddy_rai,0),1) AS "%เผาข้าว", round(t.burn_sugar,0) AS "เผาอ้อย(ไร่)", round(d.sugarcane_rai,0) AS "ปลูกอ้อย(ไร่)", round(t.burn_sugar*100.0/nullif(d.sugarcane_rai,0),1) AS "%เผาอ้อย"\nFROM read_parquet('${HF_BASE}/parquet/doae_fire_crops_province.parquet') d\nJOIN trp t ON t.prov_code = d.prov_code\nORDER BY 2 DESC NULLS LAST\nLIMIT 30`,
+    dry_soil_fire: () => `SELECT s.ym AS "เดือน", s.prov_name_th AS "จังหวัด", s.gwettop_mean AS "ความชื้นผิวดิน", s.dry_soil_days_lt_035 AS "วันดินแห้งจัด", a.pm25_mean AS "PM2.5เฉลี่ย", a.days_exceed_37_5 AS "วันฝุ่นเกิน37.5"\nFROM read_parquet('${HF_BASE}/parquet/nasa_power_soil_monthly_77prov.parquet') s\nJOIN read_parquet('${HF_BASE}/parquet/air_quality_monthly_77prov.parquet') a ON a.prov_code = s.prov_code AND a.ym = s.ym\nWHERE s.month_th BETWEEN 1 AND 4 AND s.gwettop_mean IS NOT NULL\nORDER BY s.gwettop_mean ASC, a.pm25_mean DESC NULLS LAST\nLIMIT 30`,
     top_rice: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", paddy_rai AS "นาข้าว(ไร่)", total_rai AS "รวมทั้งหมด(ไร่)"\nFROM read_parquet('${HF_BASE}/parquet/tamroypao_burn_tambon.parquet')\nWHERE year_th = 2026\nORDER BY paddy_rai DESC\nLIMIT 30`,
     top_corn: () => `SELECT prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", corn_rai AS "ข้าวโพด(ไร่)", forest_rai AS "ป่าไม้(ไร่)", total_rai AS "รวม(ไร่)"\nFROM read_parquet('${HF_BASE}/parquet/tamroypao_burn_tambon.parquet')\nWHERE year_th = 2026\nORDER BY corn_rai DESC\nLIMIT 30`,
     hot_months: () => `SELECT ym AS "เดือน", prov_name_th AS "จังหวัด", fire_weather_index AS "ดัชนีเอื้อไฟ(FWI)", tmax_mean_c AS "สูงสุดเฉลี่ย(°C)", rh_min_mean_pct AS "ความชื้นต่ำสุด(%)", low_rh_days_35pct AS "วันแห้งจัด(<35%)", rain_mm AS "ฝนรวม(มม.)"\nFROM read_parquet('${HF_BASE}/parquet/era5_monthly_fire_weather.parquet')\nORDER BY fire_weather_index DESC\nLIMIT 30`,

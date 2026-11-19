@@ -1,3 +1,21 @@
+## เพิ่มชุดข้อมูลเสริม 6 แหล่ง + หน้าเว็บ `ฝุ่น PM2.5 & ข้ามแดน` (Hugging Face v2 + Netlify) — 19 พ.ย. 2026 · 0 D1 writes
+
+- **สำรวจและดึงข้อมูลเสริมที่เป็นประโยชน์ต่อ `hotspot-5y` เพิ่ม 6 แหล่ง (แยกเก็บเฉพาะ `hotspot_5y.duckdb`, ไม่เขียน D1, ไม่แก้ `web/`):**
+  - **Open-Meteo CAMS Air Quality (`hotspot-5y/download_air_quality.py`, `CC-BY-4.0`):** `air_quality_daily_77prov` **`120,813` แถว** และ `air_quality_monthly_77prov` **`4,004` แถว** (`2022-08-01..2026-11-19`, ครบ 77 จว., PM2.5/PM10/CO/NO2/AOD/Dust/US AQI + วันเกิน 37.5 & 15 µg/m³)
+  - **NASA POWER Soil Moisture (`hotspot-5y/download_nasa_power.py`, `Public Domain`):** `nasa_power_soil_daily` **`137,060` แถว** และ `nasa_power_soil_monthly` **`4,543` แถว** (GWETTOP/GWETROOT/รังสีอาทิตย์/จุดน้ำค้าง/ลม; ตรวจแล้วไม่มี sentinel `-999`)
+  - **NASA FIRMS ข้ามแดน 6 ประเทศ GMS (`hotspot-5y/download_transboundary.py`, `Public Domain`):** ดึง VIIRS-SNPP `2022–2025` ของไทย เมียนมา ลาว กัมพูชา เวียดนาม มาเลเซีย รวม **`3,167,955` จุด** (`เมียนมา 1,297,730 · ลาว 677,172 · ไทย 482,683 · กัมพูชา 477,941 · เวียดนาม 200,633 · มาเลเซีย 31,796`) สรุปรายเดือนลง `transboundary_monthly` (`288` แถว)
+  - **DOAE + RID + OAE + GISTDA PM2.5 (`hotspot-5y/ingest_agri_water.py`):** `doae_crop_tambon` **`235,082` แถว** (ปี 2566+2567), `doae_fire_crops_province` **`77` แถว** (ฐานพื้นที่ปลูกข้าว/ข้าวโพด/อ้อย 2566), `rid_reservoirs_monthly` **`27,660` แถว** (461 อ่าง / 6 ภาค 2022–2026), `oae_monthly_prices` **`7,699` แถว**, และ `gistda_pm25_snapshot` **`77` แถว**
+- **อัปโหลด Hugging Face (`dragonfly13110/thailand-hotspot-5y`, commit `7894813ad28c64bf89f3b9ff5ec8b4fd0274214b`) + วัดผลบีบอัด Parquet ZSTD:**
+  - ส่งออก **27 ไฟล์ Parquet** + `summary/map_payload.json.gz` (`4.41 MB`, Uncompressed `16.26 MB`) รวม **`59.19 MB`** (schema `tadih.hotspot5y_hf.v2`); ตรวจ Range GET จริงได้ `HTTP 206`, `Access-Control-Allow-Origin: *`, `Accept-Ranges: bytes`
+  - วัดขนาดจริงเทียบ Raw CSV และ ZIP (Deflate): Parquet ZSTD ลดจาก Raw CSV **`84.8%–96.3%`** และเล็กกว่า ZIP อีก **`10.2%–64.8%`** (เช่น `hotspots_2026`: CSV `114.98 MB` / ZIP `9.25 MB` / Parquet `7.07 MB`; `doae_crop_tambon`: CSV `41.59 MB` / ZIP `2.30 MB` / Parquet `1.53 MB`; `rid_reservoirs_monthly`: CSV `4.65 MB` / ZIP `0.69 MB` / Parquet `0.24 MB`)
+- **ต่อยอดเว็บ Atlas เป็น 6 หน้า (`ui_pages.py`, `map_template.py`, `map_data.py`, `explorer_asset.py`):**
+  - เพิ่มหน้า **`ฝุ่น PM2.5 & ข้ามแดน (#haze)`**: ฝุ่นสด GISTDA "เช็คฝุ่น" 77 จว. + พยากรณ์ CAMS PM2.5 5 วัน + กราฟเทียบจุดไฟ×ฝุ่น/ความชื้นดิน 52 เดือน (`r = -0.79`) + กราฟ/ตารางไฟข้ามแดน 6 ประเทศ GMS + ปริมาณน้ำอ่าง RID 6 ภาค + ตารางเทียบพื้นที่เผา สสน. กับพื้นที่ปลูก DOAE 2566 และประมาณการปล่อย PM2.5/CO₂e (15 จว. นอกเขต สสน. คงค่าว่าง `ไม่มีข้อมูล` ไม่เติม `0`)
+  - เพิ่ม 5 ตัวชี้วัดบน `#map` (`aq_pm25`, `aq_exceed`, `aq_co`, `soil_wet`, `burn_rate_agri`) + 7 ตาราง Parquet และ 4 สูตร SQL ใน DuckDB-Wasm Explorer (`web_app/index.html` `355.8 KB`, ออฟไลน์ HTML `6.19 MB`)
+- **หลักฐานตรวจรับ & Deploy:**
+  - Unit tests (`tests/test_enrichment.py` **4/4**, `test_interactive_map.py` **9/9**, `test_weather.py` **2/2**, `test_hotspot_5y.py` **3/5** โดย 2 error เดิมเรื่องขาด `PROV_NAM_E` ใน `ddpm_province.geojson` เฉพาะเครื่องนี้)
+  - Deploy Netlify (`deployId: 6aff10ff7c08c95cb6f56e83`) ที่ **`https://thailand-hotspot-5y.netlify.app`**; ตรวจเบราว์เซอร์จริงครบทั้ง 6 หน้า Desktop (`1440×900`/`1280×800`) และ Mobile (`390×844`): **0 console/page errors**, **0 horizontal document overflow**, Live GISTDA PM2.5 `200 OK` (`#1 พิจิตร 38.0 µg/m³`), `#map` สลับ `aq_pm25`/`soil_wet` ผ่าน, DuckDB-Wasm preset `gms_compare` คืน **24 แถว** ใน `10.7s`
+- **คำสั่งรับต่อ:** `.venv\Scripts\python.exe -X utf8 hotspot-5y/download_air_quality.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/download_nasa_power.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/publish_hf.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/build_web_app.py`
+
 ## ยกเครื่องเว็บ Atlas 5 หน้า + เชื่อมสภาพอากาศเอื้อไฟ 5 ปี (77 จว.) & พยากรณ์สด 7 วัน — 19 พ.ย. 2026 · 0 D1 writes
 
 - **ข้อมูลสภาพอากาศเอื้อไฟ 5 ปีครบ 77 จังหวัด (`hotspot-5y/download_weather.py`, Open-Meteo ERA5 `CC-BY-4.0`):**

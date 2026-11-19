@@ -15,6 +15,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
+import zipfile
 import duckdb
 
 SUBPROJECT_DIR = Path(__file__).resolve().parent
@@ -22,6 +24,7 @@ if str(SUBPROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(SUBPROJECT_DIR))
 
 from config import DEFAULT_DB_PATH, REPO_ROOT  # noqa: E402
+from download_transboundary import GMS_RAW_DIR, export_transboundary_parquets  # noqa: E402
 from map_data import DEFAULT_ERA5_PATH, DEFAULT_TADIH_DB_PATH, build_map_payload  # noqa: E402
 
 DEFAULT_EXPORT_DIR = SUBPROJECT_DIR / "data" / "hf_export"
@@ -68,36 +71,114 @@ def _export_query_to_parquet(
     }
 
 
+def _benchmark_compression(parquet_dir: Path) -> list[dict]:
+    """Measure real CSV vs standard ZIP (deflate) vs Parquet ZSTD size across representative tables."""
+    targets = (
+        "hotspots_2026.parquet",
+        "transboundary_firms_2024.parquet",
+        "doae_crop_tambon.parquet",
+        "air_quality_daily_77prov.parquet",
+        "nasa_power_soil_daily_77prov.parquet",
+        "rid_reservoirs_monthly_2022_2026.parquet",
+    )
+    results: list[dict] = []
+    mcon = duckdb.connect(":memory:")
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            for fname in targets:
+                pq_path = parquet_dir / fname
+                if not pq_path.exists():
+                    continue
+                rows = int(mcon.execute(f"SELECT count(*) FROM read_parquet({_sql_path(pq_path)})").fetchone()[0])
+                csv_path = tmp_dir / f"{fname}.csv"
+                zip_path = tmp_dir / f"{fname}.zip"
+                mcon.execute(
+                    f"COPY (SELECT * FROM read_parquet({_sql_path(pq_path)})) "
+                    f"TO {_sql_path(csv_path)} (FORMAT CSV, HEADER)"
+                )
+                with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+                    zf.write(csv_path, arcname=f"{pq_path.stem}.csv")
+                raw_b = csv_path.stat().st_size
+                zip_b = zip_path.stat().st_size
+                pq_b = pq_path.stat().st_size
+                csv_path.unlink(missing_ok=True)
+                zip_path.unlink(missing_ok=True)
+                results.append({
+                    "file": f"parquet/{fname}",
+                    "rows": rows,
+                    "raw_csv_bytes": raw_b,
+                    "zip_bytes": zip_b,
+                    "parquet_bytes": pq_b,
+                    "vs_raw_reduction_pct": round((1.0 - pq_b / raw_b) * 100, 1) if raw_b else 0.0,
+                    "vs_zip_reduction_pct": round((1.0 - pq_b / zip_b) * 100, 1) if zip_b else 0.0,
+                })
+    finally:
+        mcon.close()
+    return results
+
+
 def _build_dataset_card(repo_id: str, manifest: dict) -> str:
     files_md = "\n".join(
         f"| `{f['path']}` | {f['rows']:,} | {f['bytes'] / (1024 * 1024):.2f} MB |"
         for f in manifest["files"]
     )
+    bench_rows = manifest.get("compression_benchmark") or []
+    bench_section = ""
+    if bench_rows:
+        b_lines = "\n".join(
+            f"| `{b['file'].split('/')[-1]}` | {b['rows']:,} | {b['raw_csv_bytes'] / 1048576:.2f} MB | "
+            f"{b['zip_bytes'] / 1048576:.2f} MB | **{b['parquet_bytes'] / 1048576:.2f} MB** | "
+            f"-{b['vs_raw_reduction_pct']:.1f}% vs CSV · -{b['vs_zip_reduction_pct']:.1f}% vs ZIP |"
+            for b in bench_rows
+        )
+        tot_raw = sum(b["raw_csv_bytes"] for b in bench_rows)
+        tot_zip = sum(b["zip_bytes"] for b in bench_rows)
+        tot_pq = sum(b["parquet_bytes"] for b in bench_rows)
+        bench_section = f"""
+## ผลทดสอบการบีบอัดจริง: CSV ดิบ vs ZIP vs Apache Parquet (ZSTD)
+
+| ชุดข้อมูล | แถว | CSV ดิบ | ZIP (Deflate) | Parquet (ZSTD) | ประหยัดพื้นที่ |
+|---|---:|---:|---:|---:|---:|
+{b_lines}
+| **รวมชุดทดสอบ** | - | **{tot_raw / 1048576:.2f} MB** | **{tot_zip / 1048576:.2f} MB** | **{tot_pq / 1048576:.2f} MB** | **-{((1 - tot_pq / max(1, tot_raw)) * 100):.1f}% vs CSV · -{((1 - tot_pq / max(1, tot_zip)) * 100):.1f}% vs ZIP** |
+
+> **ทำไม Parquet (ZSTD) ดีกว่าทำไฟล์ ZIP?**  
+> 1. **เล็กกว่า ZIP** เพราะจัดเก็บแยกตามคอลัมน์ (Columnar) ทำให้ค่าซ้ำ เช่น รหัสจังหวัด วันที่ หรือชนิดพืช ถูกเข้ารหัสแบบ Dictionary + ZSTD ได้แน่นมาก  
+> 2. **ไม่ต้องแตกไฟล์ทั้งก้อน (HTTP Range Query)** เบราว์เซอร์หรือ DuckDB สามารถดึงอ่านเฉพาะคอลัมน์และช่วง Row Group ที่ต้องการ (เช่น เฉพาะจังหวัดเชียงใหม่) ข้ามเครือข่ายได้ทันทีในไม่กี่ร้อยมิลลิวินาที
+"""
+
     return f"""---
 license: cc-by-nc-4.0
 task_categories:
   - tabular-classification
+  - time-series-forecasting
   - other
 language:
   - th
   - en
-pretty_name: Thailand Agricultural & Forest Fire Hotspots + Burn Scar (2022–2026)
+pretty_name: Thailand Fire Hotspots, PM2.5 Haze, Burn Scars, Transboundary & Climate Atlas (2022–2026)
 tags:
   - thailand
   - fire
   - hotspot
+  - pm25
+  - air-quality
   - viirs
+  - firms
   - gistda
   - tamroypao
-  - sentinel-2
+  - nasa-power
+  - doae
+  - rid
   - era5
   - duckdb
   - parquet
 ---
 
-# Thailand 5-Year Hotspots, Burn Scars, Climate & Flood Recurrence (`2022–2026`)
+# Thailand 5-Year Hotspots, PM2.5 Haze, Transboundary & Agri-Climate Atlas (`2022–2026`)
 
-ชุดข้อมูลวิเคราะห์จุดความร้อน ร่องรอยพื้นที่เผาไหม้ ปัจจัยสภาพอากาศ และความถี่น้ำท่วมซ้ำของประเทศไทย ระดับ **จังหวัด (77) · อำเภอ (928) · ตำบล (7,658) · หมู่บ้านใกล้เคียง** จัดทำในรูปแบบ **Apache Parquet** ที่สามารถเปิดอ่านตรงผ่าน **DuckDB / DuckDB-Wasm** ด้วย HTTP Range Request ได้ทันที
+ชุดข้อมูลวิเคราะห์จุดความร้อน ฝุ่น PM2.5 หมอกควันข้ามแดนอาเซียน ร่องรอยพื้นที่เผาไหม้ 20 ม. พื้นที่เพาะปลูกพืชเสี่ยงเผา สภาพอากาศ ความชื้นดิน น้ำอ่างเก็บน้ำ และความถี่น้ำท่วมซ้ำของประเทศไทย ระดับ **ประเทศเพื่อนบ้าน (6) · จังหวัด (77) · อำเภอ (928) · ตำบล (7,658) · หมู่บ้านใกล้เคียง** จัดทำในรูปแบบ **Apache Parquet (ZSTD)** เปิดอ่านตรงผ่าน **DuckDB / DuckDB-Wasm** ด้วย HTTP Range Request ได้ทันที
 
 > **เงื่อนไขการใช้งาน (Attribution & Non-Commercial Notice):**  
 > ชุดข้อมูลนี้รวบรวมเพื่อประโยชน์ด้าน **การศึกษา การวิจัย และการปฏิบัติงานภาครัฐ (ไม่ใช่เชิงพาณิชย์)** กรุณาอ้างอิงหน่วยงานต้นทางทุกครั้งที่นำไปใช้ต่อ และคงค่าว่าง (`NULL`) สำหรับพื้นที่ที่หน่วยงานต้นทางไม่ได้ครอบคลุม (ห้ามตีความเป็น `0`)
@@ -106,19 +187,23 @@ tags:
 
 1. **จุดความร้อน 5 ปี (`hotspots_2022..2026.parquet`, {manifest['meta'].get('total_all', 0):,} จุด):**  
    จาก **GISTDA STAC VIIRS** (`{manifest['meta'].get('min_date')}` ถึง `{manifest['meta'].get('max_date')}`) จับคู่ขอบเขต ปภ. (DDPM) ครบ 100%  
-   - *ข้อควรระวัง:* ปี 2022–2023 มีเฉพาะดาวเทียม `N` (Suomi NPP) ส่วนปี 2024–2026 เพิ่ม `N20`/`N21` จึงควรเทียบแนวโน้มข้ามปีด้วย `satellite = 'N'` และช่วง `ม.ค.–ต.ค.` (เพราะ `N` หยุดส่งหลัง `2026-11-01`)
+   - *ข้อควรระวัง:* ปี 2022–2023 มีเฉพาะดาวเทียม `N` (Suomi NPP) ส่วนปี 2024–2026 เพิ่ม `N20`/`N21` จึงควรเทียบแนวโน้มข้ามปีด้วย `satellite = 'N'` และช่วง `ม.ค.–ต.ค.` (เพราะ `N` หยุดส่งหลัง `2026-11-01`)  
    - ปักธง `is_suspected_static = true` สำหรับพิกัดที่เกิดซ้ำ ≥25 วัน (โรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล)
-2. **รอยเผาไหม้ 3 ฤดูฝุ่นแยกชนิดพืช (`tamroypao_burn_tambon.parquet`):**  
-   สกัดจากภาพถ่ายดาวเทียม Sentinel-2 ความละเอียด 20 ม. (`MB3A` เกษตร + `MB3F` ป่า, 1 พิกเซล = 0.25 ไร่) ของระบบ **"ตามรอยเผา" (สสน./HII · วช. · ม.เกษตรศาสตร์)** ฤดู 2567–2569 (`2024–2026`)  
-   - *ข้อควรระวัง:* ครอบคลุม **62 จังหวัด** (`TH10`–`TH76`) ไม่รวมประจวบคีรีขันธ์ (`77`) และภาคใต้ 14 จังหวัด (`80`–`96`); ข้อมูลเขตป่าต้นทางระบุว่ายังอยู่ระหว่างพัฒนา
-3. **รอยเผาไหม้ & พื้นที่เผาซ้ำซาก (`gistda_burn_scar.parquet`, `gistda_burn_freq.parquet`):**  
-   จาก **GISTDA** (ครอบคลุม 57 จังหวัดสำหรับ `burn_scar` รอบ พ.ค. 2026 และ 53 จังหวัดสำหรับ `burn_freq` อ้างอิง 4 ปี `2017, 2023–2025`)
-4. **สภาพอากาศรายปี & รายเดือนเอื้อไฟ (`era5_annual_2016_2025.parquet`, `era5_monthly_fire_weather.parquet`):**  
-   จาก **Open-Meteo ERA5 Reanalysis** (`ECMWF`, `CC-BY-4.0`, 77 จุดกริดศูนย์กลางจังหวัด ปี 2016–2025 รายปี และรายเดือน 2022–พ.ย. 2026 ครบอุณหภูมิสูงสุด ฝน ความชื้นต่ำสุด ลม การระเหยน้ำ ET0 และดัชนีอากาศเอื้อไฟ 0–100)
-5. **ความเสี่ยงน้ำท่วมซ้ำ 17 ปี (`hii_flood_risk.parquet`):**  
-   จาก **สสน. (HII)** (`data.hii.or.th`, ระดับตำบล, ไม่ครอบคลุมภูเก็ต/ระนองและตำบลนอกบัญชี — ใช้เพื่อการศึกษา/ภายในพร้อมอ้างอิง สสน.)
-6. **ขอบเขตการปกครอง (`dim_areas.parquet`):**  
-   จาก **กรมป้องกันและบรรเทาสาธารณภัย (ปภ. / DDPM)**
+2. **คุณภาพอากาศ & ฝุ่น PM2.5 77 จังหวัด (`air_quality_daily_77prov.parquet`, `air_quality_monthly_77prov.parquet`):**  
+   จาก **Open-Meteo Air Quality CAMS** (`CC-BY-4.0`, `2022-08` ถึง `2026-11`) ครบ `PM2.5`, `PM10`, `CO`, `NO2`, `AOD`, `Dust`, `US AQI` และจำนวนวันเกินมาตรฐานไทย (`>37.5 µg/m³`) / WHO (`>15 µg/m³`) ณ จุดกริดศูนย์กลางจังหวัด
+3. **หมอกควันข้ามแดน 6 ประเทศอาเซียน (`transboundary_firms_2022..2025.parquet`, `transboundary_monthly.parquet`):**  
+   จาก **NASA FIRMS VIIRS Suomi-NPP** (`Public Domain`) เทียบมาตรฐานเดียวกันทั้ง **ไทย · เมียนมา · ลาว · กัมพูชา · เวียดนาม · มาเลเซีย** ปี `2022–2025`
+4. **รอยเผาไหม้ 3 ฤดูแยกชนิดพืช (`tamroypao_burn_tambon.parquet`, `tamroypao_monthly_*.parquet`):**  
+   จากภาพ Sentinel-2 ความละเอียด 20 ม. ของระบบ **"ตามรอยเผา" (สสน./HII · วช. · ม.เกษตรศาสตร์)** ฤดู 2567–2569 (`2024–2026`, ครอบคลุม **62 จังหวัด**; ประจวบคีรีขันธ์และภาคใต้คงค่า `NULL`)
+5. **พื้นที่เพาะปลูกพืชเสี่ยงเผาระดับตำบล/จังหวัด (`doae_crop_tambon.parquet`, `doae_fire_crops_province.parquet`):**  
+   จาก **กรมส่งเสริมการเกษตร (DOAE)** (`Open Data Common`, ปี 2566–2567) สำหรับเทียบสัดส่วนการเผาต่อพื้นที่ปลูกข้าว อ้อย ข้าวโพด มันสำปะหลัง (*ข้อควรระวัง:* ตารางรายจังหวัดคิดจากปี 2566 เพื่อไม่ให้นับซ้ำข้ามงวดรายงาน)
+6. **ความชื้นดิน & พลังงานแสงอาทิตย์ (`nasa_power_soil_daily_77prov.parquet`, `nasa_power_soil_monthly_77prov.parquet`):**  
+   จาก **NASA POWER** (`Public Domain`, `2022–2026`) ความชื้นผิวดิน `GWETTOP`, รากพืช `GWETROOT`, แสงอาทิตย์, จุดน้ำค้าง (`-999` แปลงเป็น `NULL` แล้ว)
+7. **อ่างเก็บน้ำขนาดกลาง 461 แห่ง (`rid_reservoirs_monthly_2022_2026.parquet`):**  
+   จาก **กรมชลประทาน (RID)** (`app.rid.go.th`, `2022–2026` รายเดือน, สำหรับใช้เพื่อการศึกษา/สาธารณะ)
+8. **ราคาสินค้าเกษตร (`oae_monthly_crop_prices.parquet`), อากาศ ERA5 (`era5_*`), รอยเผา GISTDA (`gistda_burn_*`), น้ำท่วมซ้ำ (`hii_flood_risk.parquet`) และขอบเขต ปภ. (`dim_areas.parquet`)**
+
+{bench_section}
 
 ## รายการไฟล์ในชุดข้อมูลนี้ (อัปเดต `{manifest['generated_at']}`)
 
@@ -129,12 +214,17 @@ tags:
 ## ตัวอย่างการดึงไปใช้ด้วย DuckDB (Python / CLI / Browser)
 
 ```sql
--- อ่านจุดความร้อนจังหวัดเชียงใหม่ ปี 2026 ตรงจาก Hugging Face โดยไม่ต้องโหลดทั้งชุด
-SELECT acq_date_th, amphoe_name_th, tambon_name_th, village_name, lu_name, lu_hp_name, frp_mw
-FROM 'https://huggingface.co/datasets/{repo_id}/resolve/main/parquet/hotspots_2026.parquet'
-WHERE prov_code = '50' AND NOT is_suspected_static
-ORDER BY acq_date_th DESC
-LIMIT 50;
+-- 1. เทียบจุดไฟ 6 ประเทศอาเซียนปี 2024 จาก NASA FIRMS
+SELECT country, count(*) AS spots, round(sum(frp_mw), 0) AS total_frp_mw
+FROM 'https://huggingface.co/datasets/{repo_id}/resolve/main/parquet/transboundary_firms_2024.parquet'
+GROUP BY 1 ORDER BY 2 DESC;
+
+-- 2. วันที่ฝุ่น PM2.5 พุ่งสูงสุดในจังหวัดเชียงใหม่ (50)
+SELECT date, pm25_mean, pm25_max, co_mean, aod_mean, us_aqi_max
+FROM 'https://huggingface.co/datasets/{repo_id}/resolve/main/parquet/air_quality_daily_77prov.parquet'
+WHERE prov_code = '50'
+ORDER BY pm25_mean DESC NULLS LAST
+LIMIT 20;
 ```
 """
 
@@ -144,6 +234,7 @@ def export_hf_bundle(
     db_path: Path = DEFAULT_DB_PATH,
     era5_path: Path = DEFAULT_ERA5_PATH,
     tadih_db_path: Path | None = DEFAULT_TADIH_DB_PATH,
+    firms_gms_dir: Path | None = GMS_RAW_DIR,
     export_dir: Path = DEFAULT_EXPORT_DIR,
     repo_id: str = DEFAULT_HF_REPO,
 ) -> dict:
@@ -325,8 +416,133 @@ def export_hf_bundle(
                 parquet_dir / "dim_areas.parquet",
             )
         )
+
+        # 4b. Air quality (Open-Meteo CAMS PM2.5, CO, AOD)
+        if "air_quality_monthly_77prov" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT a.prov_code, p.prov_name_th, a.year_th, a.month_th, a.ym, a.days_count,
+                           a.pm25_mean, a.pm25_p90, a.pm25_max, a.pm10_mean, a.co_mean, a.no2_mean,
+                           a.aod_mean, a.dust_mean, a.us_aqi_max, a.days_exceed_37_5, a.days_exceed_15_who
+                    FROM air_quality_monthly_77prov a
+                    LEFT JOIN dim_province p ON p.prov_code = a.prov_code
+                    ORDER BY a.prov_code, a.ym
+                    """,
+                    parquet_dir / "air_quality_monthly_77prov.parquet",
+                )
+            )
+        if "air_quality_daily_77prov" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT a.prov_code, p.prov_name_th, CAST(a.date AS VARCHAR) AS date,
+                           a.year_th, a.month_th, a.ym, a.pm25_mean, a.pm25_max, a.pm10_mean,
+                           a.co_mean, a.no2_mean, a.aod_mean, a.dust_mean, a.us_aqi_max,
+                           a.hours_gt_37_5, a.hours_gt_75
+                    FROM air_quality_daily_77prov a
+                    LEFT JOIN dim_province p ON p.prov_code = a.prov_code
+                    ORDER BY a.prov_code, a.date
+                    """,
+                    parquet_dir / "air_quality_daily_77prov.parquet",
+                )
+            )
+
+        # 4c. NASA POWER Soil Wetness & Solar Radiation
+        if "nasa_power_soil_monthly" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT n.prov_code, p.prov_name_th, n.year_th, n.month_th, n.ym, n.days_count,
+                           n.gwettop_mean, n.gwettop_min, n.gwetroot_mean, n.gwetroot_min,
+                           n.solar_mj_mean, n.dewpoint_c_mean, n.dry_soil_days_lt_035
+                    FROM nasa_power_soil_monthly n
+                    LEFT JOIN dim_province p ON p.prov_code = n.prov_code
+                    ORDER BY n.prov_code, n.ym
+                    """,
+                    parquet_dir / "nasa_power_soil_monthly_77prov.parquet",
+                )
+            )
+        if "nasa_power_soil_daily" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT n.prov_code, p.prov_name_th, CAST(n.date AS VARCHAR) AS date,
+                           n.year_th, n.month_th, n.ym, n.gwettop, n.gwetroot, n.solar_mj,
+                           n.dewpoint_c, n.ws10m_ms
+                    FROM nasa_power_soil_daily n
+                    LEFT JOIN dim_province p ON p.prov_code = n.prov_code
+                    ORDER BY n.prov_code, n.date
+                    """,
+                    parquet_dir / "nasa_power_soil_daily_77prov.parquet",
+                )
+            )
+
+        # 4d. Transboundary monthly + DOAE crops + RID reservoirs + OAE prices
+        if "transboundary_monthly" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    "SELECT * FROM transboundary_monthly ORDER BY year_th, month_th, country",
+                    parquet_dir / "transboundary_monthly.parquet",
+                )
+            )
+        if "doae_crop_tambon" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT * FROM doae_crop_tambon
+                    ORDER BY source_year_be, prov_code, amphoe_name_th, tambon_name_th, crop_name
+                    """,
+                    parquet_dir / "doae_crop_tambon.parquet",
+                )
+            )
+        if "doae_fire_crops_province" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    "SELECT * FROM doae_fire_crops_province ORDER BY prov_code",
+                    parquet_dir / "doae_fire_crops_province.parquet",
+                )
+            )
+        if "rid_reservoirs_monthly" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT CAST(snapshot_date AS VARCHAR) AS snapshot_date, year_th, month_th, ym,
+                           region, reservoir_id, reservoir_name, storage_mcm, dead_storage_mcm,
+                           volume_mcm, percent_storage, inflow, outflow
+                    FROM rid_reservoirs_monthly
+                    ORDER BY snapshot_date, region, reservoir_id
+                    """,
+                    parquet_dir / "rid_reservoirs_monthly_2022_2026.parquet",
+                )
+            )
+        if "oae_monthly_prices" in tables:
+            files_meta.append(
+                _export_query_to_parquet(
+                    con,
+                    """
+                    SELECT CAST(observed_date AS VARCHAR) AS observed_date, year_th, month_th,
+                           commodity_name, unit, price_value, source_url
+                    FROM oae_monthly_prices
+                    ORDER BY commodity_name, observed_date
+                    """,
+                    parquet_dir / "oae_monthly_crop_prices.parquet",
+                )
+            )
     finally:
         con.close()
+
+    # 4e. Transboundary NASA FIRMS 2022-2025 raw CSV -> ZSTD Parquet
+    if firms_gms_dir is not None and Path(firms_gms_dir).exists() and any(Path(firms_gms_dir).glob("viirs-snpp_*.csv")):
+        files_meta.extend(export_transboundary_parquets(raw_dir=Path(firms_gms_dir), parquet_dir=parquet_dir))
 
     # 5. ERA5 annual climate (77 provinces x 10 years)
     if Path(era5_path).exists():
@@ -403,15 +619,17 @@ def export_hf_bundle(
         finally:
             tcon.close()
 
-    # 7. Map summary gzipped JSON (~5.5 MB for fast web app initial load)
+    # 7. Map summary gzipped JSON (~5 MB for fast web app initial load)
     payload = build_map_payload(db_path=db_path, era5_path=era5_path, tadih_db_path=tadih_db_path)
     raw_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     summary_gz = summary_dir / "map_payload.json.gz"
     with gzip.open(summary_gz, "wb", compresslevel=9) as gz:
         gz.write(raw_json)
 
+    bench_rows = _benchmark_compression(parquet_dir)
+
     manifest = {
-        "schema": "tadih.hotspot5y_hf.v1",
+        "schema": "tadih.hotspot5y_hf.v2",
         "repo_id": repo_id,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "meta": payload["meta"],
@@ -420,6 +638,7 @@ def export_hf_bundle(
             "bytes": summary_gz.stat().st_size,
             "uncompressed_bytes": len(raw_json),
         },
+        "compression_benchmark": bench_rows,
         "files": files_meta,
     }
     manifest_path = summary_dir / "manifest.json"
@@ -457,7 +676,7 @@ def upload_to_huggingface(
         folder_path=str(export_dir),
         repo_id=repo_id,
         repo_type="dataset",
-        commit_message="Update Thailand 5-year hotspot Parquet, TamRoyPao burn scar, ERA5 & HII flood dataset",
+        commit_message="Add PM2.5 AQ, 6-country Transboundary FIRMS, NASA POWER soil, DOAE crops, RID reservoirs & OAE prices Parquet + benchmark",
     )
     if include_duckdb and db_path.exists():
         print(f"[HF] Uploading full DuckDB backup ({db_path.stat().st_size / (1024 * 1024):.1f} MB) ...", flush=True)

@@ -417,6 +417,185 @@ def _load_tamroypao_stats(
     return trp_maps, covered_provs, trp_years
 
 
+def _load_air_quality(
+    con: duckdb.DuckDBPyConnection,
+    existing_tables: set[str],
+    timeline_months: list[str],
+) -> tuple[dict[str, list], dict[str, dict]]:
+    if "air_quality_monthly_77prov" not in existing_tables:
+        return {}, {}
+    m_idx = {ym: idx for idx, ym in enumerate(timeline_months)}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               ym, year_th, month_th,
+               round(pm25_mean, 1), round(pm25_max, 1), round(co_mean, 0),
+               round(aod_mean, 2), days_exceed_37_5, days_exceed_15_who
+        FROM air_quality_monthly_77prov
+        ORDER BY pcode, ym
+    """).fetchall()
+    aq_m: dict[str, list] = {}
+    yr_acc: dict[tuple[str, str], list] = {}
+    for pcode, ym, yr, mo, pm, pmx, co, aod, exc37, exc15 in rows:
+        if str(ym) in m_idx:
+            arr = aq_m.setdefault(pcode, [None] * len(timeline_months))
+            arr[m_idx[str(ym)]] = [pm, pmx, co, aod, exc37]
+        yr_acc.setdefault((pcode, str(yr)), []).append((mo, pm, pmx, co, aod, exc37, exc15))
+
+    aq_y: dict[str, dict] = {}
+    for (pcode, yr_s), items in yr_acc.items():
+        def _avg(idx_c, dec=1):
+            vals = [x[idx_c] for x in items if x[idx_c] is not None]
+            return round(sum(vals) / len(vals), dec) if vals else None
+
+        def _sum_i(idx_c):
+            vals = [x[idx_c] for x in items if x[idx_c] is not None]
+            return int(sum(vals)) if vals else None
+
+        peak_pms = [x[1] for x in items if 1 <= x[0] <= 4 and x[1] is not None]
+        peak_cos = [x[3] for x in items if 1 <= x[0] <= 4 and x[3] is not None]
+        peak_aods = [x[4] for x in items if 1 <= x[0] <= 4 and x[4] is not None]
+        pm_maxs = [x[2] for x in items if x[2] is not None]
+        aq_y.setdefault(pcode, {})[yr_s] = {
+            "pm25_mean": _avg(1, 1),
+            "pm25_peak": round(sum(peak_pms) / len(peak_pms), 1) if peak_pms else None,
+            "pm25_max": round(max(pm_maxs), 1) if pm_maxs else None,
+            "days_37_5": _sum_i(5),
+            "days_15": _sum_i(6),
+            "co_peak": round(sum(peak_cos) / len(peak_cos), 0) if peak_cos else None,
+            "aod_peak": round(sum(peak_aods) / len(peak_aods), 2) if peak_aods else None,
+        }
+    return aq_m, aq_y
+
+
+def _load_nasa_soil(
+    con: duckdb.DuckDBPyConnection,
+    existing_tables: set[str],
+    timeline_months: list[str],
+) -> tuple[dict[str, list], dict[str, dict]]:
+    if "nasa_power_soil_monthly" not in existing_tables:
+        return {}, {}
+    m_idx = {ym: idx for idx, ym in enumerate(timeline_months)}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               ym, year_th, month_th,
+               round(gwettop_mean, 3), round(gwetroot_mean, 3),
+               round(solar_mj_mean, 1), dry_soil_days_lt_035
+        FROM nasa_power_soil_monthly
+        ORDER BY pcode, ym
+    """).fetchall()
+    soil_m: dict[str, list] = {}
+    yr_acc: dict[tuple[str, str], list] = {}
+    for pcode, ym, yr, mo, gt, gr, sol, dry_d in rows:
+        if str(ym) in m_idx:
+            arr = soil_m.setdefault(pcode, [None] * len(timeline_months))
+            arr[m_idx[str(ym)]] = [gt, gr, sol]
+        yr_acc.setdefault((pcode, str(yr)), []).append((mo, gt, gr, dry_d))
+
+    soil_y: dict[str, dict] = {}
+    for (pcode, yr_s), items in yr_acc.items():
+        peak_gt = [x[1] for x in items if 1 <= x[0] <= 4 and x[1] is not None]
+        peak_gr = [x[2] for x in items if 1 <= x[0] <= 4 and x[2] is not None]
+        dry_vals = [x[3] for x in items if x[3] is not None]
+        soil_y.setdefault(pcode, {})[yr_s] = {
+            "gwettop_peak": round(sum(peak_gt) / len(peak_gt), 3) if peak_gt else None,
+            "gwetroot_peak": round(sum(peak_gr) / len(peak_gr), 3) if peak_gr else None,
+            "dry_soil_days": int(sum(dry_vals)) if dry_vals else None,
+        }
+    return soil_m, soil_y
+
+
+def _load_doae_crops(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict[str, dict]:
+    if "doae_fire_crops_province" not in existing_tables:
+        return {}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               paddy_rai, sugarcane_rai, corn_rai, cassava_rai
+        FROM doae_fire_crops_province
+    """).fetchall()
+    out: dict[str, dict] = {}
+    for pcode, paddy, sugar, corn, cass in rows:
+        out[pcode] = {
+            "paddy_rai": round(float(paddy), 0) if paddy is not None else None,
+            "sugarcane_rai": round(float(sugar), 0) if sugar is not None else None,
+            "corn_rai": round(float(corn), 0) if corn is not None else None,
+            "cassava_rai": round(float(cass), 0) if cass is not None else None,
+        }
+    return out
+
+
+def _load_pm25_snapshot(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict[str, dict]:
+    if "gistda_pm25_snapshot" not in existing_tables:
+        return {}
+    rows = con.execute("""
+        SELECT lpad(CAST(prov_code AS VARCHAR), 2, '0') AS pcode,
+               round(pm25, 1), round(pm25_avg_24hr, 1), dt_utc
+        FROM gistda_pm25_snapshot
+    """).fetchall()
+    return {
+        pcode: {"pm25": pm, "pm25_24h": pm24, "dt": dt}
+        for pcode, pm, pm24, dt in rows
+    }
+
+
+def _load_transboundary(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict | None:
+    if "transboundary_monthly" not in existing_tables:
+        return None
+    months = [
+        str(r[0])
+        for r in con.execute("SELECT DISTINCT ym FROM transboundary_monthly WHERE ym IS NOT NULL ORDER BY 1").fetchall()
+    ]
+    if not months:
+        return None
+    m_idx = {ym: idx for idx, ym in enumerate(months)}
+    rows = con.execute("""
+        SELECT country, year_th, ym, hotspot_count, high_conf_count, day_count, frp_sum_mw
+        FROM transboundary_monthly
+        ORDER BY country, ym
+    """).fetchall()
+    countries: dict[str, dict] = {}
+    years_set: set[int] = set()
+    for country, yr, ym, hs, hc, dc, frp in rows:
+        years_set.add(int(yr))
+        node = countries.setdefault(str(country), {
+            "monthly": [0] * len(months),
+            "yearly": {},
+        })
+        if str(ym) in m_idx:
+            node["monthly"][m_idx[str(ym)]] = int(hs or 0)
+        y_node = node["yearly"].setdefault(str(yr), {"hs": 0, "high": 0, "day": 0, "frp": 0.0})
+        y_node["hs"] += int(hs or 0)
+        y_node["high"] += int(hc or 0)
+        y_node["day"] += int(dc or 0)
+        y_node["frp"] = round(y_node["frp"] + float(frp or 0.0), 1)
+    return {"months": months, "years": sorted(years_set), "countries": countries}
+
+
+def _load_rid_regional(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) -> dict | None:
+    if "rid_reservoirs_monthly" not in existing_tables:
+        return None
+    months = [
+        str(r[0])
+        for r in con.execute("SELECT DISTINCT ym FROM rid_reservoirs_monthly WHERE ym IS NOT NULL ORDER BY 1").fetchall()
+    ]
+    if not months:
+        return None
+    m_idx = {ym: idx for idx, ym in enumerate(months)}
+    rows = con.execute("""
+        SELECT region, ym,
+               round(sum(volume_mcm) * 100.0 / nullif(sum(storage_mcm), 0), 1) AS pct_storage
+        FROM rid_reservoirs_monthly
+        WHERE region IS NOT NULL AND length(region) > 0
+        GROUP BY 1, 2
+        ORDER BY 1, 2
+    """).fetchall()
+    regions: dict[str, list] = {}
+    for region, ym, pct in rows:
+        arr = regions.setdefault(str(region), [None] * len(months))
+        if str(ym) in m_idx and pct is not None:
+            arr[m_idx[str(ym)]] = float(pct)
+    return {"months": months, "regions": regions}
+
+
 
 def build_map_payload(
     db_path: Path = DEFAULT_DB_PATH,
@@ -444,6 +623,12 @@ def build_map_payload(
         trp_maps, covered_trp_provs, trp_years = _load_tamroypao_stats(con, existing_tables)
         weather_months, wx_m_map, wx_y_map = _load_fire_weather(con, existing_tables)
         timeline_months, hs_m_map = _load_hotspots_monthly(con, weather_months)
+        aq_m_map, aq_y_map = _load_air_quality(con, existing_tables, timeline_months)
+        soil_m_map, soil_y_map = _load_nasa_soil(con, existing_tables, timeline_months)
+        doae_map = _load_doae_crops(con, existing_tables)
+        pm25_snap_map = _load_pm25_snapshot(con, existing_tables)
+        transboundary_data = _load_transboundary(con, existing_tables)
+        rid_regional_data = _load_rid_regional(con, existing_tables)
         covered_scar_provs = set(scar_maps["prov"].keys())
         covered_freq_provs = set(freq_maps["prov"].keys())
 
@@ -488,6 +673,12 @@ def build_map_payload(
                 "wx_y": wx_y_map.get(pcode, {}),
                 "wx_m": wx_m_map.get(pcode),
                 "hs_m": hs_m_map.get(pcode),
+                "aq_y": aq_y_map.get(pcode, {}),
+                "aq_m": aq_m_map.get(pcode),
+                "soil_y": soil_y_map.get(pcode, {}),
+                "soil_m": soil_m_map.get(pcode),
+                "doae_2566": doae_map.get(pcode),
+                "pm25_snap": pm25_snap_map.get(pcode),
                 "trp": trp,
             })
 
@@ -818,12 +1009,19 @@ def build_map_payload(
                 "trp_years": trp_years,
                 "weather_covered_provinces": len(wx_m_map),
                 "weather_months_count": len(weather_months),
+                "aq_covered_provinces": len(aq_m_map),
+                "soil_covered_provinces": len(soil_m_map),
+                "doae_covered_provinces": len(doae_map),
+                "transboundary_countries": len((transboundary_data or {}).get("countries") or {}),
+                "rid_regions_count": len((rid_regional_data or {}).get("regions") or {}),
                 "flood_covered_provinces": len(flood_prov),
                 "flood_covered_tambons": len(flood_tambon),
                 "years": [2022, 2023, 2024, 2025, 2026],
                 "seasons": ["ม.ค.–ก.พ.", "มี.ค.–เม.ย.", "พ.ค.–ต.ค.", "พ.ย.–ธ.ค."],
             },
             "weather_months": timeline_months,
+            "transboundary": transboundary_data,
+            "rid_monthly": rid_regional_data,
             "provinces": provinces,
             "amphoes": amphoes,
             "tambons": tambons,
