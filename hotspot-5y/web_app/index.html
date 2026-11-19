@@ -944,6 +944,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
       </div>
       <div class="map-controls">
         <button id="zoomInBtn" class="zoom-btn" title="ซูมเข้า">+</button>
+        <div id="zoomReadout" style="width:34px;text-align:center;font-size:10px;font-weight:700;padding:2px 0;border-radius:6px;background:var(--panel-solid);border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;box-shadow:var(--shadow);">z5.6</div>
         <button id="zoomOutBtn" class="zoom-btn" title="ซูมออก">−</button>
       </div>
       <div id="legendBox" class="hud-box legend-box">
@@ -1495,7 +1496,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     "satSelect","janOctCheck","satWarnPill","yearSelect","seasonSelect","cropSelect",
     "excludeStaticCheck","metricSelect","levelModeSelect","grainWarnPill",
     "showHeatCheck","showStaticCheck","showVillagesCheck","tmsOverlaySelect","basemapSelect",
-    "mapCanvas","scopePill","resetZoomBtn","zoomInBtn","zoomOutBtn",
+    "mapCanvas","scopePill","resetZoomBtn","zoomInBtn","zoomOutBtn","zoomReadout",
     "legendTitle","legendBar","legMin","legMid","legMax","legendNullChip","tmsLegendChip","tooltip",
     "kpiTotal","kpiTotalSub","kpiAgri","kpiAgriSub","kpiScarLabel","kpiScar","kpiScarSub","kpiFactor","kpiFactorSub",
     "insightBox","corrBadge","scatterX","scatterY","scatterCanvas","scatterNote",
@@ -1949,9 +1950,33 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     return `rgb(${r},${g},${b})`;
   }
 
+  function drawTileWithFallback(ctx, keyBuilder, z, tx, ty, dx, dy, tilePx, minZ) {
+    const entry = TILE_CACHE.get(keyBuilder(z, tx, ty));
+    if (entry && entry.ok && entry.img.width) {
+      ctx.drawImage(entry.img, dx, dy, tilePx + 0.6, tilePx + 0.6);
+      return;
+    }
+    for (let dz = 1; dz <= 2; dz++) {
+      const pz = z - dz;
+      if (pz < minZ) break;
+      const px = tx >> dz, py = ty >> dz;
+      const parent = TILE_CACHE.get(keyBuilder(pz, px, py));
+      if (parent && parent.ok && parent.img.width) {
+        const div = 1 << dz;
+        const sw = parent.img.width / div;
+        const sh = parent.img.height / div;
+        const sx = (tx - (px << dz)) * sw;
+        const sy = (ty - (py << dz)) * sh;
+        ctx.drawImage(parent.img, sx, sy, sw, sh, dx, dy, tilePx + 0.6, tilePx + 0.6);
+        return;
+      }
+    }
+  }
+
   function drawTiles(ctx, w, h) {
     if (state.basemap === "none") return;
-    const z = Math.max(4, Math.min(13, Math.round(state.zoom)));
+    const maxTileZ = state.basemap === "carto_dark" ? 17 : 18;
+    const z = Math.max(4, Math.min(maxTileZ, Math.round(state.zoom)));
     const nTiles = 1 << z;
     const worldPx = 256 * Math.pow(2, state.zoom);
     const leftMx = state.camX - (w / 2) / worldPx;
@@ -1964,10 +1989,11 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     const ty0 = Math.max(0, Math.floor(topMy * nTiles));
     const ty1 = Math.min(nTiles - 1, Math.floor(botMy * nTiles));
     const tilePx = worldPx / nTiles;
+    const keyFor = (lz, lx, ly) => `${state.basemap}:${lz}:${lx}:${ly}`;
 
     for (let tx = tx0; tx <= tx1; tx++) {
       for (let ty = ty0; ty <= ty1; ty++) {
-        const key = `${state.basemap}:${z}:${tx}:${ty}`;
+        const key = keyFor(z, tx, ty);
         let entry = TILE_CACHE.get(key);
         if (!entry) {
           const img = new Image();
@@ -1979,17 +2005,15 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
           img.onload = () => { entry.ok = true; requestDrawMap(); };
           img.onerror = () => { entry.err = true; };
           img.src = url;
-          if (TILE_CACHE.size > 360) {
+          if (TILE_CACHE.size > 480) {
             const firstKey = TILE_CACHE.keys().next().value;
             TILE_CACHE.delete(firstKey);
           }
           TILE_CACHE.set(key, entry);
         }
-        if (entry.ok) {
-          const dx = (tx / nTiles - state.camX) * worldPx + w / 2;
-          const dy = (ty / nTiles - state.camY) * worldPx + h / 2;
-          ctx.drawImage(entry.img, dx, dy, tilePx + 0.6, tilePx + 0.6);
-        }
+        const dx = (tx / nTiles - state.camX) * worldPx + w / 2;
+        const dy = (ty / nTiles - state.camY) * worldPx + h / 2;
+        drawTileWithFallback(ctx, keyFor, z, tx, ty, dx, dy, tilePx, 4);
       }
     }
   }
@@ -2025,11 +2049,13 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
 
     ctx.save();
     ctx.globalAlpha = 0.92;
+    if (state.zoom > 15) ctx.imageSmoothingEnabled = false;
     for (const layerPath of layers) {
+      const keyFor = (lz, lx, ly) => `tms:${layerPath}:${lz}:${lx}:${(1 << lz) - 1 - ly}`;
       for (let tx = tx0; tx <= tx1; tx++) {
         for (let ty = ty0; ty <= ty1; ty++) {
           const tmsY = nTiles - 1 - ty;
-          const key = `tms:${layerPath}:${z}:${tx}:${tmsY}`;
+          const key = keyFor(z, tx, ty);
           let entry = TILE_CACHE.get(key);
           if (!entry) {
             const img = new Image();
@@ -2038,17 +2064,15 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
             img.onload = () => { entry.ok = true; requestDrawMap(); };
             img.onerror = () => { entry.err = true; };
             img.src = url;
-            if (TILE_CACHE.size > 360) {
+            if (TILE_CACHE.size > 480) {
               const firstKey = TILE_CACHE.keys().next().value;
               TILE_CACHE.delete(firstKey);
             }
             TILE_CACHE.set(key, entry);
           }
-          if (entry.ok) {
-            const dx = (tx / nTiles - state.camX) * worldPx + w / 2;
-            const dy = (ty / nTiles - state.camY) * worldPx + h / 2;
-            ctx.drawImage(entry.img, dx, dy, tilePx + 0.6, tilePx + 0.6);
-          }
+          const dx = (tx / nTiles - state.camX) * worldPx + w / 2;
+          const dy = (ty / nTiles - state.camY) * worldPx + h / 2;
+          drawTileWithFallback(ctx, keyFor, z, tx, ty, dx, dy, tilePx, 6);
         }
       }
     }
@@ -2105,25 +2129,30 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     const toSx = (mx) => (mx - state.camX) * worldPx + w / 2;
     const toSy = (my) => (my - state.camY) * worldPx + h / 2;
 
-    // Subtle cartographic lat/lon graticule grid when using pure vector canvas (drawn once on baseCanvas)
+    // Adaptive, viewport-bounded cartographic graticule when using pure vector canvas (drawn once on baseCanvas)
     if (state.basemap === "none") {
-      const stepDeg = state.zoom >= 7.5 ? 1 : 2;
+      const stepDeg = state.zoom >= 14 ? 0.05 : state.zoom >= 11.5 ? 0.2 : state.zoom >= 9.5 ? 0.5 : state.zoom >= 7.5 ? 1 : 2;
+      const dec = stepDeg < 1 ? (stepDeg < 0.1 ? 2 : 1) : 0;
+      const vLon0 = Math.max(96, Math.floor(mxToLon(state.camX - (w / 2) / worldPx) / stepDeg) * stepDeg);
+      const vLon1 = Math.min(108, mxToLon(state.camX + (w / 2) / worldPx) + stepDeg);
+      const vLat0 = Math.max(6, Math.floor(myToLat(state.camY + (h / 2) / worldPx) / stepDeg) * stepDeg);
+      const vLat1 = Math.min(22, myToLat(state.camY - (h / 2) / worldPx) + stepDeg);
       ctx.save();
       ctx.strokeStyle = state.theme === "dark" ? "rgba(148,163,184,0.08)" : "rgba(15,23,42,0.065)";
       ctx.fillStyle = state.theme === "dark" ? "rgba(148,163,184,0.36)" : "rgba(71,85,105,0.45)";
       ctx.lineWidth = 0.8;
       ctx.font = "500 9.5px 'JetBrains Mono', monospace";
-      for (let lon = 96; lon <= 108; lon += stepDeg) {
+      for (let lon = vLon0; lon <= vLon1; lon = +(lon + stepDeg).toFixed(3)) {
         const sx = toSx(lonToMx(lon));
         if (sx < 0 || sx > w) continue;
         ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
-        ctx.fillText(lon + "°E", sx + 3, h - 6);
+        ctx.fillText(lon.toFixed(dec) + "°E", sx + 3, h - 6);
       }
-      for (let lat = 6; lat <= 22; lat += stepDeg) {
+      for (let lat = vLat0; lat <= vLat1; lat = +(lat + stepDeg).toFixed(3)) {
         const sy = toSy(latToMy(lat));
         if (sy < 0 || sy > h) continue;
         ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
-        ctx.fillText(lat + "°N", 6, sy - 3);
+        ctx.fillText(lat.toFixed(dec) + "°N", 6, sy - 3);
       }
       ctx.restore();
     }
@@ -2137,11 +2166,15 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     const rootStyle = getComputedStyle(document.documentElement);
     const nullFill = rootStyle.getPropertyValue("--null-fill").trim() || "#334155";
     const strokeCol = rootStyle.getPropertyValue("--map-land-stroke").trim();
+    const hasTiles = state.basemap !== "none";
+    const hasTms = state.tmsOverlay !== "none";
 
     // Draw background Thailand silhouette if zoomed into amphoe/tambon
     if (level !== "province" && state.levelMode !== "amphoe_all") {
       ctx.save();
-      ctx.fillStyle = state.theme === "dark" ? "rgba(30,41,59,0.35)" : "rgba(203,213,225,0.45)";
+      ctx.fillStyle = hasTiles
+        ? (state.theme === "dark" ? "rgba(15,23,42,0.12)" : "rgba(255,255,255,0.18)")
+        : (state.theme === "dark" ? "rgba(30,41,59,0.35)" : "rgba(203,213,225,0.45)");
       ctx.strokeStyle = "rgba(148,163,184,0.22)";
       ctx.lineWidth = 0.8;
       for (const p of DATA.provinces) {
@@ -2163,12 +2196,10 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
       ctx.restore();
     }
 
-    // Draw active polygons (with subtle glowing country silhouette once on baseCanvas)
-    const hasTiles = state.basemap !== "none";
-    const hasTms = state.tmsOverlay !== "none";
+    // Draw active polygons (with subtle neutral country drop shadow once on baseCanvas)
     if (level === "province" && !hasTiles && !hasTms) {
       ctx.save();
-      ctx.shadowColor = state.theme === "dark" ? "rgba(249, 115, 22, 0.24)" : "rgba(15, 23, 42, 0.16)";
+      ctx.shadowColor = state.theme === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(15, 23, 42, 0.16)";
       ctx.shadowBlur = 18;
       ctx.fillStyle = state.theme === "dark" ? "#0f172a" : "#e2e8f0";
       ctx.beginPath();
@@ -2179,7 +2210,9 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
       ctx.restore();
     }
     ctx.save();
-    ctx.globalAlpha = hasTms ? 0.30 : (hasTiles ? 0.78 : 0.95);
+    ctx.globalAlpha = hasTms
+      ? (state.zoom >= 13.5 ? 0.12 : 0.25)
+      : (hasTiles ? (state.zoom >= 14 ? 0.28 : 0.72) : 0.95);
     ctx.lineWidth = level === "tambon" ? 0.55 : 0.9;
     ctx.strokeStyle = strokeCol;
     for (const rec of records) {
@@ -2271,6 +2304,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
       baseDirty = true;
     }
     const w = rect.width, h = rect.height;
+    if (els.zoomReadout) els.zoomReadout.textContent = "z" + state.zoom.toFixed(1);
     if (baseDirty) renderBaseMap(w, h, dpr);
 
     const ctx = canvas.getContext("2d");
@@ -2308,7 +2342,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     const gridCells = state.computedStats?.gridCells || [];
     if (!gridCells.length) return;
     const maxC = state.computedStats.maxGridCnt || 1;
-    const rBase = Math.max(4.5, Math.min(24, worldPx * 0.0003));
+    const rBase = Math.max(4.5, Math.min(42, worldPx * 0.0003));
     const sprite = getHeatSprite(state.theme === "dark");
     ctx.save();
     ctx.globalCompositeOperation = state.theme === "dark" ? "screen" : "source-over";
@@ -2316,7 +2350,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
       const c = gridCells[i];
       const sx = toSx(c.mx);
       const sy = toSy(c.my);
-      if (sx < -26 || sx > w + 26 || sy < -26 || sy > h + 26) continue;
+      if (sx < -60 || sx > w + 60 || sy < -60 || sy > h + 60) continue;
       const t = Math.sqrt(c.cnt / maxC);
       const rad = rBase * (0.6 + 0.8 * t);
       ctx.globalAlpha = 0.25 + 0.7 * t;
@@ -2446,7 +2480,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
     const spanY = Math.max(0.0004, my1 - my0);
     const zx = Math.log2((w * 0.84) / (256 * spanX));
     const zy = Math.log2((h * 0.84) / (256 * spanY));
-    state.zoom = Math.max(3.6, Math.min(12.5, Math.min(zx, zy)));
+    state.zoom = Math.max(3.6, Math.min(15.5, Math.min(zx, zy)));
   }
 
   function resetToThailand() {
@@ -3015,8 +3049,8 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
         refreshAll();
       };
     }
-    els.zoomInBtn.onclick = () => { state.zoom = Math.min(13, state.zoom + 0.7); requestDrawMap(); };
-    els.zoomOutBtn.onclick = () => { state.zoom = Math.max(3.6, state.zoom - 0.7); requestDrawMap(); };
+    els.zoomInBtn.onclick = () => { state.zoom = Math.min(18, state.zoom + 0.8); requestDrawMap(); };
+    els.zoomOutBtn.onclick = () => { state.zoom = Math.max(3.6, state.zoom - 0.8); requestDrawMap(); };
     els.exportCsvBtn.onclick = exportCurrentCsv;
     els.provenanceBtn.onclick = () => { els.provenanceModal.style.display = "flex"; };
     els.closeModalBtn.onclick = () => { els.provenanceModal.style.display = "none"; };
@@ -3196,7 +3230,7 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
       const wpBefore = 256 * Math.pow(2, state.zoom);
       const mx = state.camX + (sx - rect.width / 2) / wpBefore;
       const my = state.camY + (sy - rect.height / 2) / wpBefore;
-      state.zoom = Math.max(3.6, Math.min(13.5, state.zoom + (e.deltaY < 0 ? 0.35 : -0.35)));
+      state.zoom = Math.max(3.6, Math.min(18, state.zoom + (e.deltaY < 0 ? 0.45 : -0.45)));
       const wpAfter = 256 * Math.pow(2, state.zoom);
       state.camX = mx - (sx - rect.width / 2) / wpAfter;
       state.camY = my - (sy - rect.height / 2) / wpAfter;
