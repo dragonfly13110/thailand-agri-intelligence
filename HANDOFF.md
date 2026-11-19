@@ -1,3 +1,32 @@
+## ฝากชุดข้อมูล Parquet ขึ้น Hugging Face + สร้างเว็บสแตนด์อโลน DuckDB-Wasm — 19 พ.ย. 2026 · 0 D1 writes
+
+- **ฝากข้อมูลสาธารณะขึ้น Hugging Face Datasets (`https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y`, commit `6c4ec941`):**
+  - สร้าง `hotspot-5y/publish_hf.py` ส่งออก 13 ไฟล์ Parquet (บีบอัด ZSTD และเรียง `prov_code, amphoe_code, acq_date_th` เพื่อทำ HTTP Range row-group pruning) + `summary/map_payload.json.gz` (`4.23 MB`) + `summary/manifest.json` + Dataset Card `README.md` (ระบุเครดิตหน่วยงานและหมายเหตุเพื่อการศึกษา/ไม่ใช่เชิงพาณิชย์ครบทุกชุด) รวมขนาดทั้งหมด **`28.57 MB`** (ลดจาก `373.8 MB`): `hotspots_2022..2026` (`1,278,326` แถว), `tamroypao_burn_tambon` (`19,023`), `tamroypao_monthly_*` (`2,542`), `gistda_burn_scar` (`79,435`), `gistda_burn_freq` (`79,088`), `dim_areas` (`7,658`), `era5_annual_2016_2025` (`770`), `hii_flood_risk` (`27,023` แถว / `6,435` ตำบล จากการซิงก์ `fetch_hii_flood_risk()` ลง `data/local/tadih.duckdb` บนเครื่องนี้ด้วย)
+  - บันทึก `HF_TOKEN` และ `HF_DATASET_REPO` ไว้เฉพาะใน `.env` (gitignored, เพิ่มช่องว่างใน `.env.example` แล้ว) และติดตั้ง `huggingface_hub` ใน `.venv`; ยืนยันหัว `HTTP 200`, `Access-Control-Allow-Origin: *`, `Accept-Ranges: bytes` บนลิงก์ Parquet จริงแล้ว
+- **หน้าเว็บสแตนด์อโลนเชื่อมต่อ Hugging Face + DuckDB-Wasm (`hotspot-5y/web_app/index.html`, `130.2 KB`):**
+  - เพิ่ม `hotspot-5y/explorer_asset.py`, `hotspot-5y/build_web_app.py`, และ `render_online_web_html()` ใน `hotspot-5y/map_template.py` — โหลดแผนที่สรุปจาก `summary/map_payload.json.gz` อัตโนมัติ (ตรวจ gzip magic bytes) พร้อมปุ่ม **`🔍 ค้นจุดไฟรายวัน (DuckDB)`** ที่โหลด `@duckdb/duckdb-wasm` เมื่อคลิก (ใช้ Blob Worker เพื่อไม่ติด CORS) ให้กรองค้นหาจุดความร้อน 1.28 ล้านจุด / รอยเผา สสน. / รอยเผา GISTDA ส่งออก CSV และเปิดโหมดแก้ SQL เองได้ในเบราว์เซอร์
+- **หลักฐานตรวจรับ:**
+  - `.venv\Scripts\python.exe -X utf8 -m unittest hotspot-5y/tests/test_interactive_map.py -v` ผ่าน **9/9** (`2.995s`, รวม `node --check` ทั้งโหมดออฟไลน์และออนไลน์)
+  - ทดสอบเบราว์เซอร์จริงแบบ end-to-end ที่ `http://127.0.0.1:8789/` (ปิดเซิร์ฟเวอร์ชั่วคราวแล้ว): โหลด `map_payload.json.gz` จาก Hugging Face CDN `200 OK`, แสดงครบ `77` จังหวัด / `trp_rai` `33,583,752 ไร่` / `hazard` (`HII` ท่วมซ้ำ + เผาซ้ำ อันดับ 1 นครสวรรค์ `91`), กดค้น `hotspots_2026.parquet` ได้ `441,164` แถว และกรองเชียงใหม่ (`50`) ได้ `33,073` แถวใน **`691 ms`**, สลับตาราง `tamroypao` เชียงใหม่ได้ `204` แถว, มือถือ `390×844` ไม่ล้นแนวนอน, **0 console/page errors**
+- **Deploy ออนไลน์บน Netlify สำเร็จแล้ว:** สร้างไซต์ใหม่ `thailand-hotspot-5y` (`siteId: 422f207a-561a-4ad9-a65e-fae26a68a8ef`, `deployId: 6afea366b253dd1269ca89f6`) ที่ **`https://thailand-hotspot-5y.netlify.app`** (ยืนยัน `HTTP 200 OK`) เชื่อมข้อมูลสดกับ Hugging Face (`dragonfly13110/thailand-hotspot-5y`) และ commit + push ขึ้น `origin/main` แล้ว
+- **คำสั่งรับต่อ:** `.venv\Scripts\python.exe -X utf8 hotspot-5y/publish_hf.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/build_web_app.py` (ถ้าอัปเดตข้อมูลอย่างเดียว รันเฉพาะ `publish_hf.py` หน้าเว็บ Netlify จะเห็นข้อมูลใหม่ทันทีโดยไม่ต้อง deploy ซ้ำ)
+
+## เชื่อมรอยเผาไหม้ สสน. "ตามรอยเผา" (ทางที่ 1 GeoTIFF Zonal ลง DuckDB + ทางที่ 3 ชั้นภาพ TMS 20 ม.) — 19 พ.ย. 2026 · 0 D1 writes
+
+- **ทางที่ 1 (สรุปตัวเลขจาก GeoTIFF 20 ม. ลง DuckDB ระดับตำบล/อำเภอ/จังหวัด):**
+  - สร้าง `hotspot-5y/download_tamroypao.py` ดึง CSV รายจังหวัด/รายเดือน (`tamroypao_burn_agri` 1,116 แถว, `tamroypao_burn_forest` 1,426 แถว ช่วง `202401..202610`) และไฟล์ Mosaic GeoTIFF 20 ม. รายฤดูฝุ่น 6 ไฟล์ (`MB3A` เกษตร + `MB3F` ป่า ฤดู `2567–2569` = `202312_202404`, `202412_202504`, `202512_202604` รวม `~129.7 MB` ใน `hotspot-5y/data/raw/tamroypao/geotiff/`, gitignored)
+  - ยืนยันหน่วยจากพิกเซลเทียบ CSV ต้นทาง: 1 พิกเซล (`20×20 ม. = 400 ตร.ม.`) = **0.25 ไร่** (`1101`=ข้าว, `1203`=อ้อย, `1202`=ข้าวโพด, `1201`=พืชผสม, `6000`=ป่าไม้)
+  - รัน `rasterio` ซ้อนพิกัด `dim_tambon` เฉพาะ **62 จังหวัดในขอบเขต สสน. (`10`..`76`)** ได้ **19,023 แถว** (`6,341 ตำบล × 3 ฤดู`) ลงตาราง `tamroypao_burn_tambon` พร้อม view `v_tamroypao_amphoe_season` และ `v_tamroypao_province_season` (ส่วน 15 จังหวัดนอกขอบเขต ได้แก่ ประจวบคีรีขันธ์ `77` และภาคใต้ `80..96` คงค่า `NULL` ไม่ตีความเป็น `0`):
+    - ฤดู 2567 (`year_th=2024`): เกษตร `8,344,665` ไร่ · ป่า `5,433,296` ไร่ · รวม `13,777,961` ไร่
+    - ฤดู 2568 (`year_th=2025`): เกษตร `7,021,599` ไร่ · ป่า `3,897,616` ไร่ · รวม `10,919,214` ไร่
+    - ฤดู 2569 (`year_th=2026`): เกษตร `6,998,057` ไร่ · ป่า `1,888,501` ไร่ · รวม `8,886,558` ไร่
+  - ขนาดไฟล์ `hotspot_5y.duckdb` คงเดิมที่ **`391,917,568` bytes (`373.8 MB`)** ไม่บวมเพิ่ม
+- **ทางที่ 1 + 3 บนแผนที่โต้ตอบ (`hotspot-5y/map_data.py`, `map_template.py`):**
+  - เพิ่มตัวชี้วัดระบายสีแผนที่ `รอยเผา สสน. ตามรอยเผา (ไร่ · แยกพืช/ฤดู 24–26)` (`trp_rai`) ที่กรองตามชนิดพืช (`ข้าว`, `อ้อย`, `ข้าวโพด`, `เกษตร`, `ป่าไม้`, `ทั้งหมด`) และปี (`2024–2026` หรือรวม 3 ฤดู) ได้ถึงระดับ **จังหวัด (62) / อำเภอ (769) / ตำบล (6,341)** แบบออฟไลน์ 100% พร้อมแกน X ใน Scatter Plot และคอลัมน์ `tamroypao_burn_rai` ใน Export CSV
+  - เพิ่มตัวเลือก `ชั้นภาพรอยเผา 20 ม. สสน. (TMS เมื่อมีเน็ต)` (`#tmsOverlaySelect`) รองรับทั้งรายฤดูฝุ่น 2567–2569 (`เกษตร + ป่าไม้`, `เกษตร 4 พืช`, `เขตป่าไม้`), รายเดือน 2026 (`ม.ค.–เม.ย.`) และดัชนีเชื้อเพลิง `SAVI` โดยแปลงแกน `tmsY = (1 << z) - 1 - ty` (`z=6..15`), ลดความทึบสีพื้นขอบเขตอัตโนมัติให้เห็นพิกเซล 20 ม. ชัดเจน และแสดงแถบสีมาตรฐาน สสน. (`ข้าว=เหลือง`, `อ้อย=ชมพู`, `ข้าวโพด=เขียวอ่อน`, `ผสม=ส้ม`, `ป่า=แดง`)
+- **หลักฐานตรวจรับ:** `.venv\Scripts\python.exe -X utf8 -m unittest hotspot-5y/tests/test_interactive_map.py -v` ผ่าน **8/8** (`3.208s`, รวม `node --check` ตรวจไวยากรณ์ JS) · สร้าง `hotspot-5y/data/output/hotspot_5y_interactive_map.html` ใหม่สำเร็จ (`5,984,383` bytes / `5.71 MB`) · 0 D1 writes · ยังไม่ commit/push
+- **คำสั่งรับต่อ:** เปิด `hotspot-5y/data/output/hotspot_5y_interactive_map.html` หรือรัน `.venv\Scripts\python.exe -X utf8 hotspot-5y/download_tamroypao.py && .venv\Scripts\python.exe -X utf8 hotspot-5y/build_interactive_map.py`
+
 ## ปิดสถานะรอบ 18–19 พ.ย. 2026 + รวมงานค้าง 31 ต.ค. เตรียม commit/push `main`
 
 - **สำรวจรอยเผาไหม้เทียบเว็บจริง (19 พ.ย. 2026):**

@@ -1,3 +1,13 @@
+## ฝาก Parquet ขึ้น Hugging Face + สร้างเว็บ DuckDB-Wasm (`hotspot-5y/web_app/`) — 19 พ.ย. 2026
+
+- ซิงก์ตารางน้ำท่วมซ้ำ HII (`27,023` แถว / `6,435` ตำบล) ลง `data/local/tadih.duckdb`, สร้าง `hotspot-5y/publish_hf.py` ส่งออก 13 ไฟล์ Parquet + `summary/map_payload.json.gz` (`4.23 MB`) + `manifest.json` + Dataset Card `README.md` (รวม `28.57 MB`) ขึ้นสาธารณะที่ `https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y` (commit `6c4ec941`, ยืนยัน `CORS: *` และ `Accept-Ranges: bytes`); เก็บ `HF_TOKEN` เฉพาะใน `.env`
+- สร้าง `hotspot-5y/explorer_asset.py`, `hotspot-5y/build_web_app.py`, และ `render_online_web_html()` ผลิตหน้าเว็บสแตนด์อโลน `hotspot-5y/web_app/index.html` (`130.2 KB`) ที่ดึงแผนที่จาก Hugging Face และค้นจุดความร้อน 1.28 ล้านจุดผ่าน DuckDB-Wasm ในเบราว์เซอร์ได้ทันที; รัน `test_interactive_map.py` ผ่าน `9/9` (`2.995s`) และทดสอบเบราว์เซอร์จริงผ่านครบ (กรองจุดเชียงใหม่ปี 2026 จาก HF Parquet `33,073` แถวใน `691 ms`, มือถือ `390×844` ไม่ล้น, `0` errors); Deploy ขึ้น Netlify สำเร็จที่ `https://thailand-hotspot-5y.netlify.app` (`HTTP 200`, `deployId: 6afea366b253dd1269ca89f6`) และ commit/push ขึ้น `origin/main` แล้ว (`0` D1 writes)
+
+## เชื่อมรอยเผาไหม้ สสน. "ตามรอยเผา" (ทางที่ 1 GeoTIFF Zonal ลง DuckDB + ทางที่ 3 ชั้นภาพ TMS 20 ม.) — 19 พ.ย. 2026
+
+- สร้าง `hotspot-5y/download_tamroypao.py` ดึง CSV รายเดือน (`tamroypao_burn_agri` 1,116 แถว, `tamroypao_burn_forest` 1,426 แถว) และ GeoTIFF 20 ม. รายฤดูฝุ่น 6 ไฟล์ (`MB3A`+`MB3F` ฤดู 2567–2569 รวม ~129.7 MB) ซ้อนพิกัด `dim_tambon` ใน 62 จังหวัดที่ สสน. ครอบคลุม (`10..76`, 1 พิกเซล = 0.25 ไร่) ได้ `tamroypao_burn_tambon` **19,023 แถว** (`6,341 ตำบล × 3 ฤดู`: ฤดู 2567 รวม `13,777,961` ไร่ · ฤดู 2568 รวม `10,919,214` ไร่ · ฤดู 2569 รวม `8,886,558` ไร่; 15 จังหวัดนอกขอบเขตคง `NULL`) โดยไฟล์ `hotspot_5y.duckdb` คงขนาดเดิม `373.8 MB`
+- อัปเดต `hotspot-5y/map_data.py`, `map_template.py`, `tests/test_interactive_map.py`, `README.md`: เพิ่มตัวชี้วัด `trp_rai` (รอยเผา สสน. แยกพืช/ฤดู ระดับจังหวัด/อำเภอ/ตำบล แบบออฟไลน์) และ `#tmsOverlaySelect` (ชั้นภาพ TMS 20 ม. ออนไลน์ของ สสน. พร้อมแปลงพิกัด `tmsY = (1 << z) - 1 - ty` และแถบสีพืช/ป่า); รัน `test_interactive_map.py` ผ่าน `8/8` (`3.208s`) และผลิต `hotspot_5y_interactive_map.html` (`5.71 MB`); `0` D1 writes, ยังไม่ commit
+
 ## เช็กเทียบรอยเผา GISTDA vs ตามรอยเผา + ตรวจครบเตรียม push `main` — 19 พ.ย. 2026
 
 - ยืนยันข้อจำกัดรอยเผา GISTDA (`disaster.gistda.or.th/fire` + API): ปัจจุบันเปิดเฉพาะรอบ `11–20 พ.ค. 2569` (หน้าเว็บมี `Jan/Feb/Mar/May 2569`) และเผาซ้ำ 4 ปี (`2017, 2023–2025`); ส่วนข้อมูลตามฤดูฝุ่น 3 ฤดู (`2567–2569`) แยกพืช 20 ม. เป็นของระบบตามรอยเผา (`tamroypao.hii.or.th`, สสน.+วช.+ม.เกษตรฯ)

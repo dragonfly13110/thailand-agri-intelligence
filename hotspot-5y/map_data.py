@@ -258,6 +258,57 @@ def _load_burn_stats(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) 
     return scar_maps, freq_maps
 
 
+def _load_tamroypao_stats(
+    con: duckdb.DuckDBPyConnection,
+    existing_tables: set[str],
+) -> tuple[dict[str, dict[str, dict[str, list[float]]]], set[str], list[int]]:
+    trp_maps: dict[str, dict[str, dict[str, list[float]]]] = {"prov": {}, "amphoe": {}, "tambon": {}}
+    if "tamroypao_burn_tambon" not in existing_tables:
+        return trp_maps, set(), []
+
+    covered_provs = {
+        str(r[0]).zfill(2)
+        for r in con.execute(
+            "SELECT DISTINCT lpad(CAST(prov_code AS VARCHAR), 2, '0') FROM tamroypao_burn_tambon WHERE prov_code IS NOT NULL"
+        ).fetchall()
+    }
+    trp_years = [
+        int(r[0])
+        for r in con.execute(
+            "SELECT DISTINCT year_th FROM tamroypao_burn_tambon WHERE year_th IS NOT NULL ORDER BY 1"
+        ).fetchall()
+    ]
+
+    for level, col_expr in (
+        ("prov", "lpad(CAST(prov_code AS VARCHAR), 2, '0')"),
+        ("amphoe", "CAST(amphoe_code AS VARCHAR)"),
+        ("tambon", "CAST(tambon_code AS VARCHAR)"),
+    ):
+        rows = con.execute(f"""
+            SELECT {col_expr} AS code,
+                   CAST(year_th AS VARCHAR) AS yr,
+                   round(coalesce(sum(paddy_rai), 0), 1) AS paddy,
+                   round(coalesce(sum(sugarcane_rai), 0), 1) AS sugar,
+                   round(coalesce(sum(corn_rai), 0), 1) AS corn,
+                   round(coalesce(sum(mixed_rai), 0), 1) AS mixed,
+                   round(coalesce(sum(forest_rai), 0), 1) AS forest
+            FROM tamroypao_burn_tambon
+            WHERE {col_expr} IS NOT NULL
+            GROUP BY 1, 2
+        """).fetchall()
+        lvl_map: dict[str, dict[str, list[float]]] = {}
+        for code, yr, paddy, sugar, corn, mixed, forest in rows:
+            vals = [float(paddy), float(sugar), float(corn), float(mixed), float(forest)]
+            if any(v > 0 for v in vals):
+                lvl_map.setdefault(str(code), {})[str(yr)] = vals
+            else:
+                lvl_map.setdefault(str(code), {})
+        trp_maps[level] = lvl_map
+
+    return trp_maps, covered_provs, trp_years
+
+
+
 def build_map_payload(
     db_path: Path = DEFAULT_DB_PATH,
     era5_path: Path = DEFAULT_ERA5_PATH,
@@ -281,6 +332,7 @@ def build_map_payload(
         era5_map = _load_era5(Path(era5_path))
         flood_tambon, flood_amphoe, flood_prov = _load_flood_risk(tadih_db_path)
         scar_maps, freq_maps = _load_burn_stats(con, existing_tables)
+        trp_maps, covered_trp_provs, trp_years = _load_tamroypao_stats(con, existing_tables)
         covered_scar_provs = set(scar_maps["prov"].keys())
         covered_freq_provs = set(freq_maps["prov"].keys())
 
@@ -299,6 +351,7 @@ def build_map_payload(
             scar = scar_maps["prov"].get(pcode)
             freq = freq_maps["prov"].get(pcode)
             fl = flood_prov.get(pcode)
+            trp = trp_maps["prov"].get(pcode, {}) if pcode in covered_trp_provs else None
             provinces.append({
                 "code": pcode,
                 "name_th": nth,
@@ -317,6 +370,7 @@ def build_map_payload(
                 "flood_high_tambons": fl["high_tambons"] if fl else None,
                 "flood_matched_tambons": fl["matched_tambons"] if fl else None,
                 "era5": era5_map.get(pcode, {}),
+                "trp": trp,
             })
 
         # Amphoes (plus synthesized amphoes present in dim_tambon but absent from dim_amphoe)
@@ -358,6 +412,7 @@ def build_map_payload(
             scar = scar_maps["amphoe"].get(acode_s) if pcode_s in covered_scar_provs else None
             freq = freq_maps["amphoe"].get(acode_s) if pcode_s in covered_freq_provs else None
             fl = flood_amphoe.get(acode_s)
+            trp = trp_maps["amphoe"].get(acode_s, {}) if pcode_s in covered_trp_provs else None
             amphoes.append({
                 "code": acode_s,
                 "prov_code": pcode_s,
@@ -375,6 +430,7 @@ def build_map_payload(
                 "flood_avg_17yr": fl["avg_17yr"] if fl else None,
                 "flood_high_tambons": fl["high_tambons"] if fl else None,
                 "flood_matched_tambons": fl["matched_tambons"] if fl else None,
+                "trp": trp,
             })
 
         # Tambons
@@ -398,6 +454,7 @@ def build_map_payload(
             scar = scar_maps["tambon"].get(tcode_s) if pcode_s in covered_scar_provs else None
             freq = freq_maps["tambon"].get(tcode_s) if pcode_s in covered_freq_provs else None
             fl = flood_tambon.get(tcode_s)
+            trp = trp_maps["tambon"].get(tcode_s, {}) if pcode_s in covered_trp_provs else None
             tambons.append({
                 "code": tcode_s,
                 "amphoe_code": acode_s,
@@ -415,6 +472,7 @@ def build_map_payload(
                 "flood_max_17yr": fl["max_17yr"] if fl else None,
                 "flood_months": fl["months"] if fl else None,
                 "flood_risk_level": fl["risk_level"] if fl else None,
+                "trp": trp,
             })
 
         # Ensure hotspots with tambon_code absent from dim_tambon are never silently dropped
@@ -445,6 +503,7 @@ def build_map_payload(
             scar = scar_maps["tambon"].get(tcode_s) if pcode_s in covered_scar_provs else None
             freq = freq_maps["tambon"].get(tcode_s) if pcode_s in covered_freq_provs else None
             fl = flood_tambon.get(tcode_s)
+            trp = trp_maps["tambon"].get(tcode_s) if pcode_s in covered_trp_provs else None
             tambons.append({
                 "code": tcode_s,
                 "amphoe_code": acode_s,
@@ -462,6 +521,7 @@ def build_map_payload(
                 "flood_max_17yr": fl["max_17yr"] if fl else None,
                 "flood_months": fl["months"] if fl else None,
                 "flood_risk_level": fl["risk_level"] if fl else None,
+                "trp": trp,
             })
 
         # Sparse hotspot cube per tambon
@@ -636,6 +696,8 @@ def build_map_payload(
                 "tambon_count": len(tambons),
                 "scar_covered_provinces": len(covered_scar_provs),
                 "freq_covered_provinces": len(covered_freq_provs),
+                "trp_covered_provinces": len(covered_trp_provs),
+                "trp_years": trp_years,
                 "flood_covered_provinces": len(flood_prov),
                 "flood_covered_tambons": len(flood_tambon),
                 "years": [2022, 2023, 2024, 2025, 2026],

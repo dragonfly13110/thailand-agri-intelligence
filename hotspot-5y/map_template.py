@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import json
 
+from explorer_asset import EXPLORER_BUTTON_HTML, EXPLORER_CSS, EXPLORER_JS, EXPLORER_MODAL_HTML
 from map_data import encode_payload_b64
 
 HTML_SHELL = r"""<!DOCTYPE html>
@@ -254,6 +255,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   .map-controls { right: 8px; bottom: 16px; }
   .hud-box { padding: 5px 8px; font-size: 11px; }
 }
+/*__EXPLORER_CSS__*/
 </style>
 </head>
 <body>
@@ -274,6 +276,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     <div class="search-wrap">
       <input id="searchInput" class="search-input" type="search" placeholder="ค้นหาจังหวัด / อำเภอ / ตำบล..." autocomplete="off" />
     </div>
+    <!--__EXPLORER_BTN__-->
     <button id="exportCsvBtn" class="btn" title="ส่งออกตารางเป็น CSV สำหรับ Excel">⬇ Export CSV</button>
     <button id="provenanceBtn" class="btn" title="ที่มาข้อมูลและข้อควรระวัง">ℹ ข้อควรรู้</button>
     <button id="themeToggle" class="btn" title="สลับโหมดสีมืด/สว่าง">☀ โหมดสว่าง</button>
@@ -348,6 +351,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             <option value="count" selected>จำนวนจุดความร้อน (จุด)</option>
             <option value="density">ความหนาแน่น (จุด / 100 ตร.กม.)</option>
             <option value="agri_pct">สัดส่วนเผาในเกษตร+ส.ป.ก. (%)</option>
+            <option value="trp_rai">รอยเผา สสน. ตามรอยเผา (ไร่ · แยกพืช/ฤดู 24–26)</option>
             <option value="scar_rai">รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)</option>
             <option value="freq_rai">พื้นที่เผาซ้ำซาก GISTDA (ไร่)</option>
             <option value="era5_hot">อากาศ ERA5: วันร้อนจัด ≥38°C</option>
@@ -361,7 +365,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <select id="levelModeSelect">
             <option value="auto" selected>อัตโนมัติ (คลิกเจาะ จังหวัด → อำเภอ → ตำบล)</option>
             <option value="province">77 จังหวัดทั้งประเทศ</option>
-            <option value="amphoe_all">926 อำเภอทั้งประเทศ</option>
+            <option value="amphoe_all">928 อำเภอทั้งประเทศ</option>
           </select>
         </div>
         <div id="grainWarnPill" class="warn-pill"></div>
@@ -381,6 +385,26 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <input id="showVillagesCheck" type="checkbox" />
           <span>หมู่บ้านใกล้จุดไฟสูงสุด</span>
         </label>
+        <div>
+          <label class="field-label" for="tmsOverlaySelect">ชั้นภาพรอยเผา 20 ม. สสน. (TMS เมื่อมีเน็ต)</label>
+          <select id="tmsOverlaySelect">
+            <option value="none" selected>ปิดชั้นภาพ TMS สสน. (Offline 100%)</option>
+            <option value="2025/BOTH_202512_202604">ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร + ป่าไม้</option>
+            <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3A_COLOR">ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร 4 พืช</option>
+            <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3F_COLOR">ฤดู 2569 (ธ.ค.68–เม.ย.69) · เขตป่าไม้</option>
+            <option value="2024/BOTH_202412_202504">ฤดู 2568 (ธ.ค.67–เม.ย.68) · เกษตร + ป่าไม้</option>
+            <option value="2024/BURNSCAR_NORTH_20M_202412_202504_B3A_COLOR">ฤดู 2568 (ธ.ค.67–เม.ย.68) · เกษตร 4 พืช</option>
+            <option value="2024/BURNSCAR_NORTH_20M_202412_202504_B3F_COLOR">ฤดู 2568 (ธ.ค.67–เม.ย.68) · เขตป่าไม้</option>
+            <option value="2023/BOTH_202312_202404">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เกษตร + ป่าไม้</option>
+            <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3A_COLOR">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เกษตร 4 พืช</option>
+            <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3F_COLOR">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เขตป่าไม้</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202604_B2A_COLOR">รายเดือน เม.ย. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202603_B2A_COLOR">รายเดือน มี.ค. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202602_B2A_COLOR">รายเดือน ก.พ. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202601_B2A_COLOR">รายเดือน ม.ค. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีแหล่งเชื้อเพลิง SAVI (ม.ค. 2026)</option>
+          </select>
+        </div>
         <div>
           <label class="field-label" for="basemapSelect">แผนที่พื้นหลัง (เมื่อมีเน็ต)</label>
           <select id="basemapSelect">
@@ -408,6 +432,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <div id="legendBar" class="legend-bar"></div>
         <div class="legend-labels"><span id="legMin">0</span><span id="legMid">-</span><span id="legMax">-</span></div>
         <div id="legendNullChip" class="null-chip" style="display:none;"><span class="null-swatch"></span><span>ไม่มีข้อมูลต้นทาง (ไม่ใช่ 0)</span></div>
+        <div id="tmsLegendChip" class="null-chip" style="display:none;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:10.5px;"></div>
       </div>
     </section>
 
@@ -424,7 +449,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <div id="kpiAgriSub" class="kpi-sub">-</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">รอยเผาไหม้จริง (พ.ค. 2026)</div>
+          <div id="kpiScarLabel" class="kpi-label">รอยเผาไหม้จริง (พ.ค. 2026)</div>
           <div id="kpiScar" class="kpi-val">-</div>
           <div id="kpiScarSub" class="kpi-sub">-</div>
         </div>
@@ -450,6 +475,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <option value="longest_dry_spell_days">ช่วงแล้งยาวสุด (วัน)</option>
               <option value="rainfall_total_mm">ฝนรวมทั้งปี (มม.)</option>
               <option value="flood_max_17yr">น้ำท่วมซ้ำ 17 ปี (ครั้ง · HII)</option>
+              <option value="trp_rai">รอยเผาไหม้ (ไร่ · สสน. ตามรอยเผา)</option>
               <option value="scar_rai">รอยเผาไหม้ (ไร่ · GISTDA)</option>
             </select>
           </div>
@@ -499,12 +525,14 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <li><strong>จุดความร้อน 5 ปี (`1,278,326` จุด, `2022-01-01` ถึง `2026-11-17`):</strong> จาก GISTDA STAC VIIRS ทุกรายการจับคู่กับขอบเขต ปภ. (77 จังหวัด / 926 อำเภอ / 7,658 ตำบล) และหมู่บ้านใกล้เคียง</li>
       <li><strong>ทำไมค่าเริ่มต้นใช้ Suomi NPP (`N`) + ม.ค.–ต.ค.:</strong> ปี 2022–2023 มีดาวเทียมดวงเดียว (`N`) แต่ปี 2024–2026 มี 3 ดวง (`N`, `N20`, `N21`) ทำให้เกิดจุดซ้ำวันเดียวกันถึง ~33% นอกจากนี้ `N` หยุดส่งข้อมูลหลังวันที่ `1 พ.ย. 2026` จึงตัดเทียบ `ม.ค.–ต.ค.` เพื่อให้ 5 ปีเทียบเท่ากันจริง</li>
       <li><strong>ร่องรอยเผาไหม้ (`gistda_burn_scar` 57 จังหวัด) & เผาซ้ำซาก (`gistda_burn_freq` 53 จังหวัด):</strong> ไม่ครบทั้ง 77 จังหวัด (อีสานหาย 15 จังหวัด ใต้หาย 9 จังหวัดใน `burn_freq`) พื้นที่ที่ไม่มีข้อมูลจึงแสดงเป็น <strong>สีเทา ("ไม่มีข้อมูลต้นทาง")</strong> ห้ามแปลเป็น 0</li>
+      <li><strong>รอยเผาไหม้ สสน. "ตามรอยเผา" (`tamroypao.hii.or.th`, Sentinel-2 20 ม.):</strong> ครอบคลุม 62 จังหวัด (`TH10`–`TH76`, ขาดประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดซึ่งแสดงเป็นสีเทา "ไม่มีข้อมูล") ทั้งแบบตัวเลขออฟไลน์ระดับจังหวัด/อำเภอ/ตำบล 3 ฤดูฝุ่น (`2567–2569` = `2024–2026`) แยกข้าว/อ้อย/ข้าวโพด/พืชผสม/ป่า (1 พิกเซล 20×20 ม. = 0.25 ไร่) และชั้นภาพ TMS ออนไลน์ความละเอียด 20 ม.</li>
       <li><strong>อากาศ ERA5 (`approved_public`, ปี 2022–2025):</strong> เป็นค่าจุดกริดศูนย์กลางจังหวัดทั้ง 77 จังหวัด (ไม่มีระดับอำเภอ/ตำบล และยังไม่มีรายปี 2026) กราฟความสัมพันธ์ ERA5 จึงล็อกไว้ที่ระดับ 77 จังหวัดเสมอ</li>
       <li><strong>ความเสี่ยงน้ำท่วมซ้ำซาก HII (`pending` ใช้ภายในเครื่อง):</strong> ครอบคลุม 6,434 ตำบลที่เคยท่วมในรอบ 17 ปี (ขาดภูเก็ต/ระนอง และ 1,224 ตำบลที่ไม่อยู่ในบัญชี) พื้นที่ขาดข้อมูลแสดงเป็นสีเทา</li>
       <li><strong>จุดซ้ำถาวร (`143` พิกัด / `7,324` จุด):</strong> เกิดซ้ำจุดเดิม ≥25 วัน มักเป็นโรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล (92% โผล่ตอนกลางคืน) ถูกตัดออกโดยค่าเริ่มต้น</li>
     </ul>
   </div>
 </div>
+<!--__EXPLORER_MODAL__-->
 
 <script id="payloadB64" type="text/plain">__PAYLOAD_B64__</script>
 <script>
@@ -549,6 +577,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     showHeat: true,
     showStatic: false,
     showVillages: false,
+    tmsOverlay: "none",
     basemap: "none",
     scatterX: "hot_days_38c",
     scatterY: "count",
@@ -569,10 +598,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     "provenanceBtn","themeToggle","presentationBtn","exitPresBtn","workspace",
     "satSelect","janOctCheck","satWarnPill","yearSelect","seasonSelect","cropSelect",
     "excludeStaticCheck","metricSelect","levelModeSelect","grainWarnPill",
-    "showHeatCheck","showStaticCheck","showVillagesCheck","basemapSelect",
+    "showHeatCheck","showStaticCheck","showVillagesCheck","tmsOverlaySelect","basemapSelect",
     "mapCanvas","scopePill","resetZoomBtn","zoomInBtn","zoomOutBtn",
-    "legendTitle","legendBar","legMin","legMid","legMax","legendNullChip","tooltip",
-    "kpiTotal","kpiTotalSub","kpiAgri","kpiAgriSub","kpiScar","kpiScarSub","kpiFactor","kpiFactorSub",
+    "legendTitle","legendBar","legMin","legMid","legMax","legendNullChip","tmsLegendChip","tooltip",
+    "kpiTotal","kpiTotalSub","kpiAgri","kpiAgriSub","kpiScarLabel","kpiScar","kpiScarSub","kpiFactor","kpiFactorSub",
     "insightBox","corrBadge","scatterX","scatterY","scatterCanvas","scatterNote",
     "trendCanvas","rankTitle","rankList","provenanceModal","closeModalBtn"
   ];
@@ -589,11 +618,27 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
   }
 
+  const PAYLOAD_URL = "__PAYLOAD_URL__";
+
   async function decodePayload() {
-    const b64 = document.getElementById("payloadB64").textContent.trim();
-    const binStr = atob(b64);
-    const bytes = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    let bytes;
+    const b64 = (document.getElementById("payloadB64")?.textContent || "").trim();
+    if (b64) {
+      const binStr = atob(b64);
+      bytes = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    } else if (PAYLOAD_URL) {
+      els.loadingMask.querySelector("div:last-child").textContent = "กำลังโหลดชุดข้อมูลสรุปจาก Hugging Face (~4.2 MB)...";
+      const resp = await fetch(PAYLOAD_URL);
+      if (!resp.ok) throw new Error(`โหลดข้อมูลจาก Hugging Face ไม่สำเร็จ (HTTP ${resp.status})`);
+      bytes = new Uint8Array(await resp.arrayBuffer());
+    } else {
+      throw new Error("ไม่พบชุดข้อมูลแผนที่ในหน้าเว็บนี้");
+    }
+    const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+    if (!isGzip) {
+      return JSON.parse(new TextDecoder("utf-8").decode(bytes));
+    }
     if (typeof DecompressionStream !== "undefined") {
       const ds = new DecompressionStream("gzip");
       const stream = new Blob([bytes]).stream().pipeThrough(ds);
@@ -657,6 +702,42 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const vals = ["2022", "2023", "2024", "2025"].map(y => e[y]?.[key]).filter(v => v !== null && v !== undefined);
     if (!vals.length) return null;
     return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+
+  function getTrpBreakdown(item) {
+    if (!item || item.trp === null || item.trp === undefined) return null;
+    if (state.year === "2022" || state.year === "2023") return null;
+    const trpYears = (DATA.meta && DATA.meta.trp_years && DATA.meta.trp_years.length)
+      ? DATA.meta.trp_years.map(String)
+      : ["2024", "2025", "2026"];
+    const yrs = state.year === "all" ? trpYears : (trpYears.includes(state.year) ? [state.year] : []);
+    if (!yrs.length) return null;
+    let paddy = 0, sugar = 0, corn = 0, mixed = 0, forest = 0;
+    for (const y of yrs) {
+      const a = item.trp[y];
+      if (a) {
+        paddy += a[0] || 0;
+        sugar += a[1] || 0;
+        corn += a[2] || 0;
+        mixed += a[3] || 0;
+        forest += a[4] || 0;
+      }
+    }
+    const agri = paddy + sugar + corn + mixed;
+    const total = agri + forest;
+    return { paddy, sugar, corn, mixed, agri, forest, total };
+  }
+
+  function getTrpMetric(item, cropOverride) {
+    const b = getTrpBreakdown(item);
+    if (!b) return null;
+    const c = cropOverride || state.crop;
+    if (c === "rice") return b.paddy;
+    if (c === "sugarcane") return b.sugar;
+    if (c === "corn") return b.corn;
+    if (c === "agri") return b.agri;
+    if (c === "forest") return b.forest;
+    return b.total;
   }
 
   function computeFilteredStats() {
@@ -854,6 +935,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     if (m === "count") return rec.total;
     if (m === "density") return rec.density;
     if (m === "agri_pct") return rec.agriPct;
+    if (m === "trp_rai") return getTrpMetric(it);
     if (m === "scar_rai") return it.scar_rai;
     if (m === "freq_rai") return it.freq_rai;
     if (m === "hazard") return rec.hazard;
@@ -896,7 +978,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const span = maxV - minV;
     if (span <= 0) return pal[val > 0 ? 3 : 0];
     let t = (val - minV) / span;
-    if (m === "count" || m === "density" || m === "scar_rai" || m === "freq_rai") {
+    if (m === "count" || m === "density" || m === "trp_rai" || m === "scar_rai" || m === "freq_rai") {
       // Perceptual sqrt scaling so mid-tier agricultural hotspots stand out cleanly
       t = Math.sqrt(Math.max(0, t));
     }
@@ -945,7 +1027,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           img.onload = () => { entry.ok = true; requestDrawMap(); };
           img.onerror = () => { entry.err = true; };
           img.src = url;
-          if (TILE_CACHE.size > 240) {
+          if (TILE_CACHE.size > 360) {
             const firstKey = TILE_CACHE.keys().next().value;
             TILE_CACHE.delete(firstKey);
           }
@@ -958,6 +1040,67 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         }
       }
     }
+  }
+
+  function resolveTmsLayers(val) {
+    if (!val || val === "none") return [];
+    const m = val.match(/^(\d{4})\/BOTH_(\d{6}_\d{6})$/);
+    if (m) {
+      return [
+        `${m[1]}/BURNSCAR_NORTH_20M_${m[2]}_B3A_COLOR`,
+        `${m[1]}/BURNSCAR_NORTH_20M_${m[2]}_B3F_COLOR`,
+      ];
+    }
+    return [val];
+  }
+
+  function drawTmsOverlay(ctx, w, h) {
+    const layers = resolveTmsLayers(state.tmsOverlay);
+    if (!layers.length) return;
+    const z = Math.max(6, Math.min(15, Math.round(state.zoom)));
+    const nTiles = 1 << z;
+    const worldPx = 256 * Math.pow(2, state.zoom);
+    const leftMx = state.camX - (w / 2) / worldPx;
+    const rightMx = state.camX + (w / 2) / worldPx;
+    const topMy = state.camY - (h / 2) / worldPx;
+    const botMy = state.camY + (h / 2) / worldPx;
+
+    const tx0 = Math.max(0, Math.floor(leftMx * nTiles));
+    const tx1 = Math.min(nTiles - 1, Math.floor(rightMx * nTiles));
+    const ty0 = Math.max(0, Math.floor(topMy * nTiles));
+    const ty1 = Math.min(nTiles - 1, Math.floor(botMy * nTiles));
+    const tilePx = worldPx / nTiles;
+
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    for (const layerPath of layers) {
+      for (let tx = tx0; tx <= tx1; tx++) {
+        for (let ty = ty0; ty <= ty1; ty++) {
+          const tmsY = nTiles - 1 - ty;
+          const key = `tms:${layerPath}:${z}:${tx}:${tmsY}`;
+          let entry = TILE_CACHE.get(key);
+          if (!entry) {
+            const img = new Image();
+            const url = `https://tamroypao.hii.or.th/tms/${layerPath}/${z}/${tx}/${tmsY}.png`;
+            entry = { img, ok: false, err: false };
+            img.onload = () => { entry.ok = true; requestDrawMap(); };
+            img.onerror = () => { entry.err = true; };
+            img.src = url;
+            if (TILE_CACHE.size > 360) {
+              const firstKey = TILE_CACHE.keys().next().value;
+              TILE_CACHE.delete(firstKey);
+            }
+            TILE_CACHE.set(key, entry);
+          }
+          if (entry.ok) {
+            const dx = (tx / nTiles - state.camX) * worldPx + w / 2;
+            const dy = (ty / nTiles - state.camY) * worldPx + h / 2;
+            ctx.drawImage(entry.img, dx, dy, tilePx + 0.6, tilePx + 0.6);
+          }
+        }
+      }
+    }
+    ctx.restore();
   }
 
   let mapDrawPending = false;
@@ -1032,8 +1175,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
     // Draw active polygons
     const hasTiles = state.basemap !== "none";
+    const hasTms = state.tmsOverlay !== "none";
     ctx.save();
-    ctx.globalAlpha = hasTiles ? 0.78 : 0.94;
+    ctx.globalAlpha = hasTms ? 0.30 : (hasTiles ? 0.78 : 0.94);
     const strokeCol = getComputedStyle(document.documentElement).getPropertyValue("--map-land-stroke").trim();
     for (const rec of records) {
       const isHover = state.hoverItem && state.hoverItem.item.code === rec.item.code;
@@ -1053,6 +1197,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       ctx.stroke();
     }
     ctx.restore();
+
+    if (hasTms) {
+      drawTmsOverlay(ctx, w, h);
+    }
 
     // Heatmap 0.05 deg overlay clipped strictly inside visible polygons
     if (state.showHeat && records.length) {
@@ -1163,6 +1311,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       count: "จำนวนจุดความร้อน (จุด)",
       density: "ความหนาแน่น (จุด / 100 ตร.กม.)",
       agri_pct: "สัดส่วนเผาในเกษตร+ส.ป.ก. (%)",
+      trp_rai: "รอยเผาไหม้ สสน. ตามรอยเผา (ไร่)",
       scar_rai: "รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)",
       freq_rai: "พื้นที่เผาซ้ำซาก GISTDA (ไร่)",
       era5_hot: "อากาศ ERA5: วันร้อนจัด ≥38°C (วัน)",
@@ -1185,6 +1334,25 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       els.legMax.textContent = formatNum(maxV, dec);
     }
     els.legendNullChip.style.display = hasNull ? "inline-flex" : "none";
+    if (els.tmsLegendChip) {
+      if (state.tmsOverlay === "none") {
+        els.tmsLegendChip.style.display = "none";
+      } else if (state.tmsOverlay.includes("SAVI_")) {
+        els.tmsLegendChip.style.display = "inline-flex";
+        els.tmsLegendChip.innerHTML = `<strong>สีภาพ SAVI 20 ม.:</strong>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#005000;border-radius:2px"></i> ต่ำมาก</span>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#ffe100;border-radius:2px"></i> ปานกลาง</span>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#e10000;border-radius:2px"></i> เชื้อเพลิงสูงมาก</span>`;
+      } else {
+        els.tmsLegendChip.style.display = "inline-flex";
+        els.tmsLegendChip.innerHTML = `<strong>สีภาพ 20 ม. สสน.:</strong>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#ffff00;border-radius:2px"></i> ข้าว</span>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#ff72df;border-radius:2px"></i> อ้อย</span>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#d1ff72;border-radius:2px"></i> ข้าวโพด</span>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#ffaa01;border-radius:2px"></i> พืชผสม</span>
+          <span><i style="display:inline-block;width:9px;height:9px;background:#ef0707;border-radius:2px"></i> ป่าไม้</span>`;
+      }
+    }
   }
 
   function pointInRings(mx, my, rings) {
@@ -1289,12 +1457,20 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     if (state.metric.startsWith("era5_")) {
       if (state.year === "2026") gWarns.push("ERA5 รายปียังไม่มีปี 2026 (แสดงเป็นไม่มีข้อมูล)");
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลอากาศ ERA5 มีเฉพาะ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
+    } else if (state.metric === "trp_rai") {
+      if (state.year === "2022" || state.year === "2023") {
+        gWarns.push("รอยเผา สสน. (ตามรอยเผา) มีเฉพาะ 3 ฤดูฝุ่น 2024–2026 (พ.ศ. 2567–2569)");
+      }
+      gWarns.push("รอยเผา สสน. ครอบคลุม 62 จังหวัด (ประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดแสดงเป็นไม่มีข้อมูล)");
     } else if (state.metric === "freq_rai") {
       gWarns.push("burn_freq มีข้อมูลแค่ 53 จังหวัด (อีสานหาย 15 จังหวัด, ใต้หาย 9 จังหวัด)");
     } else if (state.metric === "scar_rai") {
       gWarns.push("burn_scar เป็นรอยสะสม 2026 ถึงกลาง พ.ค. ครอบคลุม 57 จังหวัด");
     } else if (state.metric === "hazard") {
       gWarns.push("HII น้ำท่วมซ้ำ 17 ปี (pending ใช้ในเครื่อง) ครอบคลุม 6,434 ตำบล (ขาดภูเก็ต/ระนอง)");
+    }
+    if (state.tmsOverlay !== "none") {
+      gWarns.push("เปิดชั้นภาพ TMS 20 ม. สสน. (ปรับความทึบขอบเขตอัตโนมัติเพื่อให้เห็นแปลงเผา 20 ม. ชัดเจน)");
     }
     els.grainWarnPill.style.display = gWarns.length ? "block" : "none";
     els.grainWarnPill.textContent = gWarns.join(" · ");
@@ -1367,17 +1543,39 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.kpiAgri.textContent = agriPct !== null ? `${agriPct.toFixed(1)}%` : "ไม่มีจุดไฟ";
     els.kpiAgriSub.textContent = forestPct !== null ? `เกษตร ${formatNum(agri)} · ป่า ${formatNum(forest)} (${forestPct.toFixed(1)}%)` : "-";
 
-    // Scar area in current scope
+    // Scar area in current scope (shows TamRoyPao when trp_rai or TMS is active, else GISTDA + TamRoyPao subnote)
+    const trpKnown = kpiRecords.map(r => getTrpBreakdown(r.item)).filter(b => b !== null);
     const scarKnown = kpiRecords.filter(r => r.item.scar_rai !== null && r.item.scar_rai !== undefined);
-    if (!scarKnown.length) {
-      els.kpiScar.textContent = "ไม่มีข้อมูล";
-      els.kpiScarSub.textContent = "GISTDA ไม่ครอบคลุมพื้นที่นี้";
+    if (state.metric === "trp_rai" || state.tmsOverlay !== "none") {
+      const yrLabel = state.year === "all" ? "รวม 3 ฤดู (67–69)" : `ปี ${state.year}`;
+      if (els.kpiScarLabel) els.kpiScarLabel.textContent = `รอยเผา สสน. (${yrLabel})`;
+      if (!trpKnown.length) {
+        els.kpiScar.textContent = "ไม่มีข้อมูล";
+        els.kpiScarSub.textContent = (state.year === "2022" || state.year === "2023")
+          ? "สสน. มีเฉพาะฤดู 2024–2026"
+          : "สสน. ไม่ครอบคลุมพื้นที่นี้";
+      } else {
+        const trpValSum = kpiRecords.reduce((a, r) => a + (getTrpMetric(r.item) || 0), 0);
+        const trpAgriSum = trpKnown.reduce((a, b) => a + b.agri, 0);
+        const trpForSum = trpKnown.reduce((a, b) => a + b.forest, 0);
+        els.kpiScar.textContent = `${formatNum(trpValSum, 0)} ไร่`;
+        els.kpiScarSub.textContent = `เกษตร ${formatNum(trpAgriSum, 0)} · ป่า ${formatNum(trpForSum, 0)} ไร่`;
+      }
     } else {
-      const scarSum = scarKnown.reduce((a, r) => a + r.item.scar_rai, 0);
-      const agriScarSum = scarKnown.reduce((a, r) => a + (r.item.scar_agri_rai || 0), 0);
-      els.kpiScar.textContent = `${formatNum(scarSum, 0)} ไร่`;
-      const covNote = level === "province" && !state.selectedProv ? ` (${DATA.meta.scar_covered_provinces}/77 จว.)` : "";
-      els.kpiScarSub.textContent = `เกษตร+ส.ป.ก. ${scarSum > 0 ? (agriScarSum * 100 / scarSum).toFixed(1) : "0.0"}%${covNote}`;
+      if (els.kpiScarLabel) els.kpiScarLabel.textContent = "รอยเผาไหม้จริง (พ.ค. 2026)";
+      if (!scarKnown.length) {
+        els.kpiScar.textContent = "ไม่มีข้อมูล";
+        els.kpiScarSub.textContent = "GISTDA ไม่ครอบคลุมพื้นที่นี้";
+      } else {
+        const scarSum = scarKnown.reduce((a, r) => a + r.item.scar_rai, 0);
+        const agriScarSum = scarKnown.reduce((a, r) => a + (r.item.scar_agri_rai || 0), 0);
+        els.kpiScar.textContent = `${formatNum(scarSum, 0)} ไร่`;
+        const covNote = level === "province" && !state.selectedProv ? ` (${DATA.meta.scar_covered_provinces}/77 จว.)` : "";
+        const trpNote = trpKnown.length
+          ? ` · สสน. ${formatNum(kpiRecords.reduce((a, r) => a + (getTrpMetric(r.item) || 0), 0), 0)} ไร่`
+          : "";
+        els.kpiScarSub.textContent = `เกษตร ${scarSum > 0 ? (agriScarSum * 100 / scarSum).toFixed(1) : "0.0"}%${covNote}${trpNote}`;
+      }
     }
 
     // Factor snapshot
@@ -1517,6 +1715,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       let xv = null;
       if (isEraX) xv = getEra5Metric(r.item, xKey);
       else if (xKey === "flood_max_17yr") xv = r.item.flood_max_17yr;
+      else if (xKey === "trp_rai") xv = getTrpMetric(r.item);
       else if (xKey === "scar_rai") xv = r.item.scar_rai;
 
       let yv = null;
@@ -1678,9 +1877,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
   function exportCurrentCsv() {
     const { level, records } = getVisibleRecords();
-    const headers = ["code", "name_th", "area_sqkm", "hotspots", "density_per_100sqkm", "agri_pct", "burn_scar_rai", "burn_freq_rai", "flood_max_17yr", "hazard_score"];
+    const headers = ["code", "name_th", "area_sqkm", "hotspots", "density_per_100sqkm", "agri_pct", "tamroypao_burn_rai", "burn_scar_rai", "burn_freq_rai", "flood_max_17yr", "hazard_score"];
     const lines = [headers.join(",")];
     for (const r of records) {
+      const trpV = getTrpMetric(r.item);
       const vals = [
         csvCell(r.item.code),
         csvCell(r.item.name_th || ""),
@@ -1688,6 +1888,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         csvCell(r.total),
         csvCell(r.density !== null ? r.density.toFixed(2) : ""),
         csvCell(r.agriPct !== null ? r.agriPct.toFixed(2) : ""),
+        csvCell(trpV !== null && trpV !== undefined ? trpV.toFixed(1) : ""),
         csvCell(r.item.scar_rai !== null && r.item.scar_rai !== undefined ? r.item.scar_rai : ""),
         csvCell(r.item.freq_rai !== null && r.item.freq_rai !== undefined ? r.item.freq_rai : ""),
         csvCell(r.item.flood_max_17yr !== null && r.item.flood_max_17yr !== undefined ? r.item.flood_max_17yr : ""),
@@ -1746,6 +1947,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     syncControl(els.showHeatCheck, "showHeat", el => el.checked);
     syncControl(els.showStaticCheck, "showStatic", el => el.checked);
     syncControl(els.showVillagesCheck, "showVillages", el => el.checked);
+    syncControl(els.tmsOverlaySelect, "tmsOverlay");
     syncControl(els.basemapSelect, "basemap");
     syncControl(els.scatterX, "scatterX");
     syncControl(els.scatterY, "scatterY");
@@ -1872,12 +2074,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           const it = hit.item;
           const { level } = getVisibleRecords();
           const eHot = level === "province" ? getEra5Metric(it, "hot_days_38c") : null;
+          const trpB = getTrpBreakdown(it);
+          const trpVal = getTrpMetric(it);
           const dTxt = hit.density !== null ? `${hit.density.toFixed(1)}/100 ตร.กม.` : "ไม่มีพื้นที่";
           els.tooltip.innerHTML = `
             <h4>${escHtml(it.name_th)}</h4>
             <div class="tt-row"><span class="tt-k">จุดความร้อน</span><span class="tt-v">${formatNum(hit.total)} จุด (${dTxt})</span></div>
             <div class="tt-row"><span class="tt-k">เกษตร+ส.ป.ก.</span><span class="tt-v">${hit.agriPct !== null ? hit.agriPct.toFixed(1) + "%" : "-"}</span></div>
-            <div class="tt-row"><span class="tt-k">รอยเผา พ.ค. 26</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+            <div class="tt-row"><span class="tt-k">รอยเผา สสน.</span><span class="tt-v">${trpVal !== null ? formatNum(trpVal, 0) + " ไร่" + (trpB ? " (เกษตร " + formatNum(trpB.agri, 0) + " · ป่า " + formatNum(trpB.forest, 0) + ")" : "") : "ไม่มีข้อมูล"}</span></div>
+            <div class="tt-row"><span class="tt-k">รอยเผา GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
             <div class="tt-row"><span class="tt-k">เผาซ้ำซาก GISTDA</span><span class="tt-v">${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
             <div class="tt-row"><span class="tt-k">ท่วมซ้ำ 17 ปี</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง (" + escHtml(hit.hazardLabel || "") + ")" : "ไม่มีข้อมูล HII"}</span></div>
             ${level === "province" ? `<div class="tt-row"><span class="tt-k">วันร้อนจัด ≥38°C</span><span class="tt-v">${eHot !== null ? formatNum(eHot, 1) + " วัน" : "ไม่มีข้อมูล 2026"}</span></div>` : ""}
@@ -1946,11 +2151,14 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     });
   }
 
+/*__EXPLORER_JS__*/
+
   async function init() {
     try {
       const decoded = await decodePayload();
       prepareData(decoded);
       bindEvents();
+      if (typeof bindExplorerEvents === "function") bindExplorerEvents();
       els.loadingMask.style.display = "none";
       fitBbox(THAI_BBOX);
       refreshAll();
@@ -1967,8 +2175,31 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
 
 def render_interactive_html(payload: dict) -> str:
-    """Render the self-contained interactive map HTML with gzip-compressed payload."""
+    """Render the self-contained offline interactive map HTML with gzip-compressed payload."""
     encoded = encode_payload_b64(payload)
     # Guard any potential HTML tag sequence safely (base64 never has '<', escape defensively anyway).
     safe_b64 = html.escape(encoded, quote=False)
-    return HTML_SHELL.replace("__PAYLOAD_B64__", safe_b64)
+    return (
+        HTML_SHELL
+        .replace("/*__EXPLORER_CSS__*/", "")
+        .replace("<!--__EXPLORER_BTN__-->", "")
+        .replace("<!--__EXPLORER_MODAL__-->", "")
+        .replace("/*__EXPLORER_JS__*/", "")
+        .replace("__PAYLOAD_URL__", "")
+        .replace("__PAYLOAD_B64__", safe_b64)
+    )
+
+
+def render_online_web_html(hf_repo: str = "dragonfly13110/thailand-hotspot-5y") -> str:
+    """Render the lightweight online web app backed by Hugging Face Datasets + DuckDB-Wasm."""
+    safe_repo = html.escape(hf_repo.strip(), quote=True)
+    payload_url = f"https://huggingface.co/datasets/{safe_repo}/resolve/main/summary/map_payload.json.gz"
+    return (
+        HTML_SHELL
+        .replace("/*__EXPLORER_CSS__*/", EXPLORER_CSS)
+        .replace("<!--__EXPLORER_BTN__-->", EXPLORER_BUTTON_HTML)
+        .replace("<!--__EXPLORER_MODAL__-->", EXPLORER_MODAL_HTML.replace("__HF_REPO__", safe_repo))
+        .replace("/*__EXPLORER_JS__*/", EXPLORER_JS.replace("__HF_REPO__", safe_repo))
+        .replace("__PAYLOAD_URL__", payload_url)
+        .replace("__PAYLOAD_B64__", "")
+    )

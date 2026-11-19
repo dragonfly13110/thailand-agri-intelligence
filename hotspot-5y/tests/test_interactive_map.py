@@ -18,7 +18,7 @@ if str(SUBPROJECT_DIR) not in sys.path:
 
 from build_interactive_map import build_interactive_map  # noqa: E402
 from map_data import build_map_payload, encode_payload_b64, pack_flags, unpack_flags  # noqa: E402
-from map_template import render_interactive_html  # noqa: E402
+from map_template import render_interactive_html, render_online_web_html  # noqa: E402
 
 
 def _create_synthetic_sources(root: Path, *, include_tadih: bool = True) -> tuple[Path, Path, Path | None]:
@@ -110,6 +110,18 @@ def _create_synthetic_sources(root: Path, *, include_tadih: bool = True) -> tupl
         );
         INSERT INTO gistda_burn_freq VALUES
         ('bf1', '50', 'เชียงใหม่', 5001, 'เมืองเชียงใหม่', 500101, 'ศรีภูมิ', 500.0, 3, 1, 1, 1);
+
+        CREATE TABLE tamroypao_burn_tambon (
+            season_be VARCHAR, season_period VARCHAR, year_th INTEGER,
+            prov_code VARCHAR, amphoe_code VARCHAR, tambon_code VARCHAR,
+            paddy_rai DOUBLE, sugarcane_rai DOUBLE, corn_rai DOUBLE, mixed_rai DOUBLE,
+            agri_rai DOUBLE, forest_rai DOUBLE, total_rai DOUBLE,
+            source_agri_tif VARCHAR, source_forest_tif VARCHAR
+        );
+        INSERT INTO tamroypao_burn_tambon VALUES
+        ('2567', '202312_202404', 2024, '50', '5001', '500101', 100.5, 20.0, 300.25, 5.0, 425.75, 600.0, 1025.75, 'b3a_2023.tif', 'b3f_2023.tif'),
+        ('2568', '202412_202504', 2025, '50', '5001', '500101', 80.0, 15.0, 200.0, 0.0, 295.0, 450.0, 745.0, 'b3a_2024.tif', 'b3f_2024.tif'),
+        ('2569', '202512_202604', 2026, '50', '5001', '500101', 90.0, 10.0, 150.0, 2.5, 252.5, 310.0, 562.5, 'b3a_2025.tif', 'b3f_2025.tif');
 
         CREATE VIEW v_suspected_static_hotspots AS
         SELECT prov_name_th, amphoe_name_th, tambon_name_th, lu_name,
@@ -204,23 +216,30 @@ class InteractiveMapDataTests(unittest.TestCase):
             self.assertIn("50", provs)
             self.assertIn("83", provs)
 
-            # Phuket (83) has no burn_scar, no burn_freq, and no HII flood rows -> must remain None
+            # Phuket (83) has no burn_scar, no burn_freq, no TamRoyPao, and no HII flood rows -> must remain None
             self.assertIsNone(provs["83"]["scar_rai"])
             self.assertIsNone(provs["83"]["freq_rai"])
             self.assertIsNone(provs["83"]["flood_max_17yr"])
+            self.assertIsNone(provs["83"]["trp"])
             self.assertGreater(provs["83"]["area_sqkm"], 0)
             self.assertTrue(len(provs["83"]["rings"]) >= 1)
 
-            # Chiang Mai (50) has burn_scar, burn_freq, flood, and ERA5 2022..2025 (no 2026)
+            # Chiang Mai (50) has burn_scar, burn_freq, TamRoyPao (2024..2026), flood, and ERA5 2022..2025 (no 2026)
             self.assertAlmostEqual(provs["50"]["scar_rai"], 120.5)
             self.assertAlmostEqual(provs["50"]["freq_rai"], 500.0)
             self.assertEqual(provs["50"]["flood_max_17yr"], 8)
             self.assertEqual(sorted(provs["50"]["era5"].keys()), ["2022", "2023", "2024", "2025"])
+            self.assertEqual(sorted(provs["50"]["trp"].keys()), ["2024", "2025", "2026"])
+            self.assertEqual(provs["50"]["trp"]["2024"], [100.5, 20.0, 300.3, 5.0, 600.0])
+            self.assertEqual(payload["meta"]["trp_covered_provinces"], 1)
+            self.assertEqual(payload["meta"]["trp_years"], [2024, 2025, 2026])
 
             # Check GeometryCollection/MultiPolygon amphoe and tambon extraction
             tambons = {t["code"]: t for t in payload["tambons"]}
             self.assertIsNone(tambons["830101"]["flood_max_17yr"])
+            self.assertIsNone(tambons["830101"]["trp"])
             self.assertEqual(tambons["500101"]["flood_max_17yr"], 8)
+            self.assertEqual(tambons["500101"]["trp"]["2026"], [90.0, 10.0, 150.0, 2.5, 310.0])
             self.assertTrue(len(tambons["500101"]["rings"]) >= 1)
 
             # Check cube keeps corn-in-forest (lu=1, crop=3, sat=0) distinct from Nov 2026 N20 (sat=1)
@@ -335,9 +354,30 @@ class InteractiveMapDataTests(unittest.TestCase):
             html = render_interactive_html(payload)
             self.assertIn("function escHtml(", html)
             self.assertIn("function csvCell(", html)
+            self.assertIn("function drawTmsOverlay(", html)
+            self.assertIn('id="tmsOverlaySelect"', html)
+            self.assertIn('value="trp_rai"', html)
             self.assertIn("^[=+\\-@\\t\\r]", html)
             self.assertNotIn('state.season === "late" && state.year !== "2026"', html)
             self.assertIn('key === "levelMode"', html)
+
+    def test_render_online_web_html_valid_js_and_hf_urls(self) -> None:
+        html_text = render_online_web_html("dragonfly13110/thailand-hotspot-5y")
+        self.assertIn("https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y/resolve/main/summary/map_payload.json.gz", html_text)
+        self.assertIn('id="openExplorerBtn"', html_text)
+        self.assertIn('id="explorerModal"', html_text)
+        self.assertIn("ensureDuckDb", html_text)
+        self.assertNotIn("__PAYLOAD_B64__", html_text)
+        self.assertNotIn("__HF_REPO__", html_text)
+        script_body = html_text.split('<script id="payloadB64" type="text/plain">', 1)[1].split("<script>\n", 1)[1].rsplit("</script>", 1)[0]
+        import shutil, subprocess
+        node_exe = shutil.which("node")
+        if node_exe:
+            with tempfile.TemporaryDirectory() as tmp:
+                js_file = Path(tmp) / "online_check.js"
+                js_file.write_text(script_body, encoding="utf-8")
+                res = subprocess.run([node_exe, "--check", str(js_file)], capture_output=True, text=True)
+                self.assertEqual(res.returncode, 0, res.stderr)
 
 
 if __name__ == "__main__":
