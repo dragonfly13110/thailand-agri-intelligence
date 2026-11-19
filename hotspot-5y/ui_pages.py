@@ -266,6 +266,75 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
 .dock-btn:hover { color: var(--text); background: var(--card); }
 .dock-btn.active { background: var(--accent); color: #fff; }
 
+/* Page 4: Dedicated 20m Burn Scar Map Studio */
+.btn.active {
+  background: var(--accent); color: #ffffff; border-color: transparent;
+}
+.bs-map-toolbar {
+  display: flex; align-items: end; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--border); min-width: 0;
+}
+.bs-ctrl { flex: 1 1 190px; min-width: 0; }
+.bs-ctrl.compact { flex: 0 1 180px; }
+.bs-quick-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0;
+}
+.bs-quick-select { width: auto; min-width: 170px; max-width: 240px; }
+.bs-chip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.bs-chip {
+  padding: 5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--card); color: var(--muted);
+  cursor: pointer; font-family: inherit; white-space: nowrap; transition: all .14s;
+}
+.bs-chip:hover { color: var(--text); border-color: var(--accent); }
+.bs-chip.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+.bs-map-stage {
+  position: relative; width: 100%; height: 560px; border-radius: 13px;
+  overflow: hidden; border: 1px solid var(--border); background: var(--bg); user-select: none;
+}
+#bsMapCanvas { width: 100%; height: 100%; display: block; cursor: grab; }
+#bsMapCanvas:active { cursor: grabbing; }
+.bs-swipe-line {
+  position: absolute; top: 0; bottom: 0; width: 2px; background: #ffffff;
+  box-shadow: 0 0 8px rgba(0,0,0,0.75); z-index: 12; pointer-events: none; display: none;
+}
+.bs-swipe-handle {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--panel-solid); border: 2px solid #ffffff; color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; cursor: ew-resize;
+  pointer-events: auto; touch-action: none; box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+}
+.bs-swipe-tag {
+  position: absolute; top: 12px; z-index: 11; display: none; pointer-events: none;
+  padding: 5px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700;
+  background: rgba(11, 14, 20, 0.86); color: #eceff4; border: 1px solid rgba(255,255,255,0.16);
+  max-width: 44%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bs-swipe-tag.left { left: 12px; }
+.bs-swipe-tag.right { right: 12px; }
+
+.bs-map-hud-bottom {
+  position: absolute; left: 12px; bottom: 12px; z-index: 11; pointer-events: none;
+  max-width: calc(100% - 76px);
+  background: rgba(11, 14, 20, 0.88); color: #eceff4;
+  border: 1px solid rgba(255,255,255,0.16); border-radius: 10px;
+  padding: 8px 11px; font-size: 11.5px; line-height: 1.45;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+}
+.bs-pixel-legend {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; font-size: 11px; color: #cbd5e1;
+}
+.bs-pixel-legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.bs-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.22); }
+.bs-map-controls {
+  position: absolute; right: 12px; bottom: 12px; z-index: 12;
+  display: flex; flex-direction: column; gap: 5px;
+}
+
 @media (max-width: 1080px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .app-body { height: auto; min-height: calc(100vh - 58px); overflow-y: visible; overflow-x: hidden; }
@@ -275,11 +344,13 @@ html[data-theme="light"] .fc-risk.vhigh { color: #9c3329; }
   .hero-banner { padding: 16px 14px; }
   .panel-card { padding: 15px 14px; }
   .ctrl-strip { padding: 12px 14px; }
-  .ctrl-item { min-width: 0; max-width: none; flex: 1 1 100%; width: 100%; }
-  .panel-head select { max-width: 100%; width: 100% !important; min-width: 0 !important; }
+  .ctrl-item, .bs-ctrl, .bs-ctrl.compact { min-width: 0; max-width: none; flex: 1 1 100%; width: 100%; }
+  .panel-head select, .bs-quick-select { max-width: 100%; width: 100% !important; min-width: 0 !important; }
   .story-strip { grid-template-columns: 1fr; }
   .kpi-hero-grid { grid-template-columns: 1fr; }
   .fc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bs-map-stage { height: 410px; }
+  .bs-map-hud-bottom { max-width: calc(100% - 62px); font-size: 11px; padding: 7px 9px; }
   .hero-title { font-size: 18px; }
   .brand-sub { display: none; }
   .nav-tab { padding: 5px 9px; font-size: 12px; }
@@ -584,14 +655,119 @@ BURNSCAR_PAGE_HTML = r"""
       <div class="hero-row">
         <div>
           <div class="hero-kicker">SENTINEL-2 20M BURN SCAR ANALYTICS · สสน. ตามรอยเผา (ฤดู 2567–2569)</div>
-          <h1 class="hero-title">รอยเผาไหม้ 3 ฤดูแยกชนิดพืช &amp; เปรียบเทียบจังหวัดชนจังหวัด</h1>
+          <h1 class="hero-title">แผนที่รอยเผา 20 ม. · วิเคราะห์ 3 ฤดูแยกพืช &amp; เทียบจังหวัดชนจังหวัด</h1>
           <p class="hero-desc">
-            เปรียบเทียบพื้นที่เผาไหม้จริงจากดาวเทียม Sentinel-2 ความละเอียด 20 เมตร (1 พิกเซล = 0.25 ไร่) ครบ 3 ฤดูฝุ่น <strong>2567 · 2568 · 2569</strong> ครอบคลุม 62 จังหวัด พร้อมเครื่องมือเทียบ 4 จังหวัดพร้อมกันและตารางจัดอันดับครบ 77 จังหวัด
+            ดูแปลงเผาไหม้จริงความละเอียด 20 เมตร (1 พิกเซล = 0.25 ไร่) ซ้อนบนภาพถ่ายดาวเทียม ครบ 3 ฤดูฝุ่น <strong>2567 · 2568 · 2569</strong> ครอบคลุม 62 จังหวัด พร้อมลากเส้นเทียบก่อน–หลัง 2 ปีและตารางจัดอันดับ 77 จังหวัด
           </p>
         </div>
         <div class="hero-actions">
-          <button type="button" class="btn primary" id="bsOpenTmsBtn">เปิดภาพแปลงเผา 20 ม. (TMS) บนแผนที่</button>
+          <button type="button" class="btn primary" id="bsOpenTmsBtn">เปิดในแผนที่เจาะลึก (Hotspot + อากาศ)</button>
           <button type="button" class="btn" id="bsExportTableBtn">ส่งออกตาราง 77 จังหวัด (CSV)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bsMapCard" class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">แผนที่รอยเผาไหม้ความละเอียด 20 เมตร (Sentinel-2 สสน. ตามรอยเผา)</h2>
+          <div class="panel-sub">ภาพถ่ายดาวเทียมซ้อนแปลงเผาจริง 1 พิกเซล = 20×20 ม. (0.25 ไร่) · ซูมได้ถึง z18.0 · คลิกจังหวัดในตารางด้านล่างเพื่อบินไปซูมทันที</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span id="bsMapScopeBadge" class="badge">จ.ลพบุรี</span>
+          <button type="button" class="btn" id="bsSwipeToggle">เทียบก่อน-หลัง (Swipe)</button>
+        </div>
+      </div>
+
+      <div class="bs-map-toolbar">
+        <div class="bs-ctrl">
+          <label class="field-label" for="bsLayerLeft" id="bsLayerLeftLabel">ชั้นภาพรอยเผา 20 ม.</label>
+          <select id="bsLayerLeft">
+            <option value="2025/BOTH_202512_202604" selected>ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร + ป่าไม้</option>
+            <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3A_COLOR">ฤดู 2569 · เกษตร 4 พืช</option>
+            <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3F_COLOR">ฤดู 2569 · เขตป่าไม้</option>
+            <option value="2024/BOTH_202412_202504">ฤดู 2568 (ธ.ค.67–เม.ย.68) · เกษตร + ป่าไม้</option>
+            <option value="2024/BURNSCAR_NORTH_20M_202412_202504_B3A_COLOR">ฤดู 2568 · เกษตร 4 พืช</option>
+            <option value="2024/BURNSCAR_NORTH_20M_202412_202504_B3F_COLOR">ฤดู 2568 · เขตป่าไม้</option>
+            <option value="2023/BOTH_202312_202404">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เกษตร + ป่าไม้</option>
+            <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3A_COLOR">ฤดู 2567 · เกษตร 4 พืช</option>
+            <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3F_COLOR">ฤดู 2567 · เขตป่าไม้</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202604_B2A_COLOR">รายเดือน เม.ย. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202603_B2A_COLOR">รายเดือน มี.ค. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202602_B2A_COLOR">รายเดือน ก.พ. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202601_B2A_COLOR">รายเดือน ม.ค. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีแหล่งเชื้อเพลิง SAVI (ม.ค. 2026)</option>
+          </select>
+        </div>
+        <div class="bs-ctrl" id="bsLayerRightWrap" style="display:none;">
+          <label class="field-label" for="bsLayerRight">ฝั่งขวา (หลัง · เทียบกับซ้าย)</label>
+          <select id="bsLayerRight">
+            <option value="2025/BOTH_202512_202604" selected>ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร + ป่าไม้</option>
+            <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3A_COLOR">ฤดู 2569 · เกษตร 4 พืช</option>
+            <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3F_COLOR">ฤดู 2569 · เขตป่าไม้</option>
+            <option value="2024/BOTH_202412_202504">ฤดู 2568 (ธ.ค.67–เม.ย.68) · เกษตร + ป่าไม้</option>
+            <option value="2024/BURNSCAR_NORTH_20M_202412_202504_B3A_COLOR">ฤดู 2568 · เกษตร 4 พืช</option>
+            <option value="2024/BURNSCAR_NORTH_20M_202412_202504_B3F_COLOR">ฤดู 2568 · เขตป่าไม้</option>
+            <option value="2023/BOTH_202312_202404">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เกษตร + ป่าไม้</option>
+            <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3A_COLOR">ฤดู 2567 · เกษตร 4 พืช</option>
+            <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3F_COLOR">ฤดู 2567 · เขตป่าไม้</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202604_B2A_COLOR">รายเดือน เม.ย. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202603_B2A_COLOR">รายเดือน มี.ค. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202602_B2A_COLOR">รายเดือน ก.พ. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/BURNSCAR_NORTH_20M_202601_B2A_COLOR">รายเดือน ม.ค. 2026 · เกษตร 4 พืช</option>
+            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีแหล่งเชื้อเพลิง SAVI (ม.ค. 2026)</option>
+          </select>
+        </div>
+        <div class="bs-ctrl compact">
+          <label class="field-label" for="bsBasemapSel">แผนที่พื้นหลัง</label>
+          <select id="bsBasemapSel">
+            <option value="esri_sat" selected>Esri ภาพถ่ายดาวเทียม</option>
+            <option value="osm">OpenStreetMap (ถนน/หมู่บ้าน)</option>
+            <option value="carto_dark">Carto Dark (โทนมืด)</option>
+            <option value="none">เวกเตอร์ล้วน (Offline 100%)</option>
+          </select>
+        </div>
+        <div class="bs-ctrl compact">
+          <label class="field-label" for="bsOpacityRange">ความชัดรอยเผา: <span id="bsOpacityVal">90%</span></label>
+          <input id="bsOpacityRange" type="range" min="20" max="100" value="90" />
+        </div>
+        <label class="check-row" style="padding-bottom:6px;white-space:nowrap;">
+          <input id="bsShowBoundsCheck" type="checkbox" checked />
+          <span>ขอบเขตอำเภอ/ตำบล</span>
+        </label>
+      </div>
+
+      <div class="bs-quick-bar">
+        <select id="bsMapProvSel" class="bs-quick-select" aria-label="เลือกจังหวัดบนแผนที่รอยเผา"></select>
+        <select id="bsMapAmpSel" class="bs-quick-select" aria-label="เลือกอำเภอบนแผนที่รอยเผา">
+          <option value="">ทุกอำเภอในจังหวัด</option>
+        </select>
+        <div class="bs-chip-row">
+          <button type="button" class="bs-chip active" data-bs-preset="lopburi">ลพบุรี (นาข้าว/อ้อย)</button>
+          <button type="button" class="bs-chip" data-bs-preset="maechaem">อ.แม่แจ่ม เชียงใหม่</button>
+          <button type="button" class="bs-chip" data-bs-preset="nakhonsawan">นครสวรรค์</button>
+          <button type="button" class="bs-chip" data-bs-preset="chaiyaphum">ชัยภูมิ</button>
+          <button type="button" class="bs-chip" data-bs-preset="tak">ตาก</button>
+          <button type="button" class="bs-chip" data-bs-preset="all62">ภาพรวม 62 จังหวัด</button>
+        </div>
+      </div>
+
+      <div class="bs-map-stage">
+        <canvas id="bsMapCanvas"></canvas>
+        <div id="bsSwipeLine" class="bs-swipe-line">
+          <div id="bsSwipeHandle" class="bs-swipe-handle" title="ลากซ้าย-ขวาเพื่อเทียบ 2 ปี">◂▸</div>
+        </div>
+        <div id="bsSwipeTagLeft" class="bs-swipe-tag left"></div>
+        <div id="bsSwipeTagRight" class="bs-swipe-tag right"></div>
+        <div class="bs-map-hud-bottom">
+          <div id="bsHoverInfo">เลื่อนเมาส์บนแผนที่เพื่อดูยอดรอยเผา 3 ฤดูรายอำเภอ/ตำบล</div>
+          <div id="bsPixelLegend" class="bs-pixel-legend"></div>
+        </div>
+        <div class="bs-map-controls">
+          <button id="bsZoomInBtn" type="button" class="zoom-btn" title="ซูมเข้า">+</button>
+          <div id="bsZoomReadout" style="width:34px;text-align:center;font-size:10px;font-weight:700;padding:2px 0;border-radius:6px;background:var(--panel-solid);border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;box-shadow:var(--shadow);">z10.8</div>
+          <button id="bsZoomOutBtn" type="button" class="zoom-btn" title="ซูมออก">−</button>
+          <button id="bsResetBtn" type="button" class="zoom-btn" title="กลับภาพรวม 62 จังหวัด" style="font-size:14px;">↺</button>
         </div>
       </div>
     </div>
@@ -639,8 +815,8 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">ตารางจัดอันดับครบ 77 จังหวัด (คลิกหัวคอลัมน์เพื่อเรียง · คลิกแถวเพื่อเปิดบนแผนที่)</h2>
-          <div class="panel-sub">รวมจุดความร้อน 5 ปี, รอยเผา สสน. ฤดู 2569 แยกพืช, ดัชนีอากาศเอื้อไฟ 2026 และน้ำท่วมซ้ำ HII</div>
+          <h2 class="panel-title">ตารางจัดอันดับครบ 77 จังหวัด (คลิกหัวคอลัมน์เพื่อเรียง · คลิกแถวเพื่อบินไปซูมแผนที่ด้านบน)</h2>
+          <div class="panel-sub">คลิกชื่อจังหวัดใดก็ได้เพื่อเลื่อนขึ้นไปซูมดูแปลงรอยเผา 20 ม. ของจังหวัดนั้นทันที</div>
         </div>
         <input id="bsTableSearch" class="search-input" style="max-width:260px;" type="search" placeholder="ค้นหาชื่อจังหวัดหรือภาค..." />
       </div>
@@ -1665,7 +1841,557 @@ MULTI_PAGE_JS = r"""
     }
   }
 
-  // ===== Page 4: Burn Scar Analytics & Province Comparator =====
+  // ===== Page 4: 20m Burn Scar Map Studio, Analytics & Province Comparator =====
+  const bsMap = {
+    initialized: false,
+    camX: 0.7802,
+    camY: 0.4578,
+    zoom: 10.2,
+    basemap: "esri_sat",
+    layerLeft: "2025/BOTH_202512_202604",
+    layerRight: "2023/BOTH_202312_202404",
+    swipe: false,
+    swipeRatio: 0.5,
+    opacity: 0.9,
+    showBounds: true,
+    focusProv: "16",
+    focusAmp: "",
+    hoverItem: null,
+    lastHoverCode: null,
+  };
+  let bsDrawPending = false;
+  function requestDrawBsMap() {
+    if (activePage !== "burnscar") return;
+    if (bsDrawPending) return;
+    bsDrawPending = true;
+    requestAnimationFrame(() => { bsDrawPending = false; drawBsMap(); });
+  }
+
+  function bsLayerYear(layerVal) {
+    if (!layerVal) return "2026";
+    if (layerVal.startsWith("2023/")) return "2024";
+    if (layerVal.startsWith("2024/")) return "2025";
+    return "2026";
+  }
+
+  function updateBsPixelLegend() {
+    const legEl = document.getElementById("bsPixelLegend");
+    if (!legEl) return;
+    const isSavi = (bsMap.layerLeft || "").includes("SAVI_") || (bsMap.swipe && (bsMap.layerRight || "").includes("SAVI_"));
+    if (isSavi) {
+      legEl.innerHTML = `<strong>สีภาพ SAVI 20 ม.:</strong>
+        <span><i class="bs-swatch" style="background:#005000"></i> เชื้อเพลิงต่ำมาก</span>
+        <span><i class="bs-swatch" style="background:#ffe100"></i> ปานกลาง</span>
+        <span><i class="bs-swatch" style="background:#e10000"></i> เชื้อเพลิงสูงมาก</span>`;
+    } else {
+      legEl.innerHTML = `<strong>สีแปลง 20 ม. (1 จุด=0.25 ไร่):</strong>
+        <span><i class="bs-swatch" style="background:#ffff00"></i> ข้าว</span>
+        <span><i class="bs-swatch" style="background:#ff72df"></i> อ้อย</span>
+        <span><i class="bs-swatch" style="background:#d1ff72"></i> ข้าวโพด</span>
+        <span><i class="bs-swatch" style="background:#ffaa01"></i> พืชผสม</span>
+        <span><i class="bs-swatch" style="background:#ef0707"></i> ป่าไม้</span>`;
+    }
+  }
+
+  function updateBsAreaReadout(item, prefixLabel = "") {
+    const box = document.getElementById("bsHoverInfo");
+    if (!box) return;
+    if (!item) {
+      box.innerHTML = "พื้นที่ <strong>62 จังหวัดในขอบเขต สสน.</strong> · เลื่อนเมาส์บนแผนที่หรือเลือกจังหวัด/อำเภอเพื่อดูยอด 3 ฤดู";
+      return;
+    }
+    const title = (prefixLabel ? prefixLabel : "") + item.name_th;
+    if (item.trp === null || item.trp === undefined) {
+      box.innerHTML = `<strong>${escHtml(title)}</strong> · <span style="color:#d4a84f;">อยู่นอกขอบเขต สสน. ตามรอยเผา (62 จังหวัด)</span>`;
+      return;
+    }
+    const sumArr = (a) => a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : 0;
+    const t67 = sumArr(item.trp["2024"]);
+    const t68 = sumArr(item.trp["2025"]);
+    const t69 = item.trp["2026"] || [0,0,0,0,0];
+    const t69Tot = sumArr(t69);
+    box.innerHTML = `<strong>${escHtml(title)}</strong> · ฤดู 69: <strong style="color:#df6a37;">${formatNum(t69Tot, 0)} ไร่</strong> (ข้าว ${formatNum(t69[0], 0)} · อ้อย ${formatNum(t69[1], 0)} · ข้าวโพด ${formatNum(t69[2], 0)} · ป่า ${formatNum(t69[4], 0)})<br/><span style="color:#94a3b8;">ย้อนหลัง: ฤดู 68 = ${formatNum(t68, 0)} ไร่ · ฤดู 67 = ${formatNum(t67, 0)} ไร่</span>`;
+  }
+
+  function fitBsBbox(bbox, { maxZ = 14.5 } = {}) {
+    const canvas = document.getElementById("bsMapCanvas");
+    const rect = canvas ? canvas.getBoundingClientRect() : null;
+    const w = Math.max(300, rect?.width || 900);
+    const h = Math.max(260, rect?.height || 520);
+    if (!bbox) return;
+    const mx0 = lonToMx(bbox[0]), mx1 = lonToMx(bbox[2]);
+    const my0 = latToMy(bbox[3]), my1 = latToMy(bbox[1]);
+    bsMap.camX = (mx0 + mx1) / 2;
+    bsMap.camY = (my0 + my1) / 2;
+    const spanX = Math.max(0.0004, mx1 - mx0);
+    const spanY = Math.max(0.0004, my1 - my0);
+    const zx = Math.log2((w * 0.82) / (256 * spanX));
+    const zy = Math.log2((h * 0.82) / (256 * spanY));
+    bsMap.zoom = Math.max(5.2, Math.min(maxZ, Math.min(zx, zy)));
+  }
+
+  function drawBsBasemap(ctx, w, h) {
+    const worldPx = 256 * Math.pow(2, bsMap.zoom);
+    const toSx = (mx) => (mx - bsMap.camX) * worldPx + w / 2;
+    const toSy = (my) => (my - bsMap.camY) * worldPx + h / 2;
+
+    if (bsMap.basemap === "none") {
+      // Offline choropleth fallback colored by Season TRP rai
+      const yrKey = bsLayerYear(bsMap.layerLeft);
+      const lvl = bsMap.zoom >= 8.8 ? "amphoe" : "province";
+      const items = lvl === "amphoe" ? DATA.amphoes : DATA.provinces;
+      const getVal = (it) => {
+        if (it.trp === null || it.trp === undefined) return null;
+        const a = it.trp[yrKey];
+        return a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : 0;
+      };
+      const vals = items.map(getVal).filter(v => v !== null);
+      const maxV = Math.max(100, ...vals);
+      const isDark = state.theme === "dark";
+      const nullCol = isDark ? "#273040" : "#d6dbe3";
+      const strokeC = isDark ? "rgba(148,163,184,0.34)" : "rgba(51,65,85,0.34)";
+      ctx.save();
+      ctx.lineWidth = lvl === "amphoe" ? 0.65 : 0.9;
+      ctx.strokeStyle = strokeC;
+      for (const it of items) {
+        const v = getVal(it);
+        if (v === null) ctx.fillStyle = nullCol;
+        else {
+          const t = Math.sqrt(Math.max(0, Math.min(1, v / maxV)));
+          ctx.fillStyle = lerpHex("#1b2230", "#df6a37", t);
+        }
+        ctx.beginPath();
+        for (const r of it._mRings) traceRingF32(ctx, r, toSx, toSy);
+        ctx.fill("evenodd");
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
+
+    const maxTileZ = bsMap.basemap === "carto_dark" ? 17 : 18;
+    const z = Math.max(5, Math.min(maxTileZ, Math.round(bsMap.zoom)));
+    const nTiles = 1 << z;
+    const leftMx = bsMap.camX - (w / 2) / worldPx;
+    const rightMx = bsMap.camX + (w / 2) / worldPx;
+    const topMy = bsMap.camY - (h / 2) / worldPx;
+    const botMy = bsMap.camY + (h / 2) / worldPx;
+
+    const tx0 = Math.max(0, Math.floor(leftMx * nTiles));
+    const tx1 = Math.min(nTiles - 1, Math.floor(rightMx * nTiles));
+    const ty0 = Math.max(0, Math.floor(topMy * nTiles));
+    const ty1 = Math.min(nTiles - 1, Math.floor(botMy * nTiles));
+    const tilePx = worldPx / nTiles;
+    const keyFor = (lz, lx, ly) => `${bsMap.basemap}:${lz}:${lx}:${ly}`;
+
+    for (let tx = tx0; tx <= tx1; tx++) {
+      for (let ty = ty0; ty <= ty1; ty++) {
+        const key = keyFor(z, tx, ty);
+        let entry = TILE_CACHE.get(key);
+        if (!entry) {
+          const img = new Image();
+          let url = "";
+          if (bsMap.basemap === "osm") url = `https://tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
+          else if (bsMap.basemap === "carto_dark") url = `https://a.basemaps.cartocdn.com/dark_all/${z}/${tx}/${ty}.png`;
+          else if (bsMap.basemap === "esri_sat") url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
+          entry = { img, ok: false, err: false };
+          img.onload = () => { entry.ok = true; notifyTileLoaded(); };
+          img.onerror = () => { entry.err = true; };
+          img.src = url;
+          if (TILE_CACHE.size > 640) {
+            const firstKey = TILE_CACHE.keys().next().value;
+            TILE_CACHE.delete(firstKey);
+          }
+          TILE_CACHE.set(key, entry);
+        }
+        const dx = (tx / nTiles - bsMap.camX) * worldPx + w / 2;
+        const dy = (ty / nTiles - bsMap.camY) * worldPx + h / 2;
+        drawTileWithFallback(ctx, keyFor, z, tx, ty, dx, dy, tilePx, 5);
+      }
+    }
+  }
+
+  function drawBsLayerTms(ctx, w, h, layerVal) {
+    const layers = resolveTmsLayers(layerVal);
+    if (!layers.length) return;
+    const z = Math.max(6, Math.min(15, Math.round(bsMap.zoom)));
+    const nTiles = 1 << z;
+    const worldPx = 256 * Math.pow(2, bsMap.zoom);
+    const leftMx = bsMap.camX - (w / 2) / worldPx;
+    const rightMx = bsMap.camX + (w / 2) / worldPx;
+    const topMy = bsMap.camY - (h / 2) / worldPx;
+    const botMy = bsMap.camY + (h / 2) / worldPx;
+
+    const tx0 = Math.max(0, Math.floor(leftMx * nTiles));
+    const tx1 = Math.min(nTiles - 1, Math.floor(rightMx * nTiles));
+    const ty0 = Math.max(0, Math.floor(topMy * nTiles));
+    const ty1 = Math.min(nTiles - 1, Math.floor(botMy * nTiles));
+    const tilePx = worldPx / nTiles;
+
+    ctx.save();
+    ctx.globalAlpha = bsMap.opacity;
+    if (bsMap.zoom > 15) ctx.imageSmoothingEnabled = false;
+    for (const layerPath of layers) {
+      const keyFor = (lz, lx, ly) => `tms:${layerPath}:${lz}:${lx}:${(1 << lz) - 1 - ly}`;
+      for (let tx = tx0; tx <= tx1; tx++) {
+        for (let ty = ty0; ty <= ty1; ty++) {
+          const tmsY = nTiles - 1 - ty;
+          const key = keyFor(z, tx, ty);
+          let entry = TILE_CACHE.get(key);
+          if (!entry) {
+            const img = new Image();
+            const url = `https://tamroypao.hii.or.th/tms/${layerPath}/${z}/${tx}/${tmsY}.png`;
+            entry = { img, ok: false, err: false };
+            img.onload = () => { entry.ok = true; notifyTileLoaded(); };
+            img.onerror = () => { entry.err = true; };
+            img.src = url;
+            if (TILE_CACHE.size > 640) {
+              const firstKey = TILE_CACHE.keys().next().value;
+              TILE_CACHE.delete(firstKey);
+            }
+            TILE_CACHE.set(key, entry);
+          }
+          const dx = (tx / nTiles - bsMap.camX) * worldPx + w / 2;
+          const dy = (ty / nTiles - bsMap.camY) * worldPx + h / 2;
+          drawTileWithFallback(ctx, keyFor, z, tx, ty, dx, dy, tilePx, 6);
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  function getBsActiveLayerItems() {
+    if (bsMap.zoom >= 11.2) return { lvl: "tambon", prefix: "ต.", arr: DATA.tambons };
+    if (bsMap.zoom >= 8.5) return { lvl: "amphoe", prefix: "อ.", arr: DATA.amphoes };
+    return { lvl: "province", prefix: "จ.", arr: DATA.provinces };
+  }
+
+  function drawBsMap() {
+    const canvas = document.getElementById("bsMapCanvas");
+    if (!canvas || !DATA) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const cw = Math.round(rect.width * dpr), ch = Math.round(rect.height * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+    const w = rect.width, h = rect.height;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const zr = document.getElementById("bsZoomReadout");
+    if (zr) zr.textContent = "z" + bsMap.zoom.toFixed(1);
+
+    drawBsBasemap(ctx, w, h);
+
+    const swipeLine = document.getElementById("bsSwipeLine");
+    const tagL = document.getElementById("bsSwipeTagLeft");
+    const tagR = document.getElementById("bsSwipeTagRight");
+    if (bsMap.swipe) {
+      const splitX = Math.round(w * bsMap.swipeRatio);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, splitX, h);
+      ctx.clip();
+      drawBsLayerTms(ctx, w, h, bsMap.layerLeft);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(splitX, 0, w - splitX, h);
+      ctx.clip();
+      drawBsLayerTms(ctx, w, h, bsMap.layerRight);
+      ctx.restore();
+
+      if (swipeLine) { swipeLine.style.display = "block"; swipeLine.style.left = splitX + "px"; }
+      const selL = document.getElementById("bsLayerLeft");
+      const selR = document.getElementById("bsLayerRight");
+      if (tagL && selL) { tagL.style.display = "block"; tagL.textContent = "ซ้าย: " + (selL.selectedOptions[0]?.textContent || ""); }
+      if (tagR && selR) { tagR.style.display = "block"; tagR.textContent = "ขวา: " + (selR.selectedOptions[0]?.textContent || ""); }
+    } else {
+      drawBsLayerTms(ctx, w, h, bsMap.layerLeft);
+      if (swipeLine) swipeLine.style.display = "none";
+      if (tagL) tagL.style.display = "none";
+      if (tagR) tagR.style.display = "none";
+    }
+
+    // Crisp viewport-culled admin boundaries + hover ring
+    if (bsMap.showBounds) {
+      const worldPx = 256 * Math.pow(2, bsMap.zoom);
+      const toSx = (mx) => (mx - bsMap.camX) * worldPx + w / 2;
+      const toSy = (my) => (my - bsMap.camY) * worldPx + h / 2;
+      const vLon0 = mxToLon(bsMap.camX - (w / 2) / worldPx);
+      const vLon1 = mxToLon(bsMap.camX + (w / 2) / worldPx);
+      const vLat0 = myToLat(bsMap.camY + (h / 2) / worldPx);
+      const vLat1 = myToLat(bsMap.camY - (h / 2) / worldPx);
+      const { arr } = getBsActiveLayerItems();
+
+      ctx.save();
+      ctx.strokeStyle = bsMap.basemap === "esri_sat" ? "rgba(255,255,255,0.42)" : "rgba(148,163,184,0.42)";
+      ctx.lineWidth = bsMap.zoom >= 11.2 ? 0.8 : 1.05;
+      for (const it of arr) {
+        const b = it.bbox;
+        if (b && (b[2] < vLon0 || b[0] > vLon1 || b[3] < vLat0 || b[1] > vLat1)) continue;
+        ctx.beginPath();
+        for (const ring of it._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.stroke();
+      }
+      if (bsMap.hoverItem) {
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        for (const ring of bsMap.hoverItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  function populateBsMapSelects() {
+    const pSel = document.getElementById("bsMapProvSel");
+    if (!pSel || !DATA) return;
+    if (pSel.options.length === 0) {
+      const sorted = DATA.provinces.slice().sort((a, b) => a.name_th.localeCompare(b.name_th, "th"));
+      for (const p of sorted) {
+        const opt = document.createElement("option");
+        opt.value = p.code;
+        opt.textContent = p.trp === null || p.trp === undefined ? `${p.name_th} (นอกเขต สสน.)` : p.name_th;
+        pSel.appendChild(opt);
+      }
+    }
+    populateBsAmphoeSelect(bsMap.focusProv);
+  }
+
+  function populateBsAmphoeSelect(provCode) {
+    const aSel = document.getElementById("bsMapAmpSel");
+    if (!aSel || !DATA) return;
+    aSel.innerHTML = '<option value="">ทุกอำเภอในจังหวัด</option>';
+    if (!provCode) return;
+    const amps = DATA.amphoes
+      .filter(a => a.prov_code === provCode)
+      .sort((a, b) => a.name_th.localeCompare(b.name_th, "th"));
+    for (const a of amps) {
+      const opt = document.createElement("option");
+      opt.value = a.code;
+      opt.textContent = "อ." + a.name_th;
+      aSel.appendChild(opt);
+    }
+    aSel.value = bsMap.focusAmp || "";
+  }
+
+  function applyBsPreset(preset) {
+    document.querySelectorAll(".bs-chip[data-bs-preset]").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.bsPreset === preset);
+    });
+    if (preset === "all62") {
+      bsMap.focusProv = "";
+      bsMap.focusAmp = "";
+      const aSel = document.getElementById("bsMapAmpSel");
+      if (aSel) aSel.innerHTML = '<option value="">ทุกอำเภอในจังหวัด</option>';
+      fitBsBbox([97.3, 12.0, 105.7, 20.5], { maxZ: 6.4 });
+      const badge = document.getElementById("bsMapScopeBadge");
+      if (badge) badge.textContent = "ภาพรวม 62 จังหวัดในเขต สสน.";
+      updateBsAreaReadout(null);
+      updateBsPixelLegend();
+      requestDrawBsMap();
+      return;
+    }
+    if (preset === "maechaem") {
+      const mc = DATA.amphoes.find(a => a.prov_code === "50" && (a.name_th || "").includes("แม่แจ่ม"));
+      if (mc) {
+        flyBsMapToProvince("50", { amphoeCode: mc.code, scrollToMap: false });
+        return;
+      }
+      flyBsMapToProvince("50", { scrollToMap: false });
+      return;
+    }
+    const pMap = { lopburi: "16", nakhonsawan: "60", chaiyaphum: "36", tak: "63" };
+    const code = pMap[preset] || "16";
+    if (PROV_MAP.has(code)) flyBsMapToProvince(code, { scrollToMap: false });
+    else if (DATA.provinces[0]) flyBsMapToProvince(DATA.provinces[0].code, { scrollToMap: false });
+  }
+
+  function flyBsMapToProvince(provCode, { amphoeCode = "", scrollToMap = true } = {}) {
+    const prov = PROV_MAP.get(provCode);
+    if (!prov) return;
+    bsMap.focusProv = provCode;
+    bsMap.focusAmp = amphoeCode || "";
+    const pSel = document.getElementById("bsMapProvSel");
+    if (pSel) pSel.value = provCode;
+    populateBsAmphoeSelect(provCode);
+    const amp = amphoeCode ? AMP_MAP.get(amphoeCode) : null;
+    if (amp) {
+      fitBsBbox(amp.bbox, { maxZ: 12.2 });
+      const badge = document.getElementById("bsMapScopeBadge");
+      if (badge) badge.textContent = `จ.${prov.name_th} · อ.${amp.name_th}`;
+      updateBsAreaReadout(amp, "อ.");
+    } else {
+      fitBsBbox(prov.bbox, { maxZ: 10.6 });
+      const badge = document.getElementById("bsMapScopeBadge");
+      if (badge) badge.textContent = `จ.${prov.name_th}`;
+      updateBsAreaReadout(prov, "จ.");
+    }
+    updateBsPixelLegend();
+    requestDrawBsMap();
+    if (scrollToMap) {
+      document.getElementById("bsMapCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function hitTestBsArea(clientX, clientY) {
+    const canvas = document.getElementById("bsMapCanvas");
+    if (!canvas || !DATA) return null;
+    const rect = canvas.getBoundingClientRect();
+    const sx = clientX - rect.left, sy = clientY - rect.top;
+    const worldPx = 256 * Math.pow(2, bsMap.zoom);
+    const mx = bsMap.camX + (sx - rect.width / 2) / worldPx;
+    const my = bsMap.camY + (sy - rect.height / 2) / worldPx;
+    const lon = mxToLon(mx), lat = myToLat(my);
+    const { prefix, arr } = getBsActiveLayerItems();
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const it = arr[i];
+      const b = it.bbox;
+      if (!b || lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) continue;
+      if (pointInRings(mx, my, it._mRings)) return { item: it, prefix };
+    }
+    return null;
+  }
+
+  function bindBsMapEvents() {
+    const canvas = document.getElementById("bsMapCanvas");
+    if (!canvas || canvas._bsBound) return;
+    canvas._bsBound = true;
+
+    const layerL = document.getElementById("bsLayerLeft");
+    const layerR = document.getElementById("bsLayerRight");
+    const baseSel = document.getElementById("bsBasemapSel");
+    const opRange = document.getElementById("bsOpacityRange");
+    const opVal = document.getElementById("bsOpacityVal");
+    const boundsChk = document.getElementById("bsShowBoundsCheck");
+    const swipeBtn = document.getElementById("bsSwipeToggle");
+
+    layerL?.addEventListener("change", () => { bsMap.layerLeft = layerL.value; updateBsPixelLegend(); requestDrawBsMap(); });
+    layerR?.addEventListener("change", () => { bsMap.layerRight = layerR.value; updateBsPixelLegend(); requestDrawBsMap(); });
+    baseSel?.addEventListener("change", () => { bsMap.basemap = baseSel.value; requestDrawBsMap(); });
+    opRange?.addEventListener("input", () => {
+      bsMap.opacity = Number(opRange.value) / 100;
+      if (opVal) opVal.textContent = opRange.value + "%";
+      requestDrawBsMap();
+    });
+    boundsChk?.addEventListener("change", () => { bsMap.showBounds = boundsChk.checked; requestDrawBsMap(); });
+
+    swipeBtn?.addEventListener("click", () => {
+      bsMap.swipe = !bsMap.swipe;
+      swipeBtn.classList.toggle("active", bsMap.swipe);
+      const wrapR = document.getElementById("bsLayerRightWrap");
+      const lblL = document.getElementById("bsLayerLeftLabel");
+      if (wrapR) wrapR.style.display = bsMap.swipe ? "block" : "none";
+      if (lblL) lblL.textContent = bsMap.swipe ? "ฝั่งซ้าย (ก่อน)" : "ชั้นภาพรอยเผา 20 ม.";
+      if (bsMap.swipe && layerL && layerR && layerL.value === layerR.value) {
+        layerL.value = "2023/BOTH_202312_202404";
+        layerR.value = "2025/BOTH_202512_202604";
+        bsMap.layerLeft = layerL.value;
+        bsMap.layerRight = layerR.value;
+      }
+      updateBsPixelLegend();
+      requestDrawBsMap();
+    });
+
+    document.getElementById("bsMapProvSel")?.addEventListener("change", (e) => {
+      document.querySelectorAll(".bs-chip").forEach(b => b.classList.remove("active"));
+      flyBsMapToProvince(e.target.value, { scrollToMap: false });
+    });
+    document.getElementById("bsMapAmpSel")?.addEventListener("change", (e) => {
+      document.querySelectorAll(".bs-chip").forEach(b => b.classList.remove("active"));
+      flyBsMapToProvince(bsMap.focusProv, { amphoeCode: e.target.value, scrollToMap: false });
+    });
+    document.querySelectorAll(".bs-chip[data-bs-preset]").forEach(btn => {
+      btn.addEventListener("click", () => applyBsPreset(btn.dataset.bsPreset));
+    });
+
+    document.getElementById("bsZoomInBtn")?.addEventListener("click", () => { bsMap.zoom = Math.min(18, bsMap.zoom + 0.8); requestDrawBsMap(); });
+    document.getElementById("bsZoomOutBtn")?.addEventListener("click", () => { bsMap.zoom = Math.max(5.0, bsMap.zoom - 0.8); requestDrawBsMap(); });
+    document.getElementById("bsResetBtn")?.addEventListener("click", () => applyBsPreset("all62"));
+
+    // Swipe divider drag
+    const handle = document.getElementById("bsSwipeHandle");
+    let swiping = false;
+    handle?.addEventListener("pointerdown", (e) => {
+      swiping = true;
+      handle.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+    });
+    handle?.addEventListener("pointermove", (e) => {
+      if (!swiping) return;
+      const rect = canvas.getBoundingClientRect();
+      bsMap.swipeRatio = Math.max(0.06, Math.min(0.94, (e.clientX - rect.left) / Math.max(1, rect.width)));
+      requestDrawBsMap();
+    });
+    handle?.addEventListener("pointerup", () => { swiping = false; });
+    handle?.addEventListener("pointercancel", () => { swiping = false; });
+
+    // Pan + rAF Hover on #bsMapCanvas
+    let dragging = false, lastX = 0, lastY = 0, hoverPending = false, lastEvt = null;
+    canvas.addEventListener("mousedown", (e) => {
+      if (swiping) return;
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+    });
+    window.addEventListener("mouseup", () => { dragging = false; });
+    function processBsHover() {
+      hoverPending = false;
+      if (!lastEvt || dragging || swiping || activePage !== "burnscar") return;
+      const hit = hitTestBsArea(lastEvt.clientX, lastEvt.clientY);
+      const nextCode = hit ? (hit.prefix + hit.item.code) : null;
+      if (nextCode !== bsMap.lastHoverCode) {
+        bsMap.lastHoverCode = nextCode;
+        bsMap.hoverItem = hit ? hit.item : null;
+        if (hit) updateBsAreaReadout(hit.item, hit.prefix);
+        else {
+          const cur = bsMap.focusAmp ? AMP_MAP.get(bsMap.focusAmp) : (bsMap.focusProv ? PROV_MAP.get(bsMap.focusProv) : null);
+          updateBsAreaReadout(cur, bsMap.focusAmp ? "อ." : "จ.");
+        }
+        requestDrawBsMap();
+      }
+    }
+    canvas.addEventListener("mousemove", (e) => {
+      if (swiping) return;
+      if (dragging) {
+        const dx = e.clientX - lastX, dy = e.clientY - lastY;
+        const worldPx = 256 * Math.pow(2, bsMap.zoom);
+        bsMap.camX -= dx / worldPx;
+        bsMap.camY -= dy / worldPx;
+        lastX = e.clientX; lastY = e.clientY;
+        requestDrawBsMap();
+        return;
+      }
+      lastEvt = e;
+      if (!hoverPending) { hoverPending = true; requestAnimationFrame(processBsHover); }
+    });
+    canvas.addEventListener("mouseleave", () => {
+      bsMap.lastHoverCode = null;
+      bsMap.hoverItem = null;
+      const cur = bsMap.focusAmp ? AMP_MAP.get(bsMap.focusAmp) : (bsMap.focusProv ? PROV_MAP.get(bsMap.focusProv) : null);
+      updateBsAreaReadout(cur, bsMap.focusAmp ? "อ." : "จ.");
+      requestDrawBsMap();
+    });
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+      const wp0 = 256 * Math.pow(2, bsMap.zoom);
+      const mx = bsMap.camX + (sx - rect.width / 2) / wp0;
+      const my = bsMap.camY + (sy - rect.height / 2) / wp0;
+      bsMap.zoom = Math.max(5.0, Math.min(18.0, bsMap.zoom + (e.deltaY < 0 ? 0.45 : -0.45)));
+      const wp1 = 256 * Math.pow(2, bsMap.zoom);
+      bsMap.camX = mx - (sx - rect.width / 2) / wp1;
+      bsMap.camY = my - (sy - rect.height / 2) / wp1;
+      requestDrawBsMap();
+    }, { passive: false });
+  }
+
   function populateComparatorSelects() {
     const defaults = ["50", "16", "30", "60"];
     const sorted = DATA.provinces.slice().sort((a, b) => a.name_th.localeCompare(b.name_th, "th"));
@@ -1687,6 +2413,14 @@ MULTI_PAGE_JS = r"""
   function renderBurnScarPage() {
     if (!DATA || !state.computedStats) return;
     populateComparatorSelects();
+    populateBsMapSelects();
+    if (!bsMap.initialized) {
+      bsMap.initialized = true;
+      requestAnimationFrame(() => applyBsPreset("lopburi"));
+    } else {
+      updateBsPixelLegend();
+      requestAnimationFrame(() => requestDrawBsMap());
+    }
 
     // 3-season stacked chart
     const seasons = [
@@ -1812,7 +2546,7 @@ MULTI_PAGE_JS = r"""
             <strong style="font-size:15.5px;color:var(--text);">${escHtml(p.name_th)}</strong>
             <span class="reg-pill" style="margin-left:5px;">${escHtml(REGION_TH[p.region] || p.region || "-")}</span>
           </div>
-          <button type="button" class="btn" style="padding:3px 9px;font-size:11px;">ดูแผนที่</button>
+          <button type="button" class="btn" style="padding:3px 9px;font-size:11px;">ดูแปลง 20 ม.</button>
         </div>
         ${cropBarHtml}
         <div class="cmp-metric"><span>จุดไฟในมุมมอง</span><span>${formatNum(rec.total)} จุด</span></div>
@@ -1825,7 +2559,7 @@ MULTI_PAGE_JS = r"""
         <div class="cmp-metric"><span>วันอากาศแห้ง RH&lt;35%</span><span>${w26?.low_rh_35 != null ? formatNum(w26.low_rh_35) + " วัน" : "-"}</span></div>
         <div class="cmp-metric"><span>น้ำท่วมซ้ำ 17 ปี HII</span><span>${p.flood_max_17yr != null ? p.flood_max_17yr + " ครั้ง" : "ไม่มีข้อมูล"}</span></div>
       `;
-      card.querySelector("button").onclick = () => jumpToProvinceOnMap(p.code);
+      card.querySelector("button").onclick = () => flyBsMapToProvince(p.code, { scrollToMap: true });
       grid.appendChild(card);
     }
   }
@@ -1890,7 +2624,7 @@ MULTI_PAGE_JS = r"""
       </tr>
     `).join("");
     tbody.querySelectorAll("tr[data-pcode]").forEach(tr => {
-      tr.onclick = () => jumpToProvinceOnMap(tr.dataset.pcode);
+      tr.onclick = () => flyBsMapToProvince(tr.dataset.pcode, { scrollToMap: true });
     });
   }
 
@@ -1944,7 +2678,7 @@ MULTI_PAGE_JS = r"""
       loadLiveForecast(fcProv, true);
     });
 
-    document.getElementById("ovStoryTmsBtn")?.addEventListener("click", () => jumpToProvinceOnMap("50", { openTms: true }));
+    document.getElementById("ovStoryTmsBtn")?.addEventListener("click", () => switchPage("burnscar"));
     document.getElementById("wxJumpMapBtn")?.addEventListener("click", () => {
       state.metric = "wx_fwi";
       if (els.metricSelect) els.metricSelect.value = "wx_fwi";
@@ -1952,7 +2686,8 @@ MULTI_PAGE_JS = r"""
       if (selP && selP !== "all") jumpToProvinceOnMap(selP);
       else { switchPage("map"); requestAnimationFrame(() => refreshAll()); }
     });
-    document.getElementById("bsOpenTmsBtn")?.addEventListener("click", () => jumpToProvinceOnMap("50", { openTms: true }));
+    bindBsMapEvents();
+    document.getElementById("bsOpenTmsBtn")?.addEventListener("click", () => jumpToProvinceOnMap(bsMap.focusProv || "16", { openTms: true }));
     document.getElementById("bsExportTableBtn")?.addEventListener("click", exportMasterProvinceCsv);
     document.getElementById("bsTableSearch")?.addEventListener("input", renderMasterProvinceTable);
     document.querySelectorAll("#bsMasterTable th[data-sort]").forEach(th => {

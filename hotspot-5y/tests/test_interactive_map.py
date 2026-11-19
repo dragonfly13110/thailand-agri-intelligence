@@ -386,12 +386,18 @@ class InteractiveMapDataTests(unittest.TestCase):
             self.assertIn("^[=+\\-@\\t\\r]", html)
             self.assertNotIn('state.season === "late" && state.year !== "2026"', html)
             self.assertIn('key === "levelMode"', html)
+            for bs_id in ("bsMapCanvas", "bsLayerLeft", "bsLayerRight", "bsSwipeToggle", "bsOpacityRange", "bsBasemapSel", "bsMapProvSel", "bsMapAmpSel", "bsZoomReadout"):
+                self.assertIn(f'id="{bs_id}"', html)
+            self.assertIn("function flyBsMapToProvince(", html)
 
     def test_render_online_web_html_valid_js_and_hf_urls(self) -> None:
         html_text = render_online_web_html("dragonfly13110/thailand-hotspot-5y")
         self.assertIn("https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y/resolve/main/summary/map_payload.json.gz", html_text)
         for page_id in ("page-overview", "page-map", "page-weather", "page-burnscar", "page-explorer"):
             self.assertIn(f'id="{page_id}"', html_text)
+        for bs_id in ("bsMapCanvas", "bsLayerLeft", "bsLayerRight", "bsSwipeToggle", "bsOpacityRange", "bsBasemapSel", "bsMapProvSel", "bsMapAmpSel", "bsZoomReadout"):
+            self.assertIn(f'id="{bs_id}"', html_text)
+        self.assertIn("function flyBsMapToProvince(", html_text)
         self.assertIn('id="openExplorerBtn"', html_text)
         self.assertIn('id="explorerModal"', html_text)
         self.assertIn('value="wx_fwi"', html_text)

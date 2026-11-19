@@ -1146,6 +1146,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
   }
 
+  function notifyTileLoaded() {
+    if (activePage === "burnscar" && typeof requestDrawBsMap === "function") requestDrawBsMap();
+    if (activePage === "map") requestDrawMap();
+  }
+
   function drawTiles(ctx, w, h) {
     if (state.basemap === "none") return;
     const maxTileZ = state.basemap === "carto_dark" ? 17 : 18;
@@ -1175,10 +1180,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           else if (state.basemap === "carto_dark") url = `https://a.basemaps.cartocdn.com/dark_all/${z}/${tx}/${ty}.png`;
           else if (state.basemap === "esri_sat") url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
           entry = { img, ok: false, err: false };
-          img.onload = () => { entry.ok = true; requestDrawMap(); };
+          img.onload = () => { entry.ok = true; notifyTileLoaded(); };
           img.onerror = () => { entry.err = true; };
           img.src = url;
-          if (TILE_CACHE.size > 480) {
+          if (TILE_CACHE.size > 640) {
             const firstKey = TILE_CACHE.keys().next().value;
             TILE_CACHE.delete(firstKey);
           }
@@ -1234,10 +1239,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             const img = new Image();
             const url = `https://tamroypao.hii.or.th/tms/${layerPath}/${z}/${tx}/${tmsY}.png`;
             entry = { img, ok: false, err: false };
-            img.onload = () => { entry.ok = true; requestDrawMap(); };
+            img.onload = () => { entry.ok = true; notifyTileLoaded(); };
             img.onerror = () => { entry.err = true; };
             img.src = url;
-            if (TILE_CACHE.size > 480) {
+            if (TILE_CACHE.size > 640) {
               const firstKey = TILE_CACHE.keys().next().value;
               TILE_CACHE.delete(firstKey);
             }
