@@ -1,3 +1,12 @@
+## แก้ปัญหาหน้าแผนที่กิน CPU/RAM และกระตุก (`map_template.py` + deploy Netlify) — 19 พ.ย. 2026 · 0 D1 writes
+
+- **สาเหตุที่ทำให้เครื่องกระตุก:** (1) `showHeat` เปิดไว้เป็นค่าเริ่มต้นและวาดวง `createRadialGradient()` + `arc()` ซ้ำ ~18,000 วงภายใต้ `ctx.clip()` 45,000 จุดทุกครั้งที่ขยับเมาส์/ซูม; (2) ขยับเมาส์ข้ามจังหวัดสั่งวาดแผนที่ทั้งใบ + เรียก `getComputedStyle()` ในลูป polygon และเขียน `tooltip.innerHTML` ซ้ำทุกพิกเซล; (3) `backdrop-filter: blur()` บน sidebar/HUD เหนือ canvas; (4) เก็บ `rings`/`cube`/`grid` เป็น JS Array ซ้อนกัน (~120 MB V8 heap)
+- **สิ่งที่แก้ (`hotspot-5y/map_template.py`, `hotspot-5y/web_app/index.html`):**
+  - แคชชั้นแผนที่ฐานลง offscreen `baseCanvas` ให้ hover วาดแค่เส้นขอบ 1 จังหวัด/อำเภอ (`requestDrawMap(false)`) และ rAF-throttle `mousemove` + ไม่เขียน `tooltip.innerHTML` ซ้ำเมื่ออยู่พื้นที่เดิม
+  - ปิด `showHeat` เป็นค่าเริ่มต้น (ข้ามการสแกน `293,943` grid rows เมื่อไม่ได้เปิด) และเปลี่ยนการวาด Heatmap เป็น pre-baked 32×32 sprite stamp (`drawImage`) ไม่มี `createRadialGradient` ในลูปและไม่ clip 45k จุด
+  - แปลง `rings` เป็น `Float32Array` (ลบ `it.rings` ทันที), แปลง `cube`/`grid` เป็น `Int32Array` (`raw.cube = null; raw.grid = null`), ย้าย `getComputedStyle` ออกนอกลูป, ถอด `backdrop-filter: blur`, และจำกัด `dpr <= 1.5`
+- **ตรวจรับและ Deploy:** `test_interactive_map.py` ผ่าน **9/9** (`3.004s`) · deploy ขึ้น Netlify (`deployId: 6afea8ef2336b50ba125e500`) ที่ `https://thailand-hotspot-5y.netlify.app` · ตรวจเบราว์เซอร์จริงบนเว็บ Netlify: hover บนอำเภอขณะเปิด Heatmap อัปเดตใน `~8 ms`, ซูมเข้า-ออก 6 รอบลื่น, `0` errors · commit + push ขึ้น `origin/main` แล้ว
+
 ## ฝากชุดข้อมูล Parquet ขึ้น Hugging Face + สร้างเว็บสแตนด์อโลน DuckDB-Wasm — 19 พ.ย. 2026 · 0 D1 writes
 
 - **ฝากข้อมูลสาธารณะขึ้น Hugging Face Datasets (`https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y`, commit `6c4ec941`):**

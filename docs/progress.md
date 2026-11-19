@@ -1,3 +1,7 @@
+## แก้หน้าแผนที่กิน CPU/RAM และกระตุก (`map_template.py` + Netlify) — 19 พ.ย. 2026
+
+- แก้ 6 จุดใน `hotspot-5y/map_template.py`: แคชแผนที่ฐานใน offscreen `baseCanvas` (hover วาดแค่เส้นขอบเดียว + rAF-throttle `mousemove` + กันเขียน `tooltip.innerHTML` ซ้ำ), ปิด Heatmap ค่าเริ่มต้นและใช้ pre-baked 32×32 sprite stamp แทน `createRadialGradient` 18,000 รอบ/เฟรม, แปลง `rings`/`cube`/`grid` เป็น `Float32Array`/`Int32Array` แล้วคืนหน่วยความจำ array ดิบ, ย้าย `getComputedStyle` ออกนอกลูป, ถอด `backdrop-filter: blur` และจำกัด `dpr <= 1.5`; รัน `test_interactive_map.py` ผ่าน `9/9`, สร้าง `web_app/index.html` และ `hotspot_5y_interactive_map.html` ใหม่, deploy Netlify (`6afea8ef2336b50ba125e500`) และตรวจบน `https://thailand-hotspot-5y.netlify.app` ผ่าน (hover ~8 ms แม้เปิด Heatmap, `0` errors); commit/push ขึ้น `origin/main` แล้ว
+
 ## ฝาก Parquet ขึ้น Hugging Face + สร้างเว็บ DuckDB-Wasm (`hotspot-5y/web_app/`) — 19 พ.ย. 2026
 
 - ซิงก์ตารางน้ำท่วมซ้ำ HII (`27,023` แถว / `6,435` ตำบล) ลง `data/local/tadih.duckdb`, สร้าง `hotspot-5y/publish_hf.py` ส่งออก 13 ไฟล์ Parquet + `summary/map_payload.json.gz` (`4.23 MB`) + `manifest.json` + Dataset Card `README.md` (รวม `28.57 MB`) ขึ้นสาธารณะที่ `https://huggingface.co/datasets/dragonfly13110/thailand-hotspot-5y` (commit `6c4ec941`, ยืนยัน `CORS: *` และ `Accept-Ranges: bytes`); เก็บ `HF_TOKEN` เฉพาะใน `.env`

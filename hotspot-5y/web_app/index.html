@@ -115,7 +115,7 @@ html, body {
 }
 .workspace.presentation { grid-template-columns: 0px 1fr 0px; }
 .sidebar {
-  background: var(--panel); backdrop-filter: blur(12px);
+  background: var(--panel-solid);
   border-right: 1px solid var(--border); padding: 12px;
   overflow-y: auto; display: flex; flex-direction: column; gap: 11px;
   z-index: 20;
@@ -157,7 +157,7 @@ html[data-theme="light"] .warn-pill { color: #92400e; background: rgba(245, 158,
   display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; gap: 8px;
 }
 .hud-box {
-  pointer-events: auto; background: var(--panel); backdrop-filter: blur(10px);
+  pointer-events: auto; background: var(--panel-solid);
   border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; box-shadow: var(--shadow);
   font-size: 12px;
 }
@@ -417,7 +417,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <div class="section">
         <div class="section-title"><span>4. ชั้นข้อมูลซ้อนทับ</span></div>
         <label class="check-row">
-          <input id="showHeatCheck" type="checkbox" checked />
+          <input id="showHeatCheck" type="checkbox" />
           <span>Heatmap ความหนาแน่น (กริด ~5.5 กม.)</span>
         </label>
         <label class="check-row">
@@ -701,6 +701,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   };
 
   let DATA = null;
+  let CUBE_FLAT = new Int32Array(0);
+  let GRID_FLAT = new Int32Array(0);
   let PROV_MAP = new Map();
   let AMP_MAP = new Map();
   let TB_MAP = new Map();
@@ -719,7 +721,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     selectedProv: null,
     selectedAmphoe: null,
     selectedTambon: null,
-    showHeat: true,
+    showHeat: false,
     showStatic: false,
     showVillages: false,
     tmsOverlay: "none",
@@ -799,12 +801,25 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       for (let i = 0; i < arr.length; i++) {
         const it = arr[i];
         it._idx = i;
-        it._mRings = (it.rings || []).map(r => r.map(pt => [lonToMx(pt[0]), latToMy(pt[1])]));
+        const srcRings = it.rings || [];
+        const fRings = new Array(srcRings.length);
+        for (let r = 0; r < srcRings.length; r++) {
+          const ring = srcRings[r];
+          const fa = new Float32Array(ring.length * 2);
+          for (let k = 0; k < ring.length; k++) {
+            fa[k * 2] = lonToMx(ring[k][0]);
+            fa[k * 2 + 1] = latToMy(ring[k][1]);
+          }
+          fRings[r] = fa;
+        }
+        it._mRings = fRings;
+        delete it.rings; // Free raw JSON vertex arrays immediately (~45 MB RAM saved)
         mapObj.set(it.code, it);
         const provSub = it.prov_code ? (PROV_MAP.get(it.prov_code)?.name_th || "") : "";
         const ampSub = kind === "tambon" && it.amphoe_code ? ("อ." + (AMP_MAP.get(it.amphoe_code)?.name_th || "") + " · จ.") : "";
         SEARCH_INDEX.push({
-          kind, code: it.code, name: it.name_th, sub: ampSub + provSub,
+          kind, code: it.code, name: it.name_th, nameLower: (it.name_th || "").toLowerCase(),
+          sub: ampSub + provSub,
           prov_code: it.prov_code || it.code, amphoe_code: it.amphoe_code || (kind === "amphoe" ? it.code : null),
           bbox: it.bbox,
         });
@@ -813,6 +828,25 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     precomputeRings(DATA.provinces, PROV_MAP, "province");
     precomputeRings(DATA.amphoes, AMP_MAP, "amphoe");
     precomputeRings(DATA.tambons, TB_MAP, "tambon");
+
+    // Pack cube (N x 5) and grid (M x 4) into flat Int32Arrays (~60 MB JS Array RAM -> ~8.5 MB)
+    const rawCube = raw.cube || [];
+    CUBE_FLAT = new Int32Array(rawCube.length * 5);
+    for (let i = 0, o = 0; i < rawCube.length; i++, o += 5) {
+      const row = rawCube[i];
+      CUBE_FLAT[o] = row[0]; CUBE_FLAT[o + 1] = row[1]; CUBE_FLAT[o + 2] = row[2];
+      CUBE_FLAT[o + 3] = row[3]; CUBE_FLAT[o + 4] = row[4];
+    }
+    raw.cube = null;
+
+    const rawGrid = raw.grid || [];
+    GRID_FLAT = new Int32Array(rawGrid.length * 4);
+    for (let i = 0, o = 0; i < rawGrid.length; i++, o += 4) {
+      const g = rawGrid[i];
+      GRID_FLAT[o] = g[0]; GRID_FLAT[o + 1] = g[1]; GRID_FLAT[o + 2] = g[2]; GRID_FLAT[o + 3] = g[3];
+    }
+    raw.grid = null;
+
     els.dateBadge.textContent = (DATA.meta.min_date || "2022") + " – " + (DATA.meta.max_date || "2026");
   }
 
@@ -913,9 +947,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       return true;
     };
 
-    for (let i = 0; i < DATA.cube.length; i++) {
-      const row = DATA.cube[i];
-      const f = row[1];
+    for (let o = 0; o < CUBE_FLAT.length; o += 5) {
+      const f = CUBE_FLAT[o + 1];
       const isOtherSat = f & 1;
       if (satOnlyN && isOtherSat) continue;
       const st = (f >> 10) & 1;
@@ -931,8 +964,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       if (cropFilter === "corn" && crop !== 3) continue;
 
       const yr = (f >> 1) & 7;
-      const cnt = row[2];
-      const tbIdx = row[0];
+      const cnt = CUBE_FLAT[o + 2];
+      const tbIdx = CUBE_FLAT[o];
       const tb = DATA.tambons[tbIdx];
       if (matchScope(tb)) {
         const yt = yearlyTotals[yr];
@@ -950,8 +983,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       if (lu === 0) s.agri += cnt;
       else if (lu === 1) s.forest += cnt;
       else s.other += cnt;
-      s.day += row[3];
-      s.frp10 += row[4];
+      s.day += CUBE_FLAT[o + 3];
+      s.frp10 += CUBE_FLAT[o + 4];
       s.yrMask |= (1 << yr);
     }
 
@@ -1035,32 +1068,34 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const ampRecords = enrich(DATA.amphoes, a => ampMap.get(a.code), "amphoe");
     const tbRecords = enrich(DATA.tambons, t => tbStats[t._idx], "tambon");
 
-    // Pre-aggregate 0.05-deg heatmap cells once per filter change so pan/zoom runs at 60fps
-    const cellAgg = new Map();
-    for (let i = 0; i < DATA.grid.length; i++) {
-      const g = DATA.grid[i];
-      const f = g[2];
-      if (satOnlyN && (f & 1)) continue;
-      if (exclSt && ((f >> 10) & 1)) continue;
-      if (yrIdx !== -1 && (((f >> 1) & 7) !== yrIdx)) continue;
-      if (!seaMask[(f >> 4) & 3]) continue;
-      const lu = (f >> 6) & 3;
-      const crop = (f >> 8) & 3;
-      if (cropFilter === "agri" && lu !== 0) continue;
-      if (cropFilter === "forest" && lu !== 1) continue;
-      if (cropFilter === "rice" && crop !== 1) continue;
-      if (cropFilter === "sugarcane" && crop !== 2) continue;
-      if (cropFilter === "corn" && crop !== 3) continue;
-      const key = (g[0] << 16) ^ g[1];
-      let prev = cellAgg.get(key);
-      if (!prev) cellAgg.set(key, { mx: lonToMx(g[1] / 20), my: latToMy(g[0] / 20), cnt: g[3] });
-      else prev.cnt += g[3];
-    }
+    // Only aggregate 0.05-deg heatmap cells when Heatmap overlay is actually enabled
     let maxGridCnt = 1;
     const gridCells = [];
-    for (const c of cellAgg.values()) {
-      if (c.cnt > maxGridCnt) maxGridCnt = c.cnt;
-      gridCells.push(c);
+    if (state.showHeat && GRID_FLAT.length) {
+      const cellAgg = new Map();
+      for (let o = 0; o < GRID_FLAT.length; o += 4) {
+        const f = GRID_FLAT[o + 2];
+        if (satOnlyN && (f & 1)) continue;
+        if (exclSt && ((f >> 10) & 1)) continue;
+        if (yrIdx !== -1 && (((f >> 1) & 7) !== yrIdx)) continue;
+        if (!seaMask[(f >> 4) & 3]) continue;
+        const lu = (f >> 6) & 3;
+        const crop = (f >> 8) & 3;
+        if (cropFilter === "agri" && lu !== 0) continue;
+        if (cropFilter === "forest" && lu !== 1) continue;
+        if (cropFilter === "rice" && crop !== 1) continue;
+        if (cropFilter === "sugarcane" && crop !== 2) continue;
+        if (cropFilter === "corn" && crop !== 3) continue;
+        const latI = GRID_FLAT[o], lonI = GRID_FLAT[o + 1], cnt = GRID_FLAT[o + 3];
+        const key = (latI << 16) ^ lonI;
+        let prev = cellAgg.get(key);
+        if (!prev) cellAgg.set(key, { mx: lonToMx(lonI / 20), my: latToMy(latI / 20), cnt });
+        else prev.cnt += cnt;
+      }
+      for (const c of cellAgg.values()) {
+        if (c.cnt > maxGridCnt) maxGridCnt = c.cnt;
+        gridCells.push(c);
+      }
     }
 
     state.computedStats = {
@@ -1111,8 +1146,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     return { level: "tambon", records: cs.tbRecords.filter(r => r.item.amphoe_code === state.selectedAmphoe) };
   }
 
-  function getPaletteAndColor(val, minV, maxV) {
-    if (val === null || val === undefined || Number.isNaN(val)) return getComputedStyle(document.documentElement).getPropertyValue("--null-fill").trim() || "#334155";
+  function getPaletteAndColor(val, minV, maxV, nullFill) {
+    if (val === null || val === undefined || Number.isNaN(val)) return nullFill || "#334155";
     const m = state.metric;
     let pal = PALETTES.fire;
     if (m === "agri_pct") pal = PALETTES.agri;
@@ -1248,26 +1283,49 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     ctx.restore();
   }
 
+  function traceRingF32(ctx, r, toSx, toSy) {
+    for (let i = 0; i < r.length; i += 2) {
+      const x = toSx(r[i]), y = toSy(r[i + 1]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  let heatSpriteDark = null, heatSpriteLight = null;
+  function getHeatSprite(isDark) {
+    if (isDark && heatSpriteDark) return heatSpriteDark;
+    if (!isDark && heatSpriteLight) return heatSpriteLight;
+    const c = document.createElement("canvas");
+    c.width = 32; c.height = 32;
+    const gctx = c.getContext("2d");
+    const grad = gctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, isDark ? "rgba(255, 224, 96, 0.72)" : "rgba(255, 200, 60, 0.58)");
+    grad.addColorStop(0.5, isDark ? "rgba(249, 115, 22, 0.42)" : "rgba(234, 88, 12, 0.34)");
+    grad.addColorStop(1, "rgba(239, 68, 68, 0)");
+    gctx.fillStyle = grad;
+    gctx.fillRect(0, 0, 32, 32);
+    if (isDark) heatSpriteDark = c; else heatSpriteLight = c;
+    return c;
+  }
+
+  const baseCanvas = document.createElement("canvas");
+  let baseDirty = true;
   let mapDrawPending = false;
-  function requestDrawMap() {
+  function requestDrawMap(dirtyBase = true) {
+    if (dirtyBase) baseDirty = true;
     if (mapDrawPending) return;
     mapDrawPending = true;
     requestAnimationFrame(() => { mapDrawPending = false; drawMap(); });
   }
 
-  function drawMap() {
-    const canvas = els.mapCanvas;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
+  function renderBaseMap(w, h, dpr) {
+    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+    if (baseCanvas.width !== bw || baseCanvas.height !== bh) {
+      baseCanvas.width = bw;
+      baseCanvas.height = bh;
     }
-    const ctx = canvas.getContext("2d");
+    const ctx = baseCanvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const w = rect.width, h = rect.height;
-
     ctx.clearRect(0, 0, w, h);
     drawTiles(ctx, w, h);
 
@@ -1281,6 +1339,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const maxV = validVals.length ? Math.max(...validVals) : 1;
     const hasNull = records.some(r => r.metricValue === null || r.metricValue === undefined);
 
+    const rootStyle = getComputedStyle(document.documentElement);
+    const nullFill = rootStyle.getPropertyValue("--null-fill").trim() || "#334155";
+    const strokeCol = rootStyle.getPropertyValue("--map-land-stroke").trim();
+
     // Draw background Thailand silhouette if zoomed into amphoe/tambon
     if (level !== "province" && state.levelMode !== "amphoe_all") {
       ctx.save();
@@ -1290,13 +1352,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       for (const p of DATA.provinces) {
         if (p.code === state.selectedProv) continue;
         ctx.beginPath();
-        for (const r of p._mRings) {
-          for (let i = 0; i < r.length; i++) {
-            const x = toSx(r[i][0]), y = toSy(r[i][1]);
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-        }
+        for (const r of p._mRings) traceRingF32(ctx, r, toSx, toSy);
         ctx.fill("evenodd");
         ctx.stroke();
       }
@@ -1304,13 +1360,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         for (const a of DATA.amphoes) {
           if (a.prov_code !== state.selectedProv || a.code === state.selectedAmphoe) continue;
           ctx.beginPath();
-          for (const r of a._mRings) {
-            for (let i = 0; i < r.length; i++) {
-              const x = toSx(r[i][0]), y = toSy(r[i][1]);
-              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-          }
+          for (const r of a._mRings) traceRingF32(ctx, r, toSx, toSy);
           ctx.fill("evenodd");
           ctx.stroke();
         }
@@ -1323,22 +1373,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const hasTms = state.tmsOverlay !== "none";
     ctx.save();
     ctx.globalAlpha = hasTms ? 0.30 : (hasTiles ? 0.78 : 0.94);
-    const strokeCol = getComputedStyle(document.documentElement).getPropertyValue("--map-land-stroke").trim();
+    ctx.lineWidth = level === "tambon" ? 0.55 : 0.9;
+    ctx.strokeStyle = strokeCol;
     for (const rec of records) {
-      const isHover = state.hoverItem && state.hoverItem.item.code === rec.item.code;
-      const isPinned = (level === "tambon" && state.selectedTambon === rec.item.code);
       ctx.beginPath();
-      for (const ring of rec.item._mRings) {
-        for (let i = 0; i < ring.length; i++) {
-          const sx = toSx(ring[i][0]), sy = toSy(ring[i][1]);
-          if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-        }
-        ctx.closePath();
-      }
-      ctx.fillStyle = getPaletteAndColor(rec.metricValue, minV, maxV);
+      for (const ring of rec.item._mRings) traceRingF32(ctx, ring, toSx, toSy);
+      ctx.fillStyle = getPaletteAndColor(rec.metricValue, minV, maxV, nullFill);
       ctx.fill("evenodd");
-      ctx.lineWidth = isHover || isPinned ? 2.2 : (level === "tambon" ? 0.55 : 0.9);
-      ctx.strokeStyle = isHover || isPinned ? "#fde047" : strokeCol;
       ctx.stroke();
     }
     ctx.restore();
@@ -1347,22 +1388,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       drawTmsOverlay(ctx, w, h);
     }
 
-    // Heatmap 0.05 deg overlay clipped strictly inside visible polygons
+    // Fast pre-baked sprite Heatmap overlay (no per-cell createRadialGradient or 45k-vertex clip)
     if (state.showHeat && records.length) {
-      ctx.save();
-      ctx.beginPath();
-      for (const rec of records) {
-        for (const ring of rec.item._mRings) {
-          for (let i = 0; i < ring.length; i++) {
-            const sx = toSx(ring[i][0]), sy = toSy(ring[i][1]);
-            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-          }
-          ctx.closePath();
-        }
-      }
-      ctx.clip("evenodd");
       drawHeatmapOverlay(ctx, w, h, toSx, toSy, worldPx);
-      ctx.restore();
     }
 
     // Map labels when drilled into province/amphoe
@@ -1421,32 +1449,71 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
 
     updateLegend(minV, maxV, hasNull, validVals.length > 0);
+    baseDirty = false;
+  }
+
+  function drawMap() {
+    const canvas = els.mapCanvas;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const cw = Math.round(rect.width * dpr), ch = Math.round(rect.height * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+      baseDirty = true;
+    }
+    const w = rect.width, h = rect.height;
+    if (baseDirty) renderBaseMap(w, h, dpr);
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(baseCanvas, 0, 0);
+
+    // Draw lightweight hover & pinned tambon highlight on top (<0.3 ms)
+    const { level } = getVisibleRecords();
+    const pinnedItem = (level === "tambon" && state.selectedTambon) ? TB_MAP.get(state.selectedTambon) : null;
+    const hoverItem = state.hoverItem ? state.hoverItem.item : null;
+    if (hoverItem || pinnedItem) {
+      const worldPx = 256 * Math.pow(2, state.zoom);
+      const toSx = (mx) => (mx - state.camX) * worldPx + w / 2;
+      const toSy = (my) => (my - state.camY) * worldPx + h / 2;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.save();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = "#fde047";
+      if (pinnedItem) {
+        ctx.beginPath();
+        for (const ring of pinnedItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.stroke();
+      }
+      if (hoverItem && hoverItem !== pinnedItem) {
+        ctx.beginPath();
+        for (const ring of hoverItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
 
   function drawHeatmapOverlay(ctx, w, h, toSx, toSy, worldPx) {
     const gridCells = state.computedStats?.gridCells || [];
     if (!gridCells.length) return;
     const maxC = state.computedStats.maxGridCnt || 1;
-    const rBase = Math.max(5, Math.min(28, worldPx * 0.00032));
+    const rBase = Math.max(4.5, Math.min(24, worldPx * 0.0003));
+    const sprite = getHeatSprite(state.theme === "dark");
     ctx.save();
     ctx.globalCompositeOperation = state.theme === "dark" ? "screen" : "source-over";
     for (let i = 0; i < gridCells.length; i++) {
       const c = gridCells[i];
       const sx = toSx(c.mx);
       const sy = toSy(c.my);
-      if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) continue;
+      if (sx < -26 || sx > w + 26 || sy < -26 || sy > h + 26) continue;
       const t = Math.sqrt(c.cnt / maxC);
-      const rad = rBase * (0.65 + 0.85 * t);
-      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, rad);
-      const a0 = state.theme === "dark" ? (0.18 + 0.48 * t) : (0.16 + 0.36 * t);
-      const a1 = state.theme === "dark" ? (0.10 + 0.34 * t) : (0.08 + 0.24 * t);
-      grad.addColorStop(0, `rgba(255, 220, 80, ${a0})`);
-      grad.addColorStop(0.5, `rgba(249, 115, 22, ${a1})`);
-      grad.addColorStop(1, "rgba(239, 68, 68, 0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(sx, sy, rad, 0, Math.PI * 2);
-      ctx.fill();
+      const rad = rBase * (0.6 + 0.8 * t);
+      ctx.globalAlpha = 0.25 + 0.7 * t;
+      ctx.drawImage(sprite, sx - rad, sy - rad, rad * 2, rad * 2);
     }
     ctx.restore();
   }
@@ -1503,9 +1570,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   function pointInRings(mx, my, rings) {
     let inside = false;
     for (const r of rings) {
-      for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
-        const xi = r[i][0], yi = r[i][1];
-        const xj = r[j][0], yj = r[j][1];
+      const len = r.length;
+      for (let i = 0, j = len - 2; i < len; j = i, i += 2) {
+        const xi = r[i], yi = r[i + 1];
+        const xj = r[j], yj = r[j + 1];
         const intersect = ((yi > my) !== (yj > my)) && (mx < (xj - xi) * (my - yi) / ((yj - yi) || 1e-12) + xi);
         if (intersect) inside = !inside;
       }
@@ -1837,8 +1905,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       hs22_25 = new Map();
       const satOnlyN = state.sat === "N", exclSt = state.excludeStatic, seaMask = getActiveSeasonMask();
       for (const p of DATA.provinces) hs22_25.set(p.code, { total: 0, agri: 0 });
-      for (let i = 0; i < DATA.cube.length; i++) {
-        const row = DATA.cube[i], f = row[1];
+      for (let o = 0; o < CUBE_FLAT.length; o += 5) {
+        const f = CUBE_FLAT[o + 1];
         if (satOnlyN && (f & 1)) continue;
         const yr = (f >> 1) & 7;
         if (yr > 3) continue; // 2022..2025 only!
@@ -1850,8 +1918,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (state.crop === "rice" && crop !== 1) continue;
         if (state.crop === "sugarcane" && crop !== 2) continue;
         if (state.crop === "corn" && crop !== 3) continue;
-        const pm = hs22_25.get(DATA.tambons[row[0]].prov_code);
-        if (pm) { pm.total += row[2]; if (lu === 0) pm.agri += row[2]; }
+        const pm = hs22_25.get(DATA.tambons[CUBE_FLAT[o]].prov_code);
+        if (pm) { pm.total += CUBE_FLAT[o + 2]; if (lu === 0) pm.agri += CUBE_FLAT[o + 2]; }
       }
     }
 
@@ -2124,7 +2192,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.searchInput.addEventListener("input", () => {
       const q = els.searchInput.value.trim().toLowerCase();
       if (!q) { els.searchResults.style.display = "none"; return; }
-      const matches = SEARCH_INDEX.filter(it => it.name.toLowerCase().includes(q)).slice(0, 20);
+      const matches = SEARCH_INDEX.filter(it => it.nameLower.includes(q)).slice(0, 20);
       if (!matches.length) { els.searchResults.style.display = "none"; return; }
       const r = els.searchInput.getBoundingClientRect();
       els.searchResults.style.left = r.left + "px";
@@ -2156,8 +2224,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       }
     });
 
-    // Map mouse interactions
+    // Map mouse interactions (rAF-throttled hover + cached baseCanvas = <0.5 ms hover)
     let dragging = false, moved = false, lastX = 0, lastY = 0;
+    let hoverPending = false, hoverEvt = null, lastTooltipKey = null;
     els.mapCanvas.addEventListener("mousedown", (e) => {
       dragging = true; moved = false; lastX = e.clientX; lastY = e.clientY;
     });
@@ -2171,39 +2240,38 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       }
       dragging = false;
     });
-    window.addEventListener("mousemove", (e) => {
-      if (dragging) {
-        const dx = e.clientX - lastX, dy = e.clientY - lastY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
-        const worldPx = 256 * Math.pow(2, state.zoom);
-        state.camX -= dx / worldPx;
-        state.camY -= dy / worldPx;
-        lastX = e.clientX; lastY = e.clientY;
-        requestDrawMap();
-        return;
-      }
+    function processHover() {
+      hoverPending = false;
+      const e = hoverEvt;
+      if (!e || dragging) return;
       if (e.target === els.mapCanvas) {
         const ptHit = hitTestPointOverlay(e.clientX, e.clientY);
         if (ptHit) {
-          if (ptHit.kind === "static") {
-            const sp = ptHit.data;
-            els.tooltip.innerHTML = `
-              <h4 style="color:#38bdf8">จุดซ้ำถาวร (สงสัยโรงงาน/เตาเผา)</h4>
-              <div class="tt-row"><span class="tt-k">พิกัดพื้นที่</span><span class="tt-v">ต.${escHtml(sp.tambon)} อ.${escHtml(sp.amphoe)} จ.${escHtml(sp.prov)}</span></div>
-              <div class="tt-row"><span class="tt-k">ประเภทพื้นที่</span><span class="tt-v">${escHtml(sp.lu)}</span></div>
-              <div class="tt-row"><span class="tt-k">ซ้ำทั้งหมด</span><span class="tt-v">${formatNum(sp.points)} จุด (${sp.days} วัน)</span></div>
-              <div class="tt-row"><span class="tt-k">ความแรงเฉลี่ย</span><span class="tt-v">${sp.avg_frp.toFixed(2)} MW</span></div>
-            `;
-          } else {
-            const v = ptHit.data;
-            const cnt = state.sat === "N" ? v.n : v.all;
-            const ag = state.sat === "N" ? v.agri_n : v.agri_all;
-            els.tooltip.innerHTML = `
-              <h4 style="color:#facc15">${escHtml(v.name)}${v.moo ? " หมู่ " + escHtml(v.moo) : ""}</h4>
-              <div class="tt-row"><span class="tt-k">พื้นที่</span><span class="tt-v">ต.${escHtml(v.tambon)} อ.${escHtml(v.amphoe)} จ.${escHtml(v.prov)}</span></div>
-              <div class="tt-row"><span class="tt-k">จุดความร้อน (${escHtml(state.sat)})</span><span class="tt-v">${formatNum(cnt)} จุด (เกษตร ${formatNum(ag)})</span></div>
-              <div class="tt-row"><span class="tt-k">ระยะห่างเฉลี่ย</span><span class="tt-v">${v.dist_km !== null ? v.dist_km.toFixed(2) + " กม." : "-"}</span></div>
-            `;
+          const tKey = ptHit.kind === "static"
+            ? `st:${ptHit.data.lat}:${ptHit.data.lon}`
+            : `vil:${ptHit.data.tambon_code}:${ptHit.data.name}:${state.sat}`;
+          if (tKey !== lastTooltipKey) {
+            lastTooltipKey = tKey;
+            if (ptHit.kind === "static") {
+              const sp = ptHit.data;
+              els.tooltip.innerHTML = `
+                <h4 style="color:#38bdf8">จุดซ้ำถาวร (สงสัยโรงงาน/เตาเผา)</h4>
+                <div class="tt-row"><span class="tt-k">พิกัดพื้นที่</span><span class="tt-v">ต.${escHtml(sp.tambon)} อ.${escHtml(sp.amphoe)} จ.${escHtml(sp.prov)}</span></div>
+                <div class="tt-row"><span class="tt-k">ประเภทพื้นที่</span><span class="tt-v">${escHtml(sp.lu)}</span></div>
+                <div class="tt-row"><span class="tt-k">ซ้ำทั้งหมด</span><span class="tt-v">${formatNum(sp.points)} จุด (${sp.days} วัน)</span></div>
+                <div class="tt-row"><span class="tt-k">ความแรงเฉลี่ย</span><span class="tt-v">${sp.avg_frp.toFixed(2)} MW</span></div>
+              `;
+            } else {
+              const v = ptHit.data;
+              const cnt = state.sat === "N" ? v.n : v.all;
+              const ag = state.sat === "N" ? v.agri_n : v.agri_all;
+              els.tooltip.innerHTML = `
+                <h4 style="color:#facc15">${escHtml(v.name)}${v.moo ? " หมู่ " + escHtml(v.moo) : ""}</h4>
+                <div class="tt-row"><span class="tt-k">พื้นที่</span><span class="tt-v">ต.${escHtml(v.tambon)} อ.${escHtml(v.amphoe)} จ.${escHtml(v.prov)}</span></div>
+                <div class="tt-row"><span class="tt-k">จุดความร้อน (${escHtml(state.sat)})</span><span class="tt-v">${formatNum(cnt)} จุด (เกษตร ${formatNum(ag)})</span></div>
+                <div class="tt-row"><span class="tt-k">ระยะห่างเฉลี่ย</span><span class="tt-v">${v.dist_km !== null ? v.dist_km.toFixed(2) + " กม." : "-"}</span></div>
+              `;
+            }
           }
           els.tooltip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px";
           els.tooltip.style.top = Math.min(window.innerHeight - 170, e.clientY + 14) + "px";
@@ -2213,33 +2281,56 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         const hit = hitTestMap(e.clientX, e.clientY);
         if (hit !== state.hoverItem) {
           state.hoverItem = hit;
-          requestDrawMap();
+          requestDrawMap(false);
         }
         if (hit) {
           const it = hit.item;
           const { level } = getVisibleRecords();
-          const eHot = level === "province" ? getEra5Metric(it, "hot_days_38c") : null;
-          const trpB = getTrpBreakdown(it);
-          const trpVal = getTrpMetric(it);
-          const dTxt = hit.density !== null ? `${hit.density.toFixed(1)}/100 ตร.กม.` : "ไม่มีพื้นที่";
-          els.tooltip.innerHTML = `
-            <h4>${escHtml(it.name_th)}</h4>
-            <div class="tt-row"><span class="tt-k">จุดความร้อน</span><span class="tt-v">${formatNum(hit.total)} จุด (${dTxt})</span></div>
-            <div class="tt-row"><span class="tt-k">เกษตร+ส.ป.ก.</span><span class="tt-v">${hit.agriPct !== null ? hit.agriPct.toFixed(1) + "%" : "-"}</span></div>
-            <div class="tt-row"><span class="tt-k">รอยเผา สสน.</span><span class="tt-v">${trpVal !== null ? formatNum(trpVal, 0) + " ไร่" + (trpB ? " (เกษตร " + formatNum(trpB.agri, 0) + " · ป่า " + formatNum(trpB.forest, 0) + ")" : "") : "ไม่มีข้อมูล"}</span></div>
-            <div class="tt-row"><span class="tt-k">รอยเผา GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
-            <div class="tt-row"><span class="tt-k">เผาซ้ำซาก GISTDA</span><span class="tt-v">${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
-            <div class="tt-row"><span class="tt-k">ท่วมซ้ำ 17 ปี</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง (" + escHtml(hit.hazardLabel || "") + ")" : "ไม่มีข้อมูล HII"}</span></div>
-            ${level === "province" ? `<div class="tt-row"><span class="tt-k">วันร้อนจัด ≥38°C</span><span class="tt-v">${eHot !== null ? formatNum(eHot, 1) + " วัน" : "ไม่มีข้อมูล 2026"}</span></div>` : ""}
-          `;
+          const tKey = `poly:${level}:${it.code}:${state.sat}:${state.year}:${state.crop}:${state.metric}`;
+          if (tKey !== lastTooltipKey) {
+            lastTooltipKey = tKey;
+            const eHot = level === "province" ? getEra5Metric(it, "hot_days_38c") : null;
+            const trpB = getTrpBreakdown(it);
+            const trpVal = getTrpMetric(it);
+            const dTxt = hit.density !== null ? `${hit.density.toFixed(1)}/100 ตร.กม.` : "ไม่มีพื้นที่";
+            els.tooltip.innerHTML = `
+              <h4>${escHtml(it.name_th)}</h4>
+              <div class="tt-row"><span class="tt-k">จุดความร้อน</span><span class="tt-v">${formatNum(hit.total)} จุด (${dTxt})</span></div>
+              <div class="tt-row"><span class="tt-k">เกษตร+ส.ป.ก.</span><span class="tt-v">${hit.agriPct !== null ? hit.agriPct.toFixed(1) + "%" : "-"}</span></div>
+              <div class="tt-row"><span class="tt-k">รอยเผา สสน.</span><span class="tt-v">${trpVal !== null ? formatNum(trpVal, 0) + " ไร่" + (trpB ? " (เกษตร " + formatNum(trpB.agri, 0) + " · ป่า " + formatNum(trpB.forest, 0) + ")" : "") : "ไม่มีข้อมูล"}</span></div>
+              <div class="tt-row"><span class="tt-k">รอยเผา GISTDA</span><span class="tt-v">${it.scar_rai !== null ? formatNum(it.scar_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+              <div class="tt-row"><span class="tt-k">เผาซ้ำซาก GISTDA</span><span class="tt-v">${it.freq_rai !== null ? formatNum(it.freq_rai, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
+              <div class="tt-row"><span class="tt-k">ท่วมซ้ำ 17 ปี</span><span class="tt-v">${it.flood_max_17yr !== null ? it.flood_max_17yr + " ครั้ง (" + escHtml(hit.hazardLabel || "") + ")" : "ไม่มีข้อมูล HII"}</span></div>
+              ${level === "province" ? `<div class="tt-row"><span class="tt-k">วันร้อนจัด ≥38°C</span><span class="tt-v">${eHot !== null ? formatNum(eHot, 1) + " วัน" : "ไม่มีข้อมูล 2026"}</span></div>` : ""}
+            `;
+          }
           els.tooltip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px";
           els.tooltip.style.top = Math.min(window.innerHeight - 170, e.clientY + 14) + "px";
           els.tooltip.style.display = "block";
         } else {
+          lastTooltipKey = null;
           els.tooltip.style.display = "none";
         }
       } else if (e.target !== els.scatterCanvas) {
+        lastTooltipKey = null;
         els.tooltip.style.display = "none";
+      }
+    }
+    window.addEventListener("mousemove", (e) => {
+      if (dragging) {
+        const dx = e.clientX - lastX, dy = e.clientY - lastY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+        const worldPx = 256 * Math.pow(2, state.zoom);
+        state.camX -= dx / worldPx;
+        state.camY -= dy / worldPx;
+        lastX = e.clientX; lastY = e.clientY;
+        requestDrawMap(true);
+        return;
+      }
+      hoverEvt = e;
+      if (!hoverPending) {
+        hoverPending = true;
+        requestAnimationFrame(processHover);
       }
     });
     els.mapCanvas.addEventListener("wheel", (e) => {
