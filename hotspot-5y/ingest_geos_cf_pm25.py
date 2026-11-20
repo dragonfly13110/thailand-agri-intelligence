@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 import numpy as np
@@ -98,6 +99,7 @@ def main():
         """)
         complete = {r[0] for r in db.execute("SELECT local_date FROM pm25_geos_cf_grid_daily GROUP BY 1 HAVING count(*)=?", [CELL_COUNT]).fetchall()}
     day = args.start
+    chunk_days = args.chunk_days
     with TemporaryDirectory(prefix="geos-pm25-insert-", dir=cache) as folder:
         staging = Path(folder) / "days.csv"
         while day <= args.end:
@@ -105,12 +107,20 @@ def main():
                 day += timedelta(days=1)
                 continue
             group = [day]
-            while len(group) < args.chunk_days:
+            while len(group) < chunk_days:
                 next_day = group[-1]+timedelta(days=1)
                 if next_day > args.end or next_day in complete or next_day == FIRST_V2_DAY:
                     break
                 group.append(next_day)
-            version, url, average, hours = load_block(day, len(group), cache)
+            try:
+                version, url, average, hours = load_block(day, len(group), cache)
+            except (HTTPError, TimeoutError) as error:
+                if len(group) <= 2 or (isinstance(error, HTTPError) and error.code not in {502, 503, 504}):
+                    raise
+                print(f"{day}: NASA request failed ({error}); reducing this run to two days per request", flush=True)
+                chunk_days = 2
+                group = group[:chunk_days]
+                version, url, average, hours = load_block(day, len(group), cache)
             with staging.open("w", newline="", encoding="utf-8") as stream:
                 writer = csv.writer(stream)
                 for current, values, counts in zip(group, average, hours):
