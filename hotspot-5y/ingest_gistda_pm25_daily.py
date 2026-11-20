@@ -43,8 +43,6 @@ def parse_csv(raw, day):
         if value is not None and (not math.isfinite(value) or value < 0):
             raise ValueError(f"Invalid PM2.5 for {day}: {names}")
         rows[names] = value
-    if not rows:
-        raise ValueError(f"GISTDA returned only the CSV header for {day}")
     return rows
 
 
@@ -132,9 +130,13 @@ def main():
         else:
             raw = fetch_csv(url, day)
             parsed = parse_csv(raw, day)
-            temp = file.with_suffix(".part")
-            temp.write_bytes(raw)
-            temp.replace(file)
+            if parsed:
+                temp = file.with_suffix(".part")
+                temp.write_bytes(raw)
+                temp.replace(file)
+        if not parsed:
+            print(f"{day}: GISTDA returned a header-only CSV; no rows imported", flush=True)
+            continue
         # ponytail: only exact names or IDs verified in both sources can supply Atlas geometry.
         batch = [(*names, *(verified.get(names) or unique.get(area_key(names), (None, None, None))), value)
                  for names, value in parsed.items()]
