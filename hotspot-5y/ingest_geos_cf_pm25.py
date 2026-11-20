@@ -79,13 +79,14 @@ def main():
     parser.add_argument("--start", required=True, type=date.fromisoformat)
     parser.add_argument("--end", required=True, type=date.fromisoformat)
     parser.add_argument("--db", type=Path, default=ROOT / "data/hotspot_5y.duckdb")
+    parser.add_argument("--out", type=Path, default=ROOT / "data/output/geos_cf_pm25")
     parser.add_argument("--chunk-days", type=int, choices=range(1, 8), default=7)
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     if not date(2022, 1, 1) <= args.start <= args.end or not args.db.is_file():
         parser.error("Select an ordered range from 2022 and an existing Atlas DuckDB")
     cache = ROOT / "data/raw/geos_cf_pm25"
-    output = ROOT / "data/output/geos_cf_pm25"
+    output = args.out
     cache.mkdir(parents=True, exist_ok=True)
     output.mkdir(parents=True, exist_ok=True)
     with connect_archive(args.db) as db:
