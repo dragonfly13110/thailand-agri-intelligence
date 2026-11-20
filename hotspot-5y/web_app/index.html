@@ -8824,7 +8824,11 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
         if (!response.ok) throw new Error(`โหลดช่วงข้อมูลไม่สำเร็จ (${response.status})`);
         const {days} = await response.json();
         if (!Array.isArray(days) || !days.length) throw new Error("ไม่พบวันที่ในรายการข้อมูล");
-        expEls.pm25Dates.textContent = `มีไฟล์ ${days.length.toLocaleString("th-TH")} วัน ระหว่าง ${days[0][archive.day]} ถึง ${days.at(-1)[archive.day]} · ค่าประมาณจากกริด ${archive.grid} · ช่องว่างแสดงเป็นไม่มีข้อมูล`;
+        const firstDate = days[0][archive.day];
+        const lastDate = days.at(-1)[archive.day];
+        const missingDays = (Date.parse(lastDate) - Date.parse(firstDate)) / 86_400_000 + 1 - days.length;
+        const gap = missingDays > 0 ? ` · ขาดข้อมูล ${missingDays.toLocaleString("th-TH")} วันในช่วงนี้` : "";
+        expEls.pm25Dates.textContent = `มีไฟล์ ${days.length.toLocaleString("th-TH")} วัน ระหว่าง ${firstDate} ถึง ${lastDate}${gap} · ค่าประมาณจากกริด ${archive.grid} · ช่องว่างแสดงเป็นไม่มีข้อมูล`;
         expEls.pm25Credit.textContent = archive.credit;
         expEls.pm25Credit.href = archive.url;
         expEls.pm25Coverage.hidden = false;
