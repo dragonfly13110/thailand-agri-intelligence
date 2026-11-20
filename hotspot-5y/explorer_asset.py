@@ -379,7 +379,7 @@ EXPLORER_JS = r"""
         where.push(`(a.amphoe_name_th ILIKE ${pattern} OR a.tambon_name_th ILIKE ${pattern} OR p.tambon_code = ${sqlStr(kw)})`);
       }
       const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-      return `SELECT p.source_date AS "วันที่ต้นทาง", a.prov_name_th AS "จังหวัด", a.amphoe_name_th AS "อำเภอ", a.tambon_name_th AS "ตำบล", p.tambon_code AS "รหัสตำบล", round(p.pm25_ug_m3::DOUBLE,2) AS "ค่าประมาณ PM2.5 (µg/m³)", p.valid_cells AS "ช่องกริดที่มีค่า", p.polygon_cells AS "ช่องกริดในตำบล"\nFROM read_parquet(${sqlStr(url)}) AS p\nLEFT JOIN read_parquet(${sqlStr(areas)}) AS a USING (tambon_code)\n${wSql}\nORDER BY p.source_date DESC, p.tambon_code`;
+      return `SELECT CAST(p.source_date AS VARCHAR) AS "วันที่ต้นทาง", a.prov_name_th AS "จังหวัด", a.amphoe_name_th AS "อำเภอ", a.tambon_name_th AS "ตำบล", p.tambon_code AS "รหัสตำบล", round(p.pm25_ug_m3::DOUBLE,2) AS "ค่าประมาณ PM2.5 (µg/m³)", p.valid_cells AS "ช่องกริดที่มีค่า", p.polygon_cells AS "ช่องกริดในตำบล"\nFROM read_parquet(${sqlStr(url)}) AS p\nLEFT JOIN read_parquet(${sqlStr(areas)}) AS a USING (tambon_code)\n${wSql}\nORDER BY p.source_date DESC, p.tambon_code`;
     }
 
     if (t === "geos_cf_pm25") {
@@ -392,7 +392,7 @@ EXPLORER_JS = r"""
         where.push(`(a.amphoe_name_th ILIKE ${pattern} OR a.tambon_name_th ILIKE ${pattern} OR g.tambon_code = ${sqlStr(kw)})`);
       }
       const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-      return `SELECT p.local_date AS "วันที่ไทย", a.prov_name_th AS "จังหวัด", a.amphoe_name_th AS "อำเภอ", a.tambon_name_th AS "ตำบล", g.tambon_code AS "รหัสตำบล", round(p.pm25_ug_m3::DOUBLE,2) AS "ค่าประมาณ PM2.5 จากกริด (µg/m³)", p.valid_hours AS "ชั่วโมงที่มีค่า", p.model_version AS "รุ่นแบบจำลอง", p.grid_y/4.0-90 AS "ละติจูดกริด", p.grid_x/4.0-180 AS "ลองจิจูดกริด"\nFROM read_parquet(${sqlStr(`${dir}/pm25_geos_cf_grid_${yr}.parquet`)}) AS p\nJOIN read_parquet(${sqlStr(`${dir}/tambon_grid_lookup.parquet`)}) AS g USING (grid_y,grid_x)\nLEFT JOIN read_parquet(${sqlStr(`${HF_BASE}/parquet/dim_areas.parquet`)}) AS a USING (tambon_code)\n${wSql}\nORDER BY p.local_date DESC, g.tambon_code`;
+      return `SELECT CAST(p.local_date AS VARCHAR) AS "วันที่ไทย", a.prov_name_th AS "จังหวัด", a.amphoe_name_th AS "อำเภอ", a.tambon_name_th AS "ตำบล", g.tambon_code AS "รหัสตำบล", round(p.pm25_ug_m3::DOUBLE,2) AS "ค่าประมาณ PM2.5 จากกริด (µg/m³)", p.valid_hours AS "ชั่วโมงที่มีค่า", p.model_version AS "รุ่นแบบจำลอง", p.grid_y/4.0-90 AS "ละติจูดกริด", p.grid_x/4.0-180 AS "ลองจิจูดกริด"\nFROM read_parquet(${sqlStr(`${dir}/pm25_geos_cf_grid_${yr}.parquet`)}) AS p\nJOIN read_parquet(${sqlStr(`${dir}/tambon_grid_lookup.parquet`)}) AS g USING (grid_y,grid_x)\nLEFT JOIN read_parquet(${sqlStr(`${HF_BASE}/parquet/dim_areas.parquet`)}) AS a USING (tambon_code)\n${wSql}\nORDER BY p.local_date DESC, g.tambon_code`;
     }
 
     if (t === "air_quality_daily") {
