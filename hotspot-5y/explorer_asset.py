@@ -118,6 +118,7 @@ EXPLORER_MODAL_HTML = r"""
             <option value="live_hotspots_7d">จุดไฟล่าสุด 1–7 วัน GISTDA Near-Real-Time (2,559 จุด)</option>
             <option value="tmd_wrf">พยากรณ์อากาศ 3 กม. กรมอุตุฯ TMD WRF (77 จว.)</option>
             <option value="air_quality_daily">ฝุ่น PM2.5 &amp; อากาศรายวัน 77 จว. (CAMS 120,813 แถว)</option>
+            <option value="lghap_pm25">ค่าประมาณ PM2.5 รายตำบล (LGHAP v2)</option>
             <option value="air_quality_monthly">ฝุ่น PM2.5 &amp; วันเกินเกณฑ์รายเดือน 77 จว.</option>
             <option value="transboundary">หมอกควันข้ามแดน 6 ประเทศ (NASA FIRMS 3.17 ล้านจุด)</option>
             <option value="nasa_soil">ความชื้นดิน &amp; แสงอาทิตย์รายวัน (NASA POWER 137,060 แถว)</option>
@@ -170,6 +171,9 @@ EXPLORER_MODAL_HTML = r"""
         </div>
       </div>
 
+      <p id="expLghapCoverage" style="padding:0 20px;font-size:13px;color:var(--muted)" hidden>
+        <span id="expLghapDates"></span> · <a href="https://doi.org/10.5194/essd-16-2425-2024">LGHAP v2 โดย Bai และคณะ (CC BY 4.0)</a>
+      </p>
       <div class="explorer-bar">
         <div id="expStatus">เลือกเงื่อนไขด้านบนหรือกดสูตรค้นด่วน 1 คลิก เพื่อเริ่มเจาะอ่านไฟล์ Parquet จาก Hugging Face</div>
         <label class="check-row" style="font-size:12px;">
@@ -236,6 +240,8 @@ EXPLORER_JS = r"""
     dateToWrap: document.getElementById("expDateToWrap"),
     dateFrom: document.getElementById("expDateFrom"),
     dateTo: document.getElementById("expDateTo"),
+    lghapCoverage: document.getElementById("expLghapCoverage"),
+    lghapDates: document.getElementById("expLghapDates"),
     exclStatic: document.getElementById("expExcludeStatic"),
     runBtn: document.getElementById("expRunBtn"),
     csvBtn: document.getElementById("expCsvBtn"),
@@ -297,8 +303,9 @@ EXPLORER_JS = r"""
     if (!expEls.table) return;
     const t = expEls.table.value;
     const isHot = t === "hotspots";
-    const hasYear = ["hotspots", "tamroypao", "weather", "air_quality_daily", "air_quality_monthly", "transboundary", "nasa_soil", "rid_reservoirs"].includes(t);
-    const hasDates = ["hotspots", "air_quality_daily", "nasa_soil"].includes(t);
+    const isLghap = t === "lghap_pm25";
+    const hasYear = ["hotspots", "tamroypao", "weather", "air_quality_daily", "air_quality_monthly", "transboundary", "nasa_soil", "rid_reservoirs", "lghap_pm25"].includes(t);
+    const hasDates = ["hotspots", "air_quality_daily", "nasa_soil", "lghap_pm25"].includes(t);
     const hasProv = !["transboundary", "rid_reservoirs", "oae_prices", "live_hotspots_7d"].includes(t);
     expEls.yearWrap.style.display = hasYear ? "block" : "none";
     expEls.satWrap.style.display = isHot ? "block" : "none";
@@ -306,6 +313,9 @@ EXPLORER_JS = r"""
     expEls.dateToWrap.style.display = hasDates ? "block" : "none";
     if (expEls.prov && expEls.prov.parentElement) expEls.prov.parentElement.style.display = hasProv ? "block" : "none";
     expEls.exclStatic.parentElement.style.display = isHot ? "flex" : "none";
+    for (const option of expEls.year.options) option.hidden = isLghap && Number(option.value) > 2024;
+    if (isLghap && Number(expEls.year.value) > 2024) expEls.year.value = "2022";
+    expEls.lghapCoverage.hidden = true;
   }
 
   function buildExplorerSql() {
@@ -346,6 +356,20 @@ EXPLORER_JS = r"""
       }
       const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
       return `SELECT acq_date_th AS "วันที่", th_time AS "เวลา", prov_name_th AS "จังหวัด", amphoe_name_th AS "อำเภอ", tambon_name_th AS "ตำบล", village_name AS "หมู่บ้านใกล้สุด", lu_name AS "การใช้ที่ดิน", lu_hp_name AS "พืช", satellite AS "ดาวเทียม", frp_mw AS "FRP(MW)", latitude AS "Lat", longitude AS "Lon"\nFROM read_parquet(${sqlStr(url)})\n${wSql}\nORDER BY acq_date_th DESC, th_time DESC`;
+    }
+
+    if (t === "lghap_pm25") {
+      const url = `${HF_BASE}/parquet/lghap/pm25_tambon_lghap_${yr}.parquet`;
+      const areas = `${HF_BASE}/parquet/dim_areas.parquet`;
+      if (prov !== "all") where.push(`p.prov_code = ${sqlStr(prov)}`);
+      if (expEls.dateFrom.value) where.push(`p.source_date >= ${sqlStr(expEls.dateFrom.value)}`);
+      if (expEls.dateTo.value) where.push(`p.source_date <= ${sqlStr(expEls.dateTo.value)}`);
+      if (kw) {
+        const pattern = sqlStr("%" + kw + "%");
+        where.push(`(a.amphoe_name_th ILIKE ${pattern} OR a.tambon_name_th ILIKE ${pattern} OR p.tambon_code = ${sqlStr(kw)})`);
+      }
+      const wSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      return `SELECT p.source_date AS "วันที่ต้นทาง", a.prov_name_th AS "จังหวัด", a.amphoe_name_th AS "อำเภอ", a.tambon_name_th AS "ตำบล", p.tambon_code AS "รหัสตำบล", p.pm25_ug_m3 AS "ค่าประมาณ PM2.5 (µg/m³)", p.valid_cells AS "ช่องกริดที่มีค่า", p.polygon_cells AS "ช่องกริดในตำบล"\nFROM read_parquet(${sqlStr(url)}) AS p\nLEFT JOIN read_parquet(${sqlStr(areas)}) AS a USING (tambon_code)\n${wSql}\nORDER BY p.source_date DESC, p.tambon_code`;
     }
 
     if (t === "air_quality_daily") {
@@ -509,6 +533,24 @@ EXPLORER_JS = r"""
     expEls.runSqlBtn.disabled = true;
     const t0 = performance.now();
     try {
+      if (!useCustomSql && expEls.table.value === "lghap_pm25" && page === 0) {
+        const year = expEls.year.value;
+        expEls.lghapCoverage.hidden = true;
+        const response = await fetch(`${HF_BASE}/parquet/lghap/coverage_${year}.json`, {cache: "no-cache"});
+        if (response.status === 404) {
+          renderExplorerTable([], []);
+          expState.lastBaseSql = "";
+          expEls.nextBtn.disabled = expEls.prevBtn.disabled = expEls.csvBtn.disabled = true;
+          expEls.pageInfo.textContent = "";
+          expEls.status.textContent = `ปี ${year} ยังไม่มีไฟล์ LGHAP ในคลัง ลองเลือกปีอื่น`;
+          return;
+        }
+        if (!response.ok) throw new Error(`โหลดช่วงข้อมูล LGHAP ไม่สำเร็จ (${response.status})`);
+        const {days} = await response.json();
+        if (!Array.isArray(days) || !days.length) throw new Error("ไม่พบวันที่ในรายการข้อมูล LGHAP");
+        expEls.lghapDates.textContent = `มีไฟล์ ${days.length.toLocaleString("th-TH")} วัน ระหว่าง ${days[0].source_date} ถึง ${days.at(-1).source_date} · ประมาณจากกริด 0.01° · ช่องว่างแสดงเป็นไม่มีข้อมูล`;
+        expEls.lghapCoverage.hidden = false;
+      }
       const conn = await ensureDuckDb();
       const countRes = await conn.query(`SELECT count(*) AS cnt FROM (${baseSql}) AS _q`);
       const total = Number(countRes.get(0).cnt);
@@ -526,6 +568,7 @@ EXPLORER_JS = r"""
       expEls.pageInfo.textContent = `หน้า ${page + 1} / ${totalPages} (แถว ${total ? offset + 1 : 0}–${Math.min(total, offset + rows.length)} จาก ${total.toLocaleString("th-TH")})`;
       expEls.prevBtn.disabled = page <= 0;
       expEls.nextBtn.disabled = offset + PAGE_SIZE >= total;
+      expEls.csvBtn.disabled = total === 0;
     } catch (err) {
       expEls.status.textContent = "เกิดข้อผิดพลาดในการค้นหา: " + (err?.message || err);
       expEls.tbody.innerHTML = `<tr><td style="padding:18px;color:#fca5a5;">${escHtml(err?.message || err)}</td></tr>`;
