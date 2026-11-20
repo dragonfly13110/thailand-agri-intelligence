@@ -4,6 +4,7 @@ import argparse
 import csv
 from datetime import date, timedelta
 import io
+import json
 import math
 from pathlib import Path
 import re
@@ -60,12 +61,42 @@ def fetch_csv(url, day):
             sleep(10*(attempt+1))
 
 
+def load_verified_reference(con, cache):
+    path = cache / "crosswalk_evidence.json"
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS pm25_gistda_code_reference (
+            source_province VARCHAR, source_amphoe VARCHAR, source_tambon VARCHAR,
+            source_prov_code VARCHAR, source_amphoe_code VARCHAR, source_tambon_code VARCHAR,
+            reference_url VARCHAR,
+            PRIMARY KEY (source_province, source_amphoe, source_tambon)
+        )
+    """)
+    if path.is_file():
+        evidence = []
+        for province, district, tambon, p, a, t, _ in json.loads(path.read_text(encoding="utf-8")):
+            if not t:
+                continue
+            if not (re.fullmatch(r"\d{2}", p) and re.fullmatch(r"\d{4}", a) and re.fullmatch(r"\d{6}", t)
+                    and a.startswith(p) and t.startswith(a)):
+                raise ValueError(f"Invalid GISTDA reference codes for {province}/{district}/{tambon}")
+            evidence.append((province, district, tambon, p, a, t, f"https://pm25.gistda.or.th/rest/getTamName?ap={a}"))
+        if evidence:
+            con.executemany("INSERT OR REPLACE INTO pm25_gistda_code_reference VALUES (?, ?, ?, ?, ?, ?, ?)", evidence)
+    return con.execute("""
+        SELECT r.source_province, r.source_amphoe, r.source_tambon, a.prov_code, a.amphoe_code, a.tambon_code
+        FROM pm25_gistda_code_reference r
+        JOIN dim_tambon a ON a.prov_code=r.source_prov_code AND a.amphoe_code=r.source_amphoe_code
+                           AND a.tambon_code=r.source_tambon_code
+    """).fetchall()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--start", required=True, type=date.fromisoformat)
     parser.add_argument("--end", required=True, type=date.fromisoformat)
     parser.add_argument("--db", type=Path, default=ROOT / "data/hotspot_5y.duckdb")
     parser.add_argument("--cache", type=Path, default=ROOT / "data/raw/gistda_pm25_daily")
+    parser.add_argument("--cached-only", action="store_true", help="Skip dates without a validated local CSV")
     args = parser.parse_args()
     if not date(2024, 1, 1) <= args.start <= args.end:
         parser.error("GISTDA lists daily downloads from 2024-01-01")
@@ -84,6 +115,7 @@ def main():
             SELECT prov_name_th, amphoe_name_th, tambon_name_th, prov_code, amphoe_code, tambon_code
             FROM dim_tambon WHERE prov_name_th IS NOT NULL AND amphoe_name_th IS NOT NULL AND tambon_name_th IS NOT NULL
         """).fetchall()
+        verified = {tuple(row[:3]): tuple(row[3:]) for row in load_verified_reference(con, args.cache)}
     keys = {}
     for *names, p, a, t in dimensions:
         keys.setdefault(area_key(names), []).append((p, a, t))
@@ -95,14 +127,20 @@ def main():
         url = ENDPOINT + "?" + urlencode({"dt1": day.isoformat(), "id": 0})
         if file.exists():
             parsed = parse_csv(file.read_bytes(), day)
+        elif args.cached_only:
+            continue
         else:
             raw = fetch_csv(url, day)
             parsed = parse_csv(raw, day)
             temp = file.with_suffix(".part")
             temp.write_bytes(raw)
             temp.replace(file)
-        # ponytail: retain unmatched source rows with null codes until a verified crosswalk exists.
-        batch = [(*names, *unique.get(area_key(names), (None, None, None)), value) for names, value in parsed.items()]
+        # ponytail: only exact names or IDs verified in both sources can supply Atlas geometry.
+        batch = [(*names, *(verified.get(names) or unique.get(area_key(names), (None, None, None))), value)
+                 for names, value in parsed.items()]
+        codes = [row[5] for row in batch if row[5] is not None]
+        if len(codes) != len(set(codes)):
+            raise ValueError(f"GISTDA rows map to the same Atlas code on {day}")
         with TemporaryDirectory(prefix="gistda-pm25-insert-", dir=args.cache) as folder:
             staging = Path(folder) / "day.csv"
             with staging.open("w", newline="", encoding="utf-8") as stream:
