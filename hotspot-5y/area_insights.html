@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จุดความร้อนเปลี่ยนตรงไหน | Thailand Fire Atlas</title>
+<!--__ATLAS_FONTS__-->
+<!--__ATLAS_THEME_SCRIPT__-->
+<style>
+/*__ATLAS_SHARED_CSS__*/
+  :root { color-scheme:dark; font:16px/1.55 var(--atlas-font); color:var(--text); background:var(--bg-mesh); }
+  html[data-theme="light"] { color-scheme:light; }
+  * { box-sizing:border-box; }
+  body { margin:0; }
+  .topbar { position:sticky; top:0; height:58px; box-shadow:var(--shadow-sm); }
+  .brand { color:var(--text); text-decoration:none; }
+  .theme-toggle { margin-left:auto; background:var(--card); color:var(--text); padding:6px 12px; border:1px solid var(--border); border-radius:9px; flex-shrink:0; cursor:pointer; font-size:12px; }
+  main { width:min(1440px, 100% - 2rem); margin:2rem auto 4rem; }
+  h1,h2,p { margin:0 0 .55rem; }
+  h1 { font-size:clamp(1.65rem,4vw,2.7rem); line-height:1.2; }
+  h2 { font-size:1.18rem; }
+  p,summary { color:var(--muted); }
+  main a { color:var(--secondary); }
+  .panel { min-width:0; background:var(--panel); border:1px solid var(--border); padding:1rem; border-radius:.8rem; margin-top:1rem; box-shadow:var(--shadow-sm); }
+  .filters,.metrics,.detail { display:grid; gap:.8rem; }
+  .filters,.detail { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  label { display:grid; gap:.25rem; font-weight:600; }
+  select,button { font:inherit; }
+  select { width:100%; padding:.4rem; border:1px solid var(--border-strong); border-radius:.4rem; background:var(--card); color:inherit; }
+  main button { background:none; color:var(--secondary); border:0; padding:.25rem; text-decoration:underline; cursor:pointer; text-align:left; }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .metric { padding:.65rem .75rem; border-left:3px solid var(--accent); background:var(--card); border-radius:.3rem; }
+  .metric strong { display:block; font-size:1.44rem; }
+  .chart-row { display:grid; grid-template-columns:2.8rem 1fr 7.5rem; align-items:center; gap:.45rem; margin:.32rem 0; }
+  .bars { display:grid; gap:.2rem; }
+  .bars i { background:var(--accent); height:.48rem; border-radius:.3rem; }
+  .bars i.baseline { background:var(--forest); }
+  .chart-row span:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+  .scroll { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; white-space:nowrap; }
+  th,td { padding:.35rem .6rem; text-align:right; border-bottom:1px solid var(--border); }
+  th:first-child,td:first-child { text-align:left; }
+  .up { color:var(--danger); }
+  .down { color:var(--forest); }
+  @media (max-width:670px) { .metrics,.detail { grid-template-columns:1fr; } main { margin-top:1rem; } }
+</style>
+</head>
+<body>
+<!--__ATLAS_HEADER__-->
+<main>
+  <h1>จุดความร้อนเปลี่ยนตรงไหน</h1>
+  <p>เทียบเดือนม.ค.–ต.ค. 2569 กับปีก่อนและช่วงเดียวกันในอดีต เลือกจังหวัดเพื่อดูว่าอำเภอไหนทำให้ภาพรวมขยับ</p>
+  <div class="panel filters">
+    <label>จังหวัด<select id="province"></select></label>
+    <label>อำเภอ<select id="district" disabled></select></label>
+  </div>
+  <section class="panel" aria-labelledby="area-name">
+    <h2 id="area-name"></h2>
+    <p id="count-standard"><strong>เกณฑ์เดียวกันทุกปี</strong> · GISTDA VIIRS Suomi NPP ดวงเดียว · 1 ม.ค.–31 ต.ค. ตามเวลาไทย · ตัดจุดต้องสงสัยถาวร · นับครั้งที่ดาวเทียมตรวจพบ</p>
+    <div id="metrics" class="metrics" aria-live="polite"></div>
+    <p id="monthly-change"></p>
+    <p id="record"></p>
+  </section>
+  <div class="detail">
+    <section class="panel" aria-labelledby="month-title">
+      <h2 id="month-title">เดือนไหนที่ต่างจากเดิม</h2>
+      <p>ส้ม = ปี 2569 · เขียว = ค่ากลางปี 2566–2568</p>
+      <div id="months"></div>
+    </section>
+    <section class="panel" aria-labelledby="repeat-title">
+      <h2 id="repeat-title">จุดปีนี้ทับพื้นที่ที่พบซ้ำเท่าไร</h2>
+      <p id="repeat"></p>
+      <h2>แยกตามการใช้ที่ดิน</h2>
+      <div class="scroll"><table>
+        <thead><tr><th scope="col">ประเภทพื้นที่</th><th scope="col">2568</th><th scope="col">2569</th><th scope="col">เปลี่ยน</th></tr></thead>
+        <tbody id="land"></tbody>
+      </table></div>
+    </section>
+  </div>
+  <section class="panel" aria-labelledby="burn-title" data-seasonal hidden>
+    <h2 id="burn-title">จุดความร้อนกับพื้นที่รอยเผา</h2>
+    <p>เทียบ ธ.ค.–เม.ย. ของแต่ละฤดู เฉพาะตำบลที่มีข้อมูลรอยเผาของ สสน. ครบทั้ง 3 ฤดู</p>
+    <p id="burn-summary" aria-live="polite"></p>
+    <div id="burn-table" class="scroll">
+      <table>
+        <thead><tr><th scope="col">ฤดู</th><th scope="col">จุดตรวจพบ</th><th scope="col">รอยเผา (ไร่)</th></tr></thead>
+        <tbody id="burn"></tbody>
+      </table>
+    </div>
+    <p><small>แหล่งข้อมูลรอยเผา <a href="https://tamroypao.hii.or.th/">ตามรอยเผา สสน.</a> · การเทียบนี้รวมตามขอบเขตตำบลเดียวกัน ส่วนค่าจุดและไร่เป็นคนละหน่วย</small></p>
+  </section>
+  <section class="panel" aria-labelledby="rank-title">
+    <h2 id="rank-title">พื้นที่ที่ทำให้ยอดเปลี่ยน</h2>
+    <p>กดชื่อพื้นที่เพื่อเจาะรายละเอียด ยอดเพิ่มหรือลดคิดเป็นจำนวนจุดที่ตรวจพบ</p>
+    <label>เรียงตาม<select id="sort">
+      <option value="up">เพิ่มมากที่สุดจากปี 2568</option>
+      <option value="down">ลดมากที่สุดจากปี 2568</option>
+      <option value="record">สูงกว่าค่าสูงสุดปี 2566–2568</option>
+      <option value="count">พบมากที่สุดในปี 2569</option>
+      <option value="burn" data-seasonal hidden>รอยเผาเพิ่มมากที่สุดจากฤดู 2568</option>
+      <option value="mismatch" data-seasonal hidden>จุดเพิ่มแต่ไร่รอยเผาลด</option>
+    </select></label>
+    <div class="scroll"><table>
+      <thead><tr><th scope="col">พื้นที่</th><th scope="col">2565</th><th scope="col">2566</th><th scope="col">2567</th><th scope="col">2568</th><th scope="col">2569</th><th scope="col">เทียบ 2568</th><th scope="col">เทียบสูงสุด 3 ปีก่อน</th><th scope="col" data-seasonal hidden>ต่างจากฤดูก่อน (จุด)</th><th scope="col" data-seasonal hidden>ต่างจากฤดูก่อน (ไร่)</th></tr></thead>
+      <tbody id="rank"></tbody>
+    </table></div>
+  </section>
+  <details class="panel">
+    <summary>วิธีนับและข้อจำกัด</summary>
+    <p>ใช้จุดตรวจพบ GISTDA VIIRS Suomi NPP (รหัส N) เดือนม.ค.–ต.ค. ทุกปี ตัดจุดที่ฐานทำเครื่องหมายว่าสงสัยเป็นแหล่งความร้อนถาวร ตัวเลขนับการตรวจพบจากดาวเทียม แหล่งเดิมอาจถูกตรวจพบหลายครั้ง</p>
+    <p>ใช้ค่ากลางของปี 2566–2568 เพื่อให้ผลเทียบได้รับอิทธิพลน้อยลงจากปีเดียว แสดงปี 2565 แยกในตาราง เพราะยอดทั้งประเทศปีนั้นต่ำกว่าปีอื่นชัดเจน ปีที่มีจำนวนวันที่บันทึกต่างกันควรใช้ผลเทียบเป็นสัญญาณสำหรับตรวจต่อ</p>
+    <p>พื้นที่พบซ้ำแบ่งช่องละ 0.01° หรือประมาณ 1 กม. นับเฉพาะช่องที่พบในปี 2569 และพบอย่างน้อย 3 จาก 4 ปีในช่วง 2566–2569 ช่องเดียวกันอาจครอบคลุมหลายแปลง</p>
+    <p data-seasonal hidden>ตารางหลักใช้ ม.ค.–ต.ค. ส่วนสองคอลัมน์ท้ายใช้ ธ.ค.–เม.ย. ตามฤดูของ สสน. เครื่องหมาย – หมายถึงไม่มีข้อมูลรอยเผาที่เทียบครบในพื้นที่นั้น</p>
+    <p>ยอด 0 หมายถึงไม่มีจุดบันทึกหลังใช้ตัวกรอง ส่วนวันที่ไม่มีจุดบันทึกอาจเกิดจากตรวจไม่พบหรือข้อมูลไม่ครบ จำนวนวันด้านล่างจึงบอกเพียงว่าฐานมีจุดบันทึกกี่วัน</p>
+    <p id="coverage"></p>
+  </details>
+</main>
+<script id="area-data" type="application/json">__AREA_DATA__</script>
+<script>
+const data = JSON.parse(document.querySelector('#area-data').textContent);
+const hasSeasonal = data.burnYears.length > 0;
+if (hasSeasonal) document.querySelectorAll('[data-seasonal]').forEach(el=>{el.hidden=false;});
+const byId = id => document.getElementById(id);
+const themeToggle = byId('themeToggle');
+if (themeToggle) {
+  setAtlasTheme(document.documentElement.dataset.theme);
+  themeToggle.addEventListener('click', () => {
+    setAtlasTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
+  });
+}
+const province = byId('province'), district = byId('district'), sort = byId('sort');
+const nl = new Intl.NumberFormat('th-TH');
+const fmt = n => nl.format(n);
+const signed = n => (n > 0 ? '+' : '') + fmt(n);
+const delta = n => n == null ? '–' : signed(n);
+const sum = values => values.reduce((a,b) => a+b,0);
+const median = values => [...values].sort((a,b)=>a-b)[1];
+const esc = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+const monthNames = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.'];
+const rows = data.areas.map(row => {
+  const totals = row.counts.map(sum);
+  return {...row, totals, delta:totals[4]-totals[3], record:totals[4]-Math.max(...totals.slice(1,4)),
+    seasonChange: row.burn ? row.burn.points[2]-row.burn.points[1] : null,
+    raiChange: row.burn ? row.burn.rai[2]-row.burn.rai[1] : null};
+});
+const provinces = rows.filter(r => r.p && !r.a);
+const children = p => rows.filter(r => r.p === p && r.a);
+const options = (items,key) => items.map(r => '<option value="'+esc(r[key])+'">'+esc(r.name)+'</option>').join('');
+province.innerHTML = '<option value="">ทั้งประเทศ</option>'+options(provinces,'p');
+function selectProvince(p) {
+  province.value = p;
+  district.innerHTML = '<option value="">ภาพรวมจังหวัด</option>'+options(children(p),'a');
+  district.disabled = !p;
+}
+function render() {
+  const row = rows.find(r => r.p === (province.value || null) && r.a === (district.value || null));
+  const baseline = median(row.totals.slice(1,4));
+  byId('area-name').textContent = row.name;
+  byId('metrics').innerHTML = [
+    ['จุดตรวจพบปี 2569',fmt(row.totals[4])],
+    ['เทียบปี 2568 ที่พบ '+fmt(row.totals[3])+' จุด',signed(row.delta)],
+    ['ต่างจากค่ากลางปี 2566–2568',signed(row.totals[4]-baseline)],
+  ].map(([label,value]) => '<div class="metric"><strong>'+value+'</strong>'+label+'</div>').join('');
+  const monthChanges = row.counts[4].map((count,i) => count - row.counts[3][i]);
+  const mainMonth = monthChanges.reduce((best,change,i) =>
+    Math.abs(change) > Math.abs(monthChanges[best]) ? i : best, 0
+  );
+  byId('monthly-change').textContent = monthChanges[mainMonth]
+    ? `เดือนที่เปลี่ยนมากสุดจากปี 2568 คือ ${monthNames[mainMonth]} จาก ${fmt(row.counts[3][mainMonth])} เป็น ${fmt(row.counts[4][mainMonth])} จุด (${signed(monthChanges[mainMonth])})`
+    : 'แต่ละเดือนมียอดจุดตรวจพบเท่าปี 2568';
+  byId('record').textContent = 'เทียบปีที่พบมากสุดในช่วง 2566–2568 '+signed(row.record)+' จุด'
+    +(row.fromPoints ? ' · ใช้ชื่ออำเภอจากระเบียนจุดตรวจพบ เนื่องจากไม่มีอำเภอนี้ในตารางขอบเขต' : '');
+  const monthly = row.counts[4].map((count,i) => [count,median(row.counts.slice(1,4).map(year=>year[i]))]);
+  const max = Math.max(1,...monthly.flat());
+  byId('months').innerHTML = monthly.map(([now,past],i) =>
+    '<div class="chart-row"><span>'+monthNames[i]+'</span><div class="bars" aria-hidden="true"><i style="width:'+100*now/max+'%"></i><i class="baseline" style="width:'+100*past/max+'%"></i></div><span>'+fmt(now)+' / '+fmt(past)+'</span></div>'
+  ).join('');
+  const [cells,repeated,repeatPoints] = row.repeat;
+  byId('repeat').textContent = cells
+    ? 'พบซ้ำ '+fmt(repeated)+' จาก '+fmt(cells)+' ช่องที่ตรวจพบปีนี้ รวม '+fmt(repeatPoints)+' จุด หรือ '+fmt(Math.round(100*repeatPoints/row.totals[4]))+'% ของจุดทั้งหมดในพื้นที่'
+    : 'ไม่มีช่องที่มีพิกัดตรวจพบในปี 2569';
+  byId('land').innerHTML = ['ป่า','เกษตรและ ส.ป.ก.','อื่น ๆ'].map((name,i) =>
+    '<tr><th scope="row">'+name+'</th><td>'+fmt(row.land[3][i])+'</td><td>'+fmt(row.land[4][i])+'</td><td>'+signed(row.land[4][i]-row.land[3][i])+'</td></tr>'
+  ).join('');
+  const burn = row.burn;
+  byId('burn-table').hidden = !burn;
+  byId('burn-summary').textContent = burn
+    ? `พื้นที่เทียบได้ ${fmt(burn.tambons)} ตำบล${row.p ? '' : ' ใน '+fmt(burn.provinces)+' จังหวัด'} · ฤดู 2569 เทียบ 2568 จุด ${signed(row.seasonChange)} · รอยเผา ${signed(row.raiChange)} ไร่`
+    : 'ไม่มีข้อมูลรอยเผา สสน. ครบสามฤดูสำหรับพื้นที่นี้';
+  byId('burn').innerHTML = burn ? data.burnYears.map((year,i) =>
+    `<tr><th scope="row">${year+543}</th><td>${fmt(burn.points[i])}</td><td>${fmt(burn.rai[i])}</td></tr>`
+  ).join('') : '';
+  const list = province.value ? children(province.value) : provinces;
+  const score = r => ({
+    up:r.delta, down:-r.delta, record:r.record, count:r.totals[4], burn:r.raiChange ?? -Infinity,
+    mismatch:r.seasonChange > 0 && r.raiChange < 0 ? r.seasonChange : -Infinity,
+  })[sort.value];
+  const ranked = sort.value === 'mismatch' ? list.filter(r=>score(r) !== -Infinity) : list;
+  byId('rank-title').textContent = province.value ? 'อำเภอที่ทำให้ยอดจังหวัดเปลี่ยน' : 'จังหวัดที่ทำให้ยอดประเทศเปลี่ยน';
+  byId('rank').innerHTML = [...ranked].sort((a,b) => score(b)-score(a) || a.name.localeCompare(b.name,'th')).map(r =>
+    '<tr><th scope="row"><button data-area="'+esc(r.a || r.p)+'"'+(r.a && r.a === district.value ? ' aria-current="true"' : '')+'>'+esc(r.name)+'</button></th>'+
+    r.totals.map(n=>'<td>'+fmt(n)+'</td>').join('')+
+    [r.delta,r.record,...(hasSeasonal ? [r.seasonChange,r.raiChange] : [])].map(n=>'<td class="'+(n>0?'up':n<0?'down':'')+'">'+delta(n)+'</td>').join('')+'</tr>'
+  ).join('') || '<tr><td colspan="'+(hasSeasonal ? 10 : 8)+'">ไม่พบพื้นที่ตามเงื่อนไขนี้</td></tr>';
+}
+byId('coverage').textContent = 'จำนวนวันที่มีจุดบันทึกทั้งประเทศในช่วงเทียบ '+data.coverage.map(([year,, ,days]) => (year+543)+' = '+days).join(' · ')+' วัน';
+province.addEventListener('change',()=>{selectProvince(province.value);render();});
+district.addEventListener('change',render);
+sort.addEventListener('change',render);
+byId('rank').addEventListener('click',event=>{
+  const button = event.target.closest('button[data-area]');
+  if (!button) return;
+  if (province.value) {
+    district.value = button.dataset.area;
+    district.focus();
+  } else {
+    selectProvince(button.dataset.area);
+    province.focus();
+  }
+  render();
+  byId('area-name').scrollIntoView({block:'center'});
+});
+selectProvince('');
+render();
+</script>
+</body>
+</html>

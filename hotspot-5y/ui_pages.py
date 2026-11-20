@@ -2,6 +2,24 @@
 
 from __future__ import annotations
 
+ATLAS_NAV_CSS = r""".nav-tabs {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--card); border: 1px solid var(--border);
+  padding: 3px; border-radius: 12px;
+}
+.nav-tab {
+  padding: 6px 13px; border-radius: 9px; border: 1px solid transparent;
+  background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: color .15s, background .15s, border-color .15s, transform .12s;
+}
+.nav-tab:hover { color: var(--text); background: rgba(148,163,184,0.12); }
+.nav-tab.active {
+  background: var(--accent);
+  color: #ffffff; border-color: transparent;
+}"""
+
 MULTI_PAGE_CSS = r"""
 /* ===== Multi-Page Editorial Shell & Visual System ===== */
 @keyframes pageFadeIn {
@@ -19,23 +37,7 @@ MULTI_PAGE_CSS = r"""
   box-shadow: 0 2px 16px rgba(0,0,0,0.24);
 }
 .brand-sub { font-size: 11px; color: var(--muted); font-weight: 500; margin-left: 2px; }
-.nav-tabs {
-  display: flex; align-items: center; gap: 4px;
-  background: var(--card); border: 1px solid var(--border);
-  padding: 3px; border-radius: 12px;
-}
-.nav-tab {
-  padding: 6px 13px; border-radius: 9px; border: 1px solid transparent;
-  background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600;
-  cursor: pointer; font-family: inherit; white-space: nowrap;
-  display: inline-flex; align-items: center; gap: 6px;
-  transition: color .15s, background .15s, border-color .15s, transform .12s;
-}
-.nav-tab:hover { color: var(--text); background: rgba(148,163,184,0.12); }
-.nav-tab.active {
-  background: var(--accent);
-  color: #ffffff; border-color: transparent;
-}
+""" + ATLAS_NAV_CSS + r"""
 .app-body {
   height: calc(100vh - 58px); overflow: hidden; position: relative;
   min-width: 0; max-width: 100%;
@@ -262,7 +264,7 @@ html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
 .dock-btn {
   padding: 6px 11px; border-radius: 9px; border: 1px solid transparent;
   background: transparent; color: var(--muted); font-size: 11.5px; font-weight: 700;
-  cursor: pointer; font-family: inherit; white-space: nowrap; transition: background .15s, color .15s;
+  cursor: pointer; font-family: inherit; white-space: nowrap; text-decoration: none; transition: background .15s, color .15s;
 }
 .dock-btn:hover { color: var(--text); background: var(--card); }
 .dock-btn.active { background: var(--accent); color: #fff; }
@@ -286,7 +288,7 @@ html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
 .bs-chip {
   padding: 5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
   border: 1px solid var(--border); background: var(--card); color: var(--muted);
-  cursor: pointer; font-family: inherit; white-space: nowrap; transition: all .14s;
+  cursor: pointer; font-family: inherit; white-space: nowrap; text-decoration: none; transition: all .14s;
 }
 .bs-chip:hover { color: var(--text); border-color: var(--accent); }
 .bs-chip.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }

@@ -16,17 +16,12 @@ from ui_pages import (
     WEATHER_PAGE_HTML,
 )
 
-HTML_SHELL = r"""<!DOCTYPE html>
-<html lang="th" data-theme="dark">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Thailand Fire, Burn Scar & Climate Intelligence Atlas (2022–2026)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
+ATLAS_FONTS = """<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-<style>
-:root {
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />"""
+
+ATLAS_THEME_CSS = """:root {
+  --atlas-font: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", Tahoma, sans-serif;
   --bg: #0b0e14;
   --bg-mesh: radial-gradient(ellipse 75% 40% at 50% -10%, rgba(229, 107, 55, 0.07), transparent 60%), #0b0e14;
   --topbar-bg: #0f131b;
@@ -75,22 +70,9 @@ html[data-theme="light"] {
   --map-land-stroke: rgba(51, 65, 85, 0.34);
   --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
   --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.05);
-}
-* { box-sizing: border-box; }
-html, body {
-  margin: 0; padding: 0; width: 100%; max-width: 100%; height: 100%;
-  background: var(--bg); color: var(--text);
-  font-family: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", Tahoma, sans-serif;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-#app {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 58px 1fr;
-  height: 100vh; width: 100%; max-width: 100%; overflow-x: hidden;
-}
-.topbar {
+}"""
+
+ATLAS_CHROME_CSS = """.topbar {
   display: flex; align-items: center; gap: 10px; padding: 0 16px;
   background: var(--topbar-bg); border-bottom: 1px solid var(--border);
   z-index: 30; overflow-x: auto; white-space: nowrap; scrollbar-width: thin;
@@ -100,7 +82,56 @@ html, body {
 .brand-dot {
   width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
   background: var(--accent);
+}"""
+
+ATLAS_NAV_ITEMS = (
+    ("overview", "ภาพรวม"),
+    ("map", "แผนที่เจาะลึก"),
+    ("weather", "อากาศ × ไฟ"),
+    ("haze", "ฝุ่น PM2.5 & ข้ามแดน"),
+    ("burnscar", "รอยเผา & เทียบจังหวัด"),
+)
+
+ATLAS_THEME_SCRIPT = r"""<script>
+function setAtlasTheme(theme, remember = false) {
+  document.documentElement.dataset.theme = theme;
+  const toggle = document.getElementById("themeToggle");
+  if (toggle) toggle.textContent = theme === "dark" ? "โหมดสว่าง" : "โหมดมืด";
+  if (remember) {
+    try { localStorage.setItem("atlas-theme", theme); } catch (_) {}
+  }
 }
+try {
+  const saved = localStorage.getItem("atlas-theme");
+  if (saved === "light" || saved === "dark") setAtlasTheme(saved);
+} catch (_) {}
+</script>"""
+
+HTML_SHELL = r"""<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thailand Fire, Burn Scar & Climate Intelligence Atlas (2022–2026)</title>
+<!--__ATLAS_FONTS__-->
+<!--__ATLAS_THEME_SCRIPT__-->
+<style>
+/*__ATLAS_THEME_CSS__*/
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; width: 100%; max-width: 100%; height: 100%;
+  background: var(--bg); color: var(--text);
+  font-family: var(--atlas-font);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+#app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 58px 1fr;
+  height: 100vh; width: 100%; max-width: 100%; overflow-x: hidden;
+}
+/*__ATLAS_CHROME_CSS__*/
 .badge {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
   background: var(--card); color: var(--muted); border: 1px solid var(--border);
@@ -358,11 +389,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <span id="dateBadge" class="badge">2022–2026</span>
     </div>
     <nav class="nav-tabs" aria-label="เมนูหลัก">
-      <button type="button" class="nav-tab active" data-page="overview">ภาพรวม</button>
-      <button type="button" class="nav-tab" data-page="map">แผนที่เจาะลึก</button>
-      <button type="button" class="nav-tab" data-page="weather">อากาศ × ไฟ</button>
-      <button type="button" class="nav-tab" data-page="haze">ฝุ่น PM2.5 &amp; ข้ามแดน</button>
-      <button type="button" class="nav-tab" data-page="burnscar">รอยเผา &amp; เทียบจังหวัด</button>
+      <!--__ATLAS_NAV_ITEMS__-->
+      <!--__AREA_INSIGHTS_LINK__-->
+      <!--__FIRE_PM_MAP_LINK__-->
       <!--__EXPLORER_BTN__-->
     </nav>
     <div class="spacer"></div>
@@ -476,6 +505,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             </optgroup>
           </select>
         </div>
+        <label class="check-row">
+          <input id="showAreaFillCheck" type="checkbox" checked />
+          <span>แสดงสีระบายพื้นที่</span>
+        </label>
         <div>
           <label class="field-label" for="levelModeSelect">ระดับขอบเขตแผนที่</label>
           <select id="levelModeSelect">
@@ -640,10 +673,12 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <button id="zoomOutBtn" class="zoom-btn" title="ซูมออก">−</button>
       </div>
       <div id="legendBox" class="hud-box legend-box">
-        <div id="legendTitle" style="font-weight:700;font-size:12px;">จำนวนจุดความร้อน</div>
-        <div id="legendBar" class="legend-bar"></div>
-        <div class="legend-labels"><span id="legMin">0</span><span id="legMid">-</span><span id="legMax">-</span></div>
-        <div id="legendNullChip" class="null-chip" style="display:none;"><span class="null-swatch"></span><span>ไม่มีข้อมูลต้นทาง (ไม่ใช่ 0)</span></div>
+        <div id="areaFillLegend">
+          <div id="legendTitle" style="font-weight:700;font-size:12px;">จำนวนจุดความร้อน</div>
+          <div id="legendBar" class="legend-bar"></div>
+          <div class="legend-labels"><span id="legMin">0</span><span id="legMid">-</span><span id="legMax">-</span></div>
+          <div id="legendNullChip" class="null-chip" style="display:none;"><span class="null-swatch"></span><span>ไม่มีข้อมูลต้นทาง (ไม่ใช่ 0)</span></div>
+        </div>
         <div id="tmsLegendChip" class="null-chip" style="display:none;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:10.5px;"></div>
       </div>
       <div id="mapDock" class="map-dock" aria-label="สลับมุมมองแผนที่ด่วน">
@@ -815,6 +850,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     crop: "all",
     excludeStatic: true,
     metric: "count",
+    showAreaFill: true,
     levelMode: "auto",
     selectedProv: null,
     selectedAmphoe: null,
@@ -835,7 +871,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     basemap: "none",
     scatterX: "wx_peak_fwi",
     scatterY: "count",
-    theme: "dark",
+    theme: document.documentElement.dataset.theme,
     presentation: false,
     // Camera in Web-Mercator [0..1]
     camX: 0.781,
@@ -851,10 +887,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     "loadingMask","dateBadge","breadcrumbs","searchInput","searchResults","exportCsvBtn",
     "provenanceBtn","themeToggle","presentationBtn","exitPresBtn",
     "satSelect","janOctCheck","satWarnPill","yearSelect","seasonSelect","cropSelect",
-    "excludeStaticCheck","metricSelect","levelModeSelect","grainWarnPill",
+    "excludeStaticCheck","metricSelect","showAreaFillCheck","levelModeSelect","grainWarnPill",
     "showPointsCheck","showTransPointsCheck","showLive7dCheck","showHeatCheck","showStaticCheck","showVillagesCheck","gistdaWmsSelect","tmsOverlaySelect","basemapSelect",
     "mapCanvas","scopePill","resetZoomBtn","zoomInBtn","zoomOutBtn","zoomReadout",
-    "legendTitle","legendBar","legMin","legMid","legMax","legendNullChip","tmsLegendChip","tooltip",
+    "legendBox","areaFillLegend","legendTitle","legendBar","legMin","legMid","legMax","legendNullChip","tmsLegendChip","tooltip",
     "kpiTotal","kpiTotalSub","kpiAgri","kpiAgriSub","kpiScarLabel","kpiScar","kpiScarSub","kpiFactor","kpiFactorSub",
     "insightBox","corrBadge","scatterX","scatterY","scatterCanvas","scatterNote",
     "trendCanvas","rankTitle","rankList","provenanceModal","closeModalBtn"
@@ -1686,7 +1722,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         if (p.code === state.selectedProv) continue;
         ctx.beginPath();
         for (const r of p._mRings) traceRingF32(ctx, r, toSx, toSy);
-        ctx.fill("evenodd");
+        if (state.showAreaFill) ctx.fill("evenodd");
         ctx.stroke();
       }
       if (level === "tambon" && state.selectedProv) {
@@ -1694,7 +1730,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           if (a.prov_code !== state.selectedProv || a.code === state.selectedAmphoe) continue;
           ctx.beginPath();
           for (const r of a._mRings) traceRingF32(ctx, r, toSx, toSy);
-          ctx.fill("evenodd");
+          if (state.showAreaFill) ctx.fill("evenodd");
           ctx.stroke();
         }
       }
@@ -1702,7 +1738,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
 
     // Draw active polygons (with subtle neutral country drop shadow once on baseCanvas)
-    if (level === "province" && !hasTiles && !hasTms && !hasWms) {
+    if (state.showAreaFill && level === "province" && !hasTiles && !hasTms && !hasWms) {
       ctx.save();
       ctx.shadowColor = state.theme === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(15, 23, 42, 0.16)";
       ctx.shadowBlur = 18;
@@ -1723,8 +1759,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     for (const rec of records) {
       ctx.beginPath();
       for (const ring of rec.item._mRings) traceRingF32(ctx, ring, toSx, toSy);
-      ctx.fillStyle = getPaletteAndColor(rec.metricValue, minV, maxV, nullFill);
-      ctx.fill("evenodd");
+      if (state.showAreaFill) {
+        ctx.fillStyle = getPaletteAndColor(rec.metricValue, minV, maxV, nullFill);
+        ctx.fill("evenodd");
+      }
       ctx.stroke();
     }
     ctx.restore();
@@ -2313,6 +2351,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <span><i style="display:inline-block;width:9px;height:9px;background:#ef0707;border-radius:2px"></i> ป่าไม้</span>`;
       }
     }
+    els.areaFillLegend.hidden = !state.showAreaFill;
+    els.legendBox.hidden = !state.showAreaFill && els.tmsLegendChip.style.display === "none";
   }
 
   function pointInRings(mx, my, rings) {
@@ -3045,6 +3085,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     syncControl(els.cropSelect, "crop");
     syncControl(els.excludeStaticCheck, "excludeStatic", el => el.checked);
     syncControl(els.metricSelect, "metric");
+    els.showAreaFillCheck.addEventListener("change", () => {
+      state.showAreaFill = els.showAreaFillCheck.checked;
+      requestDrawMap();
+    });
     syncControl(els.levelModeSelect, "levelMode");
     if (els.showPointsCheck) syncControl(els.showPointsCheck, "showPoints", el => el.checked);
     const ptColorSel = document.getElementById("ptColorModeSelect");
@@ -3178,10 +3222,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.closeModalBtn.onclick = () => { els.provenanceModal.style.display = "none"; };
     els.provenanceModal.onclick = (e) => { if (e.target === els.provenanceModal) els.provenanceModal.style.display = "none"; };
 
+    setAtlasTheme(state.theme);
     els.themeToggle.onclick = () => {
       state.theme = state.theme === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", state.theme);
-      els.themeToggle.textContent = state.theme === "dark" ? "โหมดสว่าง" : "โหมดมืด";
+      setAtlasTheme(state.theme, true);
       if (activePage === "map") refreshAll();
       else if (activePage === "overview") renderOverviewPage();
       else if (activePage === "weather") renderWeatherPage();
@@ -3615,8 +3659,18 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
 
 def _apply_multi_page(shell: str) -> str:
+    nav_items = "\n".join(
+        f'<button type="button" class="nav-tab{" active" if page == "overview" else ""}" '
+        f'data-page="{page}">{html.escape(label)}</button>'
+        for page, label in ATLAS_NAV_ITEMS
+    )
     return (
         shell
+        .replace("<!--__ATLAS_FONTS__-->", ATLAS_FONTS)
+        .replace("<!--__ATLAS_THEME_SCRIPT__-->", ATLAS_THEME_SCRIPT)
+        .replace("<!--__ATLAS_NAV_ITEMS__-->", nav_items)
+        .replace("/*__ATLAS_THEME_CSS__*/", ATLAS_THEME_CSS)
+        .replace("/*__ATLAS_CHROME_CSS__*/", ATLAS_CHROME_CSS)
         .replace("/*__MULTI_PAGE_CSS__*/", MULTI_PAGE_CSS)
         .replace("<!--__OVERVIEW_PAGE__-->", OVERVIEW_PAGE_HTML)
         .replace("<!--__WEATHER_PAGE__-->", WEATHER_PAGE_HTML)
