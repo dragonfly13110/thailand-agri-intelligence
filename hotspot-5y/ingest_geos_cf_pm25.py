@@ -11,9 +11,9 @@ import re
 from tempfile import TemporaryDirectory
 from urllib.request import urlopen
 
-import duckdb
 import numpy as np
 
+from archive_db import connect_archive
 from publish_hf import DEFAULT_HF_REPO, load_dotenv
 
 ROOT = Path(__file__).resolve().parent
@@ -88,7 +88,7 @@ def main():
     output = ROOT / "data/output/geos_cf_pm25"
     cache.mkdir(parents=True, exist_ok=True)
     output.mkdir(parents=True, exist_ok=True)
-    with duckdb.connect(str(args.db)) as db:
+    with connect_archive(args.db) as db:
         db.execute("""
             CREATE TABLE IF NOT EXISTS pm25_geos_cf_grid_daily (
                 local_date DATE, grid_y SMALLINT, grid_x SMALLINT, pm25_ug_m3 FLOAT, valid_hours SMALLINT,
@@ -116,7 +116,7 @@ def main():
                     writer.writerows((current, Y0+i//len(LON), X0+i%len(LON),
                                       mean if count==24 else None, count, version, url)
                                      for i, (mean, count) in enumerate(zip(values, counts)))
-            with duckdb.connect(str(args.db)) as db:
+            with connect_archive(args.db) as db:
                 db.begin()
                 db.execute("DELETE FROM pm25_geos_cf_grid_daily WHERE local_date BETWEEN ? AND ?", [group[0],group[-1]])
                 db.execute("""
@@ -129,7 +129,7 @@ def main():
             day = group[-1]+timedelta(days=1)
 
     files = []
-    with duckdb.connect(str(args.db), read_only=True) as db:
+    with connect_archive(args.db, read_only=True) as db:
         db.execute("LOAD spatial")
         lookup = output / "tambon_grid_lookup.parquet"
         db.sql("""

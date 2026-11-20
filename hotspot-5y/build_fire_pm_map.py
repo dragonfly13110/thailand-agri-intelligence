@@ -4,14 +4,13 @@ import json
 from html import escape
 from pathlib import Path
 
-import duckdb
-
+from archive_db import connect_archive
 from map_template import ATLAS_CHROME_CSS, ATLAS_FONTS, ATLAS_NAV_ITEMS, ATLAS_THEME_CSS, ATLAS_THEME_SCRIPT
 from ui_pages import ATLAS_NAV_CSS
 
 
 def build_fire_pm_data(database: Path) -> dict:
-    with duckdb.connect(str(database), read_only=True) as con:
+    with connect_archive(database, read_only=True) as con:
         con.execute("LOAD spatial")
         provinces = con.execute("""
             SELECT prov_code, prov_name_th,

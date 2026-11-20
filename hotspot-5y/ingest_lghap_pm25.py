@@ -15,7 +15,6 @@ import warnings
 from urllib.request import Request, urlopen
 import zipfile
 
-import duckdb
 import numpy as np
 import rasterio
 from rasterio.errors import NotGeoreferencedWarning
@@ -23,6 +22,7 @@ from rasterio.features import rasterize
 from rasterio.transform import from_origin
 from rasterio.windows import Window
 
+from archive_db import connect_archive
 from publish_hf import DEFAULT_HF_REPO, load_dotenv
 
 ROOT = Path(__file__).resolve().parent
@@ -211,7 +211,7 @@ def write_batch(database, batch):
             writer = csv.writer(stream)
             for day, codes, districts, provinces, means, valid, cells, *source in batch:
                 writer.writerows((day, *area, *source) for area in zip(codes, districts, provinces, means, valid, cells))
-        with duckdb.connect(str(database)) as con:
+        with connect_archive(database) as con:
             con.begin()
             con.execute("DELETE FROM pm25_tambon_lghap_daily WHERE source_date IN (SELECT unnest(?))",
                         [[row[0] for row in batch]])
@@ -250,7 +250,7 @@ def main():
     pending = []
     warnings.filterwarnings("ignore", category=NotGeoreferencedWarning)
     try:
-        with duckdb.connect(str(args.db)) as con:
+        with connect_archive(args.db) as con:
             con.execute("LOAD spatial")
             con.execute("""
                 CREATE TABLE IF NOT EXISTS pm25_tambon_lghap_daily (
@@ -271,7 +271,7 @@ def main():
                 continue
             path = get_raster(day, args.cache, scratch, archives, bulk_records)
             if grid is None:
-                with duckdb.connect(str(args.db), read_only=True) as con:
+                with connect_archive(args.db, read_only=True) as con:
                     con.execute("LOAD spatial")
                     grid = prepare_grid(con, path)
             means, good, counts = summarize_day(path, grid)
@@ -284,7 +284,7 @@ def main():
             if len(pending) >= 14 or (day+timedelta(days=1)).month != day.month:
                 write_batch(args.db, pending)
         write_batch(args.db, pending)
-        with duckdb.connect(str(args.db), read_only=True) as con:
+        with connect_archive(args.db, read_only=True) as con:
             for year in range(args.start.year, args.end.year+1):
                 written.extend(export_year(con, year, args.out))
     finally:

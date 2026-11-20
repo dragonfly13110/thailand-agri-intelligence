@@ -9,6 +9,8 @@ from pathlib import Path
 
 import duckdb
 
+from archive_db import connect_archive
+
 from map_template import ATLAS_CHROME_CSS, ATLAS_FONTS, ATLAS_NAV_ITEMS, ATLAS_THEME_CSS, ATLAS_THEME_SCRIPT
 from ui_pages import ATLAS_NAV_CSS
 
@@ -93,7 +95,7 @@ def load_season_comparison(conn: duckdb.DuckDBPyConnection) -> list:
 
 
 def build_data(database: Path, *, include_burn_scar: bool = True) -> dict:
-    with duckdb.connect(str(database), read_only=True) as conn:
+    with connect_archive(database, read_only=True) as conn:
         validate_detection_records(conn)
         areas = conn.execute("""
             SELECT prov_code, NULL, prov_name_th, false FROM dim_province

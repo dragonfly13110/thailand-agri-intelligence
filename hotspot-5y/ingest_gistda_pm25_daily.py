@@ -14,7 +14,7 @@ import unicodedata
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-import duckdb
+from archive_db import connect_archive
 
 ROOT = Path(__file__).resolve().parent
 ENDPOINT = "https://pm25.gistda.or.th/rest/getPM25by1dTambonAsCSV"
@@ -103,7 +103,7 @@ def main():
     if not args.db.is_file():
         parser.error("Atlas DuckDB is missing")
     args.cache.mkdir(parents=True, exist_ok=True)
-    with duckdb.connect(str(args.db)) as con:
+    with connect_archive(args.db) as con:
         con.execute("""
             CREATE TABLE IF NOT EXISTS pm25_tambon_gistda_daily (
                 source_date DATE, source_province VARCHAR, source_amphoe VARCHAR, source_tambon VARCHAR,
@@ -145,7 +145,7 @@ def main():
             staging = Path(folder) / "day.csv"
             with staging.open("w", newline="", encoding="utf-8") as stream:
                 csv.writer(stream).writerows((day, *row) for row in batch)
-            with duckdb.connect(str(args.db)) as con:
+            with connect_archive(args.db) as con:
                 con.begin()
                 con.execute("DELETE FROM pm25_tambon_gistda_daily WHERE source_date = ?", [day])
                 con.execute("""
