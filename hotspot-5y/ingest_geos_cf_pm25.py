@@ -79,7 +79,7 @@ def main():
     parser.add_argument("--start", required=True, type=date.fromisoformat)
     parser.add_argument("--end", required=True, type=date.fromisoformat)
     parser.add_argument("--db", type=Path, default=ROOT / "data/hotspot_5y.duckdb")
-    parser.add_argument("--chunk-days", type=int, choices=range(1, 8), default=2)
+    parser.add_argument("--chunk-days", type=int, choices=range(1, 8), default=7)
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     if not date(2022, 1, 1) <= args.start <= args.end or not args.db.is_file():
