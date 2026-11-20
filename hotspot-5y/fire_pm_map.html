@@ -10,14 +10,16 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px var(--atlas-font)}
 a{color:var(--secondary)}button,select,input{font:inherit;color:inherit}button,select,input[type=date]{background:var(--card-elev);border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px}button{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .topbar{min-height:54px}.topbar a{text-decoration:none;color:var(--text)}.topbar .nav-tab.active{color:white}.brand{white-space:nowrap}.topbar button{margin-left:auto;white-space:nowrap}.topbar .nav-tabs{min-width:0;overflow-x:auto}
-main{max-width:1500px;margin:auto;padding:20px clamp(12px,3vw,40px) 36px}h1,h2,p{margin:0}h1{font-size:clamp(25px,4vw,39px);line-height:1.2}h2{font-size:19px}.muted,small{color:var(--muted)}.intro{margin:5px 0 15px}.panel{background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm)}
-.filters{display:flex;gap:12px 17px;align-items:end;flex-wrap:wrap;padding:12px 15px;margin-bottom:12px}.filters label{display:grid;gap:4px;font-size:13px;font-weight:600}.date-control{display:flex;align-items:center;gap:5px}.date-control button{min-width:36px}.filters select{max-width:100%}
-.dashboard{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:12px;align-items:start}.map-panel{overflow:hidden}.map-heading{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--border)}.map-heading label{font-size:13px;max-width:100%}.map-heading select{max-width:100%}.map-plot{position:relative;background:var(--card);min-height:300px}.map-plot svg{display:block;width:100%;height:clamp(360px,54vh,610px)}
-.province{stroke:var(--panel-solid);stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer;fill:var(--null-fill)}.province:hover,.province.selected{stroke:var(--text);stroke-width:2}.dots{pointer-events:none;fill:#ff8a39;stroke:#8d340f;stroke-width:1;fill-opacity:.87}.legend{display:flex;gap:8px 14px;flex-wrap:wrap;padding:9px 15px;font-size:12px;color:var(--muted)}.legend span{display:inline-flex;align-items:center;gap:5px}.legend i{width:11px;height:11px;display:inline-block;border-radius:2px;border:1px solid var(--border-strong)}
-.evidence{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}.section{min-width:0;padding:14px 16px}.section>p,.section>small{display:block;margin-top:5px}.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.kpi{padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px}.kpi b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.kpi small{display:block}.chart{display:block;width:100%;height:auto;margin:8px 0 0}.chart text{fill:var(--muted);font-size:10px}.chart .line{stroke:var(--secondary);stroke-width:2.5;fill:none}.chart .fire{fill:#e87835}.chart .focus{stroke:var(--accent);stroke-dasharray:4 4}.chart .grid{stroke:var(--border-strong)}
-.map-zoom{position:absolute;right:12px;top:12px;font-size:13px}.map-zoom:disabled{opacity:.55;cursor:default}
-.notice{border-left:3px solid var(--accent);padding:7px 10px;background:var(--accent-soft);border-radius:4px;font-size:13px}.methods{margin-top:12px}.methods summary{cursor:pointer;font-weight:700}.methods p{margin-top:8px}.scroll{overflow:auto;max-height:290px}.section select{font-size:13px}table{border-collapse:collapse;width:100%;white-space:nowrap;text-align:right;font-size:13px}th,td{padding:5px 9px;border-bottom:1px solid var(--border)}th:first-child,td:first-child{text-align:left}.table-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}.table-actions button{font-size:13px}.date-control input{min-width:0}
-@media(max-width:820px){.dashboard{grid-template-columns:minmax(0,1fr)}.map-plot svg{height:400px}.filters{gap:8px 12px}.topbar{padding-inline:10px}}@media(max-width:420px){.filters label{max-width:100%}.map-plot svg{height:355px}.section{padding-inline:12px}}
+main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p{margin:0}h1{font-size:clamp(23px,3vw,33px);line-height:1.2}h2{font-size:19px}.muted,small{color:var(--muted)}.intro{margin:5px 0 14px}.panel{background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm)}
+.filters{display:flex;gap:9px 14px;align-items:end;flex-wrap:wrap;padding:10px 12px;margin:0 0 10px;background:var(--card);border:1px solid var(--border);border-radius:10px}.filters label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.filters :is(select,input,button){color:var(--text);max-width:100%}.filters .check{display:flex;align-items:center;min-height:36px}.filters input[type=range]{width:120px;accent-color:var(--accent)}.date-control{display:flex;align-items:center;gap:5px}.date-control button{min-width:36px}.filters select{max-width:100%}
+.map-panel{min-width:0;padding:clamp(10px,2vw,20px);margin-bottom:14px}.map-heading{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:0 0 10px}.map-heading button{border-radius:999px;font-size:12px;padding:5px 11px}.map-heading button[aria-pressed=true]{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
+.map-plot{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:#143543}.map-plot[data-basemap=plain]{background:var(--card)}.map-plot svg{display:block;width:100%;height:clamp(420px,56vh,640px);cursor:grab;touch-action:pan-y}.map-plot svg.dragging{cursor:grabbing}.map-plot svg.dragging .province{cursor:grabbing}
+.province{stroke:#f5f3e5;stroke-width:.7;vector-effect:non-scaling-stroke;cursor:pointer;fill:var(--null-fill);fill-opacity:var(--province-fill,.32)}.province:hover,.province.selected{stroke:#ffca75;stroke-width:2}.map-plot[data-basemap=plain] .province{stroke:var(--map-land-stroke)}.map-plot[data-basemap=plain] .province:is(:hover,.selected){stroke:var(--accent)}.dots{pointer-events:none;fill:#ff8a39;stroke:#60280d;stroke-width:1;fill-opacity:.9}
+.map-hud{position:absolute;left:10px;bottom:11px;max-width:min(600px,calc(100% - 66px));padding:7px 10px;background:#101923e8;color:#f1f5f9;border:1px solid #fff3;border-radius:8px;pointer-events:none;font-size:12px}.legend{display:flex;gap:3px 9px;flex-wrap:wrap;margin-top:4px;color:#d9e4ee;font-size:11px}.legend span{display:inline-flex;align-items:center;gap:4px}.legend i{width:9px;height:9px;display:inline-block;border-radius:2px;border:1px solid #fff4}.attribution{text-align:right;margin-top:4px;font-size:11px;color:var(--muted)}
+.evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}.evidence .full-width{grid-column:1/-1}.section{min-width:0;padding:14px 16px}.section>p,.section>small{display:block;margin-top:5px}.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.kpi{padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px}.kpi b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.kpi small{display:block}.chart{display:block;width:min(100%,560px);height:auto;margin:8px auto 0}.chart text{fill:var(--muted);font-size:10px}.chart .line{stroke:var(--secondary);stroke-width:2.5;fill:none}.chart .fire{fill:#e87835}.chart .focus{stroke:var(--accent);stroke-dasharray:4 4}.chart .grid{stroke:var(--border-strong)}
+.map-zoom{position:absolute;right:10px;bottom:11px;display:grid;gap:4px;text-align:center}.map-zoom button{width:34px;height:34px;padding:0;font-size:17px}.map-zoom output{color:var(--text);background:var(--card-elev);border-radius:5px;font-size:10px}.map-zoom button:disabled{opacity:.55;cursor:default}
+.answer{border-left:3px solid var(--accent);padding:10px 13px;background:var(--accent-soft);border-radius:6px;margin:0 0 12px}.answer-context{font-size:12px;color:var(--muted)}.answer h2{font-size:clamp(16px,2vw,20px);margin:3px 0}.answer p:last-child{font-size:13px}.methods{margin-top:12px}.methods summary,.calculation summary{cursor:pointer;font-weight:700}.methods p,.calculation p{margin-top:8px}.scroll{overflow:auto;max-height:290px}.section select{font-size:13px}table{border-collapse:collapse;width:100%;white-space:nowrap;text-align:right;font-size:13px}th,td{padding:5px 9px;border-bottom:1px solid var(--border)}th:first-child,td:first-child{text-align:left}.table-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}.table-actions button{font-size:13px}.date-control input{min-width:0}
+@media(max-width:820px){.evidence{grid-template-columns:minmax(0,1fr)}.map-plot svg{height:430px}.filters{gap:8px 12px}.topbar{padding-inline:10px}}@media(max-width:420px){.filters label{max-width:100%}.map-plot svg{height:395px}.section{padding-inline:12px}}
 </style>
 </head>
 <body>
@@ -32,22 +34,35 @@ main{max-width:1500px;margin:auto;padding:20px clamp(12px,3vw,40px) 36px}h1,h2,p
 </header>
 <!--__THEME__-->
 <main>
-  <h1>แผนที่ไฟ × ฝุ่น PM2.5</h1>
-  <p class="intro muted">สำรวจ 77 จังหวัด เลือกวันและจังหวัดเพื่อดูว่าจุดความร้อนในพื้นที่เกษตรกับค่าฝุ่นเปลี่ยนไปด้วยกันหรือไม่</p>
-  <div class="panel filters">
-    <label>จังหวัด<select id="province"><option value="">ภาพรวมประเทศ</option></select></label>
+  <section class="panel map-panel" aria-labelledby="map-title">
+    <h1 id="map-title">แผนที่ไฟ × ฝุ่น PM2.5</h1>
+    <p class="intro muted" id="available-dates"></p>
+    <div class="answer" role="status" aria-live="polite" aria-atomic="true">
+      <p class="answer-context" id="answer-context"></p>
+      <h2 id="answer-title"></h2>
+      <p>การเผาฟางปล่อย PM2.5 ได้จริงตามผลทดลองในไทย ตัวเลขในแผนที่เทียบ <strong>ฝุ่นรวมจากแบบจำลอง CAMS</strong> การวัดว่าควันจากแปลงเพิ่มฝุ่นเท่าไรต้องดูทิศลมและค่าฝุ่นรายชั่วโมงจากสถานีด้วย</p>
+    </div>
+    <div class="filters">
     <label>วันที่ตรวจสอบ<span class="date-control"><button type="button" id="prev" aria-label="วันก่อนหน้า">‹</button><input id="date" type="date" aria-label="วันที่ตรวจสอบ"><button type="button" id="next" aria-label="วันถัดไป">›</button></span></label>
     <label>กลุ่มจุดความร้อน<select id="kind"><option value="1">พื้นที่เกษตร</option><option value="2">นาข้าว</option><option value="3">เขต ส.ป.ก.</option><option value="4">ป่าอนุรักษ์และป่าสงวน</option></select></label>
-    <label>ช่วงเทียบย้อนหลัง<select id="range"><option value="30">30 วัน</option><option value="90" selected>90 วัน</option><option value="365">365 วัน</option><option value="0">ทั้งหมดถึงวันที่เลือก</option></select></label>
+    <label>ช่วงเทียบย้อนหลัง<select id="range"><option value="0" selected>ทั้งหมดถึงวันที่เลือก</option><option value="30">30 วัน</option><option value="90">90 วัน</option><option value="365">365 วัน</option></select></label>
     <label>ดูฝุ่นหลังวันพบจุด<select id="lag"><option value="0">วันเดียวกัน</option><option value="1">1 วัน</option><option value="2">2 วัน</option><option value="3">3 วัน</option></select></label>
-  </div>
-  <div class="dashboard">
-    <section class="panel map-panel" aria-labelledby="map-title">
-      <div class="map-heading"><h2 id="map-title">แผนที่รายจังหวัด</h2><label>สีบนแผนที่ <select id="layer"><option value="pm">ค่า PM2.5</option><option value="fire">จำนวนจุดความร้อน</option><option value="corr">ความสัมพันธ์หลังเทียบในเดือนเดียวกัน</option></select></label><label><input type="checkbox" id="dots" checked> วงกลมจำนวนจุด</label></div>
-      <div class="map-plot"><svg id="map" role="img" aria-label="แผนที่รายจังหวัด กดจังหวัดบนแผนที่หรือเลือกจากช่องจังหวัด"></svg><button type="button" class="map-zoom" id="zoom" disabled>ขยายจังหวัด</button></div>
-      <div class="legend" id="legend"></div>
-      <p id="map-summary" class="legend" aria-live="polite"></p>
-    </section>
+      <label>สีบนแผนที่<select id="layer"><option value="pm">ค่า PM2.5</option><option value="fire">จำนวนจุดความร้อน</option><option value="corr">ความสัมพันธ์หลังเทียบในเดือนเดียวกัน</option></select></label>
+      <label>แผนที่พื้นหลัง<select id="basemap"><option value="satellite">Esri ภาพถ่ายดาวเทียม</option><option value="plain">พื้นเรียบ</option></select></label>
+      <label>ความชัดของสี <span><input id="opacity" type="range" min="0" max="100" value="32"> <output id="opacity-value" for="opacity">32%</output></span></label>
+      <label class="check"><input type="checkbox" id="dots" checked> วงกลมจำนวนจุด</label>
+    </div>
+    <div class="map-heading">
+      <select id="province" aria-label="จังหวัด"><option value="">ภาพรวมประเทศ</option></select>
+      <button type="button" data-province="66">พิจิตร</button><button type="button" data-province="16">ลพบุรี</button><button type="button" data-province="60">นครสวรรค์</button><button type="button" data-province="50">เชียงใหม่</button><button type="button" data-province="73">นครปฐม</button>
+    </div>
+    <div class="map-plot" id="map-plot">
+      <svg id="map" role="img" aria-label="แผนที่รายจังหวัด กดจังหวัดเพื่อดูข้อมูล หรือหมุนล้อเมาส์เพื่อซูม"></svg>
+      <div class="map-hud"><p id="map-summary" aria-live="polite"></p><div class="legend" id="legend"></div></div>
+      <div class="map-zoom"><button id="zoom-in" type="button" aria-label="ซูมเข้า">+</button><output id="zoom-level" aria-label="ระดับซูม"></output><button id="zoom-out" type="button" aria-label="ซูมออก">−</button><button id="zoom" type="button" title="กลับมุมมองประเทศ" aria-label="กลับมุมมองประเทศ">↺</button></div>
+    </div>
+    <p class="attribution" id="imagery-credit"><a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9">Esri World Imagery</a> · Esri, Maxar, Earthstar Geographics และ GIS User Community</p>
+  </section>
     <div class="evidence">
       <section class="panel section" aria-labelledby="focus-title">
         <h2 id="focus-title"></h2><p id="focus-date" class="muted"></p>
@@ -57,19 +72,21 @@ main{max-width:1500px;margin:auto;padding:20px clamp(12px,3vw,40px) 36px}h1,h2,p
         <small>แท่งส้มคือจำนวนจุด เส้นฟ้าคือ PM2.5 ในวันเดียวกัน กราฟใช้คนละสเกล</small>
       </section>
       <section class="panel section" aria-labelledby="evidence-title">
-        <h2 id="evidence-title">ไฟกับฝุ่นเปลี่ยนไปด้วยกันไหม</h2><p id="sample" class="muted"></p>
-        <div class="kpis"><div class="kpi"><small>ความสัมพันธ์ก่อนปรับ</small><b id="raw-corr"></b></div><div class="kpi"><small>หลังเทียบในจังหวัดและเดือนเดียวกัน</small><b id="adjusted-corr"></b></div></div>
-        <div class="kpi"><small>ฝุ่นต่างกันเท่าไรระหว่างวันพบจุดกับวันไม่พบจุด</small><b id="event-delta"></b><small id="event-days"></small></div>
-        <p id="interpretation" class="notice" aria-live="polite"></p>
-        <small>ค่าความสัมพันธ์อยู่ระหว่าง −1 ถึง +1 ค่าบวกคือมักเพิ่มด้วยกัน ค่าใกล้ 0 คือพบความสัมพันธ์แบบเส้นตรงน้อย</small>
+        <h2 id="evidence-title">เราเทียบวันไหนกับวันไหน</h2>
+        <p id="event-days"></p><small>เทียบวันในจังหวัดเดียวกันและเดือนเดียวกัน เพื่อลดผลจากความต่างของพื้นที่และฤดู วันที่ดาวเทียมไม่พบจุดยังอาจมีไฟที่ตรวจไม่เจอ</small>
+        <details class="calculation methods">
+          <summary>ดูค่าสถิติและจำนวนข้อมูล</summary>
+          <p id="sample" class="muted"></p>
+          <div class="kpis"><div class="kpi"><small>ความสัมพันธ์ก่อนปรับ</small><b id="raw-corr"></b></div><div class="kpi"><small>หลังเทียบในจังหวัดและเดือนเดียวกัน</small><b id="adjusted-corr"></b></div></div>
+          <small>ค่าความสัมพันธ์อยู่ระหว่าง −1 ถึง +1 ค่าบวกหมายถึงจุดกับฝุ่นมักเพิ่มด้วยกัน ค่าใกล้ 0 หมายถึงเห็นความสัมพันธ์แบบเส้นตรงน้อย</small>
+        </details>
       </section>
-      <section class="panel section" aria-labelledby="rows-title">
+      <section class="panel section full-width" aria-labelledby="rows-title">
         <h2 id="rows-title">ตัวเลขที่ใช้เทียบ</h2>
         <div class="table-actions"><small>แสดงสูงสุด 14 วันล่าสุด</small><button id="export" type="button">ดาวน์โหลด CSV</button></div>
         <div class="scroll" tabindex="0" aria-label="ตารางตัวเลขที่ใช้เทียบ"><table><thead><tr><th scope="col">วันที่นับจุด</th><th scope="col">จุด</th><th scope="col">วันที่ดูฝุ่น</th><th scope="col">µg/m³</th><th scope="col">จังหวัดที่มีคู่ข้อมูล</th></tr></thead><tbody id="rows"></tbody></table></div>
       </section>
     </div>
-  </div>
   <details class="panel section methods"><summary>อ่านผลอย่างไร และใช้ข้อมูลจากไหน</summary>
     <p>ควันจากการเผาฟางปล่อย PM2.5 ได้จริงตามการทดลองในไทย แผนที่นี้ใช้เลือกพื้นที่และวันที่ควรตรวจต่อ ค่า PM2.5 จาก CAMS เป็นผลจำลองบริเวณพิกัดตัวแทนจังหวัด ความละเอียดประมาณ 45 กม. การเห็นจุดกับฝุ่นสูงพร้อมกันยังแยกผลของการเผาออกจากลม ไฟป่า ควันข้ามแดน หรือแหล่งฝุ่นอื่นไม่ได้</p>
     <p>ใช้จุดจาก GISTDA เฉพาะ Suomi NPP/VIIRS ตัดจุดคงที่ต้องสงสัย นับตามวันเวลาไทยและป้ายการใช้พื้นที่ของ GISTDA ศูนย์หมายถึงไม่มีจุดที่บันทึกในชุดข้อมูล วันฝุ่นขาดจะแสดงเป็นช่องว่าง ค่าฝุ่นภาพรวมเป็นค่าเฉลี่ยพิกัดจังหวัดที่มีข้อมูล โดยให้น้ำหนักแต่ละจังหวัดเท่ากัน</p>
@@ -98,53 +115,126 @@ const avg = values => values.length ? values.reduce((sum,v) => sum+v,0)/values.l
 const rgb = {pm:['#d9edf5','#95c8e2','#599bc4','#376b97','#323d77'],fire:['#f7eee3','#f1c499','#e28b51','#ba4e2d','#7f2922'],corr:['#357ea3','#9ac7d8','#e9e6db','#e4a57b','#af482d']};
 const breaks = {pm:[15,25,37.5,55],fire:[1,5,15,40],corr:[-.5,-.2,.2,.5]};
 const labels = {pm:['ต่ำกว่า 15','15 ถึงต่ำกว่า 25','25 ถึงต่ำกว่า 37.5','37.5 ถึงต่ำกว่า 55','55 ขึ้นไป (µg/m³)'],fire:['0','1–4','5–14','15–39','40 จุดขึ้นไป'],corr:['ต่ำกว่า −0.50','−0.50 ถึงต่ำกว่า −0.20','−0.20 ถึงต่ำกว่า 0.20','0.20 ถึงต่ำกว่า 0.50','0.50 ขึ้นไป']};
-dayInput.min = data.start; dayInput.max = data.end; dayInput.value = data.focus;
+dayInput.min = data.start; dayInput.max = data.end; dayInput.value = data.end;
+$('available-dates').textContent=`มีข้อมูลไฟและฝุ่นที่เทียบกันได้ตั้งแต่ ${showDay(0)} ถึง ${showDay(last)} · เลือกวันและจังหวัดเพื่อสำรวจ`;
 const groups = new Map(), svgNS = 'http://www.w3.org/2000/svg';
-const project = (lon,lat) => [lon*Math.cos(13*Math.PI/180),-lat];
-const coord = (lon,lat) => project(lon,lat).map(v=>v.toFixed(4)).join(',');
+const project = (lon,lat) => [lon,-Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))*180/Math.PI];
 let x0=Infinity, x1=-Infinity, y0=Infinity, y1=-Infinity;
 function svg(name, attributes) {
   const node = document.createElementNS(svgNS,name);
   for (const [key,value] of Object.entries(attributes)) node.setAttribute(key,value);
   return node;
 }
+const map=$('map'), imagery=svg('g',{'pointer-events':'none'});
 const markerLayer = svg('g',{class:'dots'});
+map.append(imagery);
 for (const [code,name,geometry,lon,lat] of data.provinces) {
   province.add(new Option(name,code));
   const polys = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
   const path = polys.flatMap(poly=>poly.map(ring=>'M'+ring.map(([lon,lat])=>{
     const [x,y] = project(lon,lat);
     x0=Math.min(x0,x); x1=Math.max(x1,x); y0=Math.min(y0,y); y1=Math.max(y1,y);
-    return coord(lon,lat);
+    return x.toFixed(4)+','+y.toFixed(4);
   }).join('L')+'Z')).join('');
   const shape = svg('path',{class:'province',d:path,'fill-rule':'evenodd'});
   const title = svg('title',{}); shape.append(title);
   shape.addEventListener('click',()=>{province.value=code;render();});
   const [cx,cy] = project(lon,lat);
   const marker = svg('circle',{cx,cy,r:0,'vector-effect':'non-scaling-stroke'});
-  $('map').append(shape); markerLayer.append(marker);
+  map.append(shape); markerLayer.append(marker);
   groups.set(code,{shape,title,marker,name});
 }
-$('map').append(markerLayer);
-const countryView = `${x0-.45} ${y0-.45} ${x1-x0+.9} ${y1-y0+.9}`;
-let zoomed=false;
-function updateView(code) {
-  $('zoom').disabled=!code;
-  if (!code) zoomed=false;
-  $('zoom').textContent=zoomed?'กลับมุมมองประเทศ':'ขยายจังหวัด';
-  $('zoom').setAttribute('aria-pressed',String(zoomed));
-  let view=countryView;
-  let scale=1;
-  if (zoomed) {
-    const {x,y,width,height}=groups.get(code).shape.getBBox();
-    const padding=Math.max(0.32,Math.max(width,height)*.22);
-    view=`${x-padding} ${y-padding} ${width+2*padding} ${height+2*padding}`;
-    scale=(height+2*padding)/(y1-y0+.9);
-  }
-  $('map').setAttribute('viewBox',view);
-  return scale;
+map.append(markerLayer);
+const tiles=new Map(), presets=[...document.querySelectorAll('[data-province]')];
+const country={x:x0,y:y0,width:x1-x0,height:y1-y0};
+let camera, selectedCode=null, gesture;
+let basemap=$('basemap').value;
+
+function fitMap(code) {
+  const {x,y,width,height}=code?groups.get(code).shape.getBBox():country;
+  camera={x:x+width/2,y:y+height/2,height:Math.max(code?2.4:0,height*1.24,width*1.14*map.clientHeight/map.clientWidth)};
+  drawMap();
 }
-$('zoom').addEventListener('click',()=>{zoomed=!zoomed;render();});
+
+function drawMap() {
+  const {x,y,height}=camera, width=height*map.clientWidth/map.clientHeight;
+  const left=x-width/2, top=y-height/2;
+  map.setAttribute('viewBox',`${left} ${top} ${width} ${height}`);
+  const zoom=Math.log2(360/height*map.clientHeight/256);
+  $('zoom-level').textContent=`z${zoom.toFixed(1)}`;
+  $('zoom-in').disabled=height<=1;
+  $('zoom-out').disabled=height>=54;
+  for (const {marker} of groups.values()) marker.setAttribute('r',(+marker.dataset.radius||0)*height/map.clientHeight);
+  const keep=new Set();
+  if (basemap==='satellite') {
+    const z=Math.max(2,Math.min(11,Math.round(zoom))), count=2**z, size=360/count;
+    const minTileX=Math.max(0,Math.floor((left+180)/size));
+    const maxTileX=Math.min(count-1,Math.floor((left+width+180)/size));
+    const minTileY=Math.max(0,Math.floor((top+180)/size));
+    const maxTileY=Math.min(count-1,Math.floor((top+height+180)/size));
+    for (let row=minTileY;row<=maxTileY;row++) for (let col=minTileX;col<=maxTileX;col++) {
+      const key=`${z}/${row}/${col}`;
+      keep.add(key);
+      if (tiles.has(key)) continue;
+      const tile=svg('image',{x:col*size-180,y:row*size-180,width:size,height:size,
+        href:`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${key}`});
+      tiles.set(key,tile); imagery.append(tile);
+    }
+  }
+  for (const [key,tile] of tiles) if (!keep.has(key)) {tile.remove();tiles.delete(key);}
+}
+
+function updateOpacity() {
+  const opacity=$('opacity').value;
+  map.style.setProperty('--province-fill',opacity/100);
+  $('opacity-value').textContent=`${opacity}%`;
+}
+$('opacity').addEventListener('input',updateOpacity);
+$('basemap').addEventListener('change',()=>{
+  basemap=$('basemap').value;
+  $('map-plot').dataset.basemap=basemap;
+  $('imagery-credit').hidden=basemap!=='satellite';
+  drawMap();
+});
+function zoomMap(factor, anchor=camera) {
+  const height=Math.max(1,Math.min(54,camera.height*factor));
+  if(height===camera.height) return;
+  const move=1-height/camera.height;
+  camera.x+=(anchor.x-camera.x)*move;
+  camera.y+=(anchor.y-camera.y)*move;
+  camera.height=height;
+  drawMap();
+}
+for (const [id,factor] of [['zoom-in',.67],['zoom-out',1/.67]]) $(id).addEventListener('click',()=>zoomMap(factor));
+map.addEventListener('wheel',event=>{
+  if(event.ctrlKey || !event.deltaY) return;
+  event.preventDefault();
+  const scale=event.deltaMode===WheelEvent.DOM_DELTA_LINE?16:event.deltaMode===WheelEvent.DOM_DELTA_PAGE?map.clientHeight:1;
+  const delta=Math.max(-240,Math.min(240,event.deltaY*scale));
+  const anchor=new DOMPoint(event.clientX,event.clientY).matrixTransform(map.getScreenCTM().inverse());
+  zoomMap(Math.exp(delta*.0025),anchor);
+},{passive:false});
+$('zoom').addEventListener('click',()=>{province.value='';selectedCode=null;render();});
+for (const preset of presets) preset.addEventListener('click',()=>{province.value=preset.dataset.province;selectedCode=null;render();});
+new ResizeObserver(()=>{if (camera) drawMap();}).observe(map);
+map.addEventListener('pointerdown',event=>{
+  if(!event.isPrimary || event.button!==0) return;
+  gesture={id:event.pointerId,x:event.clientX,y:event.clientY,cx:camera.x,cy:camera.y,moved:false};
+});
+map.addEventListener('pointermove',event=>{
+  if(!gesture || event.pointerId!==gesture.id || !(event.buttons&1)) return;
+  const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
+  if(!gesture.moved && Math.hypot(dx,dy)<5) return;
+  if(!gesture.moved) map.setPointerCapture(event.pointerId);
+  gesture.moved=true;map.classList.add('dragging');
+  const scale=camera.height/map.clientHeight;
+  camera.x=Math.max(70,Math.min(130,gesture.cx-dx*scale));
+  camera.y=Math.max(-38,Math.min(8,gesture.cy-dy*scale));
+  drawMap();
+});
+map.addEventListener('click',event=>{if(gesture?.moved) event.stopPropagation();},true);
+for(const type of ['pointercancel','pointerup','lostpointercapture']) map.addEventListener(type,()=>map.classList.remove('dragging'));
+updateOpacity();
 
 function paired(code, first, end, kind, lag) {
   const days = data.series[code], records = [];
@@ -222,8 +312,10 @@ function drawTrend(selection,index,kind) {
 let exportRows=[];
 function render() {
   const chosen=province.value, selection=chosen?[chosen]:codes;
-  const markerScale=updateView(chosen);
-  let index=dayIndex(dayInput.value||data.focus);
+  const moved=chosen!==selectedCode;
+  selectedCode=chosen;
+  for(const preset of presets) preset.setAttribute('aria-pressed',String(preset.dataset.province===chosen));
+  let index=dayIndex(dayInput.value||data.end);
   index=Math.max(0,Math.min(last,index)); dayInput.value=dateAt(index);
   const kind=+kindInput.value, lag=+lagInput.value, window=+rangeInput.value;
   const first=window?Math.max(0,index-window+1):0, layer=layerInput.value;
@@ -237,11 +329,11 @@ function render() {
     const bin=breaks[layer].filter(stop=>value>=stop).length;
     shape.style.fill=value==null?'var(--null-fill)':rgb[layer][bin];
     shape.classList.toggle('selected',chosen===code);
-    const radius=dotInput.checked && fire>0 ? markerScale*Math.min(.32,.042+.022*Math.sqrt(fire)) : 0;
-    marker.setAttribute('r',radius);
+    marker.dataset.radius=dotInput.checked && fire>0 ? Math.min(14,2.3+1.05*Math.sqrt(fire)) : 0;
     title.textContent=`${name} · ${fmt(fire)} จุด · PM2.5 ${fmt(pm)} µg/m³`+(layer==='corr'?` · r ${value==null?'—':value.toFixed(2)}`:'');
   }
-  $('legend').innerHTML=labels[layer].map((label,i)=>`<span><i style="background:${rgb[layer][i]}"></i>${label}</span>`).join('')+'<span><i style="background:var(--null-fill)"></i>ข้อมูลไม่พอ</span>'+(dotInput.checked?'<span><i style="background:#ff8a39;border-radius:50%"></i>วงใหญ่ = พบจุดมาก</span>':'');
+  if(moved) fitMap(chosen); else drawMap();
+  $('legend').innerHTML=`<span>${layerInput.selectedOptions[0].textContent}</span>`+labels[layer].map((label,i)=>`<span><i style="background:${rgb[layer][i]}"></i>${label}</span>`).join('')+'<span><i style="background:var(--null-fill)"></i>ข้อมูลไม่พอ</span>'+(dotInput.checked?'<span><i style="background:#ff8a39;border-radius:50%"></i>วงใหญ่ = พบจุดมาก</span>':'');
   const nationwide=valuesAt(codes,index,kind,lag);
   $('map-summary').textContent=`ชั้นจุดความร้อน ${showDay(index)} · ชั้นฝุ่น ${showDay(index+lag)} (${nationwide[3]}/77 จังหวัดมีค่าฝุ่น)`;
   const [fire,pm,fireN,pmN]=valuesAt(selection,index,kind,lag);
@@ -255,9 +347,17 @@ function render() {
   $('sample').textContent=`${showDay(first)} ถึง ${showDay(index)} · ${fmt(n)} คู่จังหวัด–วัน`+(n!==nAdjusted?` · ใช้หลังปรับ ${fmt(nAdjusted)} คู่`:'');
   $('raw-corr').textContent=raw==null?'—':raw.toFixed(2);
   $('adjusted-corr').textContent=adjusted==null?'—':adjusted.toFixed(2);
-  $('event-delta').textContent=delta==null?'ข้อมูลไม่พอ':`${delta>=0?'+':''}${fmt(delta)} µg/m³`;
-  $('event-days').textContent=`${fmt(eventDays)} คู่ที่พบจุด เทียบ ${fmt(comparisonDays)} คู่ที่ไม่พบจุด · ในจังหวัดและเดือนเดียวกัน (ขั้นต่ำฝั่งละ 7 คู่)`;
-  $('interpretation').textContent=adjusted==null?'ข้อมูลยังไม่พอคำนวณ ลองขยายช่วงเวลา หรือเลือกกลุ่มที่พบจุดมากขึ้น':'ตัวเลขบอกแนวโน้มในช่วงที่เลือก การประเมินว่าควันจากการเผาเพิ่มฝุ่นเท่าไร ต้องเทียบลมและข้อมูลสถานีรายชั่วโมงด้วย';
+  const scope=chosen?groups.get(chosen).name:'ภาพรวม 77 จังหวัด';
+  const timing=lag?`ดูฝุ่นหลังวันนับจุด ${lag} วัน`:'ดูฝุ่นในวันเดียวกับที่นับจุด';
+  $('answer-context').textContent=`${scope} · ${kindInput.selectedOptions[0].textContent} · ${showDay(first)} ถึง ${showDay(index)} · ${timing}`;
+  const difference=Math.round(Math.abs(delta)*10)/10;
+  const when=lag?`ฝุ่นเฉลี่ย ${lag} วันหลังวันที่พบจุด`:'ฝุ่นเฉลี่ยวันที่พบจุด';
+  const compared=lag?'ช่วงหลังวันที่ไม่พบจุด':'วันที่ไม่พบจุด';
+  $('answer-title').textContent=delta==null
+    ?'ข้อมูลยังไม่พอเทียบ ลองขยายช่วงย้อนหลังหรือเลือกกลุ่มจุดอื่น'
+    :difference===0?`${when}ใกล้เคียงกับ${compared} (ต่างกันน้อยกว่า 0.1 µg/m³)`
+    :`${when}${delta>0?'สูงกว่า':'ต่ำกว่า'}${compared} ${fmt(difference)} µg/m³`;
+  $('event-days').textContent=`พบจุด ${fmt(eventDays)} รายการ เทียบกับไม่พบจุด ${fmt(comparisonDays)} รายการ ในกลุ่มที่มีทั้งสองแบบ (หนึ่งรายการคือหนึ่งจังหวัดต่อวัน ต้องมีอย่างน้อยฝั่งละ 7 รายการ)`;
   const daily=new Map(); exportRows=[];
   for(const [code,rows] of chosenRecords){
     for(const [i,count,pm] of rows){
@@ -274,7 +374,7 @@ function render() {
 }
 for(const control of controls) control.addEventListener('change',render);
 for(const [id,step] of [['prev',-1],['next',1]]) $(id).addEventListener('click',()=>{
-  const index=dayIndex(dayInput.value||data.focus);
+  const index=dayIndex(dayInput.value||data.end);
   dayInput.value=dateAt(Math.max(0,Math.min(last,index+step)));render();
 });
 $('themeToggle').addEventListener('click',()=>setAtlasTheme(document.documentElement.dataset.theme==='light'?'dark':'light',true));

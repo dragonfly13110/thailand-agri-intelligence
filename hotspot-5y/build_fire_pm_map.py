@@ -1,7 +1,6 @@
 """Build the Atlas fire and PM2.5 comparison map from its local snapshot."""
 
 import json
-from datetime import date
 from html import escape
 from pathlib import Path
 
@@ -54,7 +53,6 @@ def build_fire_pm_data(database: Path) -> dict:
         series[code][index] = values
     return {
         "start": start.isoformat(), "end": end.isoformat(),
-        "focus": max(start, min(end, date(2026, 4, 8))).isoformat(),
         "provinces": [[code, name, json.loads(geometry), round(lon, 4), round(lat, 4)]
                       for code, name, geometry, lon, lat in provinces],
         "series": series,
