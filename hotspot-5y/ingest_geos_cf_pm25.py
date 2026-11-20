@@ -31,8 +31,8 @@ LON = np.arange(X0, 1144) / 4 - 180
 CELL_COUNT = len(LAT) * len(LON)
 
 
-def load_block(first, days, cache):
-    version = "v2" if first >= FIRST_V2_DAY else "v1"
+def load_block(first, days, cache, *, version=None):
+    version = version or ("v2" if first >= FIRST_V2_DAY else "v1")
     route, variable, origin = SOURCES[version]
     utc_start = datetime.combine(first, time(0, 30), ICT).astimezone(UTC)
     index = int((utc_start-origin).total_seconds() // 3600)
@@ -65,8 +65,6 @@ def load_block(first, days, cache):
     values = np.fromstring(",".join(row[1] for row in body_rows), sep=",").reshape(days, 24, CELL_COUNT)
     usable = np.isfinite(values) & (values >= 0) & (values < 1e14)
     counts = usable.sum(axis=1)
-    if not np.any(counts == 24, axis=1).all():
-        raise ValueError(f"No grid cell has a complete day in the block beginning {first}")
     averages = np.round(np.where(usable, values, 0).sum(axis=1)/24, 3)
     if not archive.is_file():
         tmp = archive.with_suffix(".part")
@@ -121,11 +119,21 @@ def main():
                 chunk_days = 2
                 group = group[:chunk_days]
                 version, url, average, hours = load_block(day, len(group), cache)
+            complete_cells = 0
             with staging.open("w", newline="", encoding="utf-8") as stream:
                 writer = csv.writer(stream)
                 for current, values, counts in zip(group, average, hours):
+                    day_version, day_url = version, url
+                    if version == "v2" and not np.any(counts == 24):
+                        print(f"{current}: v2 has no complete cells; checking v1", flush=True)
+                        day_version, day_url, fallback_values, fallback_hours = load_block(current, 1, cache, version="v1")
+                        values, counts = fallback_values[0], fallback_hours[0]
+                    valid_cells = int(np.count_nonzero(counts == 24))
+                    if not valid_cells:
+                        raise ValueError(f"No GEOS-CF grid cell has 24 valid hours for {current}")
+                    complete_cells += valid_cells
                     writer.writerows((current, Y0+i//len(LON), X0+i%len(LON),
-                                      mean if count==24 else None, count, version, url)
+                                      mean if count==24 else None, count, day_version, day_url)
                                      for i, (mean, count) in enumerate(zip(values, counts)))
             with connect_archive(args.db) as db:
                 db.begin()
@@ -136,7 +144,7 @@ def main():
                     'valid_hours':'SMALLINT','model_version':'VARCHAR','source_url':'VARCHAR'})
                 """, [str(staging)])
                 db.commit()
-            print(f"{group[0]} to {group[-1]} {version}: {int((hours==24).sum()):,} complete grid-days", flush=True)
+            print(f"{group[0]} to {group[-1]}: {complete_cells:,} complete grid-days", flush=True)
             day = group[-1]+timedelta(days=1)
 
     files = []
