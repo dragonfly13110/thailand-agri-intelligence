@@ -1,6 +1,7 @@
 """Aggregate LGHAP v2 daily PM2.5 estimates to Atlas tambons and export Parquet."""
 
 import argparse
+import csv
 from datetime import date, timedelta
 import hashlib
 import io
@@ -204,13 +205,24 @@ def export_year(con, year, output):
 def write_batch(database, batch):
     if not batch:
         return
-    with duckdb.connect(str(database)) as con:
-        con.begin()
-        con.executemany("""
-            INSERT OR REPLACE INTO pm25_tambon_lghap_daily
-            SELECT ?, unnest(?), unnest(?), unnest(?), unnest(?), unnest(?), unnest(?), ?, ?, ?, ?
-        """, batch)
-        con.commit()
+    with TemporaryDirectory(prefix="lghap-insert-", dir=database.parent) as folder:
+        staging = Path(folder) / "days.csv"
+        with staging.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.writer(stream)
+            for day, codes, districts, provinces, means, valid, cells, *source in batch:
+                writer.writerows((day, *area, *source) for area in zip(codes, districts, provinces, means, valid, cells))
+        with duckdb.connect(str(database)) as con:
+            con.begin()
+            con.execute("DELETE FROM pm25_tambon_lghap_daily WHERE source_date IN (SELECT unnest(?))",
+                        [[row[0] for row in batch]])
+            con.execute("""
+                INSERT INTO pm25_tambon_lghap_daily
+                SELECT * FROM read_csv(?, header=false, auto_detect=false, columns={
+                    'source_date':'DATE', 'tambon_code':'VARCHAR', 'amphoe_code':'VARCHAR', 'prov_code':'VARCHAR',
+                    'pm25_ug_m3':'FLOAT', 'valid_cells':'INTEGER', 'polygon_cells':'INTEGER', 'source_id':'VARCHAR',
+                    'source_doi':'VARCHAR', 'grid_deg':'DOUBLE', 'aggregation':'VARCHAR'})
+            """, [str(staging)])
+            con.commit()
     print(f"Saved {batch[0][0]} to {batch[-1][0]} to DuckDB", flush=True)
     batch.clear()
 

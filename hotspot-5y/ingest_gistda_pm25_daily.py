@@ -7,6 +7,8 @@ import io
 import math
 from pathlib import Path
 import re
+from tempfile import TemporaryDirectory
+from time import sleep
 import unicodedata
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -45,6 +47,19 @@ def parse_csv(raw, day):
     return rows
 
 
+def fetch_csv(url, day):
+    for attempt in range(3):
+        try:
+            with urlopen(url, timeout=90) as response:
+                if response.headers.get_content_type() != "text/csv":
+                    raise ValueError(f"GISTDA did not return CSV for {day}")
+                return response.read()
+        except OSError:
+            if attempt == 2:
+                raise
+            sleep(10*(attempt+1))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--start", required=True, type=date.fromisoformat)
@@ -81,25 +96,28 @@ def main():
         if file.exists():
             parsed = parse_csv(file.read_bytes(), day)
         else:
-            with urlopen(url, timeout=90) as response:
-                if response.headers.get_content_type() != "text/csv":
-                    raise ValueError(f"GISTDA did not return CSV for {day}")
-                raw = response.read()
+            raw = fetch_csv(url, day)
             parsed = parse_csv(raw, day)
             temp = file.with_suffix(".part")
             temp.write_bytes(raw)
             temp.replace(file)
         # ponytail: retain unmatched source rows with null codes until a verified crosswalk exists.
         batch = [(*names, *unique.get(area_key(names), (None, None, None)), value) for names, value in parsed.items()]
-        columns = [list(values) for values in zip(*batch)]
-        with duckdb.connect(str(args.db)) as con:
-            con.begin()
-            con.execute("DELETE FROM pm25_tambon_gistda_daily WHERE source_date = ?", [day])
-            con.execute("""
-                INSERT INTO pm25_tambon_gistda_daily
-                SELECT ?, unnest(?), unnest(?), unnest(?), unnest(?), unnest(?), unnest(?), unnest(?)
-            """, [day, *columns])
-            con.commit()
+        with TemporaryDirectory(prefix="gistda-pm25-insert-", dir=args.cache) as folder:
+            staging = Path(folder) / "day.csv"
+            with staging.open("w", newline="", encoding="utf-8") as stream:
+                csv.writer(stream).writerows((day, *row) for row in batch)
+            with duckdb.connect(str(args.db)) as con:
+                con.begin()
+                con.execute("DELETE FROM pm25_tambon_gistda_daily WHERE source_date = ?", [day])
+                con.execute("""
+                    INSERT INTO pm25_tambon_gistda_daily
+                    SELECT * FROM read_csv(?, header=false, auto_detect=false, columns={
+                        'source_date':'DATE', 'source_province':'VARCHAR', 'source_amphoe':'VARCHAR',
+                        'source_tambon':'VARCHAR', 'prov_code':'VARCHAR', 'amphoe_code':'VARCHAR',
+                        'tambon_code':'VARCHAR', 'pm25_ug_m3':'DOUBLE'})
+                """, [str(staging)])
+                con.commit()
         print(f"{day}: {len(batch):,} GISTDA rows, {sum(row[5] is not None for row in batch):,} matched", flush=True)
 
 
