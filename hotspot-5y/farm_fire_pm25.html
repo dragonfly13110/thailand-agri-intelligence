@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ไฟเกษตร × ลม × ฝุ่น PM2.5 | Thailand Fire Atlas</title>
+<!--__FONTS__-->
+<style>
+/*__CSS__*/
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px var(--atlas-font);line-height:1.5}
+a{color:var(--secondary)}
+button,select,input{font:inherit;color:inherit}
+button,select,input[type=search]{background:var(--card-elev);border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.topbar{min-height:54px}
+.topbar a{text-decoration:none;color:var(--text)}
+.topbar .nav-tab.active{color:#fff}
+.brand{white-space:nowrap}
+.topbar button{margin-left:auto;white-space:nowrap}
+.topbar .nav-tabs{min-width:0;overflow-x:auto}
+main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 40px}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(22px,3vw,32px);line-height:1.2}
+h2{font-size:19px}
+.muted,small{color:var(--muted)}
+.intro{margin:6px 0 14px}
+.panel{background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);padding:16px;margin-bottom:14px}
+.answer{border-left:4px solid var(--accent);padding:12px 15px;background:var(--accent-soft);border-radius:8px;margin-bottom:14px}
+.answer-context{font-size:12px;color:var(--muted)}
+.answer h2{font-size:clamp(16px,2vw,20px);margin:4px 0}
+.answer p:last-child{font-size:13px;margin-top:4px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.kpi{padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px}
+.kpi small{display:block;font-size:12px}
+.kpi b{display:block;font-size:clamp(20px,2.2vw,26px);margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.map-detail-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.filters{display:flex;gap:10px 14px;align-items:end;flex-wrap:wrap;padding:10px 12px;margin:10px 0;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.filters label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.filters select,.filters input[type=search]{min-width:170px;max-width:100%}
+.map-plot{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.map-plot[data-basemap=satellite]{background:#143543}
+.map-plot svg{display:block;width:100%;height:clamp(420px,56vh,620px);cursor:grab;touch-action:pan-y}
+.map-plot svg.dragging{cursor:grabbing}
+.province{stroke:var(--map-land-stroke,#52606d);stroke-width:.8;vector-effect:non-scaling-stroke;cursor:pointer;fill:var(--null-fill,#cbd5e1);fill-opacity:var(--province-fill,.85)}
+.map-plot[data-basemap=satellite] .province{stroke:#f5f3e5}
+.province:hover,.province.selected{stroke:var(--accent);stroke-width:2.2}
+.map-hud{position:absolute;left:10px;bottom:10px;max-width:min(560px,calc(100% - 62px));padding:8px 11px;background:#101923eb;color:#f1f5f9;border:1px solid #fff3;border-radius:8px;pointer-events:none;font-size:12px}
+.legend{display:flex;gap:4px 10px;flex-wrap:wrap;margin-top:5px;color:#d9e4ee;font-size:11px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:10px;display:inline-block;border-radius:2px;border:1px solid #fff4}
+.map-zoom{position:absolute;right:10px;bottom:10px;display:grid;gap:4px;text-align:center}
+.map-zoom button{width:34px;height:34px;padding:0;font-size:17px}
+.map-zoom output{color:var(--text);background:var(--card-elev);border-radius:5px;font-size:10px;padding:1px 3px}
+.detail-card{display:flex;flex-direction:column;gap:10px}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;width:fit-content}
+.status-ok{background:#16a34a22;color:#15803d;border:1px solid #16a34a55}
+[data-theme="dark"] .status-ok{color:#4ade80}
+.status-warn{background:#f59e0b22;color:#b45309;border:1px solid #f59e0b55}
+[data-theme="dark"] .status-warn{color:#fbbf24}
+.status-muted{background:#64748b22;color:var(--muted);border:1px solid var(--border-strong)}
+.stat-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat-box{padding:9px 11px;background:var(--card);border:1px solid var(--border);border-radius:9px}
+.stat-box small{display:block;font-size:11px}
+.stat-box b{display:block;font-size:17px;margin-top:2px;font-variant-numeric:tabular-nums}
+.fe-list{display:grid;gap:10px;margin-top:12px}
+.fe-row{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,2fr) auto;gap:10px;align-items:center;font-size:13px}
+.fe-track{position:relative;height:22px;background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.fe-zero{position:absolute;top:0;bottom:0;width:1px;background:var(--border-strong)}
+.fe-bar{position:absolute;top:4px;height:12px;border-radius:4px}
+.fe-ci{position:absolute;top:9px;height:2px;background:var(--text);opacity:.75}
+.fe-val{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:115px}
+.scroll{overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;text-align:right}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border)}
+th{background:var(--card);position:sticky;top:0;z-index:1;font-weight:600}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--accent-soft)}
+tbody tr.selected{background:var(--accent-soft);font-weight:600}
+.table-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.methods summary{cursor:pointer;font-weight:700}
+.methods p,.methods ul{margin-top:8px;font-size:13px}
+@media(max-width:980px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col,.map-detail-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.kpi-grid,.stat-rows,.fe-row{grid-template-columns:minmax(0,1fr)}.fe-val{text-align:left}.topbar{padding-inline:10px}.map-plot svg{height:380px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./#overview"><span class="brand-dot"></span>Thailand Fire Atlas</a>
+  <nav class="nav-tabs" aria-label="เมนูหลัก">
+    <!--__NAV__-->
+    <a class="nav-tab" href="./area-insights.html">เจาะรายพื้นที่</a>
+    <a class="nav-tab" href="./fire-pm-map.html">แผนที่ไฟ × ฝุ่น</a>
+    <a class="nav-tab active" aria-current="page" href="./farm-fire-pm25.html">ไฟเกษตร × ลม × ฝุ่น</a>
+  </nav>
+  <button id="themeToggle" type="button">โหมดมืด</button>
+</header>
+<!--__THEME__-->
+<main>
+  <section class="panel">
+    <h1>ผลกระทบของ “ไฟเกษตร × ทิศทางลม” ต่อฝุ่น PM2.5 ทั่วประเทศ</h1>
+    <p class="intro muted" id="scope-subtitle"></p>
+    <div class="answer" role="status" aria-live="polite">
+      <p class="answer-context" id="headline-context"></p>
+      <h2 id="headline-title"></h2>
+      <p id="headline-note"></p>
+    </div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+  </section>
+
+  <div class="two-col">
+    <section class="panel">
+      <h2>เทียบน้ำหนัก 3 แหล่งควัน (แบบจำลอง Fixed Effects ปี 2567–2568)</h2>
+      <p class="muted" id="fe-subtitle"></p>
+      <div class="fe-list" id="fe-chart"></div>
+      <small style="display:block;margin-top:10px">ค่า beta บอกว่าเมื่อจำนวนจุดไฟต้นลมเพิ่มขึ้นในพื้นที่และเดือนเดียวกัน ฝุ่น PM2.5 เฉลี่ยขยับขึ้นเท่าไร (เส้นขีดคือช่วงความเชื่อมั่น 95%)</small>
+    </section>
+
+    <section class="panel">
+      <h2>หลักฐานสายรายชั่วโมง &amp; ความแม่นยำทิศทางลม (ก.ย.–17 พ.ย. 2569)</h2>
+      <p class="muted" id="t1-subtitle"></p>
+      <div class="stat-rows" id="t1-stats" style="margin-top:12px"></div>
+      <p class="muted" style="margin-top:12px;font-size:13px" id="t1-note"></p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>แผนที่ผลต่างฝุ่นและสถานะข้อมูลรายจังหวัด (77 จังหวัด)</h2>
+    <div class="filters">
+      <label>ข้อมูลที่แสดงบนแผนที่
+        <select id="layerSelect">
+          <option value="all_nofire">ไฟเกษตรต้นลม (2567–ครึ่งแรก 2569 เทียบวันปลอดไฟ)</option>
+          <option value="clean2425_nofire">ช่วงปลอดควันข้ามแดนครบ (2567–2568 เทียบวันปลอดไฟ)</option>
+          <option value="t1_hourly">รายชั่วโมงล่าสุด (ก.ย.–17 พ.ย. 2569 เทียบปลอดไฟ)</option>
+          <option value="sufficiency">สถานะความเพียงพอของข้อมูลรายจังหวัด</option>
+        </select>
+      </label>
+      <label>เลือกจังหวัด
+        <select id="provinceSelect"><option value="">— เลือกจังหวัดเพื่อดูรายละเอียด —</option></select>
+      </label>
+      <label>แผนที่พื้นหลัง
+        <select id="basemapSelect">
+          <option value="plain">พื้นเรียบ</option>
+          <option value="satellite">ภาพถ่ายดาวเทียม Esri</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="map-detail-grid">
+      <div class="map-plot" id="map-plot" data-basemap="plain">
+        <svg id="mapSvg" role="img" aria-label="แผนที่ผลวิเคราะห์ไฟเกษตรและทิศทางลมต่อฝุ่น PM2.5 รายจังหวัด"></svg>
+        <div class="map-hud">
+          <p id="map-summary"></p>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="map-zoom">
+          <button id="zoom-in" type="button" aria-label="ซูมเข้า">+</button>
+          <output id="zoom-level">z5.8</output>
+          <button id="zoom-out" type="button" aria-label="ซูมออก">−</button>
+          <button id="zoom-reset" type="button" title="กลับมุมมองประเทศ" aria-label="กลับมุมมองประเทศ">↺</button>
+        </div>
+      </div>
+
+      <div class="detail-card" id="prov-detail"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>สรุปผลระดับประเทศและ 6 ภูมิภาค (สายรายวัน 2567–ครึ่งแรก 2569)</h2>
+    <div class="scroll" style="margin-top:10px">
+      <table>
+        <thead>
+          <tr>
+            <th>ขอบเขตพื้นที่</th>
+            <th>สถานี</th>
+            <th>วันไฟเกษตรต้นลม (สะอาด)</th>
+            <th>เทียบคนละทิศลม (µg/m³)</th>
+            <th>เทียบวันปลอดไฟ (µg/m³)</th>
+            <th>ช่วงปลอดข้ามแดน 2567–2568</th>
+            <th>สถานะข้อมูล</th>
+          </tr>
+        </thead>
+        <tbody id="reg-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>ตารางผลวิเคราะห์รายจังหวัดทั้ง 77 จังหวัด</h2>
+    <div class="table-toolbar" style="margin-top:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="searchBox" type="search" placeholder="ค้นหาชื่อหรือรหัสจังหวัด...">
+        <select id="regionFilter">
+          <option value="">ทุกภูมิภาค</option>
+          <option value="North">ภาคเหนือ</option>
+          <option value="Northeast">ภาคตะวันออกเฉียงเหนือ</option>
+          <option value="Central">ภาคกลาง</option>
+          <option value="East">ภาคตะวันออก</option>
+          <option value="West">ภาคตะวันตก</option>
+          <option value="South">ภาคใต้</option>
+        </select>
+        <select id="statusFilter">
+          <option value="">ทุกสถานะข้อมูล</option>
+          <option value="sufficient">ผ่านเกณฑ์ประเมิน (41 จังหวัด)</option>
+          <option value="insufficient">ข้อมูลไม่พอ / ถูกปนเปื้อน</option>
+        </select>
+      </div>
+      <button id="exportCsvBtn" type="button">ดาวน์โหลด CSV (77 จังหวัด)</button>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>รหัส</th>
+            <th>จังหวัด</th>
+            <th>ภาค</th>
+            <th>สถานี</th>
+            <th>วันไฟเกษตรต้นลม (สะอาด)</th>
+            <th>เทียบวันปลอดไฟ (µg/m³)</th>
+            <th>เทียบคนละทิศลม (µg/m³)</th>
+            <th>ปลอดข้ามแดน 2567–2568</th>
+            <th>รายชั่วโมง 2569 (µg/m³)</th>
+            <th>สถานะรายวัน</th>
+          </tr>
+        </thead>
+        <tbody id="prov-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <details class="panel methods">
+    <summary>วิธีวิเคราะห์ ข้อจำกัดข้อมูล และแหล่งที่มา</summary>
+    <ul>
+      <li><strong>การแยกทิศลม:</strong> ถือว่าจุดไฟอยู่ “ต้นลม” เมื่ออยู่ในกรวย ±30° จากทิศที่ลมพัดมา (ERA5 รายชั่วโมง 0.25° และเสาวัดลมสถานี) ภายในรัศมี 50 กม. สำหรับไฟเกษตร/ส.ป.ก., 80 กม. สำหรับไฟป่า และ 250 กม. สำหรับควันข้ามแดน; วัน “คนละทิศลม” คือไฟอยู่ห่างทิศลมตั้งแต่ 90° ขึ้นไป</li>
+      <li><strong>ข้อจำกัดสำคัญ:</strong> ข้อมูลจุดไฟข้ามแดนจาก NASA FIRMS ในระบบมีครบถึงปี 2568 ส่วนปี 2569 ต้นทางยังไม่ได้เผยแพร่ชุดรายปีครบถ้วน จึงแยกแสดงช่วงปลอดควันข้ามแดน 2567–2568 ไว้ต่างหาก และจังหวัดที่ข้อมูลไม่พอหรือถูกปนเปื้อนไฟป่า/ควันข้ามแดนหนัก (เช่น เหลือวันสะอาด &lt; 10 วัน) จะคงค่าเป็น “ข้อมูลไม่พอประเมิน” โดยไม่เดาตัวเลขหรือแทนด้วย 0</li>
+      <li><strong>แหล่งที่มาข้อมูล:</strong> สถานีตรวจวัด PM2.5 และทิศทางลม <a href="http://air4thai.pcd.go.th/">Air4Thai (กรมควบคุมมลพิษ)</a> · จุดความร้อน VIIRS <a href="https://fire.gistda.or.th/">GISTDA</a> · ลม ฝน และชั้นผสมอากาศ ERA5 <a href="https://open-meteo.com/">Open-Meteo (CC BY 4.0)</a> · จุดความร้อนข้ามพรมแดน GMS <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a></li>
+    </ul>
+  </details>
+</main>
+<script type="application/json" id="data">__FARM_FIRE_DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const $ = id => document.getElementById(id);
+const numFmt = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
+const intFmt = new Intl.NumberFormat('th-TH');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const REGION_TH = {
+  North: 'ภาคเหนือ', Northeast: 'ภาคตะวันออกเฉียงเหนือ', Central: 'ภาคกลาง',
+  East: 'ภาคตะวันออก', West: 'ภาคตะวันตก', South: 'ภาคใต้', National: 'ทั่วประเทศ'
+};
+const STATUS_TH = {
+  sufficient: ['ผ่านเกณฑ์ (มีสถานีในจังหวัด)', 'status-ok'],
+  sufficient_cross_province: ['ผ่านเกณฑ์ (จับคู่ลมพัดข้ามจังหวัด)', 'status-ok'],
+  insufficient_confounded: ['ข้อมูลไม่พอ (ปนเปื้อนไฟป่า/ข้ามแดนหนัก)', 'status-warn'],
+  insufficient_clean_events: ['ข้อมูลไม่พอ (วันไฟเกษตรสะอาดน้อย)', 'status-muted'],
+  insufficient_valid_obs: ['ข้อมูลไม่พอ (วันตรวจวัดไม่ถึงเกณฑ์)', 'status-muted'],
+  insufficient_no_station: ['ไม่มีสถานีตรวจวัดและจุดจับคู่', 'status-muted']
+};
+
+function fmtSigned(v, unit = '') {
+  if (v == null || !Number.isFinite(v)) return 'ข้อมูลไม่พอ';
+  return `${v >= 0 ? '+' : '−'}${numFmt.format(Math.abs(v))}${unit}`;
+}
+function fmtCI(lo, hi) {
+  if (lo == null || hi == null) return '—';
+  return `[${fmtSigned(lo)}, ${fmtSigned(hi)}]`;
+}
+function statusBadge(code) {
+  const [label, cls] = STATUS_TH[code] || [code || '—', 'status-muted'];
+  return `<span class="status-pill ${cls}">${esc(label)}</span>`;
+}
+
+// 1. Headline, KPIs, Fixed Effects, Track 1
+const cov = DATA.station_coverage || {};
+const t1 = DATA.track1_hourly || {};
+const t2 = DATA.track2_daily || {};
+const nat2 = t2.regions?.National?.all_2024_2026h1 || {};
+const nat2425 = t2.regions?.National?.clean_2024_2025_with_tb_exclusion || {};
+const nat1 = t1.regions?.National || {};
+const fe = t2.fixed_effects_2024_2025 || {};
+const suffCount = Object.values(t2.provinces || {}).filter(p => String(p.sufficiency_status || '').startsWith('sufficient')).length;
+
+$('scope-subtitle').textContent =
+  `จับคู่จุดความร้อน VIIRS กับสถานี Air4Thai ${intFmt.format(cov.total_stations || 0)} สถานี (${cov.provinces_with_in_province_station || 0}/77 จังหวัด + จับคู่ลมพัดข้ามเขต) และลมรายชั่วโมง ERA5 · อัปเดต ${String(DATA.generated_at_utc || '').slice(0, 10)}`;
+$('headline-context').textContent =
+  `สายรายวัน ${t2.window || ''} · สายรายชั่วโมง ${t1.window || ''}`;
+$('headline-title').textContent =
+  `วันไฟเกษตรอยู่ต้นลม (ปลอดไฟป่าและควันข้ามแดน) ฝุ่นสูงกว่าวันปลอดไฟ ${fmtSigned(nat2.delta_vs_nofire_ug_m3, ' µg/m³')} และในช่วงปลอดควันข้ามแดนครบปี 2567–2568 สูงขึ้น ${fmtSigned(nat2425.delta_vs_nofire_ug_m3, ' µg/m³')}`;
+$('headline-note').textContent =
+  `เมื่อแยกน้ำหนักพร้อมกันทั้ง 3 แหล่ง ไฟป่าต้นลมดันฝุ่นแรงกว่าไฟเกษตรและควันข้ามแดนชัดเจน และมี ${suffCount}/77 จังหวัดที่ข้อมูลสะอาดพอจะสรุปผลระดับจังหวัดได้ (อีก ${77 - suffCount} จังหวัดถูกปนเปื้อนหนักหรือมีข้อมูลไม่พอ)`;
+
+const kpis = [
+  ['สถานีตรวจวัด PM2.5', `${intFmt.format(cov.total_stations || 0)} สถานี`, `ตั้งอยู่ใน ${cov.provinces_with_in_province_station || 0}/77 จังหวัด · ผ่านเกณฑ์รายจังหวัด ${suffCount}/77`],
+  ['ไฟเกษตรต้นลม (2567–ครึ่งแรก 2569)', fmtSigned(nat2.delta_vs_nofire_ug_m3, ' µg/m³'), `เทียบวันปลอดไฟ · ${intFmt.format(nat2.clean_upwind_agri_days || 0)} วัน-สถานีสะอาด`],
+  ['ช่วงปลอดข้ามแดนครบ (2567–2568)', fmtSigned(nat2425.delta_vs_nofire_ug_m3, ' µg/m³'), `เทียบคนละทิศลม ${fmtSigned(nat2425.delta_vs_non_upwind_ug_m3, ' µg/m³')}`],
+  ['รายชั่วโมง ก.ย.–17 พ.ย. 2569', fmtSigned(nat1.delta_vs_non_upwind_ug_m3, ' µg/m³'), `เทียบคนละทิศลม · ชม.สะอาด ${intFmt.format(nat1.clean_upwind_agri_hours || 0)} ชม.`]
+];
+$('kpi-grid').innerHTML = kpis.map(([label, val, sub]) =>
+  `<div class="kpi"><small>${esc(label)}</small><b>${esc(val)}</b><small>${esc(sub)}</small></div>`
+).join('');
+
+// Fixed Effects chart
+const FE_LABELS = {
+  ln_1p_upwind_forest_80km: ['ไฟป่าต้นลม (≤80 กม.)', '#b91c1c'],
+  ln_1p_upwind_transboundary_250km: ['ควันข้ามแดนต้นลม (≤250 กม.)', '#7c3aed'],
+  ln_1p_upwind_agri_50km: ['ไฟเกษตรต้นลม (≤50 กม.)', '#ea580c'],
+  ln_1p_upwind_spk_50km: ['เขต ส.ป.ก. ต้นลม (≤50 กม.)', '#d97706'],
+  ln_1p_non_upwind_agri_50km: ['ไฟเกษตรคนละทิศลม (≥90° เทียบ)', '#64748b']
+};
+$('fe-subtitle').textContent = `ควบคุมความต่างรายสถานี×เดือน (n = ${intFmt.format(fe.n_obs || 0)} วัน-สถานี)`;
+const feRows = (fe.covariates || []).map((name, idx) => ({
+  name,
+  meta: FE_LABELS[name],
+  b: fe.beta?.[idx],
+  lo: fe.ci_low?.[idx],
+  hi: fe.ci_high?.[idx]
+})).filter(r => r.meta);
+const minFe = Math.min(0, ...feRows.map(r => r.lo ?? r.b ?? 0)) - 0.4;
+const maxFe = Math.max(1, ...feRows.map(r => r.hi ?? r.b ?? 0)) + 0.4;
+const spanFe = Math.max(1e-6, maxFe - minFe);
+const pctFe = v => `${((v - minFe) / spanFe * 100).toFixed(2)}%`;
+$('fe-chart').innerHTML = feRows.map(r => {
+  const [label, col] = r.meta;
+  const zeroPct = pctFe(0);
+  const b0 = Math.min(0, r.b ?? 0), b1 = Math.max(0, r.b ?? 0);
+  const barL = pctFe(b0), barW = `${((b1 - b0) / spanFe * 100).toFixed(2)}%`;
+  const ciL = pctFe(r.lo ?? r.b ?? 0), ciW = `${(((r.hi ?? r.b ?? 0) - (r.lo ?? r.b ?? 0)) / spanFe * 100).toFixed(2)}%`;
+  return `<div class="fe-row">
+    <span>${esc(label)}</span>
+    <div class="fe-track">
+      <div class="fe-zero" style="left:${zeroPct}"></div>
+      <div class="fe-bar" style="left:${barL};width:${barW};background:${col}"></div>
+      <div class="fe-ci" style="left:${ciL};width:${ciW}"></div>
+    </div>
+    <span class="fe-val"><strong>${esc(fmtSigned(r.b))}</strong> <small>${esc(fmtCI(r.lo, r.hi))}</small></span>
+  </div>`;
+}).join('');
+
+// Track 1 card
+const jump = t1.before_after_episode_jump || {};
+const wind = t1.anemometer_era5_agreement || {};
+$('t1-subtitle').textContent = `ช่วง ${t1.window || ''} · ดาวเทียม VIIRS (${(t1.satellites_primary || []).join(', ')})`;
+$('t1-stats').innerHTML = [
+  ['ชั่วโมงไฟเกษตรต้นลมสะอาด', `${intFmt.format(nat1.clean_upwind_agri_hours || 0)} ชม.-สถานี`],
+  ['พัดข้ามเขตจังหวัด', `${intFmt.format(nat1.cross_province_upwind_hours || 0)} ชม.-สถานี`],
+  [`กระโดดก่อน–หลัง (${intFmt.format(jump.n_episodes || 0)} เหตุการณ์)`, `${fmtSigned(jump.mean_jump_ug_m3, ' µg/m³')} ${fmtCI(jump.ci_low, jump.ci_high)}`],
+  ['ลมเสาวัด Air4Thai vs ERA5', `${intFmt.format(wind.n_hours_both_windy || 0)} ชม. · ตรงใน ±45° ${wind.pct_within_45deg ?? '—'}% (ต่างมัธยฐาน ${wind.median_angular_diff_deg ?? '—'}°)`]
+].map(([k, v]) => `<div class="stat-box"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('');
+$('t1-note').textContent = `เมื่อจับคู่แบบรายชั่วโมงในช่วงต้นฤดูปลายฝนต้นหนาว 2569 พบว่าผลส่วนใหญ่เกิดจากการพัดข้ามจังหวัด และทิศลมแบบจำลอง ERA5 สอดคล้องกับเสาวัดจริงที่สถานีในระดับใช้งานวิเคราะห์ได้`;
+
+// 2. Map rendering
+const svgNS = 'http://www.w3.org/2000/svg';
+const svgEl = (name, attrs = {}) => {
+  const n = document.createElementNS(svgNS, name);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  return n;
+};
+const project = (lon, lat) => [lon, -Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) * 180 / Math.PI];
+const map = $('mapSvg'), imagery = svgEl('g', { 'pointer-events': 'none' });
+map.append(imagery);
+const groups = new Map(), tiles = new Map();
+let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+
+for (const [code, name, region, geom] of DATA.provinces) {
+  $('provinceSelect').add(new Option(name, code));
+  const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+  const d = polys.flatMap(poly => poly.map(ring => 'M' + ring.map(([lon, lat]) => {
+    const [x, y] = project(lon, lat);
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    return x.toFixed(4) + ',' + y.toFixed(4);
+  }).join('L') + 'Z')).join('');
+  const shape = svgEl('path', { class: 'province', d, 'fill-rule': 'evenodd' });
+  const title = svgEl('title');
+  shape.append(title);
+  shape.addEventListener('click', () => { $('provinceSelect').value = code; selectedCode = code; render(); });
+  map.append(shape);
+  groups.set(code, { code, name, region, shape, title });
+}
+const country = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+let camera = { x: country.x + country.width / 2, y: country.y + country.height / 2, height: country.height * 1.15 };
+let selectedCode = '', basemap = 'plain', gesture = null;
+
+function fitMap(code) {
+  const box = code && groups.has(code) ? groups.get(code).shape.getBBox() : country;
+  camera = {
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+    height: Math.max(code ? 2.4 : 0, box.height * 1.22, box.width * 1.12 * map.clientHeight / Math.max(1, map.clientWidth))
+  };
+  drawMap();
+}
+
+function drawMap() {
+  const w = Math.max(1, map.clientWidth), h = Math.max(1, map.clientHeight);
+  const width = camera.height * w / h, left = camera.x - width / 2, top = camera.y - camera.height / 2;
+  map.setAttribute('viewBox', `${left} ${top} ${width} ${camera.height}`);
+  const zoom = Math.log2(360 / camera.height * h / 256);
+  $('zoom-level').textContent = `z${zoom.toFixed(1)}`;
+  $('zoom-in').disabled = camera.height <= 1;
+  $('zoom-out').disabled = camera.height >= 54;
+  const keep = new Set();
+  if (basemap === 'satellite') {
+    const z = Math.max(2, Math.min(11, Math.round(zoom))), count = 2 ** z, size = 360 / count;
+    const minX = Math.max(0, Math.floor((left + 180) / size)), maxX = Math.min(count - 1, Math.floor((left + width + 180) / size));
+    const minY = Math.max(0, Math.floor((top + 180) / size)), maxY = Math.min(count - 1, Math.floor((top + height + 180) / size));
+    for (let r = minY; r <= maxY; r++) for (let c = minX; c <= maxX; c++) {
+      const k = `${z}/${r}/${c}`; keep.add(k);
+      if (!tiles.has(k)) {
+        const t = svgEl('image', { x: c * size - 180, y: r * size - 180, width: size, height: size,
+          href: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${k}` });
+        tiles.set(k, t); imagery.append(t);
+      }
+    }
+  }
+  for (const [k, t] of tiles) if (!keep.has(k)) { t.remove(); tiles.delete(k); }
+}
+
+function zoomMap(factor, anchor = camera) {
+  const nh = Math.max(1, Math.min(54, camera.height * factor));
+  if (nh === camera.height) return;
+  const move = 1 - nh / camera.height;
+  camera.x += (anchor.x - camera.x) * move; camera.y += (anchor.y - camera.y) * move; camera.height = nh;
+  drawMap();
+}
+$('zoom-in').addEventListener('click', () => zoomMap(0.67));
+$('zoom-out').addEventListener('click', () => zoomMap(1 / 0.67));
+$('zoom-reset').addEventListener('click', () => { $('provinceSelect').value = ''; selectedCode = ''; fitMap(''); render(); });
+map.addEventListener('wheel', ev => {
+  if (ev.ctrlKey || !ev.deltaY) return;
+  ev.preventDefault();
+  const anchor = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(map.getScreenCTM().inverse());
+  zoomMap(Math.exp(Math.max(-240, Math.min(240, ev.deltaY)) * 0.0025), anchor);
+}, { passive: false });
+map.addEventListener('pointerdown', ev => {
+  if (!ev.isPrimary || ev.button !== 0) return;
+  gesture = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, cx: camera.x, cy: camera.y, moved: false };
+});
+map.addEventListener('pointermove', ev => {
+  if (!gesture || ev.pointerId !== gesture.id || !(ev.buttons & 1)) return;
+  const dx = ev.clientX - gesture.x, dy = ev.clientY - gesture.y;
+  if (!gesture.moved && Math.hypot(dx, dy) < 5) return;
+  if (!gesture.moved) map.setPointerCapture(ev.pointerId);
+  gesture.moved = true; map.classList.add('dragging');
+  const scale = camera.height / Math.max(1, map.clientHeight);
+  camera.x = Math.max(70, Math.min(130, gesture.cx - dx * scale));
+  camera.y = Math.max(-38, Math.min(8, gesture.cy - dy * scale));
+  drawMap();
+});
+map.addEventListener('click', ev => { if (gesture?.moved) ev.stopPropagation(); }, true);
+for (const tp of ['pointercancel', 'pointerup', 'lostpointercapture']) map.addEventListener(tp, () => map.classList.remove('dragging'));
+new ResizeObserver(() => drawMap()).observe(map);
+
+const DELTA_COLS = ['#2563eb', '#93c5fd', '#fde68a', '#f97316', '#b91c1c'];
+const DELTA_BREAKS = [-1, 0, 2, 5];
+const DELTA_LABELS = ['ต่ำกว่า −1', '−1 ถึง 0', '0 ถึง +2', '+2 ถึง +5', '+5 ขึ้นไป (µg/m³)'];
+const STATUS_COLS = {
+  sufficient: '#16a34a',
+  sufficient_cross_province: '#0d9488',
+  insufficient_confounded: '#f59e0b',
+  insufficient_clean_events: '#94a3b8',
+  insufficient_valid_obs: '#64748b',
+  insufficient_no_station: '#475569'
+};
+
+function renderProvinceDetail(code) {
+  const box = $('prov-detail');
+  if (!code || !groups.has(code)) {
+    box.innerHTML = `
+      <h3>ภาพรวมเกณฑ์การคัดกรองรายจังหวัด</h3>
+      <p class="muted" style="font-size:13px">คลิกจังหวัดบนแผนที่หรือในตารางด้านล่างเพื่อดูข้อมูลรายจังหวัดอย่างละเอียด</p>
+      <div class="stat-rows">
+        <div class="stat-box"><small>ผ่านเกณฑ์ระดับจังหวัด (สายรายวัน)</small><b>${suffCount} / 77 จังหวัด</b></div>
+        <div class="stat-box"><small>ข้อมูลไม่พอ / ปนเปื้อนหนัก</small><b>${77 - suffCount} จังหวัด</b></div>
+        <div class="stat-box"><small>จังหวัดไม่มีสถานีในเขต (จับคู่ข้ามเขต)</small><b>${(cov.provinces_without_in_province_station || []).map(x => esc(x.prov_name_th)).join(', ') || '—'}</b></div>
+        <div class="stat-box"><small>วันไฟเกษตรสะอาดระดับประเทศ</small><b>${intFmt.format(nat2.clean_upwind_agri_days || 0)} วัน-สถานี</b></div>
+      </div>`;
+    return;
+  }
+  const g = groups.get(code);
+  const p2 = t2.provinces?.[code] || {};
+  const p1 = t1.provinces?.[code] || {};
+  box.innerHTML = `
+    <div>
+      <h3>${esc(g.name)} (${esc(code)})</h3>
+      <p class="muted" style="font-size:13px">${esc(REGION_TH[g.region] || g.region)} · สถานีในจังหวัด ${intFmt.format(p2.stations_in_province || 0)} แห่ง · สถานีจับคู่ลมพัดข้ามเขต ${intFmt.format(p2.cross_province_outflow_stations || 0)} แห่ง</p>
+    </div>
+    <div>${statusBadge(p2.sufficiency_status)}</div>
+    <div class="stat-rows">
+      <div class="stat-box"><small>รายวัน: เทียบวันปลอดไฟ</small><b>${esc(fmtSigned(p2.delta_vs_nofire_ug_m3, ' µg/m³'))}</b><small>95% CI: ${esc(fmtCI(p2.ci_low_vs_nofire, p2.ci_high_vs_nofire))}</small></div>
+      <div class="stat-box"><small>รายวัน: เทียบคนละทิศลม</small><b>${esc(fmtSigned(p2.delta_vs_non_upwind_ug_m3, ' µg/m³'))}</b><small>95% CI: ${esc(fmtCI(p2.ci_low_vs_non_upwind, p2.ci_high_vs_non_upwind))}</small></div>
+      <div class="stat-box"><small>ช่วงปลอดข้ามแดน 2567–2568</small><b>${esc(fmtSigned(p2.clean_2024_2025_delta_vs_nofire, ' µg/m³'))}</b><small>วันไฟเกษตรสะอาด: ${intFmt.format(p2.clean_2024_2025_days || 0)} วัน-สถานี</small></div>
+      <div class="stat-box"><small>วันไฟเกษตรต้นลม (สะอาด / ทั้งหมด)</small><b>${intFmt.format(p2.clean_upwind_agri_days || 0)} / ${intFmt.format(p2.total_upwind_agri_days || 0)}</b><small>วันตรวจวัดแห้งทั้งหมด ${intFmt.format(p2.valid_days || 0)}</small></div>
+      <div class="stat-box"><small>รายชั่วโมง 2569: เทียบปลอดไฟ</small><b>${esc(fmtSigned(p1.delta_vs_nofire_ug_m3, ' µg/m³'))}</b><small>ชม.สะอาด: ${intFmt.format(p1.clean_upwind_agri_hours || 0)} ชม.</small></div>
+      <div class="stat-box"><small>รายชั่วโมง 2569: พัดข้ามจังหวัด</small><b>${intFmt.format(p1.cross_province_upwind_hours || 0)} ชม.</b><small>${esc((STATUS_TH[p1.sufficiency_status] || [p1.sufficiency_status || '—'])[0])}</small></div>
+    </div>`;
+}
+
+function renderTables() {
+  const scopes = ['National', 'North', 'Northeast', 'Central', 'East', 'West', 'South'];
+  $('reg-tbody').innerHTML = scopes.map(sc => {
+    const r = t2.regions?.[sc] || {};
+    const a = r.all_2024_2026h1 || {}, c24 = r.clean_2024_2025_with_tb_exclusion || {};
+    return `<tr>
+      <td><strong>${esc(REGION_TH[sc] || sc)}</strong></td>
+      <td>${intFmt.format(r.stations || 0)}</td>
+      <td>${intFmt.format(a.clean_upwind_agri_days || 0)}</td>
+      <td>${esc(fmtSigned(a.delta_vs_non_upwind_ug_m3))}</td>
+      <td>${esc(fmtSigned(a.delta_vs_nofire_ug_m3))}</td>
+      <td>${esc(fmtSigned(c24.delta_vs_nofire_ug_m3))}</td>
+      <td>${statusBadge(a.sufficiency_status)}</td>
+    </tr>`;
+  }).join('');
+
+  const q = $('searchBox').value.trim().toLowerCase();
+  const rf = $('regionFilter').value;
+  const sf = $('statusFilter').value;
+  const rows = [...groups.values()].filter(g => {
+    const p2 = t2.provinces?.[g.code] || {};
+    const isSuff = String(p2.sufficiency_status || '').startsWith('sufficient');
+    if (q && !g.name.toLowerCase().includes(q) && !g.code.includes(q)) return false;
+    if (rf && g.region !== rf) return false;
+    if (sf === 'sufficient' && !isSuff) return false;
+    if (sf === 'insufficient' && isSuff) return false;
+    return true;
+  });
+
+  $('prov-tbody').innerHTML = rows.map(g => {
+    const p2 = t2.provinces?.[g.code] || {}, p1 = t1.provinces?.[g.code] || {};
+    return `<tr data-code="${esc(g.code)}" class="${selectedCode === g.code ? 'selected' : ''}">
+      <td>${esc(g.code)}</td>
+      <td>${esc(g.name)}</td>
+      <td>${esc(REGION_TH[g.region] || g.region)}</td>
+      <td>${intFmt.format(p2.stations_in_province || 0)}</td>
+      <td>${intFmt.format(p2.clean_upwind_agri_days || 0)}</td>
+      <td>${esc(fmtSigned(p2.delta_vs_nofire_ug_m3))}</td>
+      <td>${esc(fmtSigned(p2.delta_vs_non_upwind_ug_m3))}</td>
+      <td>${esc(fmtSigned(p2.clean_2024_2025_delta_vs_nofire))}</td>
+      <td>${esc(fmtSigned(p1.delta_vs_nofire_ug_m3))}</td>
+      <td>${statusBadge(p2.sufficiency_status)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" style="text-align:center">ไม่พบจังหวัดตามเงื่อนไขที่เลือก</td></tr>';
+
+  for (const tr of $('prov-tbody').querySelectorAll('tr[data-code]')) {
+    tr.addEventListener('click', () => {
+      selectedCode = tr.dataset.code;
+      $('provinceSelect').value = selectedCode;
+      fitMap(selectedCode);
+      render();
+    });
+  }
+}
+
+function render() {
+  const layer = $('layerSelect').value;
+  let shownCount = 0;
+  for (const [code, g] of groups) {
+    const p2 = t2.provinces?.[code] || {}, p1 = t1.provinces?.[code] || {};
+    let fill = 'var(--null-fill)', valText = 'ข้อมูลไม่พอ';
+    if (layer === 'sufficiency') {
+      fill = STATUS_COLS[p2.sufficiency_status] || '#64748b';
+      valText = (STATUS_TH[p2.sufficiency_status] || [p2.sufficiency_status])[0];
+      shownCount++;
+    } else {
+      const val = layer === 'all_nofire' ? p2.delta_vs_nofire_ug_m3
+        : layer === 'clean2425_nofire' ? p2.clean_2024_2025_delta_vs_nofire
+        : p1.delta_vs_nofire_ug_m3;
+      if (val != null && Number.isFinite(val)) {
+        const bin = DELTA_BREAKS.filter(b => val >= b).length;
+        fill = DELTA_COLS[bin];
+        valText = fmtSigned(val, ' µg/m³');
+        shownCount++;
+      }
+    }
+    g.shape.style.fill = fill;
+    g.shape.classList.toggle('selected', selectedCode === code);
+    g.title.textContent = `${g.name} · ${valText}`;
+  }
+  if (layer === 'sufficiency') {
+    $('map-summary').textContent = 'สถานะความเพียงพอของข้อมูล (สายรายวัน 2567–ครึ่งแรก 2569)';
+    $('legend').innerHTML = [
+      ['sufficient', 'ผ่านเกณฑ์ (มีสถานี)'],
+      ['sufficient_cross_province', 'ผ่านเกณฑ์ (จับคู่ข้ามเขต)'],
+      ['insufficient_confounded', 'ปนเปื้อนไฟป่า/ข้ามแดน'],
+      ['insufficient_clean_events', 'วันสะอาดน้อย'],
+      ['insufficient_valid_obs', 'วันตรวจวัดน้อย'],
+      ['insufficient_no_station', 'ไม่มีสถานี/จุดจับคู่']
+    ].map(([k, l]) => `<span><i style="background:${STATUS_COLS[k]}"></i>${l}</span>`).join('');
+  } else {
+    $('map-summary').textContent = `${$('layerSelect').selectedOptions[0].textContent} · แสดงค่าได้ ${shownCount}/77 จังหวัด`;
+    $('legend').innerHTML = DELTA_LABELS.map((l, i) => `<span><i style="background:${DELTA_COLS[i]}"></i>${l}</span>`).join('') +
+      '<span><i style="background:var(--null-fill,#cbd5e1)"></i>ข้อมูลไม่พอประเมิน</span>';
+  }
+  renderProvinceDetail(selectedCode);
+  renderTables();
+}
+
+$('layerSelect').addEventListener('change', render);
+$('provinceSelect').addEventListener('change', () => {
+  selectedCode = $('provinceSelect').value;
+  fitMap(selectedCode);
+  render();
+});
+$('basemapSelect').addEventListener('change', () => {
+  basemap = $('basemapSelect').value;
+  $('map-plot').dataset.basemap = basemap;
+  drawMap();
+});
+for (const id of ['searchBox', 'regionFilter', 'statusFilter']) $(id).addEventListener('input', renderTables);
+$('themeToggle').addEventListener('click', () => setAtlasTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true));
+$('exportCsvBtn').addEventListener('click', () => {
+  const headers = ['prov_code','prov_name_th','region','stations_in_province','clean_upwind_agri_days','delta_vs_nofire_ug_m3','delta_vs_non_upwind_ug_m3','clean_2425_delta_vs_nofire','t1_hourly_delta_vs_nofire','sufficiency_status'];
+  const lines = [headers.join(',')];
+  for (const [code, g] of groups) {
+    const p2 = t2.provinces?.[code] || {}, p1 = t1.provinces?.[code] || {};
+    lines.push([
+      code, g.name, g.region, p2.stations_in_province ?? '', p2.clean_upwind_agri_days ?? '',
+      p2.delta_vs_nofire_ug_m3 ?? '', p2.delta_vs_non_upwind_ug_m3 ?? '',
+      p2.clean_2024_2025_delta_vs_nofire ?? '', p1.delta_vs_nofire_ug_m3 ?? '', p2.sufficiency_status ?? ''
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  }
+  const url = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'farm-fire-pm25-77provinces.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+fitMap('');
+render();
+</script>
+</body>
+</html>

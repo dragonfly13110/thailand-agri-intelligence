@@ -1,0 +1,13 @@
+# รายงานตรวจสิทธิ์เผยแพร่ข้อมูลชุด DOAE Weather (22 พ.ย. 2569)
+
+ตรวจตามเกณฑ์ `config/publication_policy.json` และ `AGENTS.md` ข้อ 3 โดยทดสอบจากปลายทางจริงในวันที่ 22 พ.ย. 2569
+
+| แหล่งข้อมูล | ปลายทางที่ตรวจ | ผลตอบสนองจริง (22 พ.ย. 2569) | สถานะสิทธิ์ที่พบ | การตัดสินใจตามนโยบาย | แนวทางใช้งานในระบบ |
+|---|---|---|---|---|---|
+| **พื้นที่น้ำท่วมซ้ำซาก พด.** (`ldd_21_04` / `doae_gis:flood_ldd_th4326`) | `https://geoplots.doae.go.th/geoserver/doae_gis/wms` + `https://lddcatalog.ldd.go.th/api/3/action/package_show?id=ldd_21_04` | WMS `GetCapabilities` HTTP 200; `GetMap` PNG `720×1320` HTTP 200 (`371,344` ไบต์); LDD CKAN HTTP 200 | `Creative Commons Attribution Non-Commercial No-Derivs` (`isopen=False`, เจ้าของ กองนโยบายและแผนการใช้ที่ดิน พด.) | **`approved_public`** (`open_noncommercial_no_derivatives`: `commercial_use_confirmed=false`, `derivation_allowed=false`) | แสดงภาพ PNG ต้นฉบับจาก WMS บนแผนที่ Atlas `#map` โดยไม่คำนวณ/ดัดแปลงค่า และแสดงเครดิต **กรมพัฒนาที่ดิน (พด.) ผ่าน DOAE GeoServer (CC BY-NC-ND · ภาพต้นฉบับ)** |
+| **ThaiWater ฝน 24 ชม. / ระดับน้ำ** (`rain_24h`, `waterlevel`) | `https://api-v3.thaiwater.net/api/v1/thaiwater30/public/rain_24h`, `https://www.thaiwater.net/terms`, `https://data.hii.or.th/api/3/action/package_search` | API `rain_24h` HTTP 200 (`4,173,474` ไบต์); `/terms` HTTP 200 (SPA เปล่า 2,353 ไบต์ ไม่พบข้อความอนุญาตใช้ซ้ำ); HII CKAN ระบุชุด `hii-rainfall`/`water-level` เป็น CC BY-NC (`isopen=False`) และมีชุด `water_level-mou` ปะปน | ไม่พบข้อกำหนดสิทธิ์ระดับ API endpoint ที่ชัดเจนบน `api-v3.thaiwater.net` และ `config/sources.json` คงสถานะ `hii` เป็น `pending` | **`pending`** | **ยังไม่นำตัวเลขสดขึ้นแสดงบนหน้าเว็บสาธารณะหรือเขียนลง D1** จนกว่าจะยืนยันสิทธิ์ระดับ resource ของ `api-v3.thaiwater.net` และลงทะเบียนใน `config/resource_licenses.json` |
+| **DOAE Weather สรุปแปลงยังยืนต้น** (`api_weather_standing_crops`) | `https://riskmap.doae.go.th/api_weather_standing_crops?province_id=73`, `https://riskmap.doae.go.th/doae_weather`, `https://geoplots.doae.go.th/` | API HTTP 200 (`708` ไบต์ JSON, `public_status: 4`); หน้าเว็บไม่พบข้อความสัญญาอนุญาตเปิด (0 รายการ) | ไม่ระบุสัญญาอนุญาตเผยแพร่ซ้ำ (`License not specified` / ไม่มีเอกสารสิทธิ์ระดับ API) | **`pending`** | **ยังไม่นำตัวเลขขึ้นแสดงบนเว็บสาธารณะหรือเขียนลง D1** (และโค้ดหน้าเว็บเดิมมี fallback ประมาณจำนวนครัวเรือนฝั่งไคลเอนต์ซึ่งไม่ผ่านเกณฑ์ข้อมูลจริงของ Hub) |
+
+## สรุปการดำเนินการรอบนี้
+- เชื่อมเฉพาะชั้นภาพ **`doae_gis:flood_ldd_th4326`** ของกรมพัฒนาที่ดิน (CC BY-NC-ND) เข้า `hotspot-5y/download_live_layers.py` (`fetch_ldd_flood_wms_overlay`), `hotspot-5y/map_data.py` และ `hotspot-5y/map_template.py` แบบภาพต้นฉบับพร้อมเครดิตครบถ้วน
+- คง ThaiWater และ DOAE `/api_weather_standing_crops` ไว้ในสถานะ `pending` ตามกฎ `config/publication_policy.json`

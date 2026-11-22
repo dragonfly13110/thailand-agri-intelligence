@@ -392,6 +392,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <!--__ATLAS_NAV_ITEMS__-->
       <!--__AREA_INSIGHTS_LINK__-->
       <!--__FIRE_PM_MAP_LINK__-->
+      <!--__FARM_FIRE_PM25_LINK__-->
       <!--__EXPLORER_BTN__-->
     </nav>
     <div class="spacer"></div>
@@ -617,12 +618,13 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <span>หมู่บ้านใกล้จุดไฟสูงสุด</span>
         </label>
         <div>
-          <label class="field-label" for="gistdaWmsSelect">ชั้นภาพภัยแล้ง/ความชื้นพืช GISTDA 7 วัน (WMS)</label>
+          <label class="field-label" for="gistdaWmsSelect">ชั้นภาพภัยแล้ง/ความชื้น/น้ำท่วมซ้ำซาก (WMS)</label>
           <select id="gistdaWmsSelect">
-            <option value="none" selected>ปิดชั้นภาพภัยแล้ง/ความชื้น GISTDA</option>
+            <option value="none" selected>ปิดชั้นภาพภัยแล้ง/ความชื้น/น้ำท่วม</option>
             <option value="dri">ดัชนีเสี่ยงภัยแล้ง GISTDA (DRI · 7 วันล่าสุด)</option>
             <option value="ndwi">ดัชนีความชื้นพืชและน้ำ GISTDA (NDWI · 7 วันล่าสุด)</option>
             <option value="smap">ความชื้นผิวดินดาวเทียม GISTDA (SMAP · 7 วันล่าสุด)</option>
+            <option value="ldd_flood">พื้นที่น้ำท่วมซ้ำซาก พด. (WMS ต้นฉบับ · ไม่เชิงพาณิชย์/ไม่ดัดแปลง)</option>
           </select>
         </div>
         <div>
@@ -1908,7 +1910,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     if (!key || key === "none") return;
     const info = (DATA.gistda_wms_layers || {})[key];
     const bbox = info?.bbox_4326 || [97.343968, 5.617402, 105.6429129, 20.470097];
-    const path = info?.path || `gistda_layers/${key}_7d.png`;
+    const path = info?.path || (key === "ldd_flood" ? "gistda_layers/ldd_flood_recurrent.png" : `gistda_layers/${key}_7d.png`);
     let entry = WMS_IMAGE_CACHE.get(key);
     if (!entry) {
       const img = new Image();
@@ -2306,9 +2308,15 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.legendNullChip.style.display = hasNull ? "inline-flex" : "none";
     if (els.tmsLegendChip) {
       if (state.gistdaWms !== "none") {
-        const wmsNames = { dri: "ดัชนีเสี่ยงภัยแล้ง DRI (7 วัน)", ndwi: "ดัชนีความชื้นพืช NDWI (7 วัน)", smap: "ความชื้นผิวดิน SMAP (7 วัน)" };
+        const wmsNames = {
+          dri: "ดัชนีเสี่ยงภัยแล้ง DRI (7 วัน)",
+          ndwi: "ดัชนีความชื้นพืช NDWI (7 วัน)",
+          smap: "ความชื้นผิวดิน SMAP (7 วัน)",
+          ldd_flood: "พื้นที่น้ำท่วมซ้ำซาก กรมพัฒนาที่ดิน (พด. · CC BY-NC-ND ภาพต้นฉบับ)",
+        };
+        const wmsPrefix = state.gistdaWms === "ldd_flood" ? "ชั้นภาพ พด. ผ่าน DOAE GeoServer:" : "ชั้นภาพ GISTDA WMS:";
         els.tmsLegendChip.style.display = "inline-flex";
-        els.tmsLegendChip.innerHTML = `<strong>ชั้นภาพ GISTDA WMS:</strong> <span>${escHtml(wmsNames[state.gistdaWms] || state.gistdaWms)}</span>`;
+        els.tmsLegendChip.innerHTML = `<strong>${wmsPrefix}</strong> <span>${escHtml(wmsNames[state.gistdaWms] || state.gistdaWms)}</span>`;
       } else if (state.showTransPoints || state.showLive7d || state.showPoints) {
         const chips = [];
         if (state.showPoints) {

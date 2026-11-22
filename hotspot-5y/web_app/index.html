@@ -823,6 +823,7 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
 <button type="button" class="nav-tab" data-page="burnscar">รอยเผา &amp; เทียบจังหวัด</button>
       <a class="nav-tab" href="./area-insights.html" style="text-decoration:none">เจาะรายพื้นที่</a>
       <a class="nav-tab" href="./fire-pm-map.html" style="text-decoration:none">แผนที่ไฟ × ฝุ่น</a>
+      <a class="nav-tab" href="./farm-fire-pm25.html" style="text-decoration:none">ไฟเกษตร × ลม × ฝุ่น</a>
       <button id="openExplorerBtn" class="nav-tab" data-page="explorer" title="ค้นหาข้อมูลดิบ 1.28 ล้านจุด สภาพอากาศ และรอยเผาไหม้ตรงจาก Hugging Face ด้วย DuckDB-Wasm">ค้นข้อมูล DuckDB</button>
     </nav>
     <div class="spacer"></div>
@@ -1193,12 +1194,13 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
           <span>หมู่บ้านใกล้จุดไฟสูงสุด</span>
         </label>
         <div>
-          <label class="field-label" for="gistdaWmsSelect">ชั้นภาพภัยแล้ง/ความชื้นพืช GISTDA 7 วัน (WMS)</label>
+          <label class="field-label" for="gistdaWmsSelect">ชั้นภาพภัยแล้ง/ความชื้น/น้ำท่วมซ้ำซาก (WMS)</label>
           <select id="gistdaWmsSelect">
-            <option value="none" selected>ปิดชั้นภาพภัยแล้ง/ความชื้น GISTDA</option>
+            <option value="none" selected>ปิดชั้นภาพภัยแล้ง/ความชื้น/น้ำท่วม</option>
             <option value="dri">ดัชนีเสี่ยงภัยแล้ง GISTDA (DRI · 7 วันล่าสุด)</option>
             <option value="ndwi">ดัชนีความชื้นพืชและน้ำ GISTDA (NDWI · 7 วันล่าสุด)</option>
             <option value="smap">ความชื้นผิวดินดาวเทียม GISTDA (SMAP · 7 วันล่าสุด)</option>
+            <option value="ldd_flood">พื้นที่น้ำท่วมซ้ำซาก พด. (WMS ต้นฉบับ · ไม่เชิงพาณิชย์/ไม่ดัดแปลง)</option>
           </select>
         </div>
         <div>
@@ -3181,7 +3183,7 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
     if (!key || key === "none") return;
     const info = (DATA.gistda_wms_layers || {})[key];
     const bbox = info?.bbox_4326 || [97.343968, 5.617402, 105.6429129, 20.470097];
-    const path = info?.path || `gistda_layers/${key}_7d.png`;
+    const path = info?.path || (key === "ldd_flood" ? "gistda_layers/ldd_flood_recurrent.png" : `gistda_layers/${key}_7d.png`);
     let entry = WMS_IMAGE_CACHE.get(key);
     if (!entry) {
       const img = new Image();
@@ -3579,9 +3581,15 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
     els.legendNullChip.style.display = hasNull ? "inline-flex" : "none";
     if (els.tmsLegendChip) {
       if (state.gistdaWms !== "none") {
-        const wmsNames = { dri: "ดัชนีเสี่ยงภัยแล้ง DRI (7 วัน)", ndwi: "ดัชนีความชื้นพืช NDWI (7 วัน)", smap: "ความชื้นผิวดิน SMAP (7 วัน)" };
+        const wmsNames = {
+          dri: "ดัชนีเสี่ยงภัยแล้ง DRI (7 วัน)",
+          ndwi: "ดัชนีความชื้นพืช NDWI (7 วัน)",
+          smap: "ความชื้นผิวดิน SMAP (7 วัน)",
+          ldd_flood: "พื้นที่น้ำท่วมซ้ำซาก กรมพัฒนาที่ดิน (พด. · CC BY-NC-ND ภาพต้นฉบับ)",
+        };
+        const wmsPrefix = state.gistdaWms === "ldd_flood" ? "ชั้นภาพ พด. ผ่าน DOAE GeoServer:" : "ชั้นภาพ GISTDA WMS:";
         els.tmsLegendChip.style.display = "inline-flex";
-        els.tmsLegendChip.innerHTML = `<strong>ชั้นภาพ GISTDA WMS:</strong> <span>${escHtml(wmsNames[state.gistdaWms] || state.gistdaWms)}</span>`;
+        els.tmsLegendChip.innerHTML = `<strong>${wmsPrefix}</strong> <span>${escHtml(wmsNames[state.gistdaWms] || state.gistdaWms)}</span>`;
       } else if (state.showTransPoints || state.showLive7d || state.showPoints) {
         const chips = [];
         if (state.showPoints) {

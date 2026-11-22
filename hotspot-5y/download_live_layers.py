@@ -60,6 +60,15 @@ GISTDA_WMS_LAYERS = {
 WMS_BBOX_3857 = "10836280.949556718,626330.5447763666,11760115.269946152,2328804.3152620452"
 WMS_BBOX_4326 = [97.343968, 5.617402, 105.6429129, 20.470097]
 
+LDD_FLOOD_WMS = {
+    "key": "ldd_flood",
+    "wms_url": "https://geoplots.doae.go.th/geoserver/doae_gis/wms",
+    "layer_name": "doae_gis:flood_ldd_th4326",
+    "title_th": "พื้นที่น้ำท่วมซ้ำซาก กรมพัฒนาที่ดิน (พด. · WMS ต้นฉบับ ไม่เชิงพาณิชย์/ไม่ดัดแปลง)",
+    "filename": "ldd_flood_recurrent.png",
+    "attribution": "กรมพัฒนาที่ดิน (พด.) ผ่าน DOAE GeoServer (CC BY-NC-ND · ภาพต้นฉบับ)",
+}
+
 TMD_CONDITION_TH = {
     1: "ท้องฟ้าแจ่มใส",
     2: "มีเมฆบางส่วน",
@@ -265,6 +274,54 @@ def fetch_gistda_wms_overlays() -> dict[str, dict]:
     return meta
 
 
+def fetch_ldd_flood_wms_overlay() -> dict[str, dict]:
+    """Fetch verbatim LDD recurrent flood WMS PNG (CC BY-NC-ND, no modification/derivation)."""
+    RAW_LIVE_DIR.mkdir(parents=True, exist_ok=True)
+    WEB_LAYERS_DIR.mkdir(parents=True, exist_ok=True)
+    ctx = trusted_ssl_context()
+    out_png = WEB_LAYERS_DIR / LDD_FLOOD_WMS["filename"]
+    raw_png = RAW_LIVE_DIR / LDD_FLOOD_WMS["filename"]
+    bbox_str = ",".join(str(x) for x in WMS_BBOX_4326)
+    url = (
+        f"{LDD_FLOOD_WMS['wms_url']}"
+        f"?service=WMS&version=1.1.1&request=GetMap"
+        f"&layers={LDD_FLOOD_WMS['layer_name']}&styles="
+        f"&bbox={bbox_str}&width=720&height=1320&srs=EPSG:4326"
+        f"&format=image/png&transparent=true"
+    )
+    for attempt in range(2):
+        try:
+            req = Request(url, headers={"User-Agent": "TADIH-Hotspot5Y/3.0"})
+            with urlopen(req, timeout=65, context=ctx) as resp:
+                data = resp.read()
+                if data[:8] == b"\x89PNG\r\n\x1a\n":
+                    out_png.write_bytes(data)
+                    raw_png.write_bytes(data)
+                    print(f"[WMS] Saved LDD Recurrent Flood -> {out_png.name} ({len(data) / 1024:.1f} KB)", flush=True)
+                    break
+                print("[WMS] Warning fetching ldd_flood: response is not PNG", flush=True)
+        except Exception as e:
+            if attempt == 0:
+                time.sleep(2)
+                continue
+            print(f"[WMS] Warning fetching ldd_flood: {e}", flush=True)
+            if raw_png.exists() and not out_png.exists():
+                out_png.write_bytes(raw_png.read_bytes())
+
+    if out_png.exists():
+        return {
+            LDD_FLOOD_WMS["key"]: {
+                "key": LDD_FLOOD_WMS["key"],
+                "title_th": LDD_FLOOD_WMS["title_th"],
+                "attribution": LDD_FLOOD_WMS["attribution"],
+                "path": f"gistda_layers/{LDD_FLOOD_WMS['filename']}",
+                "bytes": out_png.stat().st_size,
+                "bbox_4326": WMS_BBOX_4326,
+            }
+        }
+    return {}
+
+
 def fetch_and_ingest_tmd_wrf_77prov(con: duckdb.DuckDBPyConnection) -> int:
     """Ingest 72-hour TMD NWP WRF 3km forecast across all 77 provinces from tmd_hpc_d02 + TMD NWP API."""
     RAW_LIVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -403,6 +460,7 @@ def fetch_and_ingest_tmd_wrf_77prov(con: duckdb.DuckDBPyConnection) -> int:
 def main() -> None:
     _load_dotenv()
     fetch_gistda_wms_overlays()
+    fetch_ldd_flood_wms_overlay()
     con = duckdb.connect(str(DEFAULT_DB_PATH))
     try:
         fetch_and_ingest_gistda_live_hotspots(con)

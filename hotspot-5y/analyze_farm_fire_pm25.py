@@ -16,8 +16,10 @@ Zero-bloat guarantee:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import csv
 from datetime import date, datetime, timedelta, timezone
+import gzip
 import io
 import json
 import math
@@ -730,12 +732,15 @@ def fetch_era5_hourly_for_stations(
             "timezone": "Asia/Bangkok",
         })
         url = f"{OPEN_METEO_ARCHIVE_URL}?{params}"
-        waits = (25, 55, 70)
+        waits = (10, 25, 45)
         for attempt, wait in enumerate(waits):
             try:
-                req = Request(url, headers={"User-Agent": "TADIH-Hotspot5Y/3.0"})
-                with urlopen(req, timeout=90, context=ctx) as resp:
-                    payload = json.loads(resp.read().decode("utf-8"))
+                req = Request(url, headers={"User-Agent": "TADIH-Hotspot5Y/3.0", "Accept-Encoding": "gzip"})
+                with urlopen(req, timeout=45, context=ctx) as resp:
+                    raw = resp.read()
+                    if resp.headers.get("Content-Encoding") == "gzip" or raw[:2] == b"\x1f\x8b":
+                        raw = gzip.decompress(raw)
+                    payload = json.loads(raw.decode("utf-8"))
                 items = payload if isinstance(payload, list) else [payload]
                 if len(items) != len(batch_indices):
                     raise ValueError(f"Expected {len(batch_indices)} Open-Meteo items, got {len(items)}")
@@ -768,17 +773,18 @@ def fetch_era5_hourly_for_stations(
                     continue
                 raise
 
-    batch_size = 4
-    indices = list(range(n_cells))
-    for i in range(0, n_cells, batch_size):
-        batch = indices[i : i + batch_size]
-        try:
-            _fetch_batch(batch)
-        except Exception:
-            for single in batch:
-                _fetch_batch([single])
-                time.sleep(0.5)
-        time.sleep(0.45)
+    def _fetch_one(idx: int) -> None:
+        _fetch_batch([idx])
+        time.sleep(0.35)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(_fetch_one, idx) for idx in range(n_cells)]
+        done = 0
+        for fut in concurrent.futures.as_completed(futures):
+            fut.result()
+            done += 1
+            if done % 15 == 0 or done == n_cells:
+                print(f"      ERA5 cells: {done}/{n_cells}", flush=True)
 
     return station_cell_idx, ws_kmh, wd_deg, rain_mm, blh_m
 

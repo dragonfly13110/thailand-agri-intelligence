@@ -1,3 +1,9 @@
+## ขึ้นเว็บวิเคราะห์ไฟเกษตร × ลม × ฝุ่น, ชั้นภาพ พด., Data Hub บน Cloudflare Workers และคืนพื้นที่ไดรฟ์ D วันที่ 23 พ.ย. 2569
+
+- **คืนพื้นที่ไดรฟ์ D**: ลบ `D:/code/thailand-agri-intelligence-cache-quarantine-20261121` แล้ว ได้พื้นที่ว่างเพิ่ม `10.57 GiB` (64.39 → 74.95 GiB) และ `hotspot_5y.duckdb` เปิดอ่านครบ 46 ตาราง
+- **Atlas หน้า “ไฟเกษตร × ลม × ฝุ่น” และชั้นภาพน้ำท่วมซ้ำซาก พด.**: รัน `analyze_farm_fire_pm25.py` เสร็จ (`463.8s`, ไฟล์ผลลัพธ์ `131.9 KB`) สร้าง `farm_fire_pm25.html` + `build_farm_fire_pm25_page.py` เชื่อมเมนูทุกหน้า; ตรวจสิทธิ์ DOAE Weather (`doae-weather-rights-audit.md`) และเพิ่มชั้นภาพ WMS ต้นฉบับ พด. `ldd_flood_recurrent.png` (`362.6 KB`, `CC BY-NC-ND`); อัปโหลด HF commit `834fd06c`, เทสต์ `11/11` (ชุด 5 ไฟล์ `23/23`) ผ่าน และ deploy ขึ้น Netlify (`deployId: 6b031f9a3877eaf93a50a4ed`) ที่ https://thailand-hotspot-5y.netlify.app/farm-fire-pm25 ตรวจ HTTP 200 ครบทุกหน้าและภาพ PNG
+- **Data Hub (`tadih-web`) และ D1**: Apply ดัชนี `0007_observations_province_scope_idx.sql` ลง D1 `tadih-hub` (มี `17,630` observations + `33,880` NWP rows; LDD PGS/DLD/DOAE ที่เหลือยังติด gate หรือเกิน `100,000` cap ตาม dry-run), ตรวจ `web/` ผ่าน `typecheck`, `456/456` tests, `build:vinext` และ deploy ขึ้น Cloudflare Workers (Version `61b7e997`) ที่ https://tadih-web.dragonfly-forester.workers.dev ตรวจ HTTP 200 และ `runtimeMode: database` ผ่าน [รายละเอียดและหลักฐาน](../HANDOFF.md)
+
 ## จับคู่ไฟเกษตร × สถานี PM2.5 × ทิศทางลม และเก็บฝุ่น GISTDA ปี 2569 วันที่ 22 พ.ย. 2569
 
 - เพิ่มโหมด `--parquet-out --no-cache --resolve-reference` ใน `hotspot-5y/ingest_gistda_pm25_daily.py` เก็บฝุ่นรายตำบลปี 2569 จาก GISTDA เข้าไฟล์ส่วนตัว `hotspot-5y/data/private/pm25_tambon_gistda_2026.parquet` (21.73 MiB) ครบ **325 วันต่อเนื่อง** (`2026-01-01..2026-11-21`, 2,416,050 แถว, 77 จังหวัด, 0 แถวซ้ำ) โดยไม่เขียนลง `hotspot_5y.duckdb` และไม่ทิ้งไฟล์ CSV ดิบค้างบนดิสก์

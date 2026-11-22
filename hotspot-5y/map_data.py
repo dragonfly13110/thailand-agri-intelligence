@@ -991,6 +991,7 @@ def _load_gistda_wms_layers() -> dict[str, dict]:
         "dri": ("dri_7d.png", "ดัชนีเสี่ยงภัยแล้ง GISTDA (DRI · 7 วันล่าสุด)"),
         "ndwi": ("ndwi_7d.png", "ดัชนีความชื้นพืชและน้ำ GISTDA (NDWI · 7 วันล่าสุด)"),
         "smap": ("smap_7d.png", "ความชื้นผิวดินดาวเทียม GISTDA (SMAP · 7 วันล่าสุด)"),
+        "ldd_flood": ("ldd_flood_recurrent.png", "พื้นที่น้ำท่วมซ้ำซาก กรมพัฒนาที่ดิน (พด. · WMS ต้นฉบับ ไม่เชิงพาณิชย์/ไม่ดัดแปลง)"),
     }
     out: dict[str, dict] = {}
     for k, (fname, title_th) in specs.items():
