@@ -704,6 +704,21 @@ def run_adapter(
         payload = fetcher()
         dataset = normalize_feature_collection(payload)
         source_mode = "live"
+        if (
+            payload.get("type") == "FeatureCollection"
+            and payload.get("features") == []
+            and payload.get("numberMatched") == payload.get("numberReturned") == 0
+        ):
+            chronology = observation_chronology(dataset["time_stamp"], dataset["retrieved_at"])
+            dataset_date = _dataset_date(chronology["observed_at"])
+            return {
+                "mode": "write" if write else "dry_run",
+                "status": "no_data",
+                "source_mode": source_mode,
+                "batch_date": resolve_batch_date(resolved_date, dataset_date),
+                "records_read": 0,
+                "records_written": 0,
+            }
 
     batch = prepare_batch(
         dataset,

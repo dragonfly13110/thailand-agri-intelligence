@@ -15,14 +15,14 @@ RESOURCE_URL = (
     "chirps-v3.0.rnl.2026.09.30.tif"
 )
 DATA_DATE = date(2026, 9, 30)
-EXPECTED_ETAG = "6ad152d4-119211a"
-EXPECTED_SIZE = 18_424_090
-EXPECTED_LAST_MODIFIED = "Thu, 15 Oct 2026 22:25:24 GMT"
+EXPECTED_ETAG = "6af23d37-11ea6c4"
+EXPECTED_SIZE = 18_785_988
+EXPECTED_LAST_MODIFIED = "Mon, 09 Nov 2026 21:37:59 GMT"
 MISSING_VALUE = -9999.0
 GRID = {"crs": "EPSG:4326", "width": 7200, "height": 2400, "pixel_size_degrees": 0.05}
 ATTRIBUTION = (
     "CHIRPS3 Data Repository, DOI: 10.15780/G2JQ0P; Funk et al. (2026), "
-    "Scientific Data 13, 718. Licensed under CC BY 4.0. Accessed 2026-10-25. "
+    "Scientific Data 13, 718. Licensed under CC BY 4.0. Accessed 2026-11-22. "
     "Modified: extracted three grid cells; source -9999 values are represented as null."
 )
 LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"

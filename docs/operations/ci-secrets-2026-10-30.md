@@ -1,9 +1,8 @@
-# CI secrets ที่ต้องตั้ง (ตรวจ 2026-10-30)
+# คีย์ GitHub Actions สำหรับ Hub
 
-สรุปสถานะ: `gh secret list` ของ `dragonfly13110/thailand-agri-intelligence` **ว่างเปล่า** (ตรวจซ้ำ 30 ต.ค. 2026)
-จึงไม่มี secret ตัวใดถูกตั้งเลย ผลคือ workflow ที่เขียนฐานข้อมูลล้มทันทีตั้งแต่สเต็ปแรก (ตั้งใจให้เป็นแบบนั้น จะได้ไม่เขียนข้อมูลครึ่ง ๆ กลาง ๆ)
+22 พ.ย. 2569 ตรวจชื่อคีย์ทั้ง 6 ตัวใน GitHub Actions แล้ว หลังตั้งค่าผ่านช่องเก็บความลับของโครงการ ตรวจรอบ [45000825049](https://github.com/dragonfly13110/thailand-agri-intelligence/actions/runs/45000825049) พบ Open-Meteo เขียน D1 สำเร็จ 42 แถว
 
-หลักฐานจาก run จริง:
+ก่อนตั้งค่า คลังคีย์ว่างและงานหยุดก่อนเริ่มอัปเดต
 - `40972072552` Sync Hub source catalogs → `::error::No sync database is configured ...`
 - `41039489056` Sync Hub numeric observations → `::error::Repository secret CF_D1_TOKEN is not configured; the CHIRPS numeric sync cannot publish to D1.`
 
@@ -23,9 +22,9 @@
 
 RID, Open-Meteo และ CHIRPS ไม่ใช้ key ของหน่วยงาน (RID/Open-Meteo/CHIRPS เปิดสาธารณะ) ใช้แค่ credential ของ D1
 
-หมายเหตุ: ค่า `TMD_API_UID` / `TMD_API_UKEY` **ยังไม่มีใน `.env` ของเครื่องนี้** (ใน `.env` มีแต่ `TMD_NWP_ACCESS_TOKEN` ซึ่งเป็น API คนละตัว ใช้กับ NWP ไม่ใช่ชุด observation) ต้องขอจาก TMD ก่อน — ห้ามเดาค่า
+งานข้อมูลสถานีกรมอุตุนิยมวิทยาใช้ `TMD_API_UID` และ `TMD_API_UKEY` ส่วน `TMD_NWP_ACCESS_TOKEN` ใช้สำหรับชุดพยากรณ์อีกชุด
 
-## คำสั่งที่เจ้าของต้องรัน (ทำในเครื่องตัวเอง)
+## ตั้งค่าหรือเปลี่ยนคีย์
 
 ค่าทุกตัวคัดลอกจาก `.env` ในเครื่อง (ไฟล์นี้ถูก gitignore) — ห้ามวางค่าในแชต, ห้าม commit, ห้ามใส่ในไฟล์ใน repo
 

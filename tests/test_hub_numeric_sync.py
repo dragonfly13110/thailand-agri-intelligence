@@ -228,6 +228,21 @@ class HubNumericSyncTests(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue())["errorCode"], "INPUT_WRITE_UNSUPPORTED")
         connect.assert_not_called()
 
+    def test_cli_reports_the_specific_sync_error(self):
+        spec = importlib.util.spec_from_file_location("sync_hub_numeric", ROOT / "scripts/sync_hub_numeric.py")
+        cli = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli)
+        output = io.StringIO()
+        with (patch("tadih.env.load_dotenv"),
+              patch.object(cli, "connect_d1_client"),
+              patch.object(cli, "sync_numeric_resource_d1",
+                           side_effect=NumericSyncError("CHIRPS_SOURCE_READ_FAILED")),
+              redirect_stderr(output)):
+            code = cli.main(["--write"])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output.getvalue())["errorCode"], "CHIRPS_SOURCE_READ_FAILED")
+
     def test_cli_declares_current_reader_output_as_partial_sample(self):
         spec = importlib.util.spec_from_file_location("sync_hub_numeric", ROOT / "scripts/sync_hub_numeric.py")
         cli = importlib.util.module_from_spec(spec)

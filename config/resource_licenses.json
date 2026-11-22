@@ -4700,7 +4700,7 @@
       "dataset_id": "chirps-v3.0-daily-final-rnl",
       "name": "CHIRPS v3.0 Daily final RNL 2026-09-30",
       "resource_url": "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif",
-      "reviewed_at": "2026-10-25",
+      "reviewed_at": "2026-11-22",
       "license_status": "approved_public",
       "review_outcome": "official_chc_public_domain_and_cc_by_4_0_cover_exact_chirps3_file",
       "declared_license": {
@@ -4712,9 +4712,10 @@
       "access_evidence": {
         "http_status": 200,
         "content_type": "image/tiff",
-        "size_bytes": 18424090,
-        "last_modified": "2026-10-15T22:25:24Z",
-        "etag": "6ad152d4-119211a",
+        "size_bytes": 18785988,
+        "last_modified": "2026-11-09T21:37:59Z",
+        "etag": "6af23d37-11ea6c4",
+        "sha256": "33fbd23244736a801438b9867b53c5920077e6981bca5fdab9af12d345d7a50e",
         "crs": "EPSG:4326",
         "width": 7200,
         "height": 2400,
@@ -4731,7 +4732,7 @@
       ],
       "project_publication_approved": true,
       "commercial_use_confirmed": true,
-      "attribution_text": "CHIRPS3 Data Repository, DOI: 10.15780/G2JQ0P; Funk et al. (2026), Scientific Data 13, 718. Licensed under CC BY 4.0. Accessed 2026-10-25.",
+      "attribution_text": "CHIRPS3 Data Repository, DOI: 10.15780/G2JQ0P; Funk et al. (2026), Scientific Data 13, 718. Licensed under CC BY 4.0. Accessed 2026-11-22.",
       "attribution_url": "https://www.chc.ucsb.edu/data/chirps3",
       "unresolved": [],
       "next_action": "For M5, retain grid-cell × UTC-date grain, normalize -9999 to null, capture ETag or SHA-256 per batch, and compare at least three cells with this source file before public use.",
@@ -4756,6 +4757,12 @@
           "kind": "exact_resource_headers_and_geotiff_metadata",
           "reviewed_at": "2026-10-25",
           "etag": "6ad152d4-119211a"
+        },
+        {
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/2026/chirps-v3.0.rnl.2026.09.30.tif",
+          "kind": "exact_resource_headers_and_geotiff_metadata",
+          "reviewed_at": "2026-11-22",
+          "etag": "6af23d37-11ea6c4"
         }
       ]
     },

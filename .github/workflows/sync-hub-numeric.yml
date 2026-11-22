@@ -39,20 +39,8 @@ name: Sync Hub numeric observations
 #   GISTDA_API_KEY      GISTDA geo-services key           (GISTDA observations only)
 # RID and Open-Meteo need no upstream key.
 #
-# TODO(R1-G): as of 2026-10-26 `gh secret list` for
-# dragonfly13110/thailand-agri-intelligence returns an empty list, i.e. NONE of
-# the six secrets above exist on the repository side yet (they exist only in the
-# local, git-ignored .env). The owner must add them before the first run:
-#   gh secret set CF_ACCOUNT_ID --repo dragonfly13110/thailand-agri-intelligence
-#   gh secret set CF_D1_DATABASE_ID --repo dragonfly13110/thailand-agri-intelligence
-#   gh secret set CF_D1_TOKEN --repo dragonfly13110/thailand-agri-intelligence
-#   gh secret set TMD_API_UID --repo dragonfly13110/thailand-agri-intelligence
-#   gh secret set TMD_API_UKEY --repo dragonfly13110/thailand-agri-intelligence
-#   gh secret set GISTDA_API_KEY --repo dragonfly13110/thailand-agri-intelligence
-# Until then every job fails closed on the missing D1 credential instead of
-# publishing anything half-configured.
-# Step-by-step owner checklist with the exact commands and which workflow uses
-# each secret: docs/operations/ci-secrets-2026-10-30.md
+# Writers stop before publishing if a required secret is missing.
+# Setup and verification: docs/operations/ci-secrets-2026-10-30.md
 
 on:
   schedule:

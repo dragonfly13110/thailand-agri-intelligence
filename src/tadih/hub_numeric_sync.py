@@ -37,6 +37,10 @@ _CELL_ID = re.compile(r"^chirps-v3:grid:row:(\d+):col:(\d+)$")
 class NumericSyncError(RuntimeError):
     """An approved numeric batch could not be safely published to D1."""
 
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
 
 def approved_resource(registry_path=None):
     """Return the exact CHIRPS approval or fail closed."""

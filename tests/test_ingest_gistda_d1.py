@@ -417,6 +417,29 @@ class AdapterRunTests(unittest.TestCase):
         self.assertEqual(self.client.queries, 0)
         self.assertEqual(self.client.rows("SELECT COUNT(*) AS n FROM observations")[0]["n"], 0)
 
+    def test_confirmed_empty_live_response_leaves_d1_untouched(self):
+        result = run_adapter(
+            client=self.client,
+            write=True,
+            registry_path=self.registry,
+            fetcher=lambda: feature_collection([]),
+        )
+        self.assertEqual(result["status"], "no_data")
+        self.assertEqual(result["records_read"], 0)
+        self.assertEqual(result["records_written"], 0)
+        self.assertEqual(self.client.queries, 0)
+
+    def test_reported_polygons_with_unusable_features_still_fail(self):
+        with self.assertRaises(GistdaFetchError) as caught:
+            run_adapter(
+                client=self.client,
+                write=True,
+                registry_path=self.registry,
+                fetcher=lambda: feature_collection([feature("f1", "64", None)]),
+            )
+        self.assertEqual(caught.exception.code, "NO_FLOOD_POLYGONS")
+        self.assertEqual(self.client.queries, 0)
+
     def test_pending_resource_is_refused_before_any_d1_query(self):
         payload = approved_registry()
         payload["resources"][0]["license_status"] = "pending"
