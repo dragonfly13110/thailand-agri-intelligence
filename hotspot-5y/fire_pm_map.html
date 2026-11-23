@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>แผนที่ไฟ × ฝุ่น | Thailand Fire Atlas</title>
+<title>จุดความร้อนกับฝุ่น | Thailand Fire Atlas</title>
 <!--__FONTS__-->
 <style>
 /*__CSS__*/
@@ -14,7 +14,7 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
 .filters{display:flex;gap:9px 14px;align-items:end;flex-wrap:wrap;padding:10px 12px;margin:0 0 10px;background:var(--card);border:1px solid var(--border);border-radius:10px}.filters label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.filters :is(select,input,button){color:var(--text);max-width:100%}.filters .check{display:flex;align-items:center;min-height:36px}.filters input[type=range]{width:120px;accent-color:var(--accent)}.date-control{display:flex;align-items:center;gap:5px}.date-control button{min-width:36px}.filters select{max-width:100%}
 .map-panel{min-width:0;padding:clamp(10px,2vw,20px);margin-bottom:14px}.map-heading{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:0 0 10px}.map-heading button{border-radius:999px;font-size:12px;padding:5px 11px}.map-heading button[aria-pressed=true]{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
 .map-plot{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:#143543}.map-plot[data-basemap=plain]{background:var(--card)}.map-plot svg{display:block;width:100%;height:clamp(420px,56vh,640px);cursor:grab;touch-action:pan-y}.map-plot svg.dragging{cursor:grabbing}.map-plot svg.dragging .province{cursor:grabbing}
-.province{stroke:#f5f3e5;stroke-width:.7;vector-effect:non-scaling-stroke;cursor:pointer;fill:var(--null-fill);fill-opacity:var(--province-fill,.32)}.province:hover,.province.selected{stroke:#ffca75;stroke-width:2}.map-plot[data-basemap=plain] .province{stroke:var(--map-land-stroke)}.map-plot[data-basemap=plain] .province:is(:hover,.selected){stroke:var(--accent)}.dots{pointer-events:none;fill:#ff8a39;stroke:#60280d;stroke-width:1;fill-opacity:.9}
+.province{stroke:#f5f3e5;stroke-width:1.65;vector-effect:non-scaling-stroke;cursor:pointer;fill:var(--null-fill);fill-opacity:var(--province-fill,.32)}.province:hover,.province.selected{stroke:#ffca75;stroke-width:2.5}.map-plot[data-basemap=plain] .province{stroke:var(--map-land-stroke)}.map-plot[data-basemap=plain] .province:is(:hover,.selected){stroke:var(--accent)}.dots{pointer-events:none;fill:#ff8a39;stroke:#60280d;stroke-width:1;fill-opacity:.9}
 .map-hud{position:absolute;left:10px;bottom:11px;max-width:min(600px,calc(100% - 66px));padding:7px 10px;background:#101923e8;color:#f1f5f9;border:1px solid #fff3;border-radius:8px;pointer-events:none;font-size:12px}.legend{display:flex;gap:3px 9px;flex-wrap:wrap;margin-top:4px;color:#d9e4ee;font-size:11px}.legend span{display:inline-flex;align-items:center;gap:4px}.legend i{width:9px;height:9px;display:inline-block;border-radius:2px;border:1px solid #fff4}.attribution{text-align:right;margin-top:4px;font-size:11px;color:var(--muted)}
 .evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}.evidence .full-width{grid-column:1/-1}.section{min-width:0;padding:14px 16px}.section>p,.section>small{display:block;margin-top:5px}.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.kpi{padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px}.kpi b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.kpi small{display:block}.chart{display:block;width:min(100%,560px);height:auto;margin:8px auto 0}.chart text{fill:var(--muted);font-size:10px}.chart .line{stroke:var(--secondary);stroke-width:2.5;fill:none}.chart .fire{fill:#e87835}.chart .focus{stroke:var(--accent);stroke-dasharray:4 4}.chart .grid{stroke:var(--border-strong)}
 .map-zoom{position:absolute;right:10px;bottom:11px;display:grid;gap:4px;text-align:center}.map-zoom button{width:34px;height:34px;padding:0;font-size:17px}.map-zoom output{color:var(--text);background:var(--card-elev);border-radius:5px;font-size:10px}.map-zoom button:disabled{opacity:.55;cursor:default}
@@ -26,17 +26,16 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
 <header class="topbar">
   <a class="brand" href="./#overview"><span class="brand-dot"></span>Thailand Fire Atlas</a>
   <nav class="nav-tabs" aria-label="เมนูหลัก">
+    <a class="nav-tab" href="./guide.html">คู่มือใช้งาน</a>
     <!--__NAV__-->
-    <a class="nav-tab" href="./area-insights.html">เจาะรายพื้นที่</a>
-    <a class="nav-tab active" aria-current="page" href="./fire-pm-map.html">แผนที่ไฟ × ฝุ่น</a>
-    <a class="nav-tab" href="./farm-fire-pm25.html">ไฟเกษตร × ลม × ฝุ่น</a>
+    <a class="nav-tab" href="./farm-fire-pm25.html">ไฟเกษตร ลม และฝุ่น</a>
   </nav>
   <button id="themeToggle" type="button">โหมดมืด</button>
 </header>
 <!--__THEME__-->
 <main>
   <section class="panel map-panel" aria-labelledby="map-title">
-    <h1 id="map-title">แผนที่ไฟ × ฝุ่น PM2.5</h1>
+    <h1 id="map-title">จุดความร้อนกับฝุ่น PM2.5</h1>
     <p class="intro muted" id="available-dates"></p>
     <div class="answer" role="status" aria-live="polite" aria-atomic="true">
       <p class="answer-context" id="answer-context"></p>
@@ -44,11 +43,11 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
       <p>การเผาฟางปล่อย PM2.5 ได้จริงตามผลทดลองในไทย ตัวเลขในแผนที่เทียบ <strong>ฝุ่นรวมจากแบบจำลอง CAMS</strong> การวัดว่าควันจากแปลงเพิ่มฝุ่นเท่าไรต้องดูทิศลมและค่าฝุ่นรายชั่วโมงจากสถานีด้วย</p>
     </div>
     <div class="filters">
-    <label>วันที่ตรวจสอบ<span class="date-control"><button type="button" id="prev" aria-label="วันก่อนหน้า">‹</button><input id="date" type="date" aria-label="วันที่ตรวจสอบ"><button type="button" id="next" aria-label="วันถัดไป">›</button></span></label>
+    <label>วันที่พบจุดที่ต้องการเทียบ<span class="date-control"><button type="button" id="prev" aria-label="วันก่อนหน้า">‹</button><input id="date" type="date" aria-label="วันที่พบจุดที่ต้องการเทียบ"><button type="button" id="next" aria-label="วันถัดไป">›</button></span></label>
     <label>กลุ่มจุดความร้อน<select id="kind"><option value="1">พื้นที่เกษตร</option><option value="2">นาข้าว</option><option value="3">เขต ส.ป.ก.</option><option value="4">ป่าอนุรักษ์และป่าสงวน</option></select></label>
     <label>ช่วงเทียบย้อนหลัง<select id="range"><option value="0" selected>ทั้งหมดถึงวันที่เลือก</option><option value="30">30 วัน</option><option value="90">90 วัน</option><option value="365">365 วัน</option></select></label>
     <label>ดูฝุ่นหลังวันพบจุด<select id="lag"><option value="0">วันเดียวกัน</option><option value="1">1 วัน</option><option value="2">2 วัน</option><option value="3">3 วัน</option></select></label>
-      <label>สีบนแผนที่<select id="layer"><option value="pm">ค่า PM2.5</option><option value="fire">จำนวนจุดความร้อน</option><option value="corr">ความสัมพันธ์หลังเทียบในเดือนเดียวกัน</option></select></label>
+      <label>สีบนแผนที่<select id="layer"><option value="pm">ค่า PM2.5</option><option value="fire">จำนวนจุดความร้อน</option><option value="corr">ความสัมพันธ์ของจุดความร้อนกับฝุ่น</option></select></label>
       <label>แผนที่พื้นหลัง<select id="basemap"><option value="satellite">Esri ภาพถ่ายดาวเทียม</option><option value="plain">พื้นเรียบ</option></select></label>
       <label>ความชัดของสี <span><input id="opacity" type="range" min="0" max="100" value="32"> <output id="opacity-value" for="opacity">32%</output></span></label>
       <label class="check"><input type="checkbox" id="dots" checked> วงกลมจำนวนจุด</label>
@@ -59,7 +58,7 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
     </div>
     <div class="map-plot" id="map-plot">
       <svg id="map" role="img" aria-label="แผนที่รายจังหวัด กดจังหวัดเพื่อดูข้อมูล หรือหมุนล้อเมาส์เพื่อซูม"></svg>
-      <div class="map-hud"><p id="map-summary" aria-live="polite"></p><div class="legend" id="legend"></div></div>
+      <div class="map-hud"><small id="boundaryStatus">เส้นเขตจังหวัด</small><p id="map-summary" aria-live="polite"></p><div class="legend" id="legend"></div></div>
       <div class="map-zoom"><button id="zoom-in" type="button" aria-label="ซูมเข้า">+</button><output id="zoom-level" aria-label="ระดับซูม"></output><button id="zoom-out" type="button" aria-label="ซูมออก">−</button><button id="zoom" type="button" title="กลับมุมมองประเทศ" aria-label="กลับมุมมองประเทศ">↺</button></div>
     </div>
     <p class="attribution" id="imagery-credit"><a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9">Esri World Imagery</a> · Esri, Maxar, Earthstar Geographics และ GIS User Community</p>
@@ -69,8 +68,8 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
         <h2 id="focus-title"></h2><p id="focus-date" class="muted"></p>
         <div class="kpis"><div class="kpi"><small id="fire-label">จุดความร้อน</small><b id="fire-count"></b><small id="fire-date"></small></div><div class="kpi"><small>PM2.5 จาก CAMS</small><b id="pm-value"></b><small id="pm-date"></small></div></div>
         <p id="coverage" class="muted"></p>
-        <svg id="trend" class="chart" viewBox="0 0 360 146" role="img" aria-label="กราฟจุดความร้อนและฝุ่น 7 วันก่อนและหลังวันที่ตรวจสอบ"></svg>
-        <small>แท่งส้มคือจำนวนจุด เส้นฟ้าคือ PM2.5 ในวันเดียวกัน กราฟใช้คนละสเกล</small>
+        <svg id="trend" class="chart" viewBox="0 0 360 146" role="img" aria-label="กราฟจุดความร้อนและฝุ่น 7 วันก่อนและหลังวันที่พบจุดที่ต้องการเทียบ"></svg>
+        <small>แท่งส้มคือจำนวนจุด เส้นฟ้าคือ PM2.5 ในวันเดียวกัน กราฟใช้หน่วยต่างกัน</small>
       </section>
       <section class="panel section" aria-labelledby="evidence-title">
         <h2 id="evidence-title">เราเทียบวันไหนกับวันไหน</h2>
@@ -84,7 +83,7 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
       </section>
       <section class="panel section full-width" aria-labelledby="rows-title">
         <h2 id="rows-title">ตัวเลขที่ใช้เทียบ</h2>
-        <div class="table-actions"><small>แสดงสูงสุด 14 วันล่าสุด</small><button id="export" type="button">ดาวน์โหลด CSV</button></div>
+        <div class="table-actions"><small>แสดงสูงสุด 14 วันล่าสุด</small><button id="export" type="button">ดาวน์โหลดตาราง</button></div>
         <div class="scroll" tabindex="0" aria-label="ตารางตัวเลขที่ใช้เทียบ"><table><thead><tr><th scope="col">วันที่นับจุด</th><th scope="col">จุด</th><th scope="col">วันที่ดูฝุ่น</th><th scope="col">µg/m³</th><th scope="col">จังหวัดที่มีคู่ข้อมูล</th></tr></thead><tbody id="rows"></tbody></table></div>
       </section>
     </div>
@@ -96,6 +95,7 @@ main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 36px}h1,h2,p
   </details>
 </main>
 <script type="application/json" id="data">__FIRE_PM_DATA__</script>
+<script>/*__ATLAS_BOUNDARIES__*/</script>
 <script>
 const data = JSON.parse(document.getElementById('data').textContent);
 const $ = id => document.getElementById(id);
@@ -145,11 +145,13 @@ for (const [code,name,geometry,lon,lat] of data.provinces) {
   map.append(shape); markerLayer.append(marker);
   groups.set(code,{shape,title,marker,name});
 }
+const drawBoundaries = createAtlasSvgBoundaries(map, project, $('boundaryStatus'), drawMap);
 map.append(markerLayer);
 const tiles=new Map(), presets=[...document.querySelectorAll('[data-province]')];
 const country={x:x0,y:y0,width:x1-x0,height:y1-y0};
 let camera, selectedCode=null, gesture;
 let basemap=$('basemap').value;
+const minMapSpan=0.18;
 
 function fitMap(code) {
   const {x,y,width,height}=code?groups.get(code).shape.getBBox():country;
@@ -162,13 +164,14 @@ function drawMap() {
   const left=x-width/2, top=y-height/2;
   map.setAttribute('viewBox',`${left} ${top} ${width} ${height}`);
   const zoom=Math.log2(360/height*map.clientHeight/256);
+  drawBoundaries(zoom,{left,top,width,height});
   $('zoom-level').textContent=`z${zoom.toFixed(1)}`;
-  $('zoom-in').disabled=height<=1;
+  $('zoom-in').disabled=height<=minMapSpan;
   $('zoom-out').disabled=height>=54;
   for (const {marker} of groups.values()) marker.setAttribute('r',(+marker.dataset.radius||0)*height/map.clientHeight);
   const keep=new Set();
   if (basemap==='satellite') {
-    const z=Math.max(2,Math.min(11,Math.round(zoom))), count=2**z, size=360/count;
+    const z=Math.max(2,Math.min(15,Math.round(zoom))), count=2**z, size=360/count;
     const minTileX=Math.max(0,Math.floor((left+180)/size));
     const maxTileX=Math.min(count-1,Math.floor((left+width+180)/size));
     const minTileY=Math.max(0,Math.floor((top+180)/size));
@@ -198,7 +201,7 @@ $('basemap').addEventListener('change',()=>{
   drawMap();
 });
 function zoomMap(factor, anchor=camera) {
-  const height=Math.max(1,Math.min(54,camera.height*factor));
+  const height=Math.max(minMapSpan,Math.min(54,camera.height*factor));
   if(height===camera.height) return;
   const move=1-height/camera.height;
   camera.x+=(anchor.x-camera.x)*move;
@@ -318,6 +321,12 @@ function render() {
   for(const preset of presets) preset.setAttribute('aria-pressed',String(preset.dataset.province===chosen));
   let index=dayIndex(dayInput.value||data.end);
   index=Math.max(0,Math.min(last,index)); dayInput.value=dateAt(index);
+  const url = new URL(location.href);
+  for (const control of [province, dayInput]) {
+    if (control.value) url.searchParams.set(control.id, control.value);
+    else url.searchParams.delete(control.id);
+  }
+  history.replaceState(null, "", url);
   const kind=+kindInput.value, lag=+lagInput.value, window=+rangeInput.value;
   const first=window?Math.max(0,index-window+1):0, layer=layerInput.value;
   $('prev').disabled=index===0; $('next').disabled=index===last;
@@ -385,6 +394,11 @@ $('export').addEventListener('click',()=>{
   const link=document.createElement('a');link.href=url;link.download=`fire-pm25-${kindInput.value}-${dayInput.value}.csv`;link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
+const shared = new URLSearchParams(location.search);
+const sharedDate = shared.get('date');
+const sharedProvince = shared.get('province');
+if (codes.includes(sharedProvince)) province.value = sharedProvince;
+if (sharedDate && /^\d{4}-\d{2}-\d{2}$/.test(sharedDate) && Number.isFinite(dayIndex(sharedDate))) dayInput.value = sharedDate;
 render();
 </script>
 </body>

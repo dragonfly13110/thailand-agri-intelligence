@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import gzip
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -24,12 +25,13 @@ SUBPROJECT_DIR = Path(__file__).resolve().parent
 if str(SUBPROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(SUBPROJECT_DIR))
 
-from config import DEFAULT_DB_PATH, REPO_ROOT  # noqa: E402
+from config import DEFAULT_DB_PATH, DEFAULT_HF_REPO, REPO_ROOT  # noqa: E402
 from download_transboundary import GMS_RAW_DIR, export_transboundary_parquets  # noqa: E402
 from map_data import DEFAULT_ERA5_PATH, DEFAULT_TADIH_DB_PATH, build_map_payload, pack_flags  # noqa: E402
+from tadih.tier1_ingestion import hii_flood_publication
 
 DEFAULT_EXPORT_DIR = SUBPROJECT_DIR / "data" / "hf_export"
-DEFAULT_HF_REPO = "dragonfly13110/thailand-hotspot-5y"
+HII_FLOOD_EXPORT_PATH = "parquet/hii_flood_risk.parquet"
 
 
 def load_dotenv(env_path: Path = REPO_ROOT / ".env") -> dict[str, str]:
@@ -202,7 +204,9 @@ tags:
    จาก **NASA POWER** (`Public Domain`, `2022–2026`) ความชื้นผิวดิน `GWETTOP`, รากพืช `GWETROOT`, แสงอาทิตย์, จุดน้ำค้าง (`-999` แปลงเป็น `NULL` แล้ว)
 7. **อ่างเก็บน้ำขนาดกลาง 461 แห่ง (`rid_reservoirs_monthly_2022_2026.parquet`):**  
    จาก **กรมชลประทาน (RID)** (`app.rid.go.th`, `2022–2026` รายเดือน, สำหรับใช้เพื่อการศึกษา/สาธารณะ)
-8. **ราคาสินค้าเกษตร (`oae_monthly_crop_prices.parquet`), อากาศ ERA5 (`era5_*`), รอยเผา GISTDA (`gistda_burn_*`), น้ำท่วมซ้ำ (`hii_flood_risk.parquet`) และขอบเขต ปภ. (`dim_areas.parquet`)**
+8. **ราคาสินค้าเกษตร (`oae_monthly_crop_prices.parquet`), อากาศ ERA5 (`era5_*`), รอยเผา GISTDA (`gistda_burn_*`) และขอบเขต ปภ. (`dim_areas.parquet`)**
+
+ข้อมูลน้ำท่วมซ้ำรายตำบลที่แสดงใน Atlas มาจากสถาบันสารสนเทศทรัพยากรน้ำ (สสน.) และใช้ตามสิทธิ์เฉพาะชุดข้อมูลที่บันทึกสำหรับโครงการ
 
 {bench_section}
 
@@ -228,6 +232,34 @@ ORDER BY pm25_mean DESC NULLS LAST
 LIMIT 20;
 ```
 """
+
+
+def write_public_map_summary(payload: dict, summary_dir: Path) -> tuple[dict, dict]:
+    """Write the public summary and its optional map layer from a full Atlas payload."""
+    if hii_flood_publication() is None:
+        # This also keeps precomputed summaries from bypassing the resource register.
+        for key in ("amphoes", "provinces", "tambons"):
+            for area in payload[key]:
+                for field in tuple(area):
+                    if field.startswith("flood_"):
+                        area[field] = None
+        payload["meta"].update(flood_covered_provinces=0, flood_covered_tambons=0)
+
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    grid = payload.pop("grid")
+    grid_json = json.dumps(grid, separators=(",", ":")).encode("utf-8")
+    grid_name = f"map_grid_{sha256(grid_json).hexdigest()[:16]}.json.gz"
+    grid_path = summary_dir / grid_name
+    grid_path.write_bytes(gzip.compress(grid_json, compresslevel=9, mtime=0))
+    payload["grid_file"] = grid_name
+    raw_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    summary_path = summary_dir / "map_payload.json.gz"
+    summary_path.write_bytes(gzip.compress(raw_json, compresslevel=9, mtime=0))
+    return (
+        {"path": "summary/map_payload.json.gz", "bytes": summary_path.stat().st_size,
+         "uncompressed_bytes": len(raw_json)},
+        {"path": f"summary/{grid_name}", "rows": len(grid), "bytes": grid_path.stat().st_size},
+    )
 
 
 def export_hf_bundle(
@@ -614,44 +646,34 @@ def export_hf_bundle(
         )
         mcon.close()
 
-    # 6. HII flood risk (from local tadih.duckdb when available)
-    if tadih_db_path is not None and Path(tadih_db_path).exists():
-        tcon = duckdb.connect(str(tadih_db_path), read_only=True)
-        try:
-            t_tables = {r[0] for r in tcon.execute("SHOW TABLES").fetchall()}
-            if "fact_flood_risk_forecast" in t_tables:
-                files_meta.append(
-                    _export_query_to_parquet(
-                        tcon,
-                        """
-                        SELECT month,
-                               lpad(CAST(dopa_province_code AS VARCHAR), 2, '0') AS prov_code,
-                               province_name_th,
-                               CAST(dopa_amphoe_code AS VARCHAR) AS amphoe_code,
-                               amphoe_name_th,
-                               CAST(dopa_tambon_code AS VARCHAR) AS tambon_code,
-                               tambon_name_th,
-                               recurrence_17yr_count,
-                               risk_criteria,
-                               risk_level,
-                               source_agency,
-                               license_status
-                        FROM fact_flood_risk_forecast
-                        WHERE dopa_tambon_code IS NOT NULL
-                        ORDER BY prov_code, amphoe_code, tambon_code, month
-                        """,
-                        parquet_dir / "hii_flood_risk.parquet",
-                    )
-                )
-        finally:
-            tcon.close()
-
-    # 7. Map summary gzipped JSON (~5 MB for fast web app initial load)
-    payload = build_map_payload(db_path=db_path, era5_path=era5_path, tadih_db_path=tadih_db_path)
-    raw_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    summary_gz = summary_dir / "map_payload.json.gz"
-    with gzip.open(summary_gz, "wb", compresslevel=9) as gz:
-        gz.write(raw_json)
+    flood_db = tadih_db_path if hii_flood_publication() is not None else None
+    if flood_db is not None and Path(flood_db).is_file():
+        with duckdb.connect(str(flood_db), read_only=True) as flood_con:
+            if ("fact_flood_risk_forecast",) in flood_con.execute("SHOW TABLES").fetchall():
+                files_meta.append(_export_query_to_parquet(
+                    flood_con,
+                    """
+                    SELECT month,
+                           lpad(CAST(dopa_province_code AS VARCHAR), 2, '0') AS prov_code,
+                           province_name_th,
+                           CAST(dopa_amphoe_code AS VARCHAR) AS amphoe_code,
+                           amphoe_name_th,
+                           CAST(dopa_tambon_code AS VARCHAR) AS tambon_code,
+                           tambon_name_th,
+                           recurrence_17yr_count,
+                           risk_criteria,
+                           risk_level,
+                           source_agency,
+                           'approved_public' AS license_status
+                    FROM fact_flood_risk_forecast
+                    WHERE dopa_tambon_code IS NOT NULL
+                    ORDER BY prov_code, amphoe_code, tambon_code, month
+                    """,
+                    export_dir / HII_FLOOD_EXPORT_PATH,
+                ))
+    payload = build_map_payload(db_path=db_path, era5_path=era5_path, tadih_db_path=flood_db)
+    summary_meta, grid_meta = write_public_map_summary(payload, summary_dir)
+    files_meta.append(grid_meta)
 
     # 7b. Exact coordinate binary point clouds (1.28M Thailand points + 2.63M GMS 6-country points)
     #     so the map renders every real satellite point (no uniform grid lattice)
@@ -740,14 +762,11 @@ def export_hf_bundle(
 
     manifest = {
         "schema": "tadih.hotspot5y_hf.v2",
+        "public_bundle": True,
         "repo_id": repo_id,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "meta": payload["meta"],
-        "summary_gz": {
-            "path": "summary/map_payload.json.gz",
-            "bytes": summary_gz.stat().st_size,
-            "uncompressed_bytes": len(raw_json),
-        },
+        "summary_gz": summary_meta,
         "compression_benchmark": bench_rows,
         "files": files_meta,
     }
@@ -757,10 +776,10 @@ def export_hf_bundle(
     readme_path = export_dir / "README.md"
     readme_path.write_text(_build_dataset_card(repo_id, manifest), encoding="utf-8")
 
-    total_bytes = summary_gz.stat().st_size + sum(f["bytes"] for f in files_meta)
+    total_bytes = summary_meta["bytes"] + sum(f["bytes"] for f in files_meta)
     print(
         f"[Export] {len(files_meta)} Parquet files + summary/map_payload.json.gz "
-        f"({summary_gz.stat().st_size / (1024 * 1024):.2f} MB) | "
+        f"({summary_meta['bytes'] / (1024 * 1024):.2f} MB) | "
         f"Total = {total_bytes / (1024 * 1024):.2f} MB -> {export_dir}",
         flush=True,
     )
@@ -779,6 +798,17 @@ def upload_to_huggingface(
 ) -> str:
     from huggingface_hub import HfApi
 
+    manifest = json.loads((export_dir / "summary" / "manifest.json").read_text(encoding="utf-8"))
+    paths = [
+        "README.md",
+        "summary/manifest.json",
+        manifest["summary_gz"]["path"],
+        *(item["path"] for item in manifest["files"]),
+    ]
+    has_flood = HII_FLOOD_EXPORT_PATH in paths or bool(manifest.get("meta", {}).get("flood_covered_tambons"))
+    if not manifest.get("public_bundle") or (has_flood and hii_flood_publication() is None):
+        raise ValueError("Rebuild the public Atlas export before uploading")
+
     api = HfApi(token=token)
     api.create_repo(repo_id=repo_id, repo_type="dataset", private=False, exist_ok=True)
     print(f"[HF] Uploading folder {export_dir} -> datasets/{repo_id} ...", flush=True)
@@ -786,7 +816,8 @@ def upload_to_huggingface(
         folder_path=str(export_dir),
         repo_id=repo_id,
         repo_type="dataset",
-        commit_message="Add PM2.5 AQ, 6-country Transboundary FIRMS, NASA POWER soil, DOAE crops, RID reservoirs & OAE prices Parquet + benchmark",
+        allow_patterns=paths,
+        commit_message="Update public Thailand Fire Atlas data",
     )
     if include_duckdb and db_path.exists():
         print(f"[HF] Uploading full DuckDB backup ({db_path.stat().st_size / (1024 * 1024):.1f} MB) ...", flush=True)
@@ -809,7 +840,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Export hotspot-5y DuckDB to Parquet and upload to Hugging Face.")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
     parser.add_argument("--era5", type=Path, default=DEFAULT_ERA5_PATH)
-    parser.add_argument("--tadih-db", type=Path, default=DEFAULT_TADIH_DB_PATH)
+    parser.add_argument("--tadih-db", type=Path, default=DEFAULT_TADIH_DB_PATH,
+                        help="Source database for registered HII flood recurrence data.")
     parser.add_argument("--export-dir", type=Path, default=DEFAULT_EXPORT_DIR)
     parser.add_argument("--repo", type=str, default=default_repo)
     parser.add_argument("--export-only", action="store_true", help="Only build local Parquet + summary bundle without uploading")

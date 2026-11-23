@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>จุดความร้อนเปลี่ยนตรงไหน | Thailand Fire Atlas</title>
+<title>เทียบจุดความร้อนรายพื้นที่ | Thailand Fire Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
@@ -144,21 +144,20 @@ html[data-theme="light"] {
 <header class="topbar">
   <a class="brand" href="./#overview"><span class="brand-dot"></span>Thailand Fire Atlas</a>
   <nav class="nav-tabs" aria-label="เมนูหลัก">
+    <a class="nav-tab" href="./guide.html">คู่มือใช้งาน</a>
     <a class="nav-tab" href="./#overview">ภาพรวม</a>
 <a class="nav-tab" href="./#map">แผนที่เจาะลึก</a>
-<a class="nav-tab" href="./#weather">อากาศ × ไฟ</a>
-<a class="nav-tab" href="./#haze">ฝุ่น PM2.5 &amp; ข้ามแดน</a>
-<a class="nav-tab" href="./#burnscar">รอยเผา &amp; เทียบจังหวัด</a>
-    <a class="nav-tab active" aria-current="page" href="./area-insights.html">เจาะรายพื้นที่</a>
-    <a class="nav-tab" href="./fire-pm-map.html">แผนที่ไฟ × ฝุ่น</a>
-    <a class="nav-tab" href="./farm-fire-pm25.html">ไฟเกษตร × ลม × ฝุ่น</a>
-    <a class="nav-tab" href="./#explorer">ค้นข้อมูล DuckDB</a>
+<a class="nav-tab" href="./#weather">อากาศกับจุดความร้อน</a>
+<a class="nav-tab" href="./#haze">ฝุ่นและประเทศเพื่อนบ้าน</a>
+<a class="nav-tab" href="./#burnscar">รอยเผาและเทียบจังหวัด</a>
+    <a class="nav-tab" href="./farm-fire-pm25.html">ไฟเกษตร ลม และฝุ่น</a>
+    <a class="nav-tab" href="./#explorer">ค้นและดาวน์โหลดข้อมูล</a>
   </nav>
   <button id="themeToggle" class="theme-toggle" type="button" title="สลับโหมดสีมืด/สว่าง">โหมดสว่าง</button>
 </header>
 <main>
-  <h1>จุดความร้อนเปลี่ยนตรงไหน</h1>
-  <p>เทียบเดือนม.ค.–ต.ค. 2569 กับปีก่อนและช่วงเดียวกันในอดีต เลือกจังหวัดเพื่อดูว่าอำเภอไหนทำให้ภาพรวมขยับ</p>
+  <h1>เทียบจุดความร้อนรายพื้นที่</h1>
+  <p>เทียบจำนวนจุดที่พบช่วง ม.ค.–ต.ค. ในแต่ละปี เลือกจังหวัดเพื่อดูว่าอำเภอไหนพบเพิ่มหรือลด</p>
   <div class="panel filters">
     <label>จังหวัด<select id="province"></select></label>
     <label>อำเภอ<select id="district" disabled></select></label>
@@ -177,7 +176,7 @@ html[data-theme="light"] {
       <div id="months"></div>
     </section>
     <section class="panel" aria-labelledby="repeat-title">
-      <h2 id="repeat-title">จุดปีนี้ทับพื้นที่ที่พบซ้ำเท่าไร</h2>
+      <h2 id="repeat-title">ปีนี้พบจุดซ้ำบริเวณเดิมเท่าไร</h2>
       <p id="repeat"></p>
       <h2>แยกตามการใช้ที่ดิน</h2>
       <div class="scroll"><table>
@@ -199,7 +198,7 @@ html[data-theme="light"] {
     <p><small>แหล่งข้อมูลรอยเผา <a href="https://tamroypao.hii.or.th/">ตามรอยเผา สสน.</a> · การเทียบนี้รวมตามขอบเขตตำบลเดียวกัน ส่วนค่าจุดและไร่เป็นคนละหน่วย</small></p>
   </section>
   <section class="panel" aria-labelledby="rank-title">
-    <h2 id="rank-title">พื้นที่ที่ทำให้ยอดเปลี่ยน</h2>
+    <h2 id="rank-title">พื้นที่ที่พบจุดเพิ่มหรือลด</h2>
     <p>กดชื่อพื้นที่เพื่อเจาะรายละเอียด ยอดเพิ่มหรือลดคิดเป็นจำนวนจุดที่ตรวจพบ</p>
     <label>เรียงตาม<select id="sort">
       <option value="up">เพิ่มมากที่สุดจากปี 2568</option>
@@ -262,6 +261,12 @@ function selectProvince(p) {
   district.disabled = !p;
 }
 function render() {
+  const url = new URL(location.href);
+  for (const control of [province, district]) {
+    if (control.value) url.searchParams.set(control.id, control.value);
+    else url.searchParams.delete(control.id);
+  }
+  history.replaceState(null, "", url);
   const row = rows.find(r => r.p === (province.value || null) && r.a === (district.value || null));
   const baseline = median(row.totals.slice(1,4));
   byId('area-name').textContent = row.name;
@@ -329,7 +334,11 @@ byId('rank').addEventListener('click',event=>{
   render();
   byId('area-name').scrollIntoView({block:'center'});
 });
-selectProvince('');
+const query = new URLSearchParams(location.search);
+const provinceCode = query.get('province');
+const districtCode = query.get('district');
+selectProvince(provinces.some(r => r.p === provinceCode) ? provinceCode : '');
+if (children(province.value).some(r => r.a === districtCode)) district.value = districtCode;
 render();
 </script>
 </body>

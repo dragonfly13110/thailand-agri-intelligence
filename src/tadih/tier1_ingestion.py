@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import urllib.request
 
-from tadih.catalog import ROOT
+from tadih.catalog import ROOT, load_resource_licenses
 from tadih.opend_client import query_opend_api
 
 DOAE_CROP_MASTER_RESOURCE_ID = "4e17f8e4-e3f9-4c44-a642-e3c115b4830c"
@@ -21,6 +21,18 @@ HII_FLOOD_RISK_CSV_URL = (
     "https://data.hii.or.th/dataset/e007d93b-5a9b-4d6f-9090-5cdd26922aa7/"
     "resource/50e6987b-c01f-4fd5-99e2-2bccf9f18268/download/monthly-flood-risk-area.csv"
 )
+
+
+def hii_flood_publication() -> dict | None:
+    """Return the project's approval for the exact HII flood recurrence resource."""
+    return next((
+        resource for resource in load_resource_licenses()
+        if resource["resource_key"] == "hii_monthly_flood_recurrence_tambon"
+        and resource.get("resource_url") == HII_FLOOD_RISK_CSV_URL
+        and resource["license_status"] == "approved_public"
+        and resource["project_publication_approved"]
+        and resource.get("derivation_allowed") is True
+    ), None)
 
 
 def fetch_doae_crop_master(
@@ -86,6 +98,8 @@ def fetch_hii_flood_risk(output_path: Optional[Path] = None) -> Dict[str, Any]:
 
     reader = csv.DictReader(io.StringIO(content))
     now_iso = datetime.now(timezone.utc).isoformat()
+    publication = hii_flood_publication()
+    license_status = publication["license_status"] if publication else "pending"
 
     normalized: List[Dict[str, Any]] = []
     for r in reader:
@@ -113,7 +127,7 @@ def fetch_hii_flood_risk(output_path: Optional[Path] = None) -> Dict[str, Any]:
             "risk_level": str(r.get("RISK") or "").strip(),
             "source_agency": "HII",
             "retrieved_at": now_iso,
-            "license_status": "pending",
+            "license_status": license_status,
         })
 
     payload = {
@@ -122,7 +136,7 @@ def fetch_hii_flood_risk(output_path: Optional[Path] = None) -> Dict[str, Any]:
             "title": "รายงานคาดการณ์พื้นที่เสี่ยงอุทกภัยรายเดือนระดับตำบล สถาบันสารสนเทศทรัพยากรน้ำ (สสน.)",
             "total_records": len(normalized),
             "retrieved_at": now_iso,
-            "license_status": "pending",
+            "license_status": license_status,
             "temporal_interpretation": "month_of_year_with_17_year_count_forecast_horizon_unverified",
         },
         "records": normalized,

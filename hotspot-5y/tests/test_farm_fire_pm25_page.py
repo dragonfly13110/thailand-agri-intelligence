@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 import json
 from pathlib import Path
 import re
@@ -162,15 +163,45 @@ class FarmFirePm25PageTests(unittest.TestCase):
             out_html = tmp_dir / "farm-fire-pm25.html"
             _make_77_prov_db(db_path)
             _make_synthetic_analysis(json_path)
+            with duckdb.connect(str(db_path)) as conn:
+                conn.execute("""
+                    INSERT INTO hotspots
+                    SELECT satellite, instrument, acq_date_th, acq_date_utc, '07:00',
+                           year_th, month_th, latitude, longitude, 'mixed_cane',
+                           is_suspected_static, prov_code, amphoe_code, amphoe_name_th,
+                           lu_name, 'อ้อย', re_royin
+                    FROM hotspots WHERE hotspot_id = 'id_a1'
+                """)
 
             payload = build_farm_fire_pm25_payload(db_path, json_path)
             self.assertEqual(len(payload["provinces"]), 77)
             self.assertEqual(len({p[0] for p in payload["provinces"]}), 77)
             self.assertIsNone(payload["track2_daily"]["provinces"]["42"]["delta_vs_nofire_ug_m3"])
+            self.assertIn("daily_sim_gz", payload)
+
+            import base64, gzip
+            sim = json.loads(gzip.decompress(base64.b64decode(payload["daily_sim_gz"])).decode("utf-8"))
+            self.assertEqual(sim["start_date"], "2023-01-01")
+            self.assertEqual(sim["end_date"], "2026-11-17")
+            self.assertEqual(len(sim["pm25"]), 77)
+            self.assertGreaterEqual(len(sim["amphoes"]), 77)
+            self.assertGreater(len(sim["fires"]), 0)
+            february_1 = sim["fires"][str((date(2026, 2, 1) - date(2023, 1, 1)).days)]
+            self.assertEqual(february_1[:8], [0, 2, 0, 0, 0, 1, 1, 0])
 
             write_farm_fire_pm25_page(db_path, json_path, out_html)
             html_text = out_html.read_text(encoding="utf-8")
             self.assertIn("./farm-fire-pm25.html", html_text)
+            self.assertIn("smokeCanvas", html_text)
+            self.assertIn("staircase-card", html_text)
+            self.assertIn("burn-type-panel", html_text)
+            self.assertIn('id="historyThai" type="checkbox" aria-controls=', html_text)
+            self.assertIn('id="historyNeighbors" type="checkbox" aria-controls=', html_text)
+            self.assertIn('id="historyPointsCanvas" aria-hidden="true" hidden', html_text)
+            self.assertIn("th_points_exact.bin.gz", html_text)
+            self.assertIn("gms_points_exact.bin.gz", html_text)
+            self.assertNotIn("__HOTSPOT_POINT_BASE_URL__", html_text)
+            self.assertIn("2026-03-20", html_text)
             self.assertNotIn("__FARM_FIRE_DATA__", html_text)
 
             node = shutil.which("node")
@@ -190,10 +221,23 @@ class FarmFirePm25PageTests(unittest.TestCase):
             _make_77_prov_db(db_path)
             _make_synthetic_analysis(json_path)
 
-            index_path = build_web_app(out_dir=out_dir, database=db_path, analysis_json=json_path)
-            self.assertTrue((out_dir / "farm-fire-pm25.html").is_file())
+            index_path = build_web_app(
+                hf_repo="example/atlas-data", out_dir=out_dir, database=db_path, analysis_json=json_path,
+            )
+            farm_page = (out_dir / "farm-fire-pm25.html").read_text(encoding="utf-8")
+            self.assertIn("https://huggingface.co/datasets/example/atlas-data/resolve/main/summary/", farm_page)
             self.assertIn("./farm-fire-pm25.html", index_path.read_text(encoding="utf-8"))
             self.assertIn("./farm-fire-pm25.html", (out_dir / "area-insights.html").read_text(encoding="utf-8"))
+            guide = (out_dir / "guide.html").read_text(encoding="utf-8")
+            self.assertIn("<h1>คู่มือใช้งาน</h1>", guide)
+            self.assertNotIn("__ATLAS_THEME_CSS__", guide)
+            for path in ("#overview", "#map", "#weather", "#haze", "#burnscar", "#explorer", "farm-fire-pm25.html"):
+                self.assertIn(f'href="./{path}"', guide)
+            for page in (index_path, out_dir / "area-insights.html", out_dir / "fire-pm-map.html", out_dir / "farm-fire-pm25.html"):
+                page_html = page.read_text(encoding="utf-8")
+                self.assertIn('href="./guide.html"', page_html)
+                self.assertNotIn('href="./area-insights.html"', page_html)
+                self.assertNotIn('href="./fire-pm-map.html"', page_html)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,42 @@
   "status_note": "Each approval is scoped to its exact resource. Open-licence rows are approved by config/publication_policy.json with recorded attribution and licence caveats; unknown, unspecified or manually restricted licences stay pending.",
   "resources": [
     {
+      "resource_key": "hii_monthly_flood_recurrence_tambon",
+      "source_id": "hii",
+      "dataset_id": "e007d93b-5a9b-4d6f-9090-5cdd26922aa7",
+      "resource_id": "50e6987b-c01f-4fd5-99e2-2bccf9f18268",
+      "name": "ข้อมูลพื้นที่เสี่ยงอุทกภัยรายเดือนระดับตำบลและจำนวนครั้งในรอบ 17 ปี",
+      "resource_url": "https://data.hii.or.th/dataset/e007d93b-5a9b-4d6f-9090-5cdd26922aa7/resource/50e6987b-c01f-4fd5-99e2-2bccf9f18268/download/monthly-flood-risk-area.csv",
+      "reviewed_at": "2026-11-23",
+      "license_status": "approved_public",
+      "review_outcome": "owner_authorized_for_atlas",
+      "project_publication_approved": true,
+      "commercial_use_confirmed": false,
+      "derivation_allowed": true,
+      "attribution_text": "สถาบันสารสนเทศทรัพยากรน้ำ (องค์การมหาชน) — ข้อมูลพื้นที่เสี่ยงอุทกภัยรายเดือนระดับตำบล",
+      "publication_authorization": {
+        "basis": "project_owner_instruction",
+        "document": "AGENTS.md",
+        "section": 3,
+        "decided_at": "2026-11-23",
+        "source_license_verified": false,
+        "scope": "Public data tables, derived summaries and display in Thailand Fire Atlas for this exact resource."
+      },
+      "rights_facts": [
+        "The project owner confirmed that permission for this specific dataset had been obtained and affirmed full rights for its use in the project.",
+        "Project authorization is recorded separately from a general source licence. The forecast horizon remains unverified."
+      ],
+      "unresolved": [],
+      "next_action": "Use in Thailand Fire Atlas with the recorded HII attribution and describe the 17-year count as historical recurrence.",
+      "evidence": [
+        {
+          "kind": "owner_attestation",
+          "checked_at": "2026-11-23",
+          "finding": "Project owner confirmed permission for the HII resource discussed in the Thailand Fire Atlas review."
+        }
+      ]
+    },
+    {
       "resource_key": "doae_production_subdistrict_2023",
       "source_id": "doae",
       "resource_id": "f9ab6055-6364-4f78-812e-15989e300979",

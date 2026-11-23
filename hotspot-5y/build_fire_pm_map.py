@@ -5,20 +5,29 @@ from html import escape
 from pathlib import Path
 
 from archive_db import connect_archive
-from map_template import ATLAS_CHROME_CSS, ATLAS_FONTS, ATLAS_NAV_ITEMS, ATLAS_THEME_CSS, ATLAS_THEME_SCRIPT
+from map_template import ATLAS_BOUNDARIES_JS, ATLAS_CHROME_CSS, ATLAS_FONTS, ATLAS_NAV_ITEMS, ATLAS_THEME_CSS, ATLAS_THEME_SCRIPT
 from ui_pages import ATLAS_NAV_CSS
 
 
 def build_fire_pm_data(database: Path) -> dict:
+    aq_parquet = Path(__file__).resolve().parent / "data" / "hf_export" / "parquet" / "air_quality_daily_77prov.parquet"
     with connect_archive(database, read_only=True) as con:
         con.execute("LOAD spatial")
+        tables = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
+        if "air_quality_daily_77prov" in tables:
+            aq_source = "air_quality_daily_77prov"
+        elif aq_parquet.is_file():
+            pq_sql = "'" + aq_parquet.as_posix().replace("'", "''") + "'"
+            aq_source = f"(SELECT prov_code, CAST(date AS DATE) AS date, pm25_mean FROM read_parquet({pq_sql}))"
+        else:
+            raise ValueError("Expected air_quality_daily_77prov table or air_quality_daily_77prov.parquet")
         provinces = con.execute("""
             SELECT prov_code, prov_name_th,
-                   ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.012)),
+                   ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.004)),
                    ST_X(ST_PointOnSurface(geom)), ST_Y(ST_PointOnSurface(geom))
             FROM dim_province ORDER BY prov_code
         """).fetchall()
-        rows = con.execute("""
+        rows = con.execute(f"""
             WITH viirs AS (
                 SELECT prov_code, acq_date_th, lu_name, lu_hp_name
                 FROM hotspots WHERE satellite = 'N' AND instrument = 'VIIRS'
@@ -35,7 +44,7 @@ def build_fire_pm_data(database: Path) -> dict:
             )
             SELECT aq.prov_code, aq.date, round(aq.pm25_mean, 2),
                    coalesce(farm, 0), coalesce(rice, 0), coalesce(alro, 0), coalesce(forest, 0)
-            FROM air_quality_daily_77prov aq
+            FROM {aq_source} aq
             JOIN dim_province USING (prov_code)
             LEFT JOIN fire USING (prov_code, date)
             WHERE aq.date BETWEEN (SELECT min(acq_date_th) FROM viirs) AND (SELECT last_date FROM last_month)
@@ -67,4 +76,5 @@ def write_fire_pm_map(database: Path, output: Path) -> None:
                       .replace("<!--__THEME__-->", ATLAS_THEME_SCRIPT)
                       .replace("/*__CSS__*/", "\n".join((ATLAS_THEME_CSS, ATLAS_CHROME_CSS, ATLAS_NAV_CSS)))
                       .replace("<!--__NAV__-->", nav)
+                      .replace("/*__ATLAS_BOUNDARIES__*/", ATLAS_BOUNDARIES_JS)
                       .replace("__FIRE_PM_DATA__", payload.replace("<", "\\u003c")), encoding="utf-8")

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="th" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="วิธีดูจุดความร้อน รอยเผา สภาพอากาศ และฝุ่นบน Thailand Fire Atlas">
+  <title>คู่มือใช้งาน | Thailand Fire Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+  --atlas-font: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", Tahoma, sans-serif;
+  --bg: #0b0e14;
+  --bg-mesh: radial-gradient(ellipse 75% 40% at 50% -10%, rgba(229, 107, 55, 0.07), transparent 60%), #0b0e14;
+  --topbar-bg: #0f131b;
+  --hero-bg: linear-gradient(180deg, #141923, #10141d);
+  --panel: rgba(15, 19, 27, 0.96);
+  --panel-solid: #0f131b;
+  --card: #151a24;
+  --card-elev: #121720;
+  --border: rgba(255, 255, 255, 0.085);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #eceff4;
+  --muted: #8b95a7;
+  --accent: #df6a37;
+  --accent-soft: rgba(223, 106, 55, 0.13);
+  --secondary: #689cb8;
+  --agri: #d48942;
+  --forest: #55947a;
+  --flood: #689cb8;
+  --danger: #cf5648;
+  --null-fill: #273040;
+  --map-land-stroke: rgba(148, 163, 184, 0.32);
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.24);
+}
+html[data-theme="light"] {
+  --bg: #f5f5f2;
+  --bg-mesh: #f5f5f2;
+  --topbar-bg: #ffffff;
+  --hero-bg: #ffffff;
+  --panel: rgba(255, 255, 255, 0.97);
+  --panel-solid: #ffffff;
+  --card: #f8f8f6;
+  --card-elev: #ffffff;
+  --border: rgba(15, 23, 42, 0.09);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --text: #161b22;
+  --muted: #5c6675;
+  --accent: #c55325;
+  --accent-soft: rgba(197, 83, 37, 0.09);
+  --secondary: #3c748f;
+  --agri: #b8732a;
+  --forest: #3b7c62;
+  --flood: #3c748f;
+  --danger: #b83f35;
+  --null-fill: #d6dbe3;
+  --map-land-stroke: rgba(51, 65, 85, 0.34);
+  --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 1rem; }
+    body { margin: 0; color: var(--text); background: var(--bg); font: 16px/1.7 var(--atlas-font); }
+    a { color: inherit; text-underline-offset: .22em; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    .guide-header { border-bottom: 1px solid var(--border); background: var(--topbar-bg); }
+    .guide-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .guide-top a { font-weight: 700; text-decoration: none; }
+    .guide-top button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 8px; padding: 7px 12px; font: inherit; font-size: .9rem; cursor: pointer; }
+    .guide-wrap { width: min(100% - 32px, 990px); margin: 0 auto; }
+    .guide-top { min-height: 60px; }
+    main { padding: clamp(26px, 6vw, 62px) 0 48px; }
+    h1, h2, h3 { line-height: 1.35; margin: 0; }
+    h1 { font-size: clamp(2rem, 6vw, 3rem); }
+    h2 { font-size: clamp(1.25rem, 4vw, 1.6rem); }
+    h3 { font-size: 1.1rem; }
+    p { margin: .6rem 0 0; }
+    .guide-intro { color: var(--muted); max-width: 54ch; }
+    .guide-section { margin-top: 32px; }
+    .guide-steps { margin: 12px 0 0; padding-inline-start: 1.45rem; }
+    .guide-steps li + li { margin-top: .5rem; }
+    .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; margin-top: 12px; }
+    .guide-card { display: flex; flex-direction: column; align-items: start; border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--card); }
+    .guide-card a { margin-top: auto; padding-top: .6rem; font-weight: 650; }
+    .guide-card p, .guide-methods p { color: var(--muted); }
+    details { border-bottom: 1px solid var(--border); padding: 12px 0; }
+    summary { font-weight: 650; cursor: pointer; }
+    .guide-footer { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <header class="guide-header">
+    <div class="guide-wrap guide-top">
+      <a href="./#overview">Thailand Fire Atlas</a>
+      <button id="themeToggle" type="button">โหมดสว่าง</button>
+    </div>
+  </header>
+  <script>
+function setAtlasTheme(theme, remember = false) {
+  document.documentElement.dataset.theme = theme;
+  const toggle = document.getElementById("themeToggle");
+  if (toggle) toggle.textContent = theme === "dark" ? "โหมดสว่าง" : "โหมดมืด";
+  if (remember) {
+    try { localStorage.setItem("atlas-theme", theme); } catch (_) {}
+  }
+}
+try {
+  const saved = localStorage.getItem("atlas-theme");
+  if (saved === "light" || saved === "dark") setAtlasTheme(saved);
+} catch (_) {}
+</script>
+
+  <main class="guide-wrap">
+    <h1>คู่มือใช้งาน</h1>
+    <p class="guide-intro">เลือกหน้าตามเรื่องที่อยากรู้ แล้วดูให้ตรงทั้งพื้นที่ ช่วงเวลา และชนิดข้อมูล</p>
+
+    <section class="guide-section" aria-labelledby="start-title">
+      <h2 id="start-title">ลองดูรอยเผาในจังหวัดของคุณ</h2>
+      <ol class="guide-steps">
+        <li>เปิด <a href="./#burnscar">รอยเผาและเทียบจังหวัด</a> แล้วเลือกจังหวัดเหนือแผนที่</li>
+        <li>ลากแถบ <strong>เลื่อนดูรอยเผารายเดือน</strong> ไปที่เดือนที่สนใจ เลือกพื้นที่เกษตร ป่า หรือทั้งคู่</li>
+        <li>ดูสถานะใต้แถบว่าเดือนนั้นมีภาพรอยเผาหรือตัวเลขพื้นที่ ถ้าจะเทียบสองเดือน ให้กด <strong>เปิดแผนที่เทียบสองช่วง</strong> ใช้แถบเลื่อนเปลี่ยนฝั่งซ้าย แล้วเลือกเดือนฝั่งขวาแยกกัน</li>
+      </ol>
+      <p>ใช้เมนู <strong>พื้นแผนที่</strong> มุมบนซ้ายของแผนที่ เลือกพื้นเรียบเพื่อดูสีรอยเผา หรือเลือกถนนและชุมชนเพื่อดูจุดอ้างอิงใกล้เคียง</p>
+      <p>กด <strong>+</strong> เพื่อขยายจากเส้นเขตจังหวัดไปถึงอำเภอและตำบล เส้นเขตช่วยบอกตำแหน่ง ส่วนระดับของตัวเลขให้ดูที่หัวข้อบนแผนที่ เช่น ค่าฝุ่นรายจังหวัด</p>
+      <p>เมื่อซูมถึงตำบล เว็บจะโหลดแนวเขตละเอียดจากกรมป้องกันและบรรเทาสาธารณภัย ป้าย “แบบย่อ” จะขึ้นระหว่างโหลด หรือเมื่อเปิดข้อมูลละเอียดไม่ได้</p>
+    </section>
+
+    <section class="guide-section" aria-labelledby="pages-title">
+      <h2 id="pages-title">อยากดูเรื่องไหน</h2>
+      <div class="guide-grid">
+        <article class="guide-card">
+          <h3>ทั้งประเทศพบจุดช่วงไหนมาก</h3>
+          <p>ดูกราฟรายเดือนและเทียบภูมิภาค เลือกจังหวัดจากรายการเพื่อเปิดแผนที่ของพื้นที่นั้น</p>
+          <a href="./#overview">ไปที่ภาพรวม</a>
+        </article>
+        <article class="guide-card">
+          <h3>อำเภอหรือตำบลไหนพบจุดความร้อน</h3>
+          <p>ค้นหาพื้นที่ เลือกปีและเดือน แล้วเปิด “ตำแหน่งจุดความร้อนในไทย” เพื่อดูจุดที่ดาวเทียมบันทึกไว้</p>
+          <a href="./#map">ไปที่แผนที่เจาะลึก</a>
+        </article>
+        <article class="guide-card">
+          <h3>รอยเผาอยู่ตรงไหนและมีกี่ไร่</h3>
+          <p>เลือกเดือนเพื่อดูแผนที่และยอดพื้นที่ เลือกได้ถึง 4 จังหวัดในช่องเทียบ สำหรับยอดรายเดือนให้ดูที่ระดับจังหวัด</p>
+          <a href="./#burnscar">ไปที่รอยเผาและเทียบจังหวัด</a>
+        </article>
+        <article class="guide-card">
+          <h3>ช่วงที่พบจุดมีฝน ลม หรืออากาศแห้งไหม</h3>
+          <p>เลือกจังหวัดและข้อมูลอากาศที่อยากเทียบ ถ้าดูพยากรณ์ ให้เช็กชื่อจังหวัดและวันที่ที่แสดงด้วย</p>
+          <a href="./#weather">ไปที่อากาศกับจุดความร้อน</a>
+        </article>
+        <article class="guide-card">
+          <h3>ฝุ่นล่าสุดเท่าไร จังหวัดไหนค่าสูง</h3>
+          <p>ดูวันเวลาของค่าฝุ่นล่าสุดแยกจากสถิติฝุ่นเฉลี่ย 24 ชั่วโมง หรือเลื่อนลงไปดูจุดความร้อนในประเทศเพื่อนบ้าน</p>
+          <a href="./#haze">ไปที่ฝุ่นและประเทศเพื่อนบ้าน</a>
+        </article>
+        <article class="guide-card">
+          <h3>ลมวันนั้นพัดไปทางไหน</h3>
+          <p>เส้นลมสีฟ้าเริ่มไหลเมื่อเปิดแผนที่ ปลายสว่างเคลื่อนไปในทิศที่ลมพัดของวันที่เลือก กดพักเส้นลมได้ข้างช่องทิศลมใกล้พื้นดิน ส่วนแนวควันเป็นพื้นที่ที่คาดจากข้อมูลลม</p>
+          <a href="./farm-fire-pm25.html">ไปที่ไฟเกษตร ลม และฝุ่น</a>
+        </article>
+        <article class="guide-card">
+          <h3>เอาตัวเลขไปทำตารางต่อ</h3>
+          <p>เลือกชุดข้อมูลและช่วงเวลา กดค้นหา แล้วดาวน์โหลด CSV ซึ่งเป็นไฟล์ตารางที่เปิดใน Excel ได้</p>
+          <a href="./#explorer">ไปที่ค้นและดาวน์โหลดข้อมูล</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="guide-section guide-methods" aria-labelledby="reading-title">
+      <h2 id="reading-title">อ่านตัวเลขอย่างไร</h2>
+      <details>
+        <summary>จุดความร้อนกับรอยเผาต่างกันอย่างไร</summary>
+        <p>จุดความร้อนนับครั้งที่ดาวเทียมพบความร้อนผิดปกติ แหล่งเดิมจึงอาจถูกนับหลายครั้ง รอยเผาวัดขนาดพื้นที่ที่ดาวเทียมเห็นร่องรอยหลังการเผาเป็นไร่ เดือนของรอยเผาบอกช่วงที่ตรวจพบ วันจุดไฟจริงระบุจากภาพไม่ได้</p>
+      </details>
+      <details>
+        <summary>ทำไมบางพื้นที่ขึ้น “ไม่มีข้อมูล”</summary>
+        <p>ต้นทางอาจไม่มีตัวเลขสำหรับพื้นที่หรือช่วงเวลาที่เลือก ตัวอย่างเช่น ตารางมีชื่อ 77 จังหวัด แต่โครงการตามรอยเผาของสถาบันสารสนเทศทรัพยากรน้ำ (สสน.) ครอบคลุม 62 จังหวัด ค่า 0 จะใช้เมื่อต้นทางมีข้อมูลและค่าที่บันทึกเป็นศูนย์</p>
+      </details>
+      <details>
+        <summary>พบจุดความร้อนพร้อมฝุ่นสูง บอกอะไรได้</summary>
+        <p>ใช้เลือกวันและพื้นที่ที่จะตรวจต่อ ค่า PM2.5 คือความเข้มข้นของฝุ่นขนาดเล็กในอากาศ หน่วย µg/m³ คือไมโครกรัมของฝุ่นต่ออากาศหนึ่งลูกบาศก์เมตร ให้ดูที่มาของค่าฝุ่นและทิศลมร่วมกัน การเห็นสองค่าเพิ่มพร้อมกันยังระบุแหล่งฝุ่นหรือขนาดผลจากการเผาแต่ละจุดไม่ได้</p>
+      </details>
+      <details>
+        <summary>คะแนนอากาศและค่าความสัมพันธ์อ่านอย่างไร</summary>
+        <p>คะแนนอากาศ 0–100 บอกว่าสภาพอากาศเอื้อต่อไฟเพียงใด ส่วนค่าความสัมพันธ์วัดว่าตัวเลขสองชุดเปลี่ยนไปด้วยกันเพียงใด ค่าบวกหมายถึงมักเพิ่มพร้อมกัน ค่าลบหมายถึงมักเปลี่ยนคนละทาง และค่าใกล้ 0 หมายถึงเห็นรูปแบบเส้นตรงน้อย</p>
+      </details>
+      <details>
+        <summary>เทียบปีอย่างไรให้ใช้ช่วงเดียวกัน</summary>
+        <p>สำหรับจุดความร้อน เลือก Suomi NPP ดวงเดียวและเปิด “ใช้ช่วง ม.ค.–ต.ค. เหมือนกันทุกปี” สำหรับรอยเผารายฤดู ให้ดูป้ายบนแผนที่ ฤดู 2569 ครอบคลุม ธ.ค. 2568 ถึง เม.ย. 2569</p>
+      </details>
+    </section>
+
+    <p class="guide-footer"><a href="./#overview">กลับหน้าภาพรวม</a></p>
+  </main>
+</body>
+</html>

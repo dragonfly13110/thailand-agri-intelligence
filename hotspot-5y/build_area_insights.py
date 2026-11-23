@@ -192,11 +192,10 @@ def write_area_insights(
 <header class="topbar">
   <a class="brand" href="./#overview"><span class="brand-dot"></span>Thailand Fire Atlas</a>
   <nav class="nav-tabs" aria-label="เมนูหลัก">
+    <a class="nav-tab" href="./guide.html">คู่มือใช้งาน</a>
     {nav}
-    <a class="nav-tab active" aria-current="page" href="./area-insights.html">เจาะรายพื้นที่</a>
-    <a class="nav-tab" href="./fire-pm-map.html">แผนที่ไฟ × ฝุ่น</a>
-    <a class="nav-tab" href="./farm-fire-pm25.html">ไฟเกษตร × ลม × ฝุ่น</a>
-    <a class="nav-tab" href="./#explorer">ค้นข้อมูล DuckDB</a>
+    <a class="nav-tab" href="./farm-fire-pm25.html">ไฟเกษตร ลม และฝุ่น</a>
+    <a class="nav-tab" href="./#explorer">ค้นและดาวน์โหลดข้อมูล</a>
   </nav>
   <button id="themeToggle" class="theme-toggle" type="button" title="สลับโหมดสีมืด/สว่าง">โหมดสว่าง</button>
 </header>""")

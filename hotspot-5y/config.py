@@ -10,6 +10,7 @@ RAW_DIR = SUBPROJECT_ROOT / "data" / "raw"
 GISTDA_DIR = SUBPROJECT_ROOT / "data" / "gistda"
 OUT_DIR = SUBPROJECT_ROOT / "data" / "output"
 DEFAULT_DB_PATH = SUBPROJECT_ROOT / "data" / "hotspot_5y.duckdb"
+DEFAULT_HF_REPO = "dragonfly13110/thailand-hotspot-5y"
 DEFAULT_PROVINCE_GEOJSON = REPO_ROOT / "data" / "local" / "geography" / "ddpm_province.geojson"
 
 SUPPORTED_SENSORS = ("viirs-snpp", "viirs-jpss1", "modis")

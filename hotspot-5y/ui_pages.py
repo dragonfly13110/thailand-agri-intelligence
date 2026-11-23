@@ -63,11 +63,6 @@ MULTI_PAGE_CSS = r"""
 .hero-row {
   display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
 }
-.hero-kicker {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 6px;
-}
 .hero-title { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.28; }
 .hero-desc { margin: 7px 0 0; font-size: 13.5px; color: var(--muted); max-width: 1060px; line-height: 1.6; }
 .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -220,6 +215,7 @@ html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
 }
 .cmp-metric { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed rgba(148,163,184,0.16); }
 .cmp-metric span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.cmp-month { padding:8px; border-radius:6px; background:var(--accent-soft); font-size:12px; }
 
 .data-table-wrap { max-height: 490px; overflow: auto; border: 1px solid var(--border); border-radius: 13px; max-width: 100%; min-width: 0; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -280,6 +276,30 @@ html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
 }
 .bs-ctrl { flex: 1 1 190px; min-width: 0; }
 .bs-ctrl.compact { flex: 0 1 180px; }
+.bs-monthly {
+  display:grid; gap:8px; margin:0 0 12px; padding:12px 14px;
+  border:1px solid var(--border); border-radius:12px; background:var(--card);
+}
+.bs-monthly-head,.bs-monthly-actions {
+  display:flex; gap:6px 12px; align-items:center; flex-wrap:wrap;
+}
+.bs-monthly-head { justify-content:space-between; }
+.bs-monthly-head output { color:var(--accent); font-weight:700; }
+.bs-monthly-range { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; align-items:center; }
+.bs-monthly-range input { width:100%; min-width:0; margin:0; accent-color:var(--accent); }
+.bs-monthly-scale { position:relative; height:16px; margin-inline:38px; color:var(--muted); font-size:11px; }
+.bs-monthly-scale span { position:absolute; white-space:nowrap; transform:translateX(-50%); }
+.bs-monthly-scale span:first-child { transform:none; }
+.bs-monthly-scale span:last-child { transform:translateX(-100%); }
+@media (max-width: 520px) {
+  .bs-monthly-scale span:nth-last-child(2) { display:none; }
+}
+@media (max-width: 380px) {
+  .bs-monthly-scale span:not(:first-child):not(:last-child) { display:none; }
+}
+.bs-monthly-status { color:var(--muted); font-size:12px; }
+.bs-monthly-totals { font-size:13px; font-variant-numeric:tabular-nums; }
+.bs-monthly-range button:disabled { opacity:.5; cursor:default; }
 .bs-quick-bar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0;
 }
@@ -294,11 +314,19 @@ html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
 .bs-chip.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
 .bs-map-stage {
-  position: relative; width: 100%; height: 560px; border-radius: 13px;
+  position: relative; width: 100%; height: clamp(620px, 76vh, 700px); border-radius: 13px;
   overflow: hidden; border: 1px solid var(--border); background: var(--bg); user-select: none;
 }
 #bsMapCanvas { width: 100%; height: 100%; display: block; cursor: grab; }
 #bsMapCanvas:active { cursor: grabbing; }
+.bs-map-background {
+  position: absolute; top: 12px; left: 12px; z-index: 13;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px;
+  width: min(250px, calc(100% - 24px)); padding: 4px 6px 4px 10px; border-radius: 9px;
+  background: var(--panel-solid); border: 1px solid var(--border); color: var(--text); box-shadow: var(--shadow-sm);
+}
+.bs-map-background label { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.bs-map-background select { min-width: 0; min-height: 32px; padding: 4px 6px; font-size: 12px; }
 .bs-swipe-line {
   position: absolute; top: 0; bottom: 0; width: 2px; background: #ffffff;
   box-shadow: 0 0 8px rgba(0,0,0,0.75); z-index: 12; pointer-events: none; display: none;
@@ -312,7 +340,7 @@ html[data-theme="light"] .fc-risk.vhigh { background: #991b1b; color: #ffffff; }
   pointer-events: auto; touch-action: none; box-shadow: 0 4px 14px rgba(0,0,0,0.55);
 }
 .bs-swipe-tag {
-  position: absolute; top: 12px; z-index: 11; display: none; pointer-events: none;
+  position: absolute; top: 60px; z-index: 11; display: none; pointer-events: none;
   padding: 5px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700;
   background: rgba(11, 14, 20, 0.86); color: #eceff4; border: 1px solid rgba(255,255,255,0.16);
   max-width: 44%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -395,7 +423,7 @@ html[data-theme="light"] .hz-pm-crit { background: #991b1b; color: #ffffff; }
   .fc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hz-live-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hz-amp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .bs-map-stage { height: 410px; }
+  .bs-map-stage { height: 460px; }
   .bs-map-hud-bottom { max-width: calc(100% - 62px); font-size: 11px; padding: 7px 9px; }
   .hero-title { font-size: 18px; }
   .brand-sub { display: none; }
@@ -410,47 +438,44 @@ OVERVIEW_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">THAILAND FIRE, BURN SCAR &amp; CLIMATE INTELLIGENCE ATLAS</div>
-          <h1 class="hero-title">ศูนย์วิเคราะห์ไฟป่า การเผาเกษตร และสภาพอากาศประเทศไทย (2022–2026)</h1>
-          <p class="hero-desc">
-            รวมจุดความร้อน 5 ปี (GISTDA VIIRS 1.28 ล้านจุด) · ฝุ่น PM2.5 &amp; หมอกควัน 6 ประเทศอาเซียน · รอยเผา 20 ม. 3 ฤดูเทียบพื้นที่ปลูก DOAE · อากาศ ERA5 · ความชื้นดิน NASA · อ่างเก็บน้ำ RID 461 แห่ง และพื้นที่น้ำท่วมซ้ำ 17 ปี
-          </p>
+          <h1 class="hero-title">จุดความร้อนและรอยเผาในประเทศไทย</h1>
+          <p class="hero-desc">ดูว่าดาวเทียมพบจุดความร้อนที่ไหนและช่วงไหน แล้วเปิดดูรอยเผา สภาพอากาศ หรือฝุ่นของพื้นที่ที่สนใจ</p>
         </div>
         <div class="hero-actions">
           <div class="pill-toggle" id="ovSatToggle" aria-label="เลือกมาตรฐานดาวเทียม">
-            <button type="button" data-sat="N" class="active">Suomi NPP (N) มาตรฐาน 5 ปี</button>
-            <button type="button" data-sat="ALL">ทุกดาวเทียม (N+N20+N21)</button>
+            <button type="button" data-sat="N" class="active">Suomi NPP ดวงเดียว</button>
+            <button type="button" data-sat="ALL">รวมทุกดาวเทียม</button>
           </div>
           <button type="button" class="btn primary" data-goto="map">เปิดแผนที่เจาะลึก</button>
-          <button type="button" class="btn" data-goto="haze">ฝุ่น PM2.5 &amp; ข้ามแดน</button>
+          <button type="button" class="btn" data-goto="haze">ดูฝุ่น PM2.5</button>
         </div>
       </div>
       <div class="story-strip">
         <button type="button" class="story-chip" data-goto="burnscar">
           <div>
-            <span id="ovStory1Title" class="story-chip-title">รอยเผา 3 ฤดูแยกพืช (Sentinel-2 20 ม.)</span>
-            <span id="ovStory1Sub" class="story-chip-sub">เทียบการเปลี่ยนแปลงไฟป่า vs นาข้าว อ้อย ข้าวโพด</span>
+            <span id="ovStory1Title" class="story-chip-title">รอยเผาอยู่ตรงไหน</span>
+            <span id="ovStory1Sub" class="story-chip-sub">เลือกเดือนและดูพื้นที่เกษตรหรือป่า</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
         <button type="button" class="story-chip" data-goto="weather">
           <div>
-            <span id="ovStory2Title" class="story-chip-title">อากาศแห้งแล้งดันไฟพุ่งแค่ไหน?</span>
-            <span id="ovStory2Sub" class="story-chip-sub">ดูความสัมพันธ์ 59 เดือน + พยากรณ์สด 7 วัน</span>
+            <span id="ovStory2Title" class="story-chip-title">อากาศกับจุดความร้อน</span>
+            <span id="ovStory2Sub" class="story-chip-sub">เทียบข้อมูลย้อนหลังและดูพยากรณ์ 7 วัน</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
         <button type="button" class="story-chip" data-goto="haze">
           <div>
-            <span id="ovStory3Title" class="story-chip-title">ฝุ่น PM2.5 สด &amp; หมอกควันข้ามแดน 6 ประเทศ</span>
-            <span id="ovStory3Sub" class="story-chip-sub">เช็คฝุ่นรายจังหวัด/อำเภอ + เทียบไทย-เมียนมา-ลาว-กัมพูชา</span>
+            <span id="ovStory3Title" class="story-chip-title">ฝุ่นในจังหวัดเป็นอย่างไร</span>
+            <span id="ovStory3Sub" class="story-chip-sub">ดูค่าฝุ่นรายชั่วโมงและย้อนหลัง</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
         <button type="button" class="story-chip" id="ovStoryTmsBtn">
           <div>
-            <span class="story-chip-title">ส่องภาพแปลงเผาจริงความละเอียด 20 ม.</span>
-            <span class="story-chip-sub">เปิดแผนที่รอยเผา + ลากเส้นเทียบก่อน-หลัง 2 ปี</span>
+            <span class="story-chip-title">ดูรอยเผาในแผนที่เจาะลึก</span>
+            <span class="story-chip-sub">เปิดแผนที่เพื่อดูข้อมูลรายพื้นที่</span>
           </div>
           <span class="story-chip-arrow">→</span>
         </button>
@@ -459,29 +484,29 @@ OVERVIEW_PAGE_HTML = r"""
 
     <div class="kpi-hero-grid" id="ovKpiGrid">
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">จุดไฟ 5 ปี (ม.ค.–ต.ค.)</span><span id="ovKpi1Delta" class="delta-pill neutral">-</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">จุดความร้อน 5 ปี (ม.ค.–ต.ค.)</span><span id="ovKpi1Delta" class="delta-pill neutral">-</span></div>
         <div id="ovKpi1Val" class="kpi-hero-val">-</div>
         <div id="ovMiniSpark" class="mini-spark" aria-label="แนวโน้ม 5 ปี"></div>
         <div id="ovKpi1Sub" class="kpi-hero-sub">-</div>
       </div>
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">เกษตร+ส.ป.ก. vs ป่าไม้</span><span id="ovKpi2Delta" class="delta-pill neutral">5 ปี</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">สัดส่วนจุดในพื้นที่เกษตรและป่า</span><span id="ovKpi2Delta" class="delta-pill neutral">5 ปี</span></div>
         <div id="ovKpi2Val" class="kpi-hero-val">-</div>
         <div class="split-bar"><div id="ovAgriBar" style="background:#d48942;width:50%"></div><div id="ovForBar" style="background:#55947a;width:50%"></div></div>
         <div id="ovKpi2Sub" class="kpi-hero-sub">-</div>
       </div>
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">รอยเผา สสน. (3 ฤดู · 62 จว.)</span><span id="ovKpi3Delta" class="delta-pill down">-</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">พื้นที่รอยเผา 3 ฤดู (62 จังหวัด)</span><span id="ovKpi3Delta" class="delta-pill down">-</span></div>
         <div id="ovKpi3Val" class="kpi-hero-val">-</div>
         <div id="ovKpi3Sub" class="kpi-hero-sub">-</div>
       </div>
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">อากาศเอื้อไฟ 2026 (ERA5)</span><span id="ovKpi4Delta" class="delta-pill neutral">77 จว.</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">คะแนนอากาศเอื้อต่อไฟ ปี 2569</span><span id="ovKpi4Delta" class="delta-pill neutral">77 จว.</span></div>
         <div id="ovKpi4Val" class="kpi-hero-val">-</div>
         <div id="ovKpi4Sub" class="kpi-hero-sub">-</div>
       </div>
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">พื้นที่เสี่ยงซ้ำซ้อน (ท่วม+เผา)</span><span class="delta-pill neutral">HII 17 ปี</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">พื้นที่ที่มีข้อมูลน้ำท่วมซ้ำ 17 ปี</span></div>
         <div id="ovKpi5Val" class="kpi-hero-val">-</div>
         <div id="ovKpi5Sub" class="kpi-hero-sub">-</div>
       </div>
@@ -490,8 +515,8 @@ OVERVIEW_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">ไทม์ไลน์ 59 เดือน: จุดความร้อนทั้งประเทศ ซ้อนทับสภาพอากาศจริง (2022–2026)</h2>
-          <div class="panel-sub" id="ovTimelineSub">แถบแรเงา = ฤดูเผา (ม.ค.–เม.ย.) · แท่งส้มอมน้ำตาล = เกษตร+ส.ป.ก. · แท่งเขียวหม่น = ป่าไม้ · เส้นฟ้าเทา = สภาพอากาศ ERA5 เฉลี่ย 77 จังหวัด</div>
+          <h2 class="panel-title">จุดความร้อนและสภาพอากาศรายเดือน</h2>
+          <div class="panel-sub" id="ovTimelineSub">แท่งสีแสดงจำนวนจุดความร้อน เส้นแสดงสภาพอากาศเฉลี่ย แถบเงาคือช่วง ม.ค.–เม.ย.</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <span id="ovCorrPill" class="badge">r = -</span>
@@ -514,7 +539,7 @@ OVERVIEW_PAGE_HTML = r"""
         <div class="panel-head">
           <div>
             <h3 class="panel-title">เปรียบเทียบรายภูมิภาค</h3>
-            <div class="panel-sub">สัดส่วนจุดความร้อนและเกษตร vs ป่า (คลิกเพื่อดูบนแผนที่)</div>
+            <div class="panel-sub">เลือกภูมิภาคเพื่อดูจุดความร้อนบนแผนที่</div>
           </div>
         </div>
         <div id="ovRegions" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -523,8 +548,8 @@ OVERVIEW_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">สัดส่วนชนิดพืช &amp; เวลาเกิดไฟ</h3>
-            <div class="panel-sub">รอยเผา สสน. ฤดู 2569 แยกพืช + ช่วงเวลากลางวัน/กลางคืน</div>
+            <h3 class="panel-title">พื้นที่รอยเผาตามพืชและช่วงเวลาที่พบจุดความร้อน</h3>
+            <div class="panel-sub">พื้นที่รอยเผาแสดงเป็นไร่ จุดความร้อนแยกตามเวลาที่ดาวเทียมตรวจพบ</div>
           </div>
         </div>
         <div class="med-chart-box">
@@ -536,8 +561,8 @@ OVERVIEW_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">10 อันดับพื้นที่เฝ้าระวัง</h3>
-            <div class="panel-sub">คลิกชื่อจังหวัดเพื่อเจาะดูรายอำเภอ/ตำบลทันที</div>
+            <h3 class="panel-title">10 จังหวัดที่พบจุดความร้อนมาก</h3>
+            <div class="panel-sub">เลือกจังหวัดเพื่อดูอำเภอและตำบลบนแผนที่</div>
           </div>
           <div class="pill-toggle" id="ovTopMode">
             <button type="button" data-mode="prov" class="active">จังหวัด</button>
@@ -557,28 +582,25 @@ WEATHER_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">CLIMATE &amp; FIRE-WEATHER LAB · OPEN-METEO ERA5 (CC-BY-4.0)</div>
-          <h1 class="hero-title">วิเคราะห์สภาพอากาศ × ไฟป่าและการเผาเกษตร (2016–2026 + พยากรณ์สด 7 วัน)</h1>
-          <p class="hero-desc">
-            วิเคราะห์ความสัมพันธ์ระหว่าง <strong>อุณหภูมิสูงสุด · ความชื้นสัมพัทธ์ต่ำสุด · ลมแรง · วันไม่ตกฝน · การระเหยน้ำ (ET0)</strong> กับจุดความร้อนรายเดือนตลอด 59 เดือน (2022–พ.ย. 2026) ครบ 77 จังหวัด พร้อมดึงพยากรณ์อากาศสด 7 วันล่วงหน้า
-          </p>
+          <h1 class="hero-title">สภาพอากาศกับจุดความร้อน</h1>
+          <p class="hero-desc">เทียบอุณหภูมิ ฝน ความชื้น และลม กับจำนวนจุดความร้อนที่ผ่านมา หรือเลือกจังหวัดเพื่อดูพยากรณ์ 7 วัน</p>
         </div>
         <div class="hero-actions">
-          <button type="button" class="btn primary" id="wxRefreshForecastBtn">อัปเดตพยากรณ์สด 7 วัน</button>
-          <button type="button" class="btn" id="wxJumpMapBtn">ดูดัชนี FWI บนแผนที่</button>
+          <button type="button" class="btn primary" id="wxRefreshForecastBtn">โหลดพยากรณ์ล่าสุด</button>
+          <button type="button" class="btn" id="wxJumpMapBtn">ดูคะแนนอากาศบนแผนที่</button>
         </div>
       </div>
     </div>
 
     <div class="ctrl-strip">
       <div class="ctrl-item">
-        <label class="field-label" for="wxProvSelect">ขอบเขตพื้นที่วิเคราะห์</label>
+        <label class="field-label" for="wxProvSelect">เลือกพื้นที่</label>
         <select id="wxProvSelect">
           <option value="all" selected>ทั้งประเทศ (เฉลี่ย 77 จังหวัด)</option>
         </select>
       </div>
       <div class="ctrl-item">
-        <label class="field-label" for="wxMetricSelect">ตัวแปรสภาพอากาศหลัก</label>
+        <label class="field-label" for="wxMetricSelect">ข้อมูลอากาศที่ต้องการดู</label>
         <select id="wxMetricSelect">
           <option value="8" selected>ดัชนีอากาศเอื้อไฟ FWI (0–100)</option>
           <option value="0">อุณหภูมิสูงสุดเฉลี่ย (°C)</option>
@@ -592,12 +614,12 @@ WEATHER_PAGE_HTML = r"""
       <div class="ctrl-item">
         <label class="field-label" for="wxSatSelect">ชุดดาวเทียมจุดความร้อน</label>
         <select id="wxSatSelect">
-          <option value="N" selected>Suomi NPP (N) — มาตรฐานเทียบ 5 ปี</option>
-          <option value="ALL">ทุกดาวเทียม (N+N20+N21)</option>
+          <option value="N" selected>Suomi NPP ดวงเดียว</option>
+          <option value="ALL">รวมทุกดาวเทียม</option>
         </select>
       </div>
       <div class="ctrl-item">
-        <label class="field-label" for="wxMatrixMode">ตารางปฏิทิน 5 ปี × 12 เดือน</label>
+        <label class="field-label" for="wxMatrixMode">ข้อมูลในตารางเทียบรายเดือน</label>
         <select id="wxMatrixMode">
           <option value="fwi" selected>ดัชนีอากาศเอื้อไฟ FWI (0–100)</option>
           <option value="fire">จำนวนจุดความร้อน (จุด)</option>
@@ -611,7 +633,7 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">พยากรณ์อากาศ 7 วันล่วงหน้า &amp; ความเสี่ยงไฟจากอากาศ (Open-Meteo IFS vs กรมอุตุฯ TMD WRF 3 กม.)</h2>
+          <h2 class="panel-title">พยากรณ์อากาศ 7 วันและคะแนนอากาศเอื้อต่อไฟ</h2>
           <div id="wxLiveSub" class="panel-sub">กำลังโหลดพยากรณ์อากาศ...</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -628,8 +650,8 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">สัญญาณเตือนล่วงหน้าก่อนฤดูเผา: "ดินแห้งต่อเนื่อง X วัน" (NASA POWER Daily 137,060 แถว)</h2>
-          <div class="panel-sub">ตรวจจับจำนวนวันที่ความชื้นผิวดิน (GWETTOP &lt; 0.38) แห้งติดต่อกันยาวนานที่สุดรายจังหวัด เพื่อใช้เตือนภัยล่วงหน้าก่อนเกิดวิกฤตไฟลาม</div>
+          <h2 class="panel-title">ดินแห้งติดต่อกันกี่วัน</h2>
+          <div class="panel-sub">แสดงช่วงดินแห้งติดต่อกันที่ยาวที่สุดของแต่ละจังหวัด ตามเกณฑ์ความชื้นผิวดินของหน้านี้</div>
         </div>
         <button type="button" class="btn" id="wxJumpDryMapBtn">ดูแผนที่ดินแห้งต่อเนื่อง</button>
       </div>
@@ -639,7 +661,7 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">ความสัมพันธ์รายเดือน (59 เดือน · 2022–2026): จุดความร้อน vs สภาพอากาศ</h2>
+          <h2 class="panel-title">อากาศกับจุดความร้อนเปลี่ยนไปด้วยกันแค่ไหน</h2>
           <div id="wxInsightText" class="panel-sub">-</div>
         </div>
         <span id="wxCorrBadge" class="badge">r = -</span>
@@ -653,8 +675,8 @@ WEATHER_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">ปฏิทินความร้อน × ไฟ (5 ปี × 12 เดือน)</h3>
-            <div class="panel-sub">เห็นช่วงพีคฤดูเผา ม.ค.–เม.ย. เทียบข้ามปี 2022–2026 ในตารางเดียว</div>
+            <h3 class="panel-title">เทียบเดือนเดียวกันในแต่ละปี</h3>
+            <div class="panel-sub">สีในตารางช่วยให้เห็นเดือนที่ค่าสูงหรือต่ำในแต่ละปี</div>
           </div>
           <div class="matrix-legend">
             <span><i class="matrix-legend-swatch" style="background:#fef3c7;border:1px solid rgba(148,163,184,0.35)"></i>ต่ำ (อ่อน)</span>
@@ -669,7 +691,7 @@ WEATHER_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">แนวโน้มภูมิอากาศ 10 ปี (2016–2025 + 2026)</h3>
+            <h3 class="panel-title">อุณหภูมิและฝนเทียบค่าเฉลี่ย 10 ปี</h3>
             <div id="wxBaselineSub" class="panel-sub">เทียบอุณหภูมิสูงสุดเฉลี่ย (เส้นส้มอิฐ) และฝนรวม (แท่งฟ้าเทา) กับค่าปกติ 10 ปี</div>
           </div>
         </div>
@@ -682,8 +704,8 @@ WEATHER_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h3 class="panel-title">กราฟกระจาย 77 จังหวัด: ปัจจัยอากาศ × จุดความร้อน / รอยเผาไหม้</h3>
-          <div id="wxScatNote" class="panel-sub">คลิกจุดจังหวัดใดก็ได้เพื่อสลับดูข้อมูลสภาพอากาศของจังหวัดนั้น</div>
+          <h3 class="panel-title">เปรียบเทียบสภาพอากาศกับจุดความร้อนหรือรอยเผารายจังหวัด</h3>
+          <div id="wxScatNote" class="panel-sub">แต่ละจุดคือหนึ่งจังหวัด เลือกจุดเพื่อดูข้อมูลจังหวัดนั้น</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <span id="wxScatR" class="badge">r = -</span>
@@ -724,15 +746,12 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">SENTINEL-2 20M BURN SCAR ANALYTICS · สสน. ตามรอยเผา (ฤดู 2567–2569)</div>
-          <h1 class="hero-title">แผนที่รอยเผา 20 ม. · วิเคราะห์ 3 ฤดูแยกพืช &amp; เทียบจังหวัดชนจังหวัด</h1>
-          <p class="hero-desc">
-            ดูแปลงเผาไหม้จริงความละเอียด 20 เมตร (1 พิกเซล = 0.25 ไร่) ซ้อนบนภาพถ่ายดาวเทียม ครบ 3 ฤดูฝุ่น <strong>2567 · 2568 · 2569</strong> ครอบคลุม 62 จังหวัด พร้อมลากเส้นเทียบก่อน–หลัง 2 ปีและตารางจัดอันดับ 77 จังหวัด
-          </p>
+          <h1 class="hero-title">แผนที่รอยเผาและเทียบจังหวัด</h1>
+          <p class="hero-desc">รอยเผาคือบริเวณที่ดาวเทียมเห็นร่องรอยหลังการเผา เลือกช่วงเวลาเพื่อดูว่าพบรอยเผาที่ไหน และเทียบพื้นที่เป็นไร่</p>
         </div>
         <div class="hero-actions">
-          <button type="button" class="btn primary" id="bsOpenTmsBtn">เปิดในแผนที่เจาะลึก (Hotspot + อากาศ)</button>
-          <button type="button" class="btn" id="bsExportTableBtn">ส่งออกตาราง 77 จังหวัด (CSV)</button>
+          <button type="button" class="btn primary" id="bsOpenTmsBtn">เปิดรอยเผาในแผนที่เจาะลึก</button>
+          <button type="button" class="btn" id="bsExportTableBtn">ดาวน์โหลดตารางจังหวัด</button>
         </div>
       </div>
     </div>
@@ -740,18 +759,18 @@ BURNSCAR_PAGE_HTML = r"""
     <div id="bsMapCard" class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">แผนที่รอยเผาไหม้ความละเอียด 20 เมตร (Sentinel-2 สสน. ตามรอยเผา)</h2>
-          <div class="panel-sub">ภาพถ่ายดาวเทียมซ้อนแปลงเผาจริง 1 พิกเซล = 20×20 ม. (0.25 ไร่) · ซูมได้ถึง z18.0 · คลิกจังหวัดในตารางด้านล่างเพื่อบินไปซูมทันที</div>
+          <h2 class="panel-title">เลือกช่วงเวลาบนแผนที่</h2>
+          <div class="panel-sub">ภาพรอยเผาจากโครงการตามรอยเผา สสน. ครอบคลุม 62 จังหวัด</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <span id="bsMapScopeBadge" class="badge">จ.ลพบุรี</span>
-          <button type="button" class="btn" id="bsSwipeToggle">เทียบก่อน-หลัง (Swipe)</button>
+          <button type="button" class="btn" id="bsSwipeToggle" aria-pressed="false">เปิดแผนที่เทียบสองช่วง</button>
         </div>
       </div>
 
       <div class="bs-map-toolbar">
         <div class="bs-ctrl">
-          <label class="field-label" for="bsLayerLeft" id="bsLayerLeftLabel">ชั้นภาพรอยเผา 20 ม.</label>
+          <label class="field-label" for="bsLayerLeft" id="bsLayerLeftLabel">ช่วงเวลาบนแผนที่</label>
           <select id="bsLayerLeft">
             <option value="2025/BOTH_202512_202604" selected>ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร + ป่าไม้</option>
             <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3A_COLOR">ฤดู 2569 · เกษตร 4 พืช</option>
@@ -762,15 +781,11 @@ BURNSCAR_PAGE_HTML = r"""
             <option value="2023/BOTH_202312_202404">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เกษตร + ป่าไม้</option>
             <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3A_COLOR">ฤดู 2567 · เกษตร 4 พืช</option>
             <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3F_COLOR">ฤดู 2567 · เขตป่าไม้</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202604_B2A_COLOR">รายเดือน เม.ย. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202603_B2A_COLOR">รายเดือน มี.ค. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202602_B2A_COLOR">รายเดือน ก.พ. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202601_B2A_COLOR">รายเดือน ม.ค. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีแหล่งเชื้อเพลิง SAVI (ม.ค. 2026)</option>
+            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีพืชจากภาพดาวเทียม (ม.ค. 2569)</option>
           </select>
         </div>
         <div class="bs-ctrl" id="bsLayerRightWrap" style="display:none;">
-          <label class="field-label" for="bsLayerRight">ฝั่งขวา (หลัง · เทียบกับซ้าย)</label>
+          <label class="field-label" for="bsLayerRight">ช่วงเวลาฝั่งขวา</label>
           <select id="bsLayerRight">
             <option value="2025/BOTH_202512_202604" selected>ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร + ป่าไม้</option>
             <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3A_COLOR">ฤดู 2569 · เกษตร 4 พืช</option>
@@ -781,20 +796,7 @@ BURNSCAR_PAGE_HTML = r"""
             <option value="2023/BOTH_202312_202404">ฤดู 2567 (ธ.ค.66–เม.ย.67) · เกษตร + ป่าไม้</option>
             <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3A_COLOR">ฤดู 2567 · เกษตร 4 พืช</option>
             <option value="2023/BURNSCAR_NORTH_20M_202312_202404_B3F_COLOR">ฤดู 2567 · เขตป่าไม้</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202604_B2A_COLOR">รายเดือน เม.ย. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202603_B2A_COLOR">รายเดือน มี.ค. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202602_B2A_COLOR">รายเดือน ก.พ. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/BURNSCAR_NORTH_20M_202601_B2A_COLOR">รายเดือน ม.ค. 2026 · เกษตร 4 พืช</option>
-            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีแหล่งเชื้อเพลิง SAVI (ม.ค. 2026)</option>
-          </select>
-        </div>
-        <div class="bs-ctrl compact">
-          <label class="field-label" for="bsBasemapSel">แผนที่พื้นหลัง</label>
-          <select id="bsBasemapSel">
-            <option value="esri_sat" selected>Esri ภาพถ่ายดาวเทียม</option>
-            <option value="osm">OpenStreetMap (ถนน/หมู่บ้าน)</option>
-            <option value="carto_dark">Carto Dark (โทนมืด)</option>
-            <option value="none">เวกเตอร์ล้วน (Offline 100%)</option>
+            <option value="2026/SAVI_NORTH_20M_202601_COLOR">ดัชนีพืชจากภาพดาวเทียม (ม.ค. 2569)</option>
           </select>
         </div>
         <div class="bs-ctrl compact">
@@ -803,7 +805,7 @@ BURNSCAR_PAGE_HTML = r"""
         </div>
         <label class="check-row" style="padding-bottom:6px;white-space:nowrap;">
           <input id="bsShowBoundsCheck" type="checkbox" checked />
-          <span>ขอบเขตอำเภอ/ตำบล</span>
+          <span>แสดงเส้นเขตพื้นที่</span>
         </label>
       </div>
 
@@ -822,15 +824,48 @@ BURNSCAR_PAGE_HTML = r"""
         </div>
       </div>
 
+      <section id="bsMonthlyTimeline" class="bs-monthly" aria-labelledby="bsMonthlyLabel">
+        <div class="bs-monthly-head">
+          <label for="bsMonthRange" id="bsMonthlyLabel"><strong>เลื่อนดูรอยเผารายเดือน</strong></label>
+          <output id="bsMonthValue" for="bsMonthRange">กำลังดูรายฤดู</output>
+          <div class="bs-monthly-actions">
+            <label for="bsMonthKind" class="field-label">ดูรอยเผาใน</label>
+            <select id="bsMonthKind"><option value="both">พื้นที่เกษตรและป่า</option><option value="agri">เกษตร</option><option value="forest">ป่า</option></select>
+            <button type="button" class="btn" id="bsMonthPlay">▶ เล่นตามเดือน</button>
+          </div>
+        </div>
+        <div class="bs-monthly-range">
+          <button type="button" class="btn" id="bsMonthPrev" aria-label="เดือนก่อนหน้า">‹</button>
+          <input id="bsMonthRange" type="range" min="0" max="0" value="0" />
+          <button type="button" class="btn" id="bsMonthNext" aria-label="เดือนถัดไป">›</button>
+        </div>
+        <div id="bsMonthScale" class="bs-monthly-scale" aria-hidden="true"></div>
+        <div id="bsMonthTotals" class="bs-monthly-totals" hidden></div>
+        <div id="bsMonthStatus" class="bs-monthly-status" role="status"></div>
+        <div class="bs-monthly-status">เดือนที่แสดงคือช่วงที่ดาวเทียมพบรอยเผา จากภาพระบุวันจุดไฟจริงไม่ได้</div>
+        <div id="bsMonthCompareHint" class="bs-monthly-status" hidden>แถบนี้เปลี่ยนภาพฝั่งซ้าย เลือกช่วงฝั่งขวาจากช่องด้านบน แล้วลากเส้นแบ่งบนแผนที่</div>
+      </section>
+
       <div class="bs-map-stage">
         <canvas id="bsMapCanvas"></canvas>
+        <div class="bs-map-background">
+          <label for="bsBasemapSel">พื้นแผนที่</label>
+          <select id="bsBasemapSel">
+            <option value="plain" selected>พื้นเรียบ</option>
+            <option value="esri_sat">ภาพถ่ายดาวเทียม (Esri)</option>
+            <option value="osm">ถนนและชุมชน (OSM)</option>
+            <option value="carto_dark">แผนที่โทนมืด (CARTO)</option>
+            <option value="none">ภาพรวมตามขอบเขต</option>
+          </select>
+        </div>
         <div id="bsSwipeLine" class="bs-swipe-line">
-          <div id="bsSwipeHandle" class="bs-swipe-handle" title="ลากซ้าย-ขวาเพื่อเทียบ 2 ปี">◂▸</div>
+          <div id="bsSwipeHandle" class="bs-swipe-handle" title="ลากเส้นแบ่งเพื่อดูภาพแต่ละช่วง">◂▸</div>
         </div>
         <div id="bsSwipeTagLeft" class="bs-swipe-tag left"></div>
         <div id="bsSwipeTagRight" class="bs-swipe-tag right"></div>
         <div class="bs-map-hud-bottom">
-          <div id="bsHoverInfo">เลื่อนเมาส์บนแผนที่เพื่อดูยอดรอยเผา 3 ฤดูรายอำเภอ/ตำบล</div>
+          <div id="bsBoundaryStatus">เส้นเขตจังหวัด</div>
+          <div id="bsHoverInfo">เลือกจังหวัดเพื่อดูพื้นที่รอยเผา</div>
           <div id="bsPixelLegend" class="bs-pixel-legend"></div>
         </div>
         <div class="bs-map-controls">
@@ -846,8 +881,8 @@ BURNSCAR_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">เปรียบเทียบ 3 ฤดูฝุ่น (2567 → 2568 → 2569) แยกพืชและป่า</h2>
-            <div class="panel-sub">หน่วย: ไร่ (รวม 62 จังหวัดในขอบเขต สสน. · ประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดคงค่าว่าง)</div>
+            <h2 class="panel-title">พื้นที่รอยเผา 3 ฤดู</h2>
+            <div class="panel-sub">รวมพื้นที่รอยเผาที่ตรวจพบใน 62 จังหวัด แต่ละฤดูนับจาก ธ.ค. ปีก่อนถึง เม.ย. ของปีที่ระบุ</div>
           </div>
         </div>
         <div class="med-chart-box">
@@ -858,8 +893,8 @@ BURNSCAR_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">การเปลี่ยนแปลงรายกลุ่มพืช (ฤดู 2569 เทียบ 2567)</h2>
-            <div class="panel-sub">เห็นชัดว่าไฟป่าลดลงต่อเนื่อง แต่การเผาเศษวัสดุในนาข้าวและอ้อยยังเป็นโจทย์ใหญ่</div>
+            <h2 class="panel-title">พื้นที่รอยเผาเพิ่มหรือลดเท่าไร</h2>
+            <div class="panel-sub">เทียบพื้นที่ที่ตรวจพบในฤดู 2569 กับฤดู 2567 แยกตามพืชและป่า</div>
           </div>
         </div>
         <div id="bsCropCards" class="kpi-hero-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;"></div>
@@ -869,15 +904,15 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">เปรียบเทียบจังหวัดชนจังหวัด (Side-by-Side Comparator)</h2>
-          <div class="panel-sub">เลือกจังหวัดที่สนใจได้สูงสุด 4 จังหวัดเพื่อเทียบไฟป่า รอยเผาแยกพืช สภาพอากาศ และน้ำท่วมซ้ำในมุมมองเดียว</div>
+          <h2 class="panel-title">เทียบข้อมูล 4 จังหวัด</h2>
+          <div class="panel-sub">เลือกจังหวัดจากช่องด้านล่าง ยอดรอยเผารายเดือนจะตามเดือนที่เลือกบนแผนที่</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-        <select id="cmpSel0"></select>
-        <select id="cmpSel1"></select>
-        <select id="cmpSel2"></select>
-        <select id="cmpSel3"></select>
+        <select id="cmpSel0" aria-label="จังหวัดที่ 1"></select>
+        <select id="cmpSel1" aria-label="จังหวัดที่ 2"></select>
+        <select id="cmpSel2" aria-label="จังหวัดที่ 3"></select>
+        <select id="cmpSel3" aria-label="จังหวัดที่ 4"></select>
       </div>
       <div id="bsCompareGrid" class="cmp-grid"></div>
     </div>
@@ -885,8 +920,8 @@ BURNSCAR_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">ตารางจัดอันดับครบ 77 จังหวัด (คลิกหัวคอลัมน์เพื่อเรียง · คลิกแถวเพื่อบินไปซูมแผนที่ด้านบน)</h2>
-          <div class="panel-sub">คลิกชื่อจังหวัดใดก็ได้เพื่อเลื่อนขึ้นไปซูมดูแปลงรอยเผา 20 ม. ของจังหวัดนั้นทันที</div>
+          <h2 class="panel-title">ตารางข้อมูล 77 จังหวัด</h2>
+          <div class="panel-sub">เลือกหัวตารางเพื่อเรียงข้อมูล หรือเลือกชื่อจังหวัดเพื่อเปิดแผนที่ ข้อมูลรอยเผาครอบคลุม 62 จังหวัด</div>
         </div>
         <input id="bsTableSearch" class="search-input" style="max-width:260px;" type="search" placeholder="ค้นหาชื่อจังหวัดหรือภาค..." />
       </div>
@@ -897,15 +932,15 @@ BURNSCAR_PAGE_HTML = r"""
               <th>#</th>
               <th data-sort="name_th">จังหวัด</th>
               <th data-sort="region">ภาค</th>
-              <th data-sort="hs_5y">จุดไฟ 5 ปี (N)</th>
-              <th data-sort="density">หนาแน่น/100ตร.กม.</th>
-              <th data-sort="trp_26" class="sort-active">รอยเผา สสน. 69 (ไร่) ▼</th>
-              <th data-sort="trp_rice">ข้าว 69 (ไร่)</th>
-              <th data-sort="trp_sugar">อ้อย 69 (ไร่)</th>
-              <th data-sort="trp_corn">ข้าวโพด 69 (ไร่)</th>
-              <th data-sort="trp_for">ป่า 69 (ไร่)</th>
-              <th data-sort="fwi_26">ดัชนีอากาศเอื้อไฟ</th>
-              <th data-sort="flood">ท่วมซ้ำ 17 ปี</th>
+              <th data-sort="hs_5y">จุดความร้อน (จุด)</th>
+              <th data-sort="density">จุดต่อ 100 ตร.กม.</th>
+              <th data-sort="trp_26" class="sort-active">รอยเผาฤดู 2569 (ไร่) ▼</th>
+              <th data-sort="trp_rice">รอยเผานาข้าว (ไร่)</th>
+              <th data-sort="trp_sugar">รอยเผาไร่อ้อย (ไร่)</th>
+              <th data-sort="trp_corn">รอยเผาไร่ข้าวโพด (ไร่)</th>
+              <th data-sort="trp_for">รอยเผาในป่า (ไร่)</th>
+              <th data-sort="fwi_26">คะแนนอากาศเอื้อต่อไฟ</th>
+              <th data-sort="flood">ท่วมซ้ำสูงสุดของตำบล (17 ปี)</th>
             </tr>
           </thead>
           <tbody id="bsMasterTbody"></tbody>
@@ -922,23 +957,20 @@ HAZE_PAGE_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">PM2.5 HAZE · TRANSBOUNDARY ASEAN · DOAE BURN INTENSITY · RID WATER</div>
-          <h1 class="hero-title">ศูนย์ติดตามฝุ่น PM2.5 สด หมอกควันข้ามแดน 6 ประเทศ &amp; อัตราเผาเกษตร</h1>
-          <p class="hero-desc">
-            เชื่อมข้อมูลดาวเทียมเช็คฝุ่น <strong>GISTDA รายชั่วโมง (จังหวัด/อำเภอ)</strong> · <strong>Open-Meteo CAMS PM2.5/CO/AOD 52 เดือน</strong> · <strong>NASA FIRMS 6 ประเทศอาเซียน (2022–2025)</strong> · <strong>พื้นที่ปลูก DOAE เทียบรอยเผา 20 ม.</strong> · <strong>ความชื้นดิน NASA POWER</strong> และ <strong>น้ำ 461 อ่างเก็บน้ำ RID</strong>
-          </p>
+          <h1 class="hero-title">ฝุ่น PM2.5 และจุดความร้อนประเทศเพื่อนบ้าน</h1>
+          <p class="hero-desc">เลือกจังหวัดเพื่อดูค่าฝุ่นล่าสุดและย้อนหลัง หรือเทียบช่วงที่พบจุดความร้อนในไทยกับประเทศเพื่อนบ้าน</p>
         </div>
         <div class="hero-actions">
-          <button type="button" class="btn primary" id="hzRefreshBtn">อัปเดตฝุ่น PM2.5 สด</button>
+          <button type="button" class="btn primary" id="hzRefreshBtn">โหลดค่าฝุ่นล่าสุด</button>
           <button type="button" class="btn" id="hzJumpMapBtn">ดูแผนที่ฝุ่น PM2.5</button>
-          <button type="button" class="btn" data-goto="explorer">SQL ค้นข้อมูลดิบ</button>
+          <button type="button" class="btn" data-goto="explorer">ค้นและดาวน์โหลดข้อมูล</button>
         </div>
       </div>
     </div>
 
     <div class="kpi-hero-grid" id="hzLiveKpis">
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">จังหวัดฝุ่นเกินเกณฑ์ไทย (&gt;37.5)</span><span class="delta-pill neutral" id="hzLiveTimeBadge">กำลังโหลด</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">จังหวัดฝุ่นเฉลี่ย 24 ชม. เกิน 37.5 µg/m³</span><span class="delta-pill neutral" id="hzLiveTimeBadge">กำลังโหลด</span></div>
         <div id="hzKpiExceed" class="kpi-hero-val">-</div>
         <div id="hzKpiExceedSub" class="kpi-hero-sub">GISTDA เช็คฝุ่น 77 จังหวัด</div>
       </div>
@@ -948,7 +980,7 @@ HAZE_PAGE_HTML = r"""
         <div id="hzKpiTopSub" class="kpi-hero-sub">-</div>
       </div>
       <div class="kpi-hero">
-        <div class="kpi-hero-top"><span class="kpi-hero-label">ไทย vs เพื่อนบ้าน 6 ประเทศ (2022–25)</span><span class="delta-pill neutral">VIIRS-N</span></div>
+        <div class="kpi-hero-top"><span class="kpi-hero-label">จุดความร้อนในไทยและเพื่อนบ้าน (2565–2568)</span><span class="delta-pill neutral">VIIRS-N</span></div>
         <div id="hzKpiTrans" class="kpi-hero-val">-</div>
         <div id="hzKpiTransSub" class="kpi-hero-sub">-</div>
       </div>
@@ -962,8 +994,8 @@ HAZE_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">1. สถานการณ์ฝุ่น PM2.5 รายชั่วโมง (GISTDA เช็คฝุ่น 77 จังหวัด → คลิกอำเภอ → เจาะลึกค่ารายตำบลสด)</h2>
-          <div id="hzLiveSub" class="panel-sub">กำลังดึงค่า PM2.5 ล่าสุดจาก pm25.gistda.or.th...</div>
+          <h2 class="panel-title">ฝุ่น PM2.5 ล่าสุดตามพื้นที่</h2>
+          <div id="hzLiveSub" class="panel-sub">กำลังโหลดค่าฝุ่นล่าสุดจาก GISTDA…</div>
         </div>
         <select id="hzLiveProvSel" style="width:auto;min-width:205px;" aria-label="เลือกจังหวัดตรวจฝุ่นสด"></select>
       </div>
@@ -975,8 +1007,8 @@ HAZE_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">1.5 วิเคราะห์ฝุ่น PM2.5 รายวัน (120,813 แถว): วันฝุ่นเกินเกณฑ์ต่อเนื่อง &amp; ระยะเวลาฝุ่นพุ่งหลังไฟพุ่ง (Lag 0–5 วัน)</h2>
-          <div class="panel-sub">คำนวณจากข้อมูลรายวัน 77 จังหวัด (2022–2026): ความสัมพันธ์ระหว่างจุดความร้อนกับฝุ่น PM2.5 ในวันถัดไป (Lag Effect) และสถิติวันฝุ่นเกิน 37.5 µg/m³ ติดต่อกันสูงสุด</div>
+          <h2 class="panel-title">ฝุ่นเกินเกณฑ์กี่วัน และฝุ่นเปลี่ยนอย่างไรหลังพบจุดความร้อน</h2>
+          <div class="panel-sub">ดูค่าฝุ่นวันเดียวกับที่พบจุดความร้อนหรือใน 1–5 วันถัดมา และช่วงที่ฝุ่นเฉลี่ยรายวันเกินเกณฑ์ติดต่อกัน</div>
         </div>
         <span id="hzLagPeakBadge" class="badge">Lag สูงสุด: +3 วัน (r = 0.642)</span>
       </div>
@@ -986,8 +1018,8 @@ HAZE_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">2. ห้องแล็บความสัมพันธ์ 52 เดือน: จุดความร้อน vs ฝุ่น PM2.5 · ก๊าซ CO · AOD · ความชื้นดิน</h2>
-          <div id="hzInsightText" class="panel-sub">เลือกจังหวัดและตัวแปรเพื่อตรวจความสัมพันธ์รายเดือน (2022–2026)</div>
+          <h2 class="panel-title">จุดความร้อนกับฝุ่นและสภาพแวดล้อมรายเดือน</h2>
+          <div id="hzInsightText" class="panel-sub">เลือกจังหวัดและข้อมูลที่ต้องการเทียบ</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <span id="hzCorrBadge" class="badge">r = -</span>
@@ -1017,8 +1049,8 @@ HAZE_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">3. หมอกควันข้ามแดน: จุดความร้อน 6 ประเทศอาเซียน (2022–2025)</h2>
-            <div class="panel-sub">เทียบมาตรฐานเดียวกันด้วย NASA FIRMS VIIRS Suomi-NPP (ไม่นับซ้ำดาวเทียม)</div>
+            <h2 class="panel-title">จุดความร้อนในไทยและประเทศเพื่อนบ้าน</h2>
+            <div class="panel-sub">เทียบข้อมูลปี 2565–2568 จากดาวเทียม Suomi NPP ดวงเดียว</div>
           </div>
           <select id="hzTransYearSel" style="width:auto;min-width:125px;">
             <option value="all" selected>รวม 4 ปี (22–25)</option>
@@ -1052,7 +1084,7 @@ HAZE_PAGE_HTML = r"""
       <div class="panel-card">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">4. น้ำอ่างเก็บน้ำ 461 แห่ง (RID) &amp; ความชื้นผิวดิน 5 ปี (2022–2026)</h2>
+            <h2 class="panel-title">น้ำในอ่างเก็บน้ำและความชื้นผิวดิน</h2>
             <div class="panel-sub">ปริมาณน้ำกักเก็บรายภาค (% ความจุ) เทียบช่วงฤดูแล้ง ม.ค.–เม.ย.</div>
           </div>
         </div>
@@ -1069,8 +1101,8 @@ HAZE_PAGE_HTML = r"""
     <div class="panel-card">
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">5. อัตราการเผาเทียบพื้นที่เพาะปลูกจริง (% Burn Rate · DOAE 2566 × รอยเผา สสน. 20 ม. ระดับจังหวัด / อำเภอ / ตำบล)</h2>
-          <div class="panel-sub">เชื่อมฐานข้อมูลพื้นที่ปลูก DOAE 235,082 แถวเข้ากับรอยเผา 20 ม. สสน. เจาะลึกได้ตั้งแต่ 77 จังหวัด → 814 อำเภอ → 6,308 ตำบล (คลิกแถวเพื่อบินไปดูบนแผนที่ทันที)</div>
+          <h2 class="panel-title">พื้นที่รอยเผาเทียบกับพื้นที่ปลูก</h2>
+          <div class="panel-sub">ใช้พื้นที่ปลูกปี 2566 เป็นฐานคำนวณ เลือกดูรายจังหวัด อำเภอ หรือตำบลได้ตามข้อมูลที่มี</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <div class="pill-toggle" id="hzBurnLevelToggle" aria-label="เลือกระดับพื้นที่วิเคราะห์อัตราเผาเทียบพื้นที่ปลูก">
@@ -1127,12 +1159,12 @@ MULTI_PAGE_JS = r"""
   };
   const MONTH_TH_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
   const WX_LABELS = {
-    "8": { name: "ดัชนีอากาศเอื้อไฟ FWI", unit: "คะแนน", color: "#689cb8" },
+    "8": { name: "คะแนนอากาศเอื้อต่อไฟ", unit: "คะแนน", color: "#689cb8" },
     "0": { name: "อุณหภูมิสูงสุดเฉลี่ย", unit: "°C", color: "#689cb8" },
     "3": { name: "ความชื้นสัมพัทธ์ต่ำสุด", unit: "%", color: "#689cb8" },
     "2": { name: "ปริมาณฝนรวม", unit: "มม.", color: "#689cb8" },
     "4": { name: "ความเร็วลมสูงสุดเฉลี่ย", unit: "กม./ชม.", color: "#689cb8" },
-    "5": { name: "การระเหยน้ำ ET0", unit: "มม.", color: "#689cb8" },
+    "5": { name: "การระเหยน้ำ", unit: "มม.", color: "#689cb8" },
     "6": { name: "จำนวนวันไม่ตกฝน", unit: "วัน", color: "#689cb8" },
   };
 
@@ -1146,6 +1178,7 @@ MULTI_PAGE_JS = r"""
     const target = document.getElementById("page-" + pageId);
     if (!target) pageId = "overview";
     activePage = pageId;
+    if (pageId !== "burnscar") stopBsMonthPlayback();
     if (els.tooltip) els.tooltip.style.display = "none";
     document.querySelectorAll(".page-view").forEach(el => {
       el.classList.toggle("active", el.id === "page-" + pageId);
@@ -1577,37 +1610,36 @@ MULTI_PAGE_JS = r"""
     const forChg = trpFor67 > 0 ? ((trpFor69 - trpFor67) * 100 / trpFor67) : 0;
     document.getElementById("ovKpi3Val").textContent = `${(trpAll / 1e6).toFixed(2)} ล้านไร่`;
     const d3 = document.getElementById("ovKpi3Delta");
-    d3.textContent = `ไฟป่า 69 vs 67: ${forChg.toFixed(0)}%`;
+    d3.textContent = `รอยเผาในป่า 2569 เทียบ 2567 · ${forChg.toFixed(0)}%`;
     d3.className = "delta-pill " + (forChg <= 0 ? "down" : "up");
-    document.getElementById("ovKpi3Sub").textContent = `ฤดู 2569 รวม ${(trp26Tot / 1e6).toFixed(2)} ล้านไร่ (62 จว. · Sentinel-2 20 ม.)`;
-    const s1t = document.getElementById("ovStory1Title");
-    if (s1t && trpFor67 > 0) s1t.textContent = `รอยเผาป่าลด ${Math.abs(forChg).toFixed(0)}% แต่ฤดู 2569 ยังเผารวม ${(trp26Tot / 1e6).toFixed(2)} ล้านไร่`;
+    document.getElementById("ovKpi3Sub").textContent = `ฤดู 2569 รวม ${(trp26Tot / 1e6).toFixed(2)} ล้านไร่`;
 
     // KPI 4: 2026 Peak-season Fire-Weather
-    const wx26 = DATA.provinces.map(p => p.wx_y?.["2026"]).filter(Boolean);
+    const wx26 = DATA.provinces.map(p => p.wx_y?.["2026"]).filter(x => Number.isFinite(x?.peak_fwi));
     if (wx26.length) {
-      const avgPeakFwi = wx26.reduce((a, x) => a + (x.peak_fwi || 0), 0) / wx26.length;
+      const avgPeakFwi = wx26.reduce((a, x) => a + x.peak_fwi, 0) / wx26.length;
       const avgTmax = wx26.reduce((a, x) => a + (x.tmax || 0), 0) / wx26.length;
       const avgRh = wx26.reduce((a, x) => a + (x.rh_min || 0), 0) / wx26.length;
       document.getElementById("ovKpi4Val").textContent = `${avgPeakFwi.toFixed(1)} / 100`;
-      document.getElementById("ovKpi4Sub").textContent = `เฉลี่ย ม.ค.–เม.ย. 26 · Tmax ${avgTmax.toFixed(1)}°C · RHต่ำสุด ${avgRh.toFixed(0)}%`;
+      document.getElementById("ovKpi4Sub").textContent = `คะแนนเฉลี่ย ม.ค.–เม.ย. 2569 · อุณหภูมิสูงสุดเฉลี่ย ${avgTmax.toFixed(1)}°C · ความชื้นต่ำสุดเฉลี่ย ${avgRh.toFixed(0)}%`;
     } else {
       document.getElementById("ovKpi4Val").textContent = "ไม่มีข้อมูล";
-      document.getElementById("ovKpi4Sub").textContent = "รอดึงข้อมูล ERA5 รายเดือน";
+      document.getElementById("ovKpi4Sub").textContent = "ไม่มีข้อมูลอากาศรายเดือนในช่วงนี้";
     }
 
     // KPI 5: Dual hazard HII
     const hiFlood = DATA.provinces.filter(p => (p.flood_max_17yr || 0) >= 8).length;
-    document.getElementById("ovKpi5Val").textContent = `${formatNum(DATA.meta.flood_covered_tambons || 0)} ตำบล`;
-    document.getElementById("ovKpi5Sub").textContent = `ครอบคลุม ${DATA.meta.flood_covered_provinces || 0}/77 จว. · ท่วม ≥8 ครั้ง ${hiFlood} จว.`;
+    const floodCoverage = DATA.meta.flood_covered_tambons || 0;
+    document.getElementById("ovKpi5Val").textContent = floodCoverage ? `${formatNum(floodCoverage)} ตำบล` : "ไม่มีข้อมูลเผยแพร่";
+    document.getElementById("ovKpi5Sub").textContent = floodCoverage
+      ? `ครอบคลุม ${DATA.meta.flood_covered_provinces} จาก 77 จังหวัด · ${hiFlood} จังหวัดมีตำบลที่พบการท่วมตั้งแต่ 8 ครั้ง`
+      : "ดูชั้นภาพน้ำท่วมซ้ำซากของกรมพัฒนาที่ดินได้บนแผนที่";
 
     // Dual-axis 59-month timeline
     const wxIdx = Number(document.getElementById("ovWxMetric")?.value || 8);
     const series = getMonthlySeries("all", ovSat, wxIdx);
     const rVal = pearsonR(series.wxVals, series.fireTot);
-    document.getElementById("ovCorrPill").textContent = rVal !== null ? `Pearson r = ${rVal.toFixed(2)}` : "r = n/a";
-    const s2t = document.getElementById("ovStory2Title");
-    if (s2t && rVal !== null) s2t.textContent = `อากาศเอื้อไฟสัมพันธ์กับจุดความร้อน (r = ${rVal.toFixed(2)})`;
+    document.getElementById("ovCorrPill").textContent = rVal !== null ? `ค่าความสัมพันธ์ ${rVal.toFixed(2)}` : "ข้อมูลไม่พอเปรียบเทียบ";
     const ovCanvas = document.getElementById("ovTimelineCanvas");
     drawDualFireWeatherChart(ovCanvas, series, wxIdx, ovHoverStore);
     bindTimelineHover(ovCanvas, ovHoverStore);
@@ -1750,7 +1782,8 @@ MULTI_PAGE_JS = r"""
       const topProvs = DATA.provinces.map(p => ({ p, cnt: provTot.get(p.code) || 0 })).sort((a, b) => b.cnt - a.cnt).slice(0, 10);
       const mx = topProvs[0]?.cnt || 1;
       topProvs.forEach((it, idx) => {
-        const row = document.createElement("div");
+        const row = document.createElement("button");
+        row.type = "button";
         row.className = "rank-item";
         row.innerHTML = `
           <span style="color:var(--muted);font-weight:700">${idx + 1}</span>
@@ -1795,7 +1828,8 @@ MULTI_PAGE_JS = r"""
       topVils.forEach((v, idx) => {
         const cnt = satOnlyN ? v.n : v.all;
         const ag = satOnlyN ? v.agri_n : v.agri_all;
-        const row = document.createElement("div");
+        const row = document.createElement("button");
+        row.type = "button";
         row.className = "rank-item";
         row.innerHTML = `
           <span style="color:var(--muted);font-weight:700">${idx + 1}</span>
@@ -1944,8 +1978,8 @@ MULTI_PAGE_JS = r"""
       renderForecastCards(liveForecastCache.get(cacheKey), provObj);
       return;
     }
-    sub.textContent = `กำลังดึงพยากรณ์อากาศ 7 วันล่วงหน้าของ จ.${provObj.name_th} จาก Open-Meteo...`;
-    grid.innerHTML = `<div style="color:var(--muted);font-size:12.5px;padding:8px;">กำลังเชื่อมต่อ Open-Meteo Forecast API...</div>`;
+    sub.textContent = `กำลังโหลดพยากรณ์ของ จ.${provObj.name_th}…`;
+    grid.textContent = "";
     try {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${provObj.lat}&longitude=${provObj.lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_min,et0_fao_evapotranspiration&timezone=Asia%2FBangkok&forecast_days=7`;
       const resp = await fetch(url);
@@ -1957,8 +1991,8 @@ MULTI_PAGE_JS = r"""
       if (provObj.tmd_wrf && provObj.tmd_wrf.length) {
         renderTmdWrfForecastCards(provObj);
       } else {
-        sub.textContent = "ไม่สามารถเชื่อมต่อพยากรณ์สด 7 วันได้ (โหมดออฟไลน์หรือไม่มีอินเทอร์เน็ต — ข้อมูลย้อนหลัง 2016–2026 ด้านล่างยังใช้งานได้ครบ)";
-        grid.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:6px;">ออฟไลน์: กดปุ่มอัปเดตอีกครั้งเมื่อต่ออินเทอร์เน็ต</div>`;
+        sub.textContent = "โหลดพยากรณ์ไม่ได้ กด “โหลดพยากรณ์ล่าสุด” เพื่อลองอีกครั้ง";
+        grid.textContent = "";
       }
     }
   }
@@ -1969,11 +2003,11 @@ MULTI_PAGE_JS = r"""
     const wrf = provObj?.tmd_wrf || [];
     if (!grid) return;
     if (!wrf.length) {
-      sub.textContent = `ไม่มีข้อมูล TMD WRF ของ จ.${provObj?.name_th || ""}`;
-      grid.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:6px;">ไม่มีข้อมูล TMD WRF</div>`;
+      sub.textContent = `ไม่มีข้อมูลพยากรณ์จากกรมอุตุนิยมวิทยาสำหรับ จ.${provObj?.name_th || ""}`;
+      grid.textContent = "";
       return;
     }
-    sub.textContent = `พยากรณ์อากาศเชิงตัวเลข กรมอุตุนิยมวิทยา TMD NWP WRF-ROMS (Domain d02 ความละเอียด 3×3 กม. · 72 ชม.) ของ จ.${provObj.name_th} (รัศมี 25 กม. รอบจุดศูนย์กลางจังหวัด)`;
+    sub.textContent = `พยากรณ์ 3 วันจากกรมอุตุนิยมวิทยา สำหรับบริเวณรอบจุดกึ่งกลาง จ.${provObj.name_th}`;
     grid.innerHTML = "";
     const wk = ["อา.","จ.","อ.","พ.","พฤ.","ศ.","ส."];
     for (let i = 0; i < wrf.length; i++) {
@@ -1982,9 +2016,13 @@ MULTI_PAGE_JS = r"""
       const label = `${wk[dt.getDay()]} ${dt.getDate()} ${MONTH_TH_SHORT[dt.getMonth()]}`;
       const tmax = item.tmax;
       const tmin = item.tmin;
-      const rh = item.rh ?? 58;
-      const rain = item.rain ?? 0;
-      const score = Math.round(item.fwi ?? 40);
+      const rh = item.rh;
+      const rain = item.rain;
+      if (![tmax, rh, rain, item.fwi].every(Number.isFinite)) {
+        grid.insertAdjacentHTML("beforeend", `<div class="fc-card"><strong>${escHtml(label)}</strong><span>ข้อมูลไม่พอคำนวณคะแนนรายวัน</span></div>`);
+        continue;
+      }
+      const score = Math.round(item.fwi);
       const [tier, cls, barCol] = score >= 70
         ? ["เสี่ยงสูงมาก", "vhigh", "#cf5648"]
         : score >= 52
@@ -2083,20 +2121,24 @@ MULTI_PAGE_JS = r"""
     const sub = document.getElementById("wxLiveSub");
     const d = data?.daily;
     if (!d || !d.time) return;
-    sub.textContent = `พยากรณ์สด 7 วันของ จ.${provObj.name_th} (Open-Meteo CC-BY-4.0) · ประเมินความเสี่ยงไฟจากอากาศ (อุณหภูมิสูงสุด + ความชื้นต่ำสุด + ลม + ฝน)`;
+    sub.textContent = `พยากรณ์ 7 วันของ จ.${provObj.name_th} (Open-Meteo CC-BY-4.0) · คะแนนเอื้อไฟรายวันใช้ฝนวันนั้น ส่วนคะแนนย้อนหลังใช้สัดส่วนวันฝนน้อยในเดือน`;
     grid.innerHTML = "";
     const wk = ["อา.","จ.","อ.","พ.","พฤ.","ศ.","ส."];
     for (let i = 0; i < d.time.length; i++) {
       const dt = new Date(d.time[i] + "T12:00:00");
       const label = `${wk[dt.getDay()]} ${dt.getDate()} ${MONTH_TH_SHORT[dt.getMonth()]}`;
       const tmax = d.temperature_2m_max?.[i];
-      const tmin = d.temperature_2m_min?.[i];
-      const rain = d.precipitation_sum?.[i] ?? 0;
-      const wind = d.wind_speed_10m_max?.[i] ?? 10;
-      const rh = d.relative_humidity_2m_min?.[i] ?? 55;
-      const et0 = d.et0_fao_evapotranspiration?.[i] ?? 3.5;
+      const tmin = d.temperature_2m_min?.[i] ?? null;
+      const rain = d.precipitation_sum?.[i];
+      const wind = d.wind_speed_10m_max?.[i];
+      const rh = d.relative_humidity_2m_min?.[i];
+      const et0 = d.et0_fao_evapotranspiration?.[i];
+      if (![tmax, rain, wind, rh, et0].every(Number.isFinite)) {
+        grid.insertAdjacentHTML("beforeend", `<div class="fc-card"><strong>${escHtml(label)}</strong><span>ข้อมูลไม่พอคำนวณคะแนนรายวัน</span></div>`);
+        continue;
+      }
 
-      const tS = Math.max(0, Math.min(1, ((tmax ?? 30) - 26) / 14));
+      const tS = Math.max(0, Math.min(1, (tmax - 26) / 14));
       const rhS = Math.max(0, Math.min(1, (70 - rh) / 50));
       const dryS = rain < 1 ? 1 : rain < 5 ? 0.4 : 0;
       const wS = Math.max(0, Math.min(1, (wind - 6) / 18));
@@ -2148,6 +2190,13 @@ MULTI_PAGE_JS = r"""
     }
   }
 
+  function describeFireCorrelation(metric, correlation) {
+    if (correlation === null) return "มีข้อมูลไม่พอเทียบรายเดือน";
+    if (Math.abs(correlation) < 0.25) return "ข้อมูลรายเดือนสองชุดเปลี่ยนไปด้วยกันน้อย";
+    const direction = correlation > 0 ? "มักสูงขึ้นพร้อมกัน" : "มักเปลี่ยนไปคนละทาง";
+    return "ในช่วงที่เทียบ " + metric + " และจำนวนจุดความร้อน " + direction;
+  }
+
   function renderWeatherPage() {
     if (!DATA) return;
     populateWeatherProvinces();
@@ -2164,16 +2213,9 @@ MULTI_PAGE_JS = r"""
     // 59-month dual-axis chart + Pearson r explanation
     const series = getMonthlySeries(pCode, satMode, wxIdx);
     const rVal = pearsonR(series.wxVals, series.fireTot);
-    document.getElementById("wxCorrBadge").textContent = rVal !== null ? `Pearson r = ${rVal.toFixed(2)}` : "r = n/a";
+    document.getElementById("wxCorrBadge").textContent = rVal !== null ? `ค่าความสัมพันธ์ ${rVal.toFixed(2)}` : "ข้อมูลไม่พอเปรียบเทียบ";
     const wxMeta = WX_LABELS[String(wxIdx)] || { name: "สภาพอากาศ", unit: "" };
-    let interp = "กำลังเปรียบเทียบข้อมูลรายเดือน 2022–2026";
-    if (rVal !== null) {
-      const absR = Math.abs(rVal);
-      const strength = absR >= 0.7 ? "ความสัมพันธ์สูงมาก" : absR >= 0.45 ? "ความสัมพันธ์ระดับปานกลาง–สูง" : absR >= 0.25 ? "ความสัมพันธ์ระดับอ่อน" : "ความสัมพันธ์น้อยมาก";
-      const dir = rVal >= 0 ? `ยิ่ง ${wxMeta.name} สูงขึ้น จุดความร้อนยิ่งเพิ่มสูงขึ้นตาม` : `ยิ่ง ${wxMeta.name} ลดต่ำลง จุดความร้อนยิ่งพุ่งสูงขึ้นชัดเจน`;
-      interp = `${strength} (r = ${rVal.toFixed(2)}): ${dir}`;
-    }
-    document.getElementById("wxInsightText").textContent = interp;
+    document.getElementById("wxInsightText").textContent = describeFireCorrelation(wxMeta.name, rVal);
     const dualCanvas = document.getElementById("wxDualCanvas");
     drawDualFireWeatherChart(dualCanvas, series, wxIdx, wxHoverStore);
     bindTimelineHover(dualCanvas, wxHoverStore);
@@ -2674,7 +2716,7 @@ MULTI_PAGE_JS = r"""
     camX: 0.7802,
     camY: 0.4578,
     zoom: 10.2,
-    basemap: "esri_sat",
+    basemap: "plain",
     layerLeft: "2025/BOTH_202512_202604",
     layerRight: "2023/BOTH_202312_202404",
     swipe: false,
@@ -2686,9 +2728,192 @@ MULTI_PAGE_JS = r"""
     hoverItem: null,
     lastHoverCode: null,
   };
+  // Months with a published B2A (agriculture) or B2F (forest) tile layer.
+  const BS_MONTH_IMAGES = {
+    202401: "AF", 202402: "AF", 202403: "AF", 202404: "AF",
+    202411: "A", 202412: "A", 202501: "A", 202502: "A", 202503: "A", 202504: "AF",
+    202511: "AF", 202512: "AF", 202601: "AF", 202602: "AF", 202603: "AF", 202604: "AF",
+  };
+  const BS_MONTH_KINDS = { agri: "เกษตร", forest: "ป่า" };
+  const BS_MONTH_DATE = new Intl.DateTimeFormat("th-TH", { month: "short", year: "numeric", timeZone: "UTC" });
+  const bsTimeline = { months: [], details: {}, playTimer: null, drawTimer: null };
+
+  function getBsMonth(layer) {
+    const match = /^monthly:(\d{6}):(both|agri|forest)$/.exec(layer);
+    return match ? { month: match[1], kind: match[2] } : null;
+  }
+
+  function formatBsMonth(month) {
+    return BS_MONTH_DATE.format(new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(4)) - 1, 1)));
+  }
+
+  function bsMonthKinds(kind) {
+    return kind === "both" ? Object.keys(BS_MONTH_KINDS) : [kind];
+  }
+
+  function bsMonthImages(month, kind) {
+    const available = BS_MONTH_IMAGES[month] ?? "";
+    return bsMonthKinds(kind).map(key => key === "agri" ? "A" : "F")
+      .filter(code => available.includes(code))
+      .map(code => month.slice(0, 4) + "/BURNSCAR_NORTH_20M_" + month + "_B2" + code + "_COLOR");
+  }
+
+  function bsMonthHasData(month, kind) {
+    return bsMonthKinds(kind).some(key => Object.keys(bsTimeline.details[month]?.[key] ?? {}).length > 0)
+      || bsMonthImages(month, kind).length > 0;
+  }
+
+  function bsMonthAreaRows(selection, provinceCode) {
+    return bsMonthKinds(selection.kind).map(kind => {
+      const areas = bsTimeline.details[selection.month]?.[kind] ?? {};
+      const values = Object.values(areas);
+      const rai = provinceCode ? areas[provinceCode] : values.length ? values.reduce((total, value) => total + value, 0) : null;
+      const coverage = !provinceCode && values.length ? " (" + values.length + " จังหวัด)" : "";
+      return [BS_MONTH_KINDS[kind], rai == null ? "ไม่มีตัวเลข" : formatNum(rai, 2) + " ไร่" + coverage];
+    });
+  }
+
+  function updateBsMonthTotals() {
+    const totals = document.getElementById("bsMonthTotals");
+    const selection = getBsMonth(bsMap.layerLeft);
+    totals.hidden = !selection;
+    if (!selection) return;
+    const provinceName = PROV_MAP.get(bsMap.focusProv)?.name_th;
+    const title = provinceName ? "พื้นที่รอยเผา จ." + provinceName : "พื้นที่รอยเผารวมเฉพาะจังหวัดที่มีข้อมูล";
+    totals.textContent = title + " · " + bsMonthAreaRows(selection, bsMap.focusProv)
+      .map(([label, value]) => label + " " + value).join(" · ");
+  }
+
+  function syncBsMonthTimeline() {
+    const range = document.getElementById("bsMonthRange");
+    const output = document.getElementById("bsMonthValue");
+    const status = document.getElementById("bsMonthStatus");
+    const selection = getBsMonth(bsMap.layerLeft);
+    if (selection) {
+      range.value = bsTimeline.months.indexOf(selection.month);
+      document.getElementById("bsMonthKind").value = selection.kind;
+    }
+    const month = bsTimeline.months[Number(range.value)];
+    range.setAttribute("aria-valuetext", formatBsMonth(month));
+    output.textContent = selection ? formatBsMonth(month) : "กำลังดูรายฤดู";
+    if (selection) {
+      status.textContent = bsMonthKinds(selection.kind).map(kind => {
+        const image = bsMonthImages(month, kind).length > 0;
+        const stats = Object.keys(bsTimeline.details[month]?.[kind] ?? {}).length > 0;
+        const availability = image ? (stats ? "มีภาพและยอดพื้นที่" : "มีเฉพาะภาพ") : stats ? "มีเฉพาะยอดพื้นที่" : "ไม่มีข้อมูลเดือนนี้";
+        return BS_MONTH_KINDS[kind] + " · " + availability;
+      }).join(" | ");
+    } else {
+      status.textContent = "ลากแถบหรือกดเล่นเพื่อเปลี่ยนจากรายฤดูเป็นรายเดือน";
+    }
+    document.getElementById("bsMonthCompareHint").hidden = !bsMap.swipe;
+    document.getElementById("bsMonthPrev").disabled = Boolean(selection) && Number(range.value) === 0;
+    document.getElementById("bsMonthNext").disabled = Boolean(selection) && range.value === range.max;
+    updateBsMonthTotals();
+    updateBsComparatorMonth();
+  }
+
+  function stopBsMonthPlayback() {
+    if (bsTimeline.playTimer === null) return;
+    clearInterval(bsTimeline.playTimer);
+    bsTimeline.playTimer = null;
+    document.getElementById("bsMonthPlay").textContent = "▶ เล่นตามเดือน";
+  }
+
+  function refreshBsMonthMap() {
+    clearTimeout(bsTimeline.drawTimer);
+    bsTimeline.drawTimer = null;
+    const area = bsMap.focusAmp ? AMP_MAP.get(bsMap.focusAmp) : PROV_MAP.get(bsMap.focusProv);
+    bsMap.lastHoverCode = null;
+    bsMap.hoverItem = null;
+    hideTooltip();
+    updateBsAreaReadout(area, bsMap.focusAmp ? "อ." : "จ.");
+    updateBsPixelLegend();
+    requestDrawBsMap();
+  }
+
+  function setBsMonth(index, debounce = false) {
+    const range = document.getElementById("bsMonthRange");
+    const layer = document.getElementById("bsLayerLeft");
+    const kind = document.getElementById("bsMonthKind").value;
+    const month = bsTimeline.months[index];
+    if (!month) return;
+    layer.querySelector("option[data-month-kind]")?.remove();
+    bsMap.layerLeft = "monthly:" + month + ":" + kind;
+    if (kind !== "both") {
+      const option = new Option(formatBsMonth(month) + " · " + BS_MONTH_KINDS[kind], bsMap.layerLeft);
+      option.dataset.monthKind = kind;
+      layer.querySelector("#bsMonthsLeft").prepend(option);
+    }
+    layer.value = bsMap.layerLeft;
+    range.value = index;
+    syncBsMonthTimeline();
+    clearTimeout(bsTimeline.drawTimer);
+    if (debounce) bsTimeline.drawTimer = setTimeout(refreshBsMonthMap, 140);
+    else refreshBsMonthMap();
+  }
+
+  function bindBsMonthTimeline(left, right) {
+    const inline = JSON.parse(document.getElementById("bsMonthlyData").textContent);
+    bsTimeline.details = Object.keys(inline).length ? inline : (DATA.tamroypao_monthly ?? {});
+    const dates = [...Object.keys(BS_MONTH_IMAGES), ...Object.keys(bsTimeline.details)].sort();
+    const first = dates[0], last = dates.at(-1);
+    const next = new Date(Date.UTC(Number(first.slice(0, 4)), Number(first.slice(4)) - 1, 1));
+    for (let key = next.toISOString().slice(0, 7).replace("-", ""); key <= last;
+         key = next.toISOString().slice(0, 7).replace("-", "")) {
+      bsTimeline.months.push(key);
+      next.setUTCMonth(next.getUTCMonth() + 1);
+    }
+    [left, right].forEach((layer, side) => {
+      const group = document.createElement("optgroup");
+      group.label = "รอยเผารายเดือน";
+      if (side === 0) group.id = "bsMonthsLeft";
+      bsTimeline.months.filter(month => side === 0 || BS_MONTH_IMAGES[month]).forEach(month => {
+        group.append(new Option(formatBsMonth(month), "monthly:" + month + ":both"));
+      });
+      layer.append(group);
+    });
+    const range = document.getElementById("bsMonthRange");
+    const kind = document.getElementById("bsMonthKind");
+    const play = document.getElementById("bsMonthPlay");
+    range.max = bsTimeline.months.length - 1;
+    range.value = bsTimeline.months.indexOf(Object.keys(BS_MONTH_IMAGES).at(-1));
+    [first, ...bsTimeline.months.filter(month => month.endsWith("01") && month !== first), last].forEach(month => {
+      const tick = document.createElement("span");
+      tick.textContent = formatBsMonth(month);
+      tick.style.left = (bsTimeline.months.indexOf(month) / Number(range.max) * 100) + "%";
+      document.getElementById("bsMonthScale").append(tick);
+    });
+    range.addEventListener("input", () => { stopBsMonthPlayback(); setBsMonth(Number(range.value), true); });
+    kind.addEventListener("change", () => { stopBsMonthPlayback(); setBsMonth(Number(range.value)); });
+    [["bsMonthPrev", -1], ["bsMonthNext", 1]].forEach(([id, step]) => {
+      document.getElementById(id).addEventListener("click", () => {
+        stopBsMonthPlayback();
+        const offset = getBsMonth(bsMap.layerLeft) ? step : 0;
+        setBsMonth(Number(range.value) + offset);
+      });
+    });
+    play.addEventListener("click", () => {
+      if (bsTimeline.playTimer !== null) { stopBsMonthPlayback(); return; }
+      const playable = bsTimeline.months.map((month, i) => bsMonthHasData(month, kind.value) ? i : -1).filter(i => i >= 0);
+      if (!playable.length) return;
+      const current = getBsMonth(bsMap.layerLeft) ? Number(range.value) : -1;
+      let position = playable.findIndex(i => i > current);
+      if (position === -1) position = 0;
+      setBsMonth(playable[position]);
+      if (position === playable.length - 1) return;
+      play.textContent = "❚❚ พัก";
+      bsTimeline.playTimer = setInterval(() => {
+        setBsMonth(playable[++position]);
+        if (position === playable.length - 1) stopBsMonthPlayback();
+      }, 1000);
+    });
+    syncBsMonthTimeline();
+  }
+
   let bsDrawPending = false;
   function requestDrawBsMap() {
-    if (activePage !== "burnscar") return;
+    if (activePage !== "burnscar" || bsTimeline.drawTimer !== null) return;
     if (bsDrawPending) return;
     bsDrawPending = true;
     requestAnimationFrame(() => { bsDrawPending = false; drawBsMap(); });
@@ -2704,40 +2929,62 @@ MULTI_PAGE_JS = r"""
   function updateBsPixelLegend() {
     const legEl = document.getElementById("bsPixelLegend");
     if (!legEl) return;
-    const isSavi = (bsMap.layerLeft || "").includes("SAVI_") || (bsMap.swipe && (bsMap.layerRight || "").includes("SAVI_"));
+    const layers = bsMap.swipe ? [bsMap.layerLeft, bsMap.layerRight] : [bsMap.layerLeft];
+    const imagePaths = layers.flatMap(layer => {
+      const monthly = getBsMonth(layer);
+      return monthly ? bsMonthImages(monthly.month, monthly.kind) : resolveTmsLayers(layer);
+    });
+    if (!imagePaths.length) {
+      legEl.textContent = "ช่วงที่เลือกไม่มีภาพรอยเผาบนแผนที่";
+      return;
+    }
+    const isSavi = imagePaths.some(path => path.includes("SAVI_"));
     if (isSavi) {
-      legEl.innerHTML = `<strong>สีภาพ SAVI 20 ม.:</strong>
+      legEl.innerHTML = `<strong>ระดับเชื้อเพลิงที่ประเมินจากภาพดาวเทียม</strong>
         <span><i class="bs-swatch" style="background:#005000"></i> เชื้อเพลิงต่ำมาก</span>
         <span><i class="bs-swatch" style="background:#ffe100"></i> ปานกลาง</span>
         <span><i class="bs-swatch" style="background:#e10000"></i> เชื้อเพลิงสูงมาก</span>`;
     } else {
-      legEl.innerHTML = `<strong>สีแปลง 20 ม. (1 จุด=0.25 ไร่):</strong>
+      const agri = imagePaths.some(path => path.endsWith("A_COLOR"));
+      const forest = imagePaths.some(path => path.endsWith("F_COLOR"));
+      legEl.innerHTML = `<strong>สีบอกประเภทพื้นที่รอยเผา</strong>` +
+        (agri ? `
         <span><i class="bs-swatch" style="background:#ffff00"></i> ข้าว</span>
         <span><i class="bs-swatch" style="background:#ff72df"></i> อ้อย</span>
         <span><i class="bs-swatch" style="background:#d1ff72"></i> ข้าวโพด</span>
-        <span><i class="bs-swatch" style="background:#ffaa01"></i> พืชผสม</span>
-        <span><i class="bs-swatch" style="background:#ef0707"></i> ป่าไม้</span>`;
+        <span><i class="bs-swatch" style="background:#ffaa01"></i> พืชผสม</span>` : "") +
+        (forest ? '<span><i class="bs-swatch" style="background:#ef0707"></i> ป่าไม้</span>' : "");
     }
   }
 
   function updateBsAreaReadout(item, prefixLabel = "") {
     const box = document.getElementById("bsHoverInfo");
     if (!box) return;
+    const monthly = getBsMonth(bsMap.layerLeft);
+    if (monthly) {
+      const provCode = item ? item.prov_code || item.code : "";
+      const province = PROV_MAP.get(provCode);
+      const name = province ? "จ." + province.name_th : "รวมจังหวัดที่มีข้อมูล";
+      const rows = bsMonthAreaRows(monthly, provCode).map(([label, value]) => label + " " + value);
+      box.textContent = name + " · " + formatBsMonth(monthly.month) + " · " + rows.join(" · ");
+      return;
+    }
     if (!item) {
-      box.innerHTML = "พื้นที่ <strong>62 จังหวัดในขอบเขต สสน.</strong> · เลื่อนเมาส์บนแผนที่หรือเลือกจังหวัด/อำเภอเพื่อดูยอด 3 ฤดู";
+      box.textContent = "เลือกจังหวัดหรืออำเภอเพื่อดูพื้นที่รอยเผา";
       return;
     }
     const title = (prefixLabel ? prefixLabel : "") + item.name_th;
     if (item.trp === null || item.trp === undefined) {
-      box.innerHTML = `<strong>${escHtml(title)}</strong> · <span style="color:#d4a84f;">อยู่นอกขอบเขต สสน. ตามรอยเผา (62 จังหวัด)</span>`;
+      box.innerHTML = `<strong>${escHtml(title)}</strong> · ไม่มีข้อมูลจากโครงการตามรอยเผา สสน.`;
       return;
     }
-    const sumArr = (a) => a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : 0;
+    const sumArr = (a) => a?.[0] != null ? (a[0] + a[1] + a[2] + a[3] + a[4]) : null;
     const t67 = sumArr(item.trp["2024"]);
     const t68 = sumArr(item.trp["2025"]);
-    const t69 = item.trp["2026"] || [0,0,0,0,0];
-    const t69Tot = sumArr(t69);
-    box.innerHTML = `<strong>${escHtml(title)}</strong> · ฤดู 69: <strong style="color:#df6a37;">${formatNum(t69Tot, 0)} ไร่</strong> (ข้าว ${formatNum(t69[0], 0)} · อ้อย ${formatNum(t69[1], 0)} · ข้าวโพด ${formatNum(t69[2], 0)} · ป่า ${formatNum(t69[4], 0)})<br/><span style="color:#94a3b8;">ย้อนหลัง: ฤดู 68 = ${formatNum(t68, 0)} ไร่ · ฤดู 67 = ${formatNum(t67, 0)} ไร่</span>`;
+    const t69 = sumArr(item.trp["2026"]);
+    const seasonTotals = [["2567", t67], ["2568", t68], ["2569", t69]]
+      .map(([year, total]) => year + " " + (total === null ? "ไม่มีข้อมูล" : formatNum(total, 0) + " ไร่"));
+    box.textContent = title + " · พื้นที่รอยเผารายฤดู · " + seasonTotals.join(" · ");
   }
 
   function fitBsBbox(bbox, { maxZ = 14.5 } = {}) {
@@ -2758,6 +3005,11 @@ MULTI_PAGE_JS = r"""
   }
 
   function drawBsBasemap(ctx, w, h) {
+    if (bsMap.basemap === "plain") {
+      ctx.fillStyle = "#19242e";
+      ctx.fillRect(0, 0, w, h);
+      return;
+    }
     const worldPx = 256 * Math.pow(2, bsMap.zoom);
     const toSx = (mx) => (mx - bsMap.camX) * worldPx + w / 2;
     const toSy = (my) => (my - bsMap.camY) * worldPx + h / 2;
@@ -2765,9 +3017,11 @@ MULTI_PAGE_JS = r"""
     if (bsMap.basemap === "none") {
       // Offline choropleth fallback colored by Season TRP rai
       const yrKey = bsLayerYear(bsMap.layerLeft);
-      const lvl = bsMap.zoom >= 8.8 ? "amphoe" : "province";
+      const monthly = getBsMonth(bsMap.layerLeft) || (bsMap.swipe && getBsMonth(bsMap.layerRight));
+      const lvl = !monthly && bsMap.zoom >= 8.8 ? "amphoe" : "province";
       const items = lvl === "amphoe" ? DATA.amphoes : DATA.provinces;
       const getVal = (it) => {
+        if (monthly) return null;
         if (it.trp === null || it.trp === undefined) return null;
         const a = it.trp[yrKey];
         return a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : 0;
@@ -2842,7 +3096,8 @@ MULTI_PAGE_JS = r"""
   }
 
   function drawBsLayerTms(ctx, w, h, layerVal) {
-    const layers = resolveTmsLayers(layerVal);
+    const monthly = getBsMonth(layerVal);
+    const layers = monthly ? bsMonthImages(monthly.month, monthly.kind) : resolveTmsLayers(layerVal);
     if (!layers.length) return;
     const z = Math.max(6, Math.min(15, Math.round(bsMap.zoom)));
     const nTiles = 1 << z;
@@ -2891,9 +3146,9 @@ MULTI_PAGE_JS = r"""
   }
 
   function getBsActiveLayerItems() {
-    if (bsMap.zoom >= 11.2) return { lvl: "tambon", prefix: "ต.", arr: DATA.tambons };
-    if (bsMap.zoom >= 8.5) return { lvl: "amphoe", prefix: "อ.", arr: DATA.amphoes };
-    return { lvl: "province", prefix: "จ.", arr: DATA.provinces };
+    const level = atlasBoundaryLevel(bsMap.zoom);
+    const { key, prefix } = ATLAS_ADMIN_LEVELS[level];
+    return { lvl: key, prefix, arr: [DATA.provinces, DATA.amphoes, DATA.tambons][level] };
   }
 
   function drawBsMap() {
@@ -2948,28 +3203,15 @@ MULTI_PAGE_JS = r"""
       if (tagR) tagR.style.display = "none";
     }
 
-    // Crisp viewport-culled admin boundaries + hover ring
+    const boundaryStatus = document.getElementById("bsBoundaryStatus");
+    boundaryStatus.hidden = !bsMap.showBounds;
     if (bsMap.showBounds) {
-      const worldPx = 256 * Math.pow(2, bsMap.zoom);
-      const toSx = (mx) => (mx - bsMap.camX) * worldPx + w / 2;
-      const toSy = (my) => (my - bsMap.camY) * worldPx + h / 2;
-      const vLon0 = mxToLon(bsMap.camX - (w / 2) / worldPx);
-      const vLon1 = mxToLon(bsMap.camX + (w / 2) / worldPx);
-      const vLat0 = myToLat(bsMap.camY + (h / 2) / worldPx);
-      const vLat1 = myToLat(bsMap.camY - (h / 2) / worldPx);
-      const { arr } = getBsActiveLayerItems();
-
-      ctx.save();
-      ctx.strokeStyle = bsMap.basemap === "esri_sat" ? "rgba(255,255,255,0.42)" : "rgba(148,163,184,0.42)";
-      ctx.lineWidth = bsMap.zoom >= 11.2 ? 0.8 : 1.05;
-      for (const it of arr) {
-        const b = it.bbox;
-        if (b && (b[2] < vLon0 || b[0] > vLon1 || b[3] < vLat0 || b[1] > vLat1)) continue;
-        ctx.beginPath();
-        for (const ring of it._mRings) traceRingF32(ctx, ring, toSx, toSy);
-        ctx.stroke();
-      }
+      drawAtlasCanvasBoundaries(ctx, w, h, bsMap, boundaryStatus);
       if (bsMap.hoverItem) {
+        const worldPx = 256 * 2 ** bsMap.zoom;
+        const toSx = mx => (mx - bsMap.camX) * worldPx + w / 2;
+        const toSy = my => (my - bsMap.camY) * worldPx + h / 2;
+        ctx.save();
         ctx.beginPath();
         for (const ring of bsMap.hoverItem._mRings) traceRingF32(ctx, ring, toSx, toSy);
         ctx.strokeStyle = "rgba(15, 23, 42, 0.85)";
@@ -2978,8 +3220,8 @@ MULTI_PAGE_JS = r"""
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 2.0;
         ctx.stroke();
+        ctx.restore();
       }
-      ctx.restore();
     }
   }
 
@@ -3027,6 +3269,7 @@ MULTI_PAGE_JS = r"""
       fitBsBbox([97.3, 12.0, 105.7, 20.5], { maxZ: 6.4 });
       const badge = document.getElementById("bsMapScopeBadge");
       if (badge) badge.textContent = "ภาพรวม 62 จังหวัดในเขต สสน.";
+      updateBsMonthTotals();
       updateBsAreaReadout(null);
       updateBsPixelLegend();
       requestDrawBsMap();
@@ -3052,6 +3295,7 @@ MULTI_PAGE_JS = r"""
     if (!prov) return;
     bsMap.focusProv = provCode;
     bsMap.focusAmp = amphoeCode || "";
+    updateBsMonthTotals();
     const pSel = document.getElementById("bsMapProvSel");
     if (pSel) pSel.value = provCode;
     populateBsAmphoeSelect(provCode);
@@ -3106,7 +3350,15 @@ MULTI_PAGE_JS = r"""
     const boundsChk = document.getElementById("bsShowBoundsCheck");
     const swipeBtn = document.getElementById("bsSwipeToggle");
 
-    layerL?.addEventListener("change", () => { bsMap.layerLeft = layerL.value; updateBsPixelLegend(); requestDrawBsMap(); });
+    bsMap.basemap = baseSel.value;
+    bsMap.layerRight = layerR.value;
+    bindBsMonthTimeline(layerL, layerR);
+    layerL?.addEventListener("change", () => {
+      stopBsMonthPlayback();
+      bsMap.layerLeft = layerL.value;
+      syncBsMonthTimeline();
+      refreshBsMonthMap();
+    });
     layerR?.addEventListener("change", () => { bsMap.layerRight = layerR.value; updateBsPixelLegend(); requestDrawBsMap(); });
     baseSel?.addEventListener("change", () => { bsMap.basemap = baseSel.value; requestDrawBsMap(); });
     opRange?.addEventListener("input", () => {
@@ -3119,18 +3371,20 @@ MULTI_PAGE_JS = r"""
     swipeBtn?.addEventListener("click", () => {
       bsMap.swipe = !bsMap.swipe;
       swipeBtn.classList.toggle("active", bsMap.swipe);
+      swipeBtn.setAttribute("aria-pressed", String(bsMap.swipe));
+      swipeBtn.textContent = bsMap.swipe ? "ปิดแผนที่เทียบสองช่วง" : "เปิดแผนที่เทียบสองช่วง";
       const wrapR = document.getElementById("bsLayerRightWrap");
       const lblL = document.getElementById("bsLayerLeftLabel");
       if (wrapR) wrapR.style.display = bsMap.swipe ? "block" : "none";
-      if (lblL) lblL.textContent = bsMap.swipe ? "ฝั่งซ้าย (ก่อน)" : "ชั้นภาพรอยเผา 20 ม.";
-      if (bsMap.swipe && layerL && layerR && layerL.value === layerR.value) {
+      if (lblL) lblL.textContent = bsMap.swipe ? "ช่วงเวลาฝั่งซ้าย" : "ช่วงเวลาบนแผนที่";
+      if (bsMap.swipe && layerL && layerR && layerL.value === layerR.value && !getBsMonth(layerL.value)) {
         layerL.value = "2023/BOTH_202312_202404";
         layerR.value = "2025/BOTH_202512_202604";
         bsMap.layerLeft = layerL.value;
         bsMap.layerRight = layerR.value;
       }
-      updateBsPixelLegend();
-      requestDrawBsMap();
+      syncBsMonthTimeline();
+      refreshBsMonthMap();
     });
 
     document.getElementById("bsMapProvSel")?.addEventListener("change", (e) => {
@@ -3174,34 +3428,42 @@ MULTI_PAGE_JS = r"""
     });
     window.addEventListener("mouseup", () => { dragging = false; });
     function buildBsItemTooltip(item, prefix) {
+      const monthly = getBsMonth(bsMap.layerLeft);
+      if (monthly) {
+        const code = item.prov_code || item.code;
+        const name = PROV_MAP.get(code)?.name_th || item.name_th;
+        const heading = '<div class="tt-head"><div><h4>จ.' + escHtml(name) + '</h4><div class="tt-sub">' +
+          formatBsMonth(monthly.month) + '</div></div></div>';
+        return heading + bsMonthAreaRows(monthly, code).map(([label, value]) =>
+          '<div class="tt-row"><span class="tt-k">' + label + '</span><span class="tt-v">' + value + '</span></div>').join("");
+      }
       const title = (prefix || "") + item.name_th;
       if (item.trp === null || item.trp === undefined) {
         return `
           <div class="tt-head">
             <div>
               <h4>${escHtml(title)}</h4>
-              <div class="tt-sub">อยู่นอกขอบเขตข้อมูล สสน. ตามรอยเผา (62 จังหวัด)</div>
+              <div class="tt-sub">ไม่มีข้อมูลจากโครงการตามรอยเผา สสน.</div>
             </div>
             <span class="tt-badge">ไม่มีข้อมูล</span>
           </div>
-          <div class="tt-row"><span class="tt-k">หมายเหตุ</span><span class="tt-v">คงค่าว่าง (ไม่ตีความเป็น 0)</span></div>
         `;
       }
-      const sumArr = (a) => a ? (a[0] + a[1] + a[2] + a[3] + a[4]) : 0;
+      const sumArr = (a) => a?.[0] != null ? (a[0] + a[1] + a[2] + a[3] + a[4]) : null;
       const t67 = sumArr(item.trp["2024"]);
       const t68 = sumArr(item.trp["2025"]);
-      const a69 = item.trp["2026"] || [0, 0, 0, 0, 0];
+      const a69 = item.trp["2026"] ?? [null, null, null, null, null];
       const t69 = sumArr(a69);
-      const chg = t67 > 0 ? ((t69 - t67) * 100 / t67) : null;
+      const chg = t69 != null && t67 > 0 ? ((t69 - t67) * 100 / t67) : null;
       const cols = ["#d4a84f", "#c96f53", "#7d9b65", "#8b8579", "#a84438"];
       const barSegs = t69 > 0 ? a69.map((v, k) => `<div style="background:${cols[k]};width:${(v * 100 / t69).toFixed(1)}%"></div>`).join("") : "";
       return `
         <div class="tt-head">
           <div>
             <h4>${escHtml(title)}</h4>
-            <div class="tt-sub">รอยเผาไหม้ Sentinel-2 20 ม. (สสน.)</div>
+            <div class="tt-sub">พื้นที่รอยเผาฤดู 2569 จาก สสน.</div>
           </div>
-          <span class="tt-badge">${formatNum(t69, 0)} ไร่</span>
+          <span class="tt-badge">${t69 === null ? "ไม่มีข้อมูล" : formatNum(t69, 0) + " ไร่"}</span>
         </div>
         <div class="tt-bar">${barSegs}</div>
         <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>นาข้าว (ฤดู 2569)</span><span class="tt-v">${formatNum(a69[0], 0)} ไร่</span></div>
@@ -3209,8 +3471,8 @@ MULTI_PAGE_JS = r"""
         <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#7d9b65"></i>ข้าวโพด</span><span class="tt-v">${formatNum(a69[2], 0)} ไร่</span></div>
         <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a84438"></i>ป่าไม้</span><span class="tt-v">${formatNum(a69[4], 0)} ไร่</span></div>
         <div class="tt-divider"></div>
-        <div class="tt-row"><span class="tt-k">ย้อนหลัง ฤดู 67 → 68 → 69</span><span class="tt-v">${formatNum(t67, 0)} → ${formatNum(t68, 0)} → ${formatNum(t69, 0)}</span></div>
-        ${chg !== null ? `<div class="tt-row"><span class="tt-k">เปลี่ยนแปลง 69 เทียบ 67</span><span class="tt-v" style="color:${chg <= 0 ? "#55947a" : "#df6a37"}">${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</span></div>` : ""}
+        <div class="tt-row"><span class="tt-k">รอยเผาฤดู 2567 / 2568 / 2569 (ไร่)</span><span class="tt-v">${formatNum(t67, 0)} / ${formatNum(t68, 0)} / ${formatNum(t69, 0)}</span></div>
+        ${chg !== null ? `<div class="tt-row"><span class="tt-k">ฤดู 2569 เทียบ 2567</span><span class="tt-v" style="color:${chg <= 0 ? "#55947a" : "#df6a37"}">${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</span></div>` : ""}
       `;
     }
     function processBsHover() {
@@ -3337,7 +3599,7 @@ MULTI_PAGE_JS = r"""
             <span class="delta-pill ${chg <= 0 ? "down" : "up"}">${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%</span>
           </div>
           <div style="font-size:21px;font-weight:700;">${(v69 / 1e6).toFixed(2)} ล้านไร่</div>
-          <div class="kpi-hero-sub">ฤดู 2567: ${(v67 / 1e6).toFixed(2)} ล้านไร่</div>
+        <div class="kpi-hero-sub">ฤดู 2567 มี ${(v67 / 1e6).toFixed(2)} ล้านไร่</div>
         </div>
       `;
     }).join("");
@@ -3467,6 +3729,16 @@ MULTI_PAGE_JS = r"""
     }
   }
 
+  function updateBsComparatorMonth() {
+    const monthly = getBsMonth(bsMap.layerLeft);
+    document.querySelectorAll("#bsCompareGrid [data-bs-month-province]").forEach(row => {
+      row.hidden = !monthly;
+      if (!monthly) return;
+      const values = bsMonthAreaRows(monthly, row.dataset.bsMonthProvince);
+      row.textContent = formatBsMonth(monthly.month) + " · " + values.map(([label, value]) => label + " " + value).join(" · ");
+    });
+  }
+
   function renderComparatorCards() {
     const grid = document.getElementById("bsCompareGrid");
     if (!grid || !DATA || !state.computedStats) return;
@@ -3491,22 +3763,24 @@ MULTI_PAGE_JS = r"""
             <strong style="font-size:15.5px;color:var(--text);">${escHtml(p.name_th)}</strong>
             <span class="reg-pill" style="margin-left:5px;">${escHtml(REGION_TH[p.region] || p.region || "-")}</span>
           </div>
-          <button type="button" class="btn" style="padding:3px 9px;font-size:11px;">ดูแปลง 20 ม.</button>
+          <button type="button" class="btn" style="padding:3px 9px;font-size:11px;">ดูบนแผนที่</button>
         </div>
+        <div class="cmp-month" data-bs-month-province="${escHtml(p.code)}" hidden></div>
         ${cropBarHtml}
-        <div class="cmp-metric"><span>จุดไฟในมุมมอง</span><span>${formatNum(rec.total)} จุด</span></div>
-        <div class="cmp-metric"><span>ความหนาแน่น</span><span>${rec.density !== null ? rec.density.toFixed(1) + " /100ตร.กม." : "-"}</span></div>
-        <div class="cmp-metric"><span>เกษตร+ส.ป.ก.</span><span>${rec.agriPct !== null ? rec.agriPct.toFixed(1) + "%" : "-"}</span></div>
-        <div class="cmp-metric"><span>รอยเผา สสน. 69 รวม</span><span>${t26Tot !== null ? formatNum(t26Tot, 0) + " ไร่" : (p.trp ? "0 ไร่" : "ไม่มีข้อมูล")}</span></div>
-        <div class="cmp-metric"><span>ข้าว / อ้อย / ข้าวโพด 69</span><span>${t26 ? `${formatNum(t26[0],0)} / ${formatNum(t26[1],0)} / ${formatNum(t26[2],0)}` : (p.trp ? "0" : "ไม่มีข้อมูล")}</span></div>
-        <div class="cmp-metric"><span>ป่าไม้ สสน. 69</span><span>${t26 ? formatNum(t26[4], 0) + " ไร่" : (p.trp ? "0 ไร่" : "ไม่มีข้อมูล")}</span></div>
-        <div class="cmp-metric"><span>ดัชนีอากาศเอื้อไฟ 26</span><span>${w26?.peak_fwi != null ? w26.peak_fwi + "/100 (Tmax " + w26.tmax + "°C)" : "-"}</span></div>
-        <div class="cmp-metric"><span>วันอากาศแห้ง RH&lt;35%</span><span>${w26?.low_rh_35 != null ? formatNum(w26.low_rh_35) + " วัน" : "-"}</span></div>
-        <div class="cmp-metric"><span>น้ำท่วมซ้ำ 17 ปี HII</span><span>${p.flood_max_17yr != null ? p.flood_max_17yr + " ครั้ง" : "ไม่มีข้อมูล"}</span></div>
+        <div class="cmp-metric"><span>จุดความร้อนตามตัวเลือก</span><span>${formatNum(rec.total)} จุด</span></div>
+        <div class="cmp-metric"><span>จุดต่อ 100 ตร.กม.</span><span>${rec.density !== null ? rec.density.toFixed(1) : "ไม่มีข้อมูล"}</span></div>
+        <div class="cmp-metric"><span>สัดส่วนจุดในพื้นที่เกษตรและเขต ส.ป.ก.</span><span>${rec.agriPct !== null ? rec.agriPct.toFixed(1) + "%" : "ไม่มีข้อมูล"}</span></div>
+        <div class="cmp-metric"><span>พื้นที่รอยเผาฤดู 2569</span><span>${t26Tot !== null ? formatNum(t26Tot, 0) + " ไร่" : (p.trp ? "0 ไร่" : "ไม่มีข้อมูล")}</span></div>
+        <div class="cmp-metric"><span>รอยเผาข้าว / อ้อย / ข้าวโพด</span><span>${t26 ? `${formatNum(t26[0],0)} / ${formatNum(t26[1],0)} / ${formatNum(t26[2],0)} ไร่` : (p.trp ? "0 ไร่" : "ไม่มีข้อมูล")}</span></div>
+        <div class="cmp-metric"><span>รอยเผาในป่า</span><span>${t26 ? formatNum(t26[4], 0) + " ไร่" : (p.trp ? "0 ไร่" : "ไม่มีข้อมูล")}</span></div>
+        <div class="cmp-metric"><span>คะแนนอากาศเอื้อต่อไฟ ม.ค.–เม.ย. 2569</span><span>${w26?.peak_fwi != null ? w26.peak_fwi + " / 100" : "ไม่มีข้อมูล"}</span></div>
+        <div class="cmp-metric"><span>วันที่ความชื้นต่ำกว่า 35%</span><span>${w26?.low_rh_35 != null ? formatNum(w26.low_rh_35) + " วัน" : "ไม่มีข้อมูล"}</span></div>
+        <div class="cmp-metric"><span>ท่วมซ้ำสูงสุดของตำบลในจังหวัด (17 ปี)</span><span>${p.flood_max_17yr != null ? p.flood_max_17yr + " ครั้ง" : "ไม่มีข้อมูล"}</span></div>
       `;
       card.querySelector("button").onclick = () => flyBsMapToProvince(p.code, { scrollToMap: true });
       grid.appendChild(card);
     }
+    updateBsComparatorMonth();
   }
 
   function buildMasterProvinceRows() {
@@ -3740,7 +4014,7 @@ MULTI_PAGE_JS = r"""
     Malaysia: { label: "มาเลเซีย", color: "#8e82a8", note: "เพื่อนบ้าน" },
   };
   const hzHoverStore = {};
-  let liveHazeProvRows = null;
+  let liveHazeSnapshot = null;
   let selectedLiveHazeProv = null;
 
   function populateHazeSelects() {
@@ -3767,38 +4041,43 @@ MULTI_PAGE_JS = r"""
     }
   }
 
+  function readPm25(value) {
+    if (value == null || String(value).trim() === "") return null;
+    const pm25 = Number(value);
+    return Number.isFinite(pm25) && pm25 >= 0 ? pm25 : null;
+  }
+
   function pm25Tier(v) {
-    if (v === null || v === undefined) return ["ไม่มีข้อมูล", "hz-pm-mod"];
+    if (v == null) return ["ไม่มีค่าเฉลี่ย 24 ชม.", "hz-pm-mod"];
     if (v <= 15) return ["ดีมาก (≤15)", "hz-pm-good"];
     if (v <= 25) return ["ดี (≤25)", "hz-pm-good"];
     if (v <= 37.5) return ["ปานกลาง", "hz-pm-mod"];
-    if (v <= 75) return ["เริ่มกระทบสุขภาพ", "hz-pm-high"];
-    return ["วิกฤต (>75)", "hz-pm-crit"];
+    if (v <= 75) return ["เริ่มมีผลกระทบต่อสุขภาพ", "hz-pm-high"];
+    return ["มีผลกระทบต่อสุขภาพ (>75)", "hz-pm-crit"];
   }
 
   async function loadLiveHazeData(force = false) {
     const grid = document.getElementById("hzLiveGrid");
     const sub = document.getElementById("hzLiveSub");
-    const tBadge = document.getElementById("hzLiveTimeBadge");
     if (!grid || !DATA) return;
-    if (!force && liveHazeProvRows) {
-      renderLiveHazeGrid(liveHazeProvRows, false);
+    if (!force && liveHazeSnapshot) {
+      renderLiveHazeGrid(liveHazeSnapshot.rows, liveHazeSnapshot.isFallback);
       return;
     }
     sub.textContent = "กำลังดึงค่า PM2.5 สด 77 จังหวัดจาก GISTDA เช็คฝุ่น...";
     try {
-      const resp = await fetch("https://pm25.gistda.or.th/rest/getPm25byProvince");
+      const resp = await fetch("https://pm25.gistda.or.th/rest/getPm25byProvince", { signal: AbortSignal.timeout(12000) });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       const j = await resp.json();
       const rows = (j.data || []).map(d => ({
         code: String(d.pv_idn).padStart(2, "0"),
         name_th: d.pv_tn || PROV_MAP.get(String(d.pv_idn).padStart(2, "0"))?.name_th || "",
-        pm25: d.pm25 != null ? Number(d.pm25) : null,
-        pm25_24h: d.pm25Avg24hr != null ? Number(d.pm25Avg24hr) : null,
+        pm25: readPm25(d.pm25),
+        pm25_24h: readPm25(d.pm25Avg24hr),
         dt: d.dt || "",
-      })).filter(r => r.pm25 !== null);
+      })).filter(r => r.pm25 !== null || r.pm25_24h !== null);
       if (!rows.length) throw new Error("empty");
-      liveHazeProvRows = rows;
+      liveHazeSnapshot = { rows, isFallback: false };
       renderLiveHazeGrid(rows, false);
     } catch (_) {
       const fallback = DATA.provinces
@@ -3810,9 +4089,8 @@ MULTI_PAGE_JS = r"""
           pm25_24h: p.pm25_snap.pm25_24h,
           dt: p.pm25_snap.dt || "",
         }));
-      liveHazeProvRows = fallback;
+      liveHazeSnapshot = { rows: fallback, isFallback: true };
       renderLiveHazeGrid(fallback, true);
-      if (tBadge) tBadge.textContent = "แคชล่าสุด";
     }
   }
 
@@ -3821,23 +4099,26 @@ MULTI_PAGE_JS = r"""
     const sub = document.getElementById("hzLiveSub");
     const tBadge = document.getElementById("hzLiveTimeBadge");
     if (!grid) return;
-    const sorted = rows.slice().sort((a, b) => (b.pm25 || 0) - (a.pm25 || 0));
-    const exceedCnt = sorted.filter(r => r.pm25 > 37.5).length;
-    const avgPm = sorted.length ? (sorted.reduce((a, r) => a + r.pm25, 0) / sorted.length) : null;
-    const top = sorted[0];
+    const sorted = rows.slice().sort((a, b) => (b.pm25 ?? -1) - (a.pm25 ?? -1));
+    const dailyRows = rows.filter(r => r.pm25_24h != null);
+    const exceedCnt = dailyRows.filter(r => r.pm25_24h > 37.5).length;
+    const top = sorted.find(r => r.pm25 != null);
 
-    document.getElementById("hzKpiExceed").textContent = `${exceedCnt} / ${sorted.length} จว.`;
-    document.getElementById("hzKpiExceedSub").textContent = avgPm !== null ? `ค่าเฉลี่ยทั้งประเทศ ${avgPm.toFixed(1)} µg/m³` : "-";
+    document.getElementById("hzKpiExceed").textContent = dailyRows.length ? `${exceedCnt} / ${dailyRows.length} จว.` : "ไม่มีข้อมูล";
+    document.getElementById("hzKpiExceedSub").textContent = `มีค่าเฉลี่ย 24 ชม. ${dailyRows.length}/77 จังหวัด`;
     document.getElementById("hzKpiTop").textContent = top ? `${top.pm25.toFixed(1)} µg/m³` : "-";
     document.getElementById("hzKpiTopSub").textContent = top ? `จ.${top.name_th} (เฉลี่ย 24 ชม. ${top.pm25_24h != null ? top.pm25_24h.toFixed(1) : "-"})` : "-";
-    const dtTxt = top?.dt ? top.dt.slice(0, 16).replace("T", " ") + " UTC" : "";
-    if (tBadge) tBadge.textContent = isFallback ? "Snapshot ล่าสุด" : (dtTxt || "อัปเดตสด");
+    const dt = sorted.map(r => Date.parse(r.dt)).filter(Number.isFinite);
+    const dtTxt = dt.length ? new Intl.DateTimeFormat("th-TH", {
+      dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok",
+    }).format(Math.max(...dt)) + " น." : "ไม่ระบุเวลา";
+    if (tBadge) tBadge.textContent = isFallback ? "ข้อมูลจากรอบที่บันทึกไว้" : dtTxt;
     sub.textContent = isFallback
-      ? `แสดงผลจากข้อมูลบันทึก GISTDA เช็คฝุ่นล่าสุด (${dtTxt}) · คลิกจังหวัดเพื่อดูแนวโน้มรายอำเภอ`
-      : `ข้อมูลสด 77 จังหวัดจาก GISTDA เช็คฝุ่น (${dtTxt}) · คลิกการ์ดจังหวัดเพื่อดูค่ารายอำเภอ + พยากรณ์ฝุ่น 5 วัน`;
+      ? `โหลดค่าล่าสุดไม่ได้ แสดงข้อมูล GISTDA ที่บันทึกไว้ (${dtTxt})`
+      : `ข้อมูล GISTDA ${rows.length} จังหวัด (${dtTxt}) เลือกจังหวัดเพื่อดูค่ารายอำเภอและพยากรณ์ฝุ่น`;
 
     grid.innerHTML = sorted.slice(0, 15).map((r, i) => {
-      const [tierTxt, tierCls] = pm25Tier(r.pm25);
+      const [tierTxt, tierCls] = pm25Tier(r.pm25_24h);
       const act = selectedLiveHazeProv === r.code ? "active" : "";
       return `
         <button type="button" class="hz-prov-card ${act}" data-hz-prov="${escHtml(r.code)}">
@@ -3845,7 +4126,7 @@ MULTI_PAGE_JS = r"""
             <strong style="font-size:13px;">#${i + 1} ${escHtml(r.name_th)}</strong>
             <span class="hz-pm-badge ${tierCls}">${tierTxt}</span>
           </div>
-          <div style="font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;">${r.pm25.toFixed(1)} <span style="font-size:11px;font-weight:500;color:var(--muted);">µg/m³</span></div>
+          <div style="font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;">${formatNum(r.pm25, 1)} <span style="font-size:11px;font-weight:500;color:var(--muted);">µg/m³ รายชั่วโมง</span></div>
           <div style="font-size:11px;color:var(--muted);">เฉลี่ย 24 ชม.: ${r.pm25_24h != null ? r.pm25_24h.toFixed(1) : "-"} µg/m³</div>
         </button>
       `;
@@ -3858,8 +4139,8 @@ MULTI_PAGE_JS = r"""
         const r = sorted.find(x => x.code === code);
         const p = PROV_MAP.get(code);
         if (!r) return;
-        const [tierTxt] = pm25Tier(r.pm25);
-        const pmCol = r.pm25 > 75 ? "#cf5648" : r.pm25 > 37.5 ? "#df6a37" : r.pm25 > 25 ? "#d4a84f" : "#55947a";
+        const [tierTxt] = pm25Tier(r.pm25_24h);
+        const pmCol = r.pm25_24h == null ? "#94a3b8" : r.pm25_24h > 75 ? "#cf5648" : r.pm25_24h > 37.5 ? "#df6a37" : r.pm25_24h > 25 ? "#d4a84f" : "#55947a";
         const camsPeak = p?.aq_y?.["2026"]?.pm25_peak ?? null;
         const t26 = p?.trp?.["2026"];
         const trp26 = t26 ? (t26[0] + t26[1] + t26[2] + t26[3] + t26[4]) : null;
@@ -3871,7 +4152,7 @@ MULTI_PAGE_JS = r"""
             </div>
             <span class="tt-badge" style="color:${pmCol};border-color:${pmCol}55;background:${pmCol}1f;">${tierTxt}</span>
           </div>
-          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:${pmCol}"></i>ค่าฝุ่น PM2.5 ชั่วโมงนี้</span><span class="tt-v">${r.pm25.toFixed(1)} µg/m³</span></div>
+          <div class="tt-row"><span class="tt-k">ค่าฝุ่น PM2.5 ชั่วโมงนี้</span><span class="tt-v">${formatNum(r.pm25, 1)} µg/m³</span></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ค่าเฉลี่ย 24 ชั่วโมง</span><span class="tt-v">${r.pm25_24h != null ? r.pm25_24h.toFixed(1) + " µg/m³" : "-"}</span></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#a855f7"></i>เฉลี่ยหน้าแล้ง 2026 (CAMS)</span><span class="tt-v">${camsPeak !== null ? camsPeak.toFixed(1) + " µg/m³" : "-"}</span></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>รอยเผา สสน. ฤดู 2569</span><span class="tt-v">${trp26 !== null ? formatNum(trp26, 0) + " ไร่" : "ไม่มีข้อมูล"}</span></div>
@@ -3908,7 +4189,7 @@ MULTI_PAGE_JS = r"""
           topAmpName = amps[0].ap_tn || "";
           ampHtml = `<div style="font-size:12px;font-weight:700;">รายอำเภอสูงสุด จ.${escHtml(prov.name_th)} (คลิกชื่ออำเภอเพื่อดูฝุ่นรายตำบลสด GISTDA):</div>
             <div class="hz-amp-grid">${amps.map(a => {
-              const [, cls] = pm25Tier(a.pm25);
+              const [, cls] = pm25Tier(readPm25(a.pm25Avg24hr));
               return `<button type="button" class="hz-amp-chip" data-ap-idn="${escHtml(a.ap_idn)}" data-ap-name="${escHtml(a.ap_tn || "")}" style="cursor:pointer;font-family:inherit;color:var(--text);text-align:left;"><span>อ.${escHtml(a.ap_tn || "")}</span><span class="hz-pm-badge ${cls}">${Number(a.pm25).toFixed(1)}</span></button>`;
             }).join("")}</div>`;
         }
@@ -3936,7 +4217,7 @@ MULTI_PAGE_JS = r"""
             <div class="hz-amp-grid">${days.map(([d, vals]) => {
               const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
               const mx = Math.max(...vals);
-              const [, cls] = pm25Tier(avg);
+              const [, cls] = pm25Tier(vals.length === 24 ? avg : null);
               return `<div class="hz-amp-chip"><span>${escHtml(d.slice(5))}</span><span class="hz-pm-badge ${cls}">เฉลี่ย ${avg.toFixed(1)} · พีค ${mx.toFixed(0)}</span></div>`;
             }).join("")}</div>`;
         }
@@ -3973,7 +4254,7 @@ MULTI_PAGE_JS = r"""
           <span class="badge">รหัสอำเภอ ${escHtml(apIdn)}</span>
         </div>
         <div class="hz-amp-grid">${tbs.map(t => {
-          const [, cls] = pm25Tier(t.pm25);
+          const [, cls] = pm25Tier(readPm25(t.pm25Avg24hr));
           const avg24 = t.pm25Avg24hr != null ? Number(t.pm25Avg24hr).toFixed(1) : "-";
           return `<div class="hz-amp-chip" title="เฉลี่ย 24 ชม.: ${avg24} µg/m³"><span>ต.${escHtml(t.tb_tn || "")}</span><span class="hz-pm-badge ${cls}">${Number(t.pm25).toFixed(1)} µg/m³</span></div>`;
         }).join("")}</div>
@@ -4119,16 +4400,9 @@ MULTI_PAGE_JS = r"""
       }
     }
     const rVal = pearsonR(xs, ys);
-    document.getElementById("hzCorrBadge").textContent = rVal !== null ? `Pearson r = ${rVal.toFixed(2)}` : "r = n/a";
+    document.getElementById("hzCorrBadge").textContent = rVal !== null ? `ค่าความสัมพันธ์ ${rVal.toFixed(2)}` : "ข้อมูลไม่พอเปรียบเทียบ";
     const ins = document.getElementById("hzInsightText");
-    if (ins) {
-      if (rVal !== null) {
-        const dir = rVal >= 0 ? `ยิ่งจุดไฟพุ่ง ${series.meta.name} ยิ่งสูงตาม` : `ยิ่ง ${series.meta.name} ต่ำ (แห้งแล้ง) จุดความร้อนยิ่งสูงขึ้น`;
-        ins.textContent = `ความสัมพันธ์รายเดือน (${xs.length} เดือนที่มีข้อมูลคู่ · r = ${rVal.toFixed(2)}): ${dir}`;
-      } else {
-        ins.textContent = "ไม่มีข้อมูลรายเดือนเพียงพอสำหรับคำนวณความสัมพันธ์";
-      }
-    }
+    if (ins) ins.textContent = describeFireCorrelation(series.meta.name, rVal);
 
     // Reuse drawDualFireWeatherChart with custom meta
     hzHoverStore.customMeta = { name: series.meta.name, unit: series.meta.unit, color: "#689cb8" };
@@ -4478,8 +4752,7 @@ MULTI_PAGE_JS = r"""
     const tableRows = [];
 
     for (const p of DATA.provinces) {
-      const covered = p.trp !== null && p.trp !== undefined;
-      const a = covered ? (p.trp[yrKey] || [0, 0, 0, 0, 0]) : null;
+      const a = p.trp?.[yrKey] ?? null;
       if (a) {
         burnTotalRai += a[0] + a[1] + a[2] + a[3] + a[4];
         burnAgriRai += a[0] + a[1] + a[2] + a[3];
@@ -4492,8 +4765,7 @@ MULTI_PAGE_JS = r"""
     }
 
     const extractBurnAndPlant = (item, isProv) => {
-      const covered = item.trp !== null && item.trp !== undefined;
-      const a = covered ? (item.trp[yrKey] || [0, 0, 0, 0, 0]) : null;
+      const a = item.trp?.[yrKey] ?? null;
       let paddyPl = null, sugarPl = null, cornPl = null, sumPl = null;
       if (isProv && item.doae_2566) {
         const d = item.doae_2566;
@@ -4525,7 +4797,7 @@ MULTI_PAGE_JS = r"""
           pmCrop = (a[0] * FUEL_T_PER_RAI[0] + a[1] * FUEL_T_PER_RAI[1] + a[2] * FUEL_T_PER_RAI[2]) * EF_PM25_T_PER_T;
         }
       }
-      const ratePct = (burnVal !== null && plantVal !== null && plantVal > 0) ? Math.min(100, burnVal * 100 / plantVal) : null;
+      const ratePct = burnToPlantRatio(burnVal, plantVal);
       return { burnVal, plantVal, ratePct, pmCrop, a, paddyPl, sugarPl, cornPl };
     };
 
@@ -4613,7 +4885,9 @@ MULTI_PAGE_JS = r"""
         <td><span class="reg-pill">${escHtml(r.parent_th)}</span></td>
         <td style="font-weight:700;color:var(--accent);">${fmt(r.burnVal)}</td>
         <td>${fmt(r.plantVal)}</td>
-        <td style="font-weight:700;">${r.ratePct !== null ? r.ratePct.toFixed(1) + "%" : '<span style="color:var(--muted)">ไม่มีข้อมูล</span>'}</td>
+        <td style="font-weight:700;">${r.ratePct !== null ? formatNum(r.ratePct, 1) + "%" : '<span style="color:var(--muted)">ไม่มีข้อมูล</span>'}
+          ${r.ratePct > 100 ? '<br><small>เกินฐานพื้นที่ปลูกปี 2566</small>' : ''}
+        </td>
         <td>${escHtml(r.extraTxt)}</td>
         <td>${fmt(r.pmCrop)}</td>
       </tr>
@@ -4656,7 +4930,7 @@ MULTI_PAGE_JS = r"""
               <h4>${escHtml(r.name_th)} · ฤดู ${Number(yrKey) + 543}</h4>
               <div class="tt-sub">${escHtml(r.parent_th)} · DOAE 2566 × สสน. 20 ม.</div>
             </div>
-            <span class="tt-badge">${r.ratePct !== null ? r.ratePct.toFixed(1) + "% เผา/ปลูก" : "นอกเขต สสน."}</span>
+            <span class="tt-badge">${r.ratePct !== null ? formatNum(r.ratePct, 1) + "% เทียบฐานปี 2566" : "ข้อมูลไม่ครบ"}</span>
           </div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d4a84f"></i>นาข้าว (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[0], 0) : "ไม่มีข้อมูล"} / ${r.paddyPl != null ? formatNum(r.paddyPl, 0) + " ไร่" : "-"}</span></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#c96f53"></i>อ้อยโรงงาน (เผา / ปลูก)</span><span class="tt-v">${a ? formatNum(a[1], 0) : "ไม่มีข้อมูล"} / ${r.sugarPl != null ? formatNum(r.sugarPl, 0) + " ไร่" : "-"}</span></div>

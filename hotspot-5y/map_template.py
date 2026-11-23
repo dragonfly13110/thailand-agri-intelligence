@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+from pathlib import Path
 
 from explorer_asset import EXPLORER_BUTTON_HTML, EXPLORER_CSS, EXPLORER_JS, EXPLORER_MODAL_HTML
 from map_data import encode_payload_b64
@@ -15,6 +16,8 @@ from ui_pages import (
     OVERVIEW_PAGE_HTML,
     WEATHER_PAGE_HTML,
 )
+
+ATLAS_BOUNDARIES_JS = Path(__file__).with_name("atlas_boundaries.js").read_text(encoding="utf-8")
 
 ATLAS_FONTS = """<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -87,10 +90,11 @@ ATLAS_CHROME_CSS = """.topbar {
 ATLAS_NAV_ITEMS = (
     ("overview", "ภาพรวม"),
     ("map", "แผนที่เจาะลึก"),
-    ("weather", "อากาศ × ไฟ"),
-    ("haze", "ฝุ่น PM2.5 & ข้ามแดน"),
-    ("burnscar", "รอยเผา & เทียบจังหวัด"),
+    ("weather", "อากาศกับจุดความร้อน"),
+    ("haze", "ฝุ่นและประเทศเพื่อนบ้าน"),
+    ("burnscar", "รอยเผาและเทียบจังหวัด"),
 )
+ATLAS_GUIDE_LINK = '<a class="nav-tab" href="./guide.html">คู่มือใช้งาน</a>'
 
 ATLAS_THEME_SCRIPT = r"""<script>
 function setAtlasTheme(theme, remember = false) {
@@ -112,7 +116,7 @@ HTML_SHELL = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Thailand Fire, Burn Scar & Climate Intelligence Atlas (2022–2026)</title>
+<title>Thailand Fire Atlas | จุดความร้อน รอยเผา อากาศ และฝุ่น</title>
 <!--__ATLAS_FONTS__-->
 <!--__ATLAS_THEME_SCRIPT__-->
 <style>
@@ -332,9 +336,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 .rank-item {
   display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; align-items: center;
   padding: 5px 7px; border-radius: 7px; background: rgba(148,163,184,0.06); cursor: pointer;
-  font-size: 12px;
+  font: inherit; font-size: 12px; color: inherit; text-align: left; border: 1px solid transparent;
 }
 .rank-item:hover { background: var(--accent-soft); }
+.rank-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .rank-bar-bg { height: 4px; border-radius: 99px; background: rgba(148,163,184,0.16); margin-top: 3px; overflow: hidden; }
 .rank-bar-fg { height: 100%; background: var(--accent); border-radius: 99px; }
 
@@ -389,9 +394,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <span id="dateBadge" class="badge">2022–2026</span>
     </div>
     <nav class="nav-tabs" aria-label="เมนูหลัก">
+      <!--__ATLAS_GUIDE_LINK__-->
       <!--__ATLAS_NAV_ITEMS__-->
-      <!--__AREA_INSIGHTS_LINK__-->
-      <!--__FIRE_PM_MAP_LINK__-->
       <!--__FARM_FIRE_PM25_LINK__-->
       <!--__EXPLORER_BTN__-->
     </nav>
@@ -399,8 +403,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     <div class="search-wrap" style="display:none;">
       <input id="searchInput" class="search-input" type="search" placeholder="ค้นหาจังหวัด / อำเภอ / ตำบล..." autocomplete="off" />
     </div>
-    <button id="exportCsvBtn" class="btn" style="display:none;" title="ส่งออกตารางเป็น CSV สำหรับ Excel">ส่งออก CSV</button>
-    <button id="provenanceBtn" class="btn" title="ที่มาข้อมูลและข้อควรระวัง">ข้อควรรู้</button>
+    <button id="exportCsvBtn" class="btn" style="display:none;" title="บันทึกเป็นไฟล์ตารางสำหรับเปิดใน Excel">ดาวน์โหลดตาราง</button>
+    <button id="provenanceBtn" class="btn" title="แหล่งข้อมูลและวิธีนับ">ที่มาข้อมูล</button>
     <button id="themeToggle" class="btn" title="สลับโหมดสีมืด/สว่าง">โหมดสว่าง</button>
     <button id="presentationBtn" class="btn primary" style="display:none;" title="ขยายแผนที่เต็มจอสำหรับสอน/นำเสนอ">เต็มจอ</button>
   </header>
@@ -411,17 +415,17 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   <main id="page-map" class="page-view workspace">
     <aside class="sidebar left">
       <div class="section">
-        <div class="section-title"><span>1. มาตรฐานดาวเทียม & เวลา</span></div>
+        <div class="section-title"><span>ดาวเทียมและช่วงเวลา</span></div>
         <div>
           <label class="field-label" for="satSelect">ชุดดาวเทียม</label>
           <select id="satSelect">
-            <option value="N" selected>Suomi NPP (N) — มาตรฐาน 5 ปี</option>
-            <option value="ALL">ทุกดาวเทียม (N+N20+N21+1)</option>
+            <option value="N" selected>Suomi NPP ดวงเดียว</option>
+            <option value="ALL">รวมทุกดาวเทียม</option>
           </select>
         </div>
         <label class="check-row">
           <input id="janOctCheck" type="checkbox" checked />
-          <span>เทียบช่วง ม.ค.–ต.ค. ทุกปี (กัน N ขาด พ.ย. 2026)</span>
+          <span>ใช้ช่วง ม.ค.–ต.ค. เหมือนกันทุกปี</span>
         </label>
         <div id="satWarnPill" class="warn-pill"></div>
         <div class="axis-row">
@@ -440,19 +444,19 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             <label class="field-label" for="seasonSelect">ช่วงฤดูกาล</label>
             <select id="seasonSelect">
               <option value="all" selected>ทุกเดือนที่เลือก</option>
-              <option value="peak">ช่วงพีค (ม.ค.–เม.ย.)</option>
-              <option value="early">ต้นปีเกษตร (ม.ค.–ก.พ.)</option>
-              <option value="off">นอกฤดูเผา (พ.ค.–ต.ค.)</option>
-              <option value="late">ปลายปีเก็บเกี่ยว (พ.ย.–ธ.ค.)</option>
+              <option value="peak">ม.ค.–เม.ย.</option>
+              <option value="early">ม.ค.–ก.พ.</option>
+              <option value="off">พ.ค.–ต.ค.</option>
+              <option value="late">พ.ย.–ธ.ค.</option>
             </select>
           </div>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title"><span>2. พื้นที่ & ชนิดพืช</span></div>
+        <div class="section-title"><span>พื้นที่และชนิดพืช</span></div>
         <div>
-          <label class="field-label" for="cropSelect">กลุ่มพื้นที่ / พืช (รวมรุกป่าเมื่อเลือกพืช)</label>
+          <label class="field-label" for="cropSelect">เลือกพื้นที่หรือพืช</label>
           <select id="cropSelect">
             <option value="all" selected>ทุกพื้นที่และทุกพืช</option>
             <option value="agri">เฉพาะเกษตร + ส.ป.ก.</option>
@@ -464,33 +468,33 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         </div>
         <label class="check-row">
           <input id="excludeStaticCheck" type="checkbox" checked />
-          <span>ตัดจุดซ้ำถาวร ≥25 วัน (โรงงาน/เตาเผา)</span>
+          <span>ซ่อนแหล่งความร้อนที่พบซ้ำตั้งแต่ 25 วัน</span>
         </label>
       </div>
 
       <div class="section">
-        <div class="section-title"><span>3. สีแผนที่ & การแสดงผล</span></div>
+        <div class="section-title"><span>สีบนแผนที่</span></div>
         <div>
-          <label class="field-label" for="metricSelect">ระบายสีพื้นที่ตามตัวชี้วัด</label>
+          <label class="field-label" for="metricSelect">ใช้สีแสดงข้อมูลอะไร</label>
           <select id="metricSelect">
             <optgroup label="จุดความร้อน &amp; รอยเผาไหม้">
               <option value="count" selected>จำนวนจุดความร้อน (จุด)</option>
               <option value="density">ความหนาแน่น (จุด / 100 ตร.กม.)</option>
-              <option value="agri_pct">สัดส่วนเผาในเกษตร+ส.ป.ก. (%)</option>
-              <option value="trp_rai">รอยเผา สสน. ตามรอยเผา (ไร่ · แยกพืช/ฤดู 24–26)</option>
-              <option value="scar_rai">รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)</option>
+              <option value="agri_pct">สัดส่วนจุดความร้อนในพื้นที่เกษตร (%)</option>
+              <option value="trp_rai">พื้นที่รอยเผาจาก สสน. (ไร่)</option>
+              <option value="scar_rai">พื้นที่รอยเผาจาก GISTDA (พ.ค. 2569)</option>
               <option value="freq_rai">พื้นที่เผาซ้ำซาก GISTDA (ไร่)</option>
             </optgroup>
             <optgroup label="ฝุ่น PM2.5 · ความชื้นดิน · อัตราเผาเกษตร">
               <option value="aq_pm25">PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)</option>
               <option value="aq_exceed">วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)</option>
-              <option value="aq_co">ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)</option>
-              <option value="soil_wet">ความชื้นผิวดิน NASA GWETTOP (0–1)</option>
-              <option value="soil_dry_streak">เตือนภัยดินแห้งต่อเนื่องสูงสุด (วัน · NASA POWER)</option>
-              <option value="doae_plant_rai">พื้นที่ปลูกข้าว+อ้อย+ข้าวโพด DOAE (ไร่ · จว./อำเภอ/ตำบล)</option>
-              <option value="burn_rate_agri">อัตราเผาเกษตรเทียบปลูก DOAE (% · จว./อำเภอ/ตำบล)</option>
+              <option value="aq_co">ก๊าซคาร์บอนมอนอกไซด์ช่วงหน้าแล้ง (µg/m³)</option>
+              <option value="soil_wet">ความชื้นผิวดิน (ค่า 0–1)</option>
+              <option value="soil_dry_streak">ช่วงดินแห้งติดต่อกันยาวที่สุด (วัน)</option>
+              <option value="doae_plant_rai">พื้นที่ปลูกข้าว อ้อย และข้าวโพด (ไร่)</option>
+              <option value="burn_rate_agri">พื้นที่รอยเผาเทียบพื้นที่ปลูก (%)</option>
             </optgroup>
-            <optgroup label="สภาพอากาศเอื้อไฟ 2022–2026 (ครบ 77 จว.)">
+            <optgroup label="สภาพอากาศ (ค.ศ. 2022–2026)">
               <option value="wx_fwi">ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)</option>
               <option value="wx_tmax">อุณหภูมิสูงสุดเฉลี่ย (°C · 2022–2026)</option>
               <option value="wx_rhmin">ความชื้นสัมพัทธ์ต่ำสุดเฉลี่ย (%)</option>
@@ -498,11 +502,11 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
               <option value="wx_wind">ความเร็วลมสูงสุดเฉลี่ย (กม./ชม.)</option>
               <option value="wx_rain">ปริมาณฝนรวม (มม. · 2022–2026)</option>
             </optgroup>
-            <optgroup label="ภูมิอากาศ 10 ปี (2022–2025) &amp; ภัยซ้ำซ้อน">
+            <optgroup label="อากาศย้อนหลังและน้ำท่วมซ้ำ">
               <option value="era5_hot">อากาศ ERA5: วันร้อนจัด ≥38°C</option>
               <option value="era5_dry">อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)</option>
               <option value="era5_rain">อากาศ ERA5: ฝนรวมทั้งปี (มม.)</option>
-              <option value="hazard">พื้นที่เสี่ยงซ้ำซ้อน (ท่วมซ้ำ HII + เผาซ้ำ N)</option>
+              <option value="hazard">คะแนนร่วมจากน้ำท่วมซ้ำและจุดความร้อน (0–100)</option>
             </optgroup>
           </select>
         </div>
@@ -513,7 +517,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         <div>
           <label class="field-label" for="levelModeSelect">ระดับขอบเขตแผนที่</label>
           <select id="levelModeSelect">
-            <option value="auto" selected>อัตโนมัติ (คลิกเจาะ จังหวัด → อำเภอ → ตำบล)</option>
+            <option value="auto" selected>เลือกจังหวัด แล้วเลือกอำเภอหรือตำบล</option>
             <option value="province">77 จังหวัดทั้งประเทศ</option>
             <option value="amphoe_all">928 อำเภอทั้งประเทศ</option>
           </select>
@@ -522,10 +526,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       </div>
 
       <div class="section">
-        <div class="section-title"><span>4. ชั้นข้อมูลซ้อนทับ (เปิด/ปิดจุดไฟ · แยกประเภท &amp; รายปี)</span></div>
-        <label class="check-row" title="วาดจุดความร้อนพิกัดดาวเทียมจริง 1,278,326 จุด พร้อมเลือกเปิด/ปิดแยกรายปีและรายประเภทพืช/ป่าไม้">
+        <div class="section-title"><span>ข้อมูลที่เปิดเพิ่มบนแผนที่ได้</span></div>
+        <label class="check-row" title="แสดงตำแหน่งจุดที่ดาวเทียมตรวจพบ เลือกปีและประเภทพื้นที่ได้">
           <input id="showPointsCheck" type="checkbox" />
-          <span>จุด Hotspot รายพิกัด (ไทย · 1.28 ล้านจุดจริง)</span>
+          <span>ตำแหน่งจุดความร้อนในไทย</span>
         </label>
         <div id="thPointsFilterPanel" class="pt-layer-panel">
           <div class="pt-sub-title">
@@ -567,9 +571,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           </div>
           <div id="ptThViewCount" style="font-size:10.5px;color:var(--muted);padding-top:2px;border-top:1px dashed var(--border);">กำลังแสดงจุดในหน้าจอ: -</div>
         </div>
-        <label class="check-row" title="แสดงจุดไฟข้ามแดน 6 ประเทศ (เมียนมา ลาว กัมพูชา เวียดนาม มาเลเซีย 3.17 ล้านจุด)">
+        <label class="check-row" title="แสดงจุดความร้อนย้อนหลังในเมียนมา ลาว กัมพูชา เวียดนาม และมาเลเซีย">
           <input id="showTransPointsCheck" type="checkbox" />
-          <span>จุดไฟข้ามแดน 6 ประเทศ (3.17 ล้านจุด · GMS)</span>
+          <span>ตำแหน่งจุดความร้อนในประเทศเพื่อนบ้าน</span>
         </label>
         <div id="gmsPointsFilterPanel" class="pt-layer-panel">
           <div class="pt-sub-title">
@@ -601,26 +605,26 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           </div>
           <div id="ptGmsViewCount" style="font-size:10.5px;color:var(--muted);padding-top:2px;border-top:1px dashed var(--border);">กำลังแสดงจุดในหน้าจอ: -</div>
         </div>
-        <label class="check-row" title="แสดงจุดความร้อนล่าสุด 1–7 วันจาก GISTDA API Gateway (ดาวเทียม VIIRS)">
+        <label class="check-row">
           <input id="showLive7dCheck" type="checkbox" />
-          <span>จุดไฟล่าสุด 1–7 วัน (GISTDA Near-Real-Time)</span>
+          <span id="liveHotspotLabel">จุดความร้อนชุดบันทึก GISTDA</span>
         </label>
         <label class="check-row">
           <input id="showHeatCheck" type="checkbox" />
-          <span>Heatmap ความหนาแน่น (กริด ~5.5 กม.)</span>
+          <span>สีแสดงบริเวณที่มีจุดความร้อนหนาแน่น</span>
         </label>
         <label class="check-row">
           <input id="showStaticCheck" type="checkbox" />
-          <span>จุดซ้ำถาวร / สงสัยโรงงาน (143 จุด)</span>
+          <span>แหล่งความร้อนที่พบซ้ำบ่อย</span>
         </label>
         <label class="check-row">
           <input id="showVillagesCheck" type="checkbox" />
-          <span>หมู่บ้านใกล้จุดไฟสูงสุด</span>
+          <span>หมู่บ้านใกล้จุดความร้อน</span>
         </label>
         <div>
-          <label class="field-label" for="gistdaWmsSelect">ชั้นภาพภัยแล้ง/ความชื้น/น้ำท่วมซ้ำซาก (WMS)</label>
+          <label class="field-label" for="gistdaWmsSelect">แผนที่ภัยแล้ง ความชื้น และน้ำท่วมซ้ำ</label>
           <select id="gistdaWmsSelect">
-            <option value="none" selected>ปิดชั้นภาพภัยแล้ง/ความชื้น/น้ำท่วม</option>
+            <option value="none" selected>ปิดแผนที่ชุดนี้</option>
             <option value="dri">ดัชนีเสี่ยงภัยแล้ง GISTDA (DRI · 7 วันล่าสุด)</option>
             <option value="ndwi">ดัชนีความชื้นพืชและน้ำ GISTDA (NDWI · 7 วันล่าสุด)</option>
             <option value="smap">ความชื้นผิวดินดาวเทียม GISTDA (SMAP · 7 วันล่าสุด)</option>
@@ -628,9 +632,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           </select>
         </div>
         <div>
-          <label class="field-label" for="tmsOverlaySelect">ชั้นภาพรอยเผา 20 ม. สสน. (TMS เมื่อมีเน็ต)</label>
+          <label class="field-label" for="tmsOverlaySelect">ภาพพื้นที่รอยเผาจาก สสน.</label>
           <select id="tmsOverlaySelect">
-            <option value="none" selected>ปิดชั้นภาพ TMS สสน. (Offline 100%)</option>
+            <option value="none" selected>ปิดภาพรอยเผา</option>
             <option value="2025/BOTH_202512_202604">ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร + ป่าไม้</option>
             <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3A_COLOR">ฤดู 2569 (ธ.ค.68–เม.ย.69) · เกษตร 4 พืช</option>
             <option value="2025/BURNSCAR_NORTH_20M_202512_202604_B3F_COLOR">ฤดู 2569 (ธ.ค.68–เม.ย.69) · เขตป่าไม้</option>
@@ -648,9 +652,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           </select>
         </div>
         <div>
-          <label class="field-label" for="basemapSelect">แผนที่พื้นหลัง (เมื่อมีเน็ต)</label>
+          <label class="field-label" for="basemapSelect">แผนที่พื้นหลัง</label>
           <select id="basemapSelect">
-            <option value="none" selected>แผนที่เวกเตอร์ล้วน (Offline 100%)</option>
+            <option value="none" selected>แสดงขอบเขตพื้นที่อย่างเดียว</option>
             <option value="carto_dark">Carto Dark (โทนมืด)</option>
             <option value="osm">OpenStreetMap (ถนน/ชุมชน)</option>
             <option value="esri_sat">Esri World Imagery (ภาพถ่ายดาวเทียม)</option>
@@ -666,6 +670,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           <nav id="breadcrumbs" class="breadcrumbs"></nav>
           <span style="color:var(--border);">|</span>
           <span id="scopePill" style="font-size:11.5px;color:var(--muted);">ประเทศไทย (77 จังหวัด)</span>
+          <span id="mapBoundaryStatus" class="badge">เส้นเขตจังหวัด</span>
         </div>
         <button id="resetZoomBtn" class="hud-box btn" style="cursor:pointer">↺ กลับภาพรวมทั้งประเทศ</button>
       </div>
@@ -686,54 +691,54 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       <div id="mapDock" class="map-dock" aria-label="สลับมุมมองแผนที่ด่วน">
         <button type="button" class="dock-btn active" data-dock-metric="count">จุดความร้อน</button>
         <button type="button" class="dock-btn" data-dock-metric="trp_rai">รอยเผา สสน.</button>
-        <button type="button" class="dock-btn" data-dock-metric="burn_rate_agri">% เผา/ปลูก DOAE</button>
+        <button type="button" class="dock-btn" data-dock-metric="burn_rate_agri">รอยเผาเทียบพื้นที่ปลูก</button>
         <button type="button" class="dock-btn" data-dock-metric="aq_pm25">ฝุ่น PM2.5</button>
         <button type="button" class="dock-btn" data-dock-metric="soil_dry_streak">ดินแห้งติดกัน</button>
-        <button type="button" class="dock-btn" id="dockPointsBtn" title="เปิด/ปิดจุด Hotspot รายพิกัดบนแผนที่ (ประหยัด RAM)">จุดไฟ</button>
-        <button type="button" class="dock-btn" id="dockTransBtn" title="เปิด/ปิดจุดไฟข้ามแดน 6 ประเทศอาเซียน (3.17 ล้านจุด)">ไฟ 6 ประเทศ</button>
-        <button type="button" class="dock-btn" id="dockHeatBtn">Heatmap</button>
+        <button type="button" class="dock-btn" id="dockPointsBtn" title="แสดงตำแหน่งจุดความร้อนในไทย">จุดในไทย</button>
+        <button type="button" class="dock-btn" id="dockTransBtn" title="แสดงจุดความร้อนในประเทศเพื่อนบ้าน">จุดเพื่อนบ้าน</button>
+        <button type="button" class="dock-btn" id="dockHeatBtn">จุดหนาแน่น</button>
       </div>
     </section>
 
     <aside class="sidebar right">
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">จุดความร้อนในมุมมอง</div>
+          <div class="kpi-label">จุดความร้อนตามตัวเลือก</div>
           <div id="kpiTotal" class="kpi-val">-</div>
           <div id="kpiTotalSub" class="kpi-sub">-</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">เกษตร+ส.ป.ก. vs ป่าไม้</div>
+          <div class="kpi-label">สัดส่วนจุดในพื้นที่เกษตรและป่า</div>
           <div id="kpiAgri" class="kpi-val">-</div>
           <div id="kpiAgriSub" class="kpi-sub">-</div>
         </div>
         <div class="kpi-card">
-          <div id="kpiScarLabel" class="kpi-label">รอยเผาไหม้จริง (พ.ค. 2026)</div>
+          <div id="kpiScarLabel" class="kpi-label">พื้นที่รอยเผา (พ.ค. 2569)</div>
           <div id="kpiScar" class="kpi-val">-</div>
           <div id="kpiScarSub" class="kpi-sub">-</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">อากาศ ERA5 & ท่วมซ้ำ HII</div>
+          <div class="kpi-label">สภาพอากาศและน้ำท่วมซ้ำ</div>
           <div id="kpiFactor" class="kpi-val">-</div>
           <div id="kpiFactorSub" class="kpi-sub">-</div>
         </div>
       </div>
 
-      <div id="insightBox" class="insight-box">กำลังโหลดอินไซต์...</div>
+      <div id="insightBox" class="insight-box">กำลังโหลดข้อมูลพื้นที่…</div>
 
       <div class="section">
         <div class="section-title">
-          <span>ความสัมพันธ์ปัจจัยร่วม (คลิกจุดเพื่อซูม)</span>
+          <span>เปรียบเทียบข้อมูลสองอย่าง</span>
           <span id="corrBadge" class="badge">r = -</span>
         </div>
         <div class="axis-row">
           <div>
-            <label class="field-label" for="scatterX">แกน X (ปัจจัย)</label>
+            <label class="field-label" for="scatterX">ข้อมูลบนแกนนอน</label>
             <select id="scatterX">
               <option value="wx_peak_fwi" selected>ดัชนีอากาศเอื้อไฟ FWI (2022–2026)</option>
               <option value="aq_pm25">PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)</option>
               <option value="aq_exceed">วันฝุ่นเกิน 37.5 µg/m³ (วัน/ปี)</option>
-              <option value="soil_wet">ความชื้นผิวดิน NASA GWETTOP (0–1)</option>
+              <option value="soil_wet">ความชื้นผิวดิน (ค่า 0–1)</option>
               <option value="wx_low_rh_35">วันอากาศแห้งจัด RH&lt;35% (2022–2026)</option>
               <option value="hot_days_38c">วันร้อนจัด ≥38°C (ERA5 22–25)</option>
               <option value="longest_dry_spell_days">ช่วงแล้งยาวสุด (วัน · ERA5)</option>
@@ -744,7 +749,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             </select>
           </div>
           <div>
-            <label class="field-label" for="scatterY">แกน Y (ไฟ)</label>
+            <label class="field-label" for="scatterY">ข้อมูลบนแกนตั้ง</label>
             <select id="scatterY">
               <option value="count" selected>จุดความร้อน</option>
               <option value="density">ความหนาแน่น (จุด/100 ตร.กม.)</option>
@@ -759,14 +764,14 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       </div>
 
       <div class="section">
-        <div class="section-title"><span>แนวโน้มรายปี (เกษตร vs ป่า) & กลางวัน/กลางคืน</span></div>
+        <div class="section-title"><span>จุดความร้อนรายปี แยกพื้นที่และช่วงที่ตรวจพบ</span></div>
         <div class="chart-box short">
           <canvas id="trendCanvas" class="panel-canvas"></canvas>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title"><span id="rankTitle">10 อันดับพื้นที่สูงสุด</span></div>
+        <div class="section-title"><span id="rankTitle">10 พื้นที่ที่มีค่าสูงสุด</span></div>
         <div id="rankList" class="rank-list"></div>
       </div>
     </aside>
@@ -787,26 +792,32 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 <div id="provenanceModal" class="modal-backdrop">
   <div class="modal-card">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0">ที่มาของข้อมูลและข้อควรระวังเวลานำไปสอนต่อ</h3>
+      <h3 style="margin:0">ที่มาของข้อมูล</h3>
       <button id="closeModalBtn" class="btn">ปิด</button>
     </div>
     <hr style="border-color:var(--border);margin:10px 0;" />
-    <ul style="padding-left:18px;margin:8px 0;">
+    <p>ดาวเทียมบันทึกจุดความร้อนเมื่อพบความร้อนผิดปกติ ส่วนพื้นที่รอยเผามาจากภาพที่เห็นร่องรอยหลังการเผา</p>
+    <p>ค่าฝุ่นแต่ละหน้ามีทั้งข้อมูลล่าสุดและค่าประมาณย้อนหลัง ดูชื่อแหล่งข้อมูล วันที่ และหน่วยก่อนนำมาเทียบกัน</p>
+    <details>
+      <summary>ดูช่วงเวลา แหล่งข้อมูล และวิธีคำนวณ</summary>
+      <ul style="padding-left:18px;margin:8px 0;">
       <li><strong>จุดความร้อน 5 ปี (`1,278,326` จุด, `2022-01-01` ถึง `2026-11-17`):</strong> จาก GISTDA STAC VIIRS ทุกรายการจับคู่กับขอบเขต ปภ. (77 จังหวัด / 926 อำเภอ / 7,658 ตำบล) และหมู่บ้านใกล้เคียง</li>
       <li><strong>ทำไมค่าเริ่มต้นใช้ Suomi NPP (`N`) + ม.ค.–ต.ค.:</strong> ปี 2022–2023 มีดาวเทียมดวงเดียว (`N`) แต่ปี 2024–2026 มี 3 ดวง (`N`, `N20`, `N21`) ทำให้เกิดจุดซ้ำวันเดียวกันถึง ~33% นอกจากนี้ `N` หยุดส่งข้อมูลหลังวันที่ `1 พ.ย. 2026` จึงตัดเทียบ `ม.ค.–ต.ค.` เพื่อให้ 5 ปีเทียบเท่ากันจริง</li>
       <li><strong>สภาพอากาศเอื้อไฟรายเดือน 5 ปี (`2022-01` ถึง `2026-11`) + พยากรณ์สด 7 วัน (Open-Meteo ERA5 · `CC-BY-4.0`):</strong> ครบทั้ง 77 จังหวัด เก็บอุณหภูมิสูงสุด ความชื้นสัมพัทธ์ต่ำสุด ลมแรง การระเหยน้ำ (ET0) และจำนวนวันไม่ตกฝน โดยคำนวณดัชนีอากาศเอื้อไฟ (FWI 0–100) จาก 30% ความร้อน + 30% ความแห้งอากาศ (RH ต่ำสุด) + 20% สัดส่วนวันไม่ตกฝน + 10% ET0 + 10% ความเร็วลม (เป็นระดับจุดกริดจังหวัด ไม่แบ่งอำเภอ/ตำบล)</li>
       <li><strong>ร่องรอยเผาไหม้ (`gistda_burn_scar` 57 จังหวัด) &amp; เผาซ้ำซาก (`gistda_burn_freq` 53 จังหวัด):</strong> ไม่ครบทั้ง 77 จังหวัด (อีสานหาย 15 จังหวัด ใต้หาย 9 จังหวัดใน `burn_freq`) พื้นที่ที่ไม่มีข้อมูลจึงแสดงเป็น <strong>สีเทา ("ไม่มีข้อมูลต้นทาง")</strong> ห้ามแปลเป็น 0</li>
       <li><strong>รอยเผาไหม้ สสน. "ตามรอยเผา" (`tamroypao.hii.or.th`, Sentinel-2 20 ม.):</strong> ครอบคลุม 62 จังหวัด (`TH10`–`TH76`, ขาดประจวบคีรีขันธ์และภาคใต้ 14 จังหวัดซึ่งแสดงเป็นสีเทา "ไม่มีข้อมูล") ทั้งแบบตัวเลขออฟไลน์ระดับจังหวัด/อำเภอ/ตำบล 3 ฤดูฝุ่น (`2567–2569` = `2024–2026`) แยกข้าว/อ้อย/ข้าวโพด/พืชผสม/ป่า (1 พิกเซล 20×20 ม. = 0.25 ไร่) และชั้นภาพ TMS ออนไลน์ความละเอียด 20 ม.</li>
       <li><strong>ภูมิอากาศฐาน 10 ปี ERA5 (`approved_public`, 2016–2025):</strong> ค่าเฉลี่ยอุณหภูมิ/ฝน/วันร้อนจัดระดับ 77 จังหวัด ใช้เป็นเส้นฐาน (Baseline) เพื่อดูว่าปี 2022–2026 ร้อนและแล้งกว่าค่าปกติแค่ไหน</li>
-      <li><strong>ความเสี่ยงน้ำท่วมซ้ำซาก HII (`pending` ใช้ภายในเครื่อง):</strong> ครอบคลุม 6,434 ตำบลที่เคยท่วมในรอบ 17 ปี (ขาดภูเก็ต/ระนอง และ 1,224 ตำบลที่ไม่อยู่ในบัญชี) พื้นที่ขาดข้อมูลแสดงเป็นสีเทา</li>
+      <li><strong>ข้อมูลน้ำท่วมซ้ำ 17 ปี สสน.:</strong> โครงการได้รับสิทธิ์เผยแพร่ชุดข้อมูลนี้ตามที่เจ้าของโครงการยืนยัน ตัวเลขคือสถิติย้อนหลังรายตำบล คะแนนร่วมกับจุดความร้อนคำนวณจากอันดับของสองตัวชี้วัดในเขตเดียวกัน</li>
       <li><strong>ฝุ่น PM2.5, CO &amp; AOD (Open-Meteo CAMS `CC-BY-4.0` 2022-08..2026-11 + GISTDA เช็คฝุ่นสด):</strong> ข้อมูลรายวัน/รายเดือน 77 จังหวัดระดับกริด (และค่ารายจังหวัด/อำเภอสดจาก `pm25.gistda.or.th`)</li>
       <li><strong>หมอกควันข้ามแดน 6 ประเทศอาเซียน (NASA FIRMS VIIRS-SNPP `Public Domain` 2022–2025):</strong> เทียบมาตรฐานดาวเทียม N เดียวกันระหว่าง ไทย, เมียนมา, ลาว, กัมพูชา, เวียดนาม, มาเลเซีย</li>
       <li><strong>ความชื้นดิน NASA POWER (`Public Domain`), พื้นที่ปลูก DOAE (`Open Data Common` 2566–2567), อ่างเก็บน้ำ 461 แห่ง (RID `2022–2026`), ราคาสินค้าเกษตร (สศก./NABC):</strong> แปลงค่าขาดเป็น `null` ทั้งหมด; % เผาเทียบพื้นที่ปลูกใช้ DOAE ปี 2566 เพื่อไม่ให้นับซ้ำข้ามงวด</li>
       <li><strong>จุดซ้ำถาวร (`143` พิกัด / `7,324` จุด):</strong> เกิดซ้ำจุดเดิม ≥25 วัน มักเป็นโรงงาน/เตาเผา/โรงไฟฟ้าชีวมวล (92% โผล่ตอนกลางคืน) ถูกตัดออกโดยค่าเริ่มต้น</li>
-    </ul>
+      </ul>
+    </details>
   </div>
 </div>
 
+<script id="bsMonthlyData" type="application/json">__BS_MONTHLY_DATA__</script>
 <script id="payloadB64" type="text/plain">__PAYLOAD_B64__</script>
 <script>
 (function() {
@@ -921,13 +932,17 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       bytes = new Uint8Array(binStr.length);
       for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
     } else if (PAYLOAD_URL) {
-      els.loadingMask.querySelector("div:last-child").textContent = "กำลังโหลดชุดข้อมูลสรุปจาก Hugging Face (~4.2 MB)...";
+      els.loadingMask.querySelector("div:last-child").textContent = "กำลังโหลดข้อมูลสรุป...";
       const resp = await fetch(PAYLOAD_URL);
       if (!resp.ok) throw new Error(`โหลดข้อมูลจาก Hugging Face ไม่สำเร็จ (HTTP ${resp.status})`);
       bytes = new Uint8Array(await resp.arrayBuffer());
     } else {
       throw new Error("ไม่พบชุดข้อมูลแผนที่ในหน้าเว็บนี้");
     }
+    return decodeJsonBytes(bytes);
+  }
+
+  async function decodeJsonBytes(bytes) {
     const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
     if (!isGzip) {
       return JSON.parse(new TextDecoder("utf-8").decode(bytes));
@@ -941,24 +956,59 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     throw new Error("เบราว์เซอร์ไม่รองรับ DecompressionStream('gzip') กรุณาเปิดด้วย Chrome/Edge รุ่นใหม่");
   }
 
+  let gridLoad = null;
+  let gridLoadError = false;
+
+  function packGrid(rows) {
+    GRID_FLAT = new Int32Array(rows.length * 4);
+    for (let i = 0; i < rows.length; i++) GRID_FLAT.set(rows[i], i * 4);
+  }
+
+  function loadMapGrid() {
+    if (gridLoad || !PAYLOAD_URL || !/^map_grid_[a-f0-9]{16}\.json\.gz$/.test(DATA.grid_file || "")) return;
+    gridLoadError = false;
+    gridLoad = (async () => {
+      try {
+        const response = await fetch(new URL(DATA.grid_file, PAYLOAD_URL), { signal: AbortSignal.timeout(20000) });
+        if (!response.ok) throw new Error("โหลดชั้นแผนที่ไม่สำเร็จ");
+        const grid = await decodeJsonBytes(new Uint8Array(await response.arrayBuffer()));
+        packGrid(grid);
+        DATA.grid_file = null;
+      } catch (_) {
+        gridLoadError = true;
+      } finally {
+        gridLoad = null;
+      }
+    })();
+    gridLoad.then(() => {
+      if (!gridLoadError) refreshAll();
+      else updateWarnings();
+    });
+  }
+
   function prepareData(raw) {
     DATA = raw;
+    if (!raw.meta.flood_covered_tambons) {
+      for (const option of document.querySelectorAll('option[value="hazard"], option[value="flood_max_17yr"], option[value="flood"]')) {
+        option.disabled = true;
+        option.hidden = true;
+      }
+    }
+
+    const dates = (raw.live_hotspots_7d || []).map(point => point.d).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)).sort();
+    const latest = dates.at(-1);
+    const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bangkok" }).format();
+    const ageDays = latest ? (Date.parse(today) - Date.parse(latest)) / 86400000 : null;
+    const label = document.getElementById("liveHotspotLabel");
+    if (label) label.textContent = latest
+      ? `จุดความร้อน GISTDA ชุดบันทึก ${dates[0]} ถึง ${latest}${ageDays > 1 ? ` · ข้อมูลล่าสุดย้อนหลัง ${ageDays} วัน` : ""}`
+      : "จุดความร้อน GISTDA · ไม่มีข้อมูลชุดบันทึก";
+    if (els.showLive7dCheck) els.showLive7dCheck.disabled = !latest;
     const precomputeRings = (arr, mapObj, kind) => {
       for (let i = 0; i < arr.length; i++) {
         const it = arr[i];
         it._idx = i;
-        const srcRings = it.rings || [];
-        const fRings = new Array(srcRings.length);
-        for (let r = 0; r < srcRings.length; r++) {
-          const ring = srcRings[r];
-          const fa = new Float32Array(ring.length * 2);
-          for (let k = 0; k < ring.length; k++) {
-            fa[k * 2] = lonToMx(ring[k][0]);
-            fa[k * 2 + 1] = latToMy(ring[k][1]);
-          }
-          fRings[r] = fa;
-        }
-        it._mRings = fRings;
+        it._mRings = projectMapRings(it.rings || []);
         delete it.rings; // Free raw JSON vertex arrays immediately (~45 MB RAM saved)
         mapObj.set(it.code, it);
         const provSub = it.prov_code ? (PROV_MAP.get(it.prov_code)?.name_th || "") : "";
@@ -985,12 +1035,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     }
     raw.cube = null;
 
-    const rawGrid = raw.grid || [];
-    GRID_FLAT = new Int32Array(rawGrid.length * 4);
-    for (let i = 0, o = 0; i < rawGrid.length; i++, o += 4) {
-      const g = rawGrid[i];
-      GRID_FLAT[o] = g[0]; GRID_FLAT[o + 1] = g[1]; GRID_FLAT[o + 2] = g[2]; GRID_FLAT[o + 3] = g[3];
-    }
+    packGrid(raw.grid || []);
     raw.grid = null;
 
     // Pack 6-country GMS transboundary point grid (20,000 cells x 6 ints = 480 KB flat Int32Array, 0 GC pressure)
@@ -1128,6 +1173,10 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     return null;
   }
 
+  function burnToPlantRatio(burn, planted) {
+    return burn == null || planted == null || planted <= 0 ? null : burn * 100 / planted;
+  }
+
   function getBurnRateMetric(item) {
     if (!item || item.trp === null || item.trp === undefined) return null;
     const yr = (state.year === "all" || state.year === "2022" || state.year === "2023") ? "2026" : state.year;
@@ -1140,7 +1189,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     else if (state.crop === "sugarcane") burn = a[1] || 0;
     else if (state.crop === "corn") burn = a[2] || 0;
     else burn = (a[0] || 0) + (a[1] || 0) + (a[2] || 0);
-    return Math.min(100, +(burn * 100 / plant).toFixed(2));
+    return burnToPlantRatio(burn, plant);
   }
 
   function getTrpBreakdown(item) {
@@ -1317,7 +1366,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           r.hazard = Math.round((0.5 * fRank + 0.5 * bScore) * 100);
           const fHi = r.item.flood_max_17yr >= 4;
           const bHi = bScore >= 0.6;
-          r.hazardLabel = fHi && bHi ? "เสี่ยงซ้ำซ้อนสูงมาก" : fHi ? "ท่วมหนัก/เผาน้อย" : bHi ? "เผาหนัก/ท่วมน้อย" : "เสี่ยงต่ำ";
+          r.hazardLabel = fHi && bHi ? "สถิติท่วมและจุดความร้อนอยู่ในกลุ่มสูง" : fHi ? "สถิติท่วมอยู่ในกลุ่มสูง" : bHi ? "จุดความร้อนอยู่ในกลุ่มสูง" : "ทั้งสองตัวชี้วัดอยู่ในกลุ่มต่ำ";
         }
         r.metricValue = pickMetricValue(r, level);
       }
@@ -1707,7 +1756,6 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
     const rootStyle = getComputedStyle(document.documentElement);
     const nullFill = rootStyle.getPropertyValue("--null-fill").trim() || "#334155";
-    const strokeCol = rootStyle.getPropertyValue("--map-land-stroke").trim();
     const hasTiles = state.basemap !== "none";
     const hasTms = state.tmsOverlay !== "none";
     const hasWms = state.gistdaWms !== "none";
@@ -1756,8 +1804,6 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     ctx.globalAlpha = (hasTms || hasWms)
       ? (state.zoom >= 13.5 ? 0.12 : 0.25)
       : (hasTiles ? (state.zoom >= 14 ? 0.32 : 0.78) : 0.96);
-    ctx.lineWidth = level === "tambon" ? 0.6 : 0.95;
-    ctx.strokeStyle = hasTiles ? "rgba(15, 23, 42, 0.55)" : (state.theme === "dark" ? "rgba(15, 23, 42, 0.62)" : "rgba(30, 41, 59, 0.42)");
     for (const rec of records) {
       ctx.beginPath();
       for (const ring of rec.item._mRings) traceRingF32(ctx, ring, toSx, toSy);
@@ -1765,7 +1811,6 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         ctx.fillStyle = getPaletteAndColor(rec.metricValue, minV, maxV, nullFill);
         ctx.fill("evenodd");
       }
-      ctx.stroke();
     }
     ctx.restore();
 
@@ -1792,26 +1837,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       drawLive7dPointsOverlay(ctx, w, h, toSx, toSy);
     }
 
-    // Map labels when drilled into province/amphoe
-    if (level !== "province" && state.levelMode !== "amphoe_all") {
-      ctx.save();
-      ctx.font = "600 11px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      const labelSubset = records.slice().sort((a, b) => b.item.area_sqkm - a.item.area_sqkm).slice(0, 22);
-      for (const rec of labelSubset) {
-        const c = rec.item.centroid;
-        if (!c) continue;
-        const lx = toSx(lonToMx(c[0])), ly = toSy(latToMy(c[1]));
-        if (lx < 20 || lx > w - 20 || ly < 20 || ly > h - 20) continue;
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = state.theme === "dark" ? "rgba(7,11,20,0.85)" : "rgba(255,255,255,0.9)";
-        ctx.strokeText(rec.item.name_th, lx, ly);
-        ctx.fillStyle = state.theme === "dark" ? "#f8fafc" : "#0f172a";
-        ctx.fillText(rec.item.name_th, lx, ly);
-      }
-      ctx.restore();
-    }
+    drawAtlasCanvasBoundaries(ctx, w, h, state, document.getElementById("mapBoundaryStatus"));
 
     // Static suspected spots overlay
     if (state.showStatic) {
@@ -1849,6 +1875,126 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
 
     updateLegend(minV, maxV, hasNull, validVals.length > 0);
     baseDirty = false;
+  }
+
+  function projectMapRings(rings) {
+    return rings.map(ring => {
+      const points = new Float32Array(ring.length * 2);
+      for (let i = 0; i < ring.length; i++) {
+        points[i * 2] = lonToMx(ring[i][0]);
+        points[i * 2 + 1] = latToMy(ring[i][1]);
+      }
+      return points;
+    });
+  }
+
+  let atlasDetailStarted = false;
+  const exactBoundaryPaths = new WeakMap();
+  const getExactAtlasBoundaries = createAtlasDetailLoader(() => {
+    requestDrawMap(true);
+    requestDrawBsMap();
+  });
+  function loadAtlasCanvasDetail() {
+    if (!PAYLOAD_URL || atlasDetailStarted) return;
+    atlasDetailStarted = true;
+    fetchAtlasAdminData().then(data => {
+      for (const [rows, areas] of [[data.amphoe, AMP_MAP], [data.tambon, TB_MAP]]) {
+        for (const [, , , rings, , code] of rows) {
+          const area = areas.get(code);
+          if (area) area._mRings = projectMapRings(rings);
+        }
+      }
+      requestDrawMap(true);
+      requestDrawBsMap();
+    }).catch(() => {
+      // The inline map data still supplies all three boundary levels.
+    });
+  }
+
+  function drawAtlasCanvasBoundaries(ctx, w, h, camera, status) {
+    const level = atlasBoundaryLevel(camera.zoom);
+    if (level > 0) loadAtlasCanvasDetail();
+    const worldPx = 256 * 2 ** camera.zoom;
+    const toSx = mx => (mx - camera.camX) * worldPx + w / 2;
+    const toSy = my => (my - camera.camY) * worldPx + h / 2;
+    const west = mxToLon(camera.camX - w / (2 * worldPx));
+    const east = mxToLon(camera.camX + w / (2 * worldPx));
+    const south = myToLat(camera.camY + h / (2 * worldPx));
+    const north = myToLat(camera.camY - h / (2 * worldPx));
+    const precise = PAYLOAD_URL ? getExactAtlasBoundaries(camera.zoom, [west, south, east, north]) : null;
+    const hasPrecise = Boolean(precise?.areas.length);
+    const areas = [DATA.provinces, DATA.amphoes, DATA.tambons];
+    let labelItems = hasPrecise ? precise.areas : [];
+    let visibleLevel = hasPrecise ? 2 : 0;
+    ctx.save();
+    ctx.lineJoin = "round";
+    if (hasPrecise) {
+      if (!exactBoundaryPaths.has(precise)) {
+        exactBoundaryPaths.set(precise, precise.segments.map(segments => {
+          const path = new Path2D();
+          for (const [a, b] of segments) {
+            path.moveTo(lonToMx(a[0]), latToMy(a[1]));
+            path.lineTo(lonToMx(b[0]), latToMy(b[1]));
+          }
+          return path;
+        }));
+      }
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.translate(w / 2 - camera.camX * worldPx, h / 2 - camera.camY * worldPx);
+      ctx.scale(worldPx, worldPx);
+      const paths = exactBoundaryPaths.get(precise);
+      for (let i = 2; i >= 0; i--) {
+        const weight = ATLAS_ADMIN_LEVELS[i].weight;
+        ctx.lineWidth = (weight + 1.05) / worldPx;
+        ctx.strokeStyle = "rgba(15,23,42,0.64)";
+        ctx.stroke(paths[i]);
+        ctx.lineWidth = weight / worldPx;
+        ctx.strokeStyle = "rgba(237,244,252,0.79)";
+        ctx.stroke(paths[i]);
+      }
+      ctx.restore();
+    }
+    for (let i = hasPrecise ? -1 : level; i >= 0; i--) {
+      const visible = areas[i].filter(p => p.bbox && p.bbox[0] <= east && p.bbox[2] >= west
+        && p.bbox[1] <= north && p.bbox[3] >= south);
+      if (!visible.length) continue;
+      if (!labelItems.length) {
+        labelItems = visible;
+        visibleLevel = i;
+      }
+      ctx.beginPath();
+      for (const area of visible) {
+        for (const ring of area._mRings) traceRingF32(ctx, ring, toSx, toSy);
+      }
+      const weight = ATLAS_ADMIN_LEVELS[i].weight;
+      ctx.lineWidth = weight + 1.05;
+      ctx.strokeStyle = "rgba(15,23,42,0.64)";
+      ctx.stroke();
+      ctx.lineWidth = weight;
+      ctx.strokeStyle = "rgba(237,244,252,0.79)";
+      ctx.stroke();
+    }
+    atlasBoundaryLabel(status, "เส้นเขต" + ATLAS_ADMIN_LEVELS[visibleLevel].name +
+      (level === 2 ? (hasPrecise ? " · แบบละเอียด" : " · แบบย่อ") : ""));
+    if (visibleLevel > 0) {
+      const keepLabel = atlasLabelSpacing();
+      ctx.font = "650 12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 2.7;
+      ctx.strokeStyle = "#17212b";
+      ctx.fillStyle = "#f8fafc";
+      for (const { centroid, name_th, prov_code } of labelItems) {
+        if (!centroid?.every(Number.isFinite) || !name_th) continue;
+        const x = toSx(lonToMx(centroid[0])), y = toSy(latToMy(centroid[1]));
+        if (!keepLabel(x, y, w, h)) continue;
+        const label = atlasAreaName(name_th, visibleLevel, prov_code);
+        ctx.strokeText(label, x, y);
+        ctx.fillText(label, x, y);
+      }
+    }
+    ctx.restore();
   }
 
   function drawMap() {
@@ -2186,7 +2332,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
           lastFilteredExactGms.push({ sx, sy, lat, lon, cid, tot4y: cnt, y2025: yr === 3 ? cnt : 0, maxFrp: null, yr: 2022 + yr });
         }
       }
-      if (vcGmsEl) vcGmsEl.textContent = `กำลังแสดงจุดไฟข้ามแดนในหน้าจอ: ${formatNum(gmsDrawnCount)} จุด`;
+      if (vcGmsEl) vcGmsEl.textContent = `จุดความร้อนประเทศเพื่อนบ้านที่เห็นบนแผนที่ ${formatNum(gmsDrawnCount)} จุด`;
       pctx.putImageData(imgData, 0, 0);
       ctx.drawImage(ptsCanvas, 0, 0, w, h);
       return;
@@ -2268,9 +2414,9 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     const titles = {
       count: "จำนวนจุดความร้อน (จุด)",
       density: "ความหนาแน่น (จุด / 100 ตร.กม.)",
-      agri_pct: "สัดส่วนเผาในเกษตร+ส.ป.ก. (%)",
+      agri_pct: "สัดส่วนจุดความร้อนในพื้นที่เกษตร (%)",
       trp_rai: "รอยเผาไหม้ สสน. ตามรอยเผา (ไร่)",
-      scar_rai: "รอยเผาไหม้ GISTDA (ไร่ · พ.ค. 2026)",
+      scar_rai: "พื้นที่รอยเผาจาก GISTDA (พ.ค. 2569)",
       freq_rai: "พื้นที่เผาซ้ำซาก GISTDA (ไร่)",
       wx_fwi: "ดัชนีอากาศเอื้อไฟหน้าแล้ง FWI (0–100)",
       wx_tmax: "อุณหภูมิสูงสุดเฉลี่ย (°C · 2022–2026)",
@@ -2280,7 +2426,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       wx_rain: "ปริมาณฝนรวม (มม. · 2022–2026)",
       aq_pm25: "ฝุ่น PM2.5 เฉลี่ยหน้าแล้ง (µg/m³ · CAMS)",
       aq_exceed: "วันฝุ่น PM2.5 เกิน 37.5 µg/m³ (วัน/ปี)",
-      aq_co: "ก๊าซ CO จากการเผา (µg/m³ · หน้าแล้ง)",
+      aq_co: "ก๊าซคาร์บอนมอนอกไซด์ช่วงหน้าแล้ง (µg/m³)",
       soil_wet: "ความชื้นผิวดิน NASA GWETTOP (0–1 · แดงเข้ม=แห้ง ฟ้า=ชื้น)",
       soil_dry_streak: "สัญญาณเตือนดินแห้งต่อเนื่องสูงสุด (วัน · GWETTOP < 0.38)",
       doae_plant_rai: "พื้นที่เพาะปลูกข้าว+อ้อย+ข้าวโพด DOAE ปี 2566 (ไร่)",
@@ -2288,7 +2434,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
       era5_hot: "อากาศ ERA5: วันร้อนจัด ≥38°C (วัน)",
       era5_dry: "อากาศ ERA5: ช่วงแล้งยาวสุด (วัน)",
       era5_rain: "อากาศ ERA5: ฝนรวมทั้งปี (มม.)",
-      hazard: "ดัชนีเสี่ยงซ้ำซ้อน (ท่วมซ้ำ + เผาซ้ำ 0–100)",
+      hazard: "คะแนนร่วมจากสถิติน้ำท่วมซ้ำและจุดความร้อน (0–100)",
     };
     els.legendTitle.textContent = titles[state.metric] || "";
     const pal = getPaletteForMetric(state.metric);
@@ -2338,7 +2484,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             if (gm) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:${gm.col};border-radius:50%"></i> ${escHtml(gm.th)}</span>`);
           }
         }
-        if (state.showLive7d) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:#ff1e56;border:1px solid #fef08a;border-radius:50%"></i> ล่าสุด 24 ชม. / 7 วัน GISTDA</span>`);
+        if (state.showLive7d) chips.push(`<span><i style="display:inline-block;width:8px;height:8px;background:#ff1e56;border:1px solid #fef08a;border-radius:50%"></i> จุดความร้อนชุดบันทึก GISTDA</span>`);
         els.tmsLegendChip.style.display = "inline-flex";
         els.tmsLegendChip.innerHTML = chips.join(" ");
       } else if (state.tmsOverlay === "none") {
@@ -2519,6 +2665,8 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.satWarnPill.textContent = warns.join(" · ");
 
     const gWarns = [];
+    if (state.showHeat && gridLoadError) gWarns.push("โหลดชั้นความหนาแน่นไม่สำเร็จ ลองปิดแล้วเปิดชั้นนี้อีกครั้ง");
+    else if (state.showHeat && gridLoad) gWarns.push("กำลังโหลดชั้นความหนาแน่น");
     if (state.metric.startsWith("wx_")) {
       if (getActiveScopeLevel() !== "province") gWarns.push("ข้อมูลสภาพอากาศเอื้อไฟ 2022–2026 มีเฉพาะระดับ 77 จังหวัด (ไม่แบ่งรายอำเภอ/ตำบล)");
     } else if (state.metric.startsWith("aq_") || state.metric === "soil_wet" || state.metric === "soil_dry_streak") {
@@ -2539,7 +2687,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     } else if (state.metric === "scar_rai") {
       gWarns.push("burn_scar เป็นรอยสะสม 2026 ถึงกลาง พ.ค. ครอบคลุม 57 จังหวัด");
     } else if (state.metric === "hazard") {
-      gWarns.push("HII น้ำท่วมซ้ำ 17 ปี (pending ใช้ในเครื่อง) ครอบคลุม 6,434 ตำบล (ขาดภูเก็ต/ระนอง)");
+      gWarns.push(`ข้อมูล สสน. ครอบคลุม ${formatNum(DATA.meta.flood_covered_tambons)} ตำบล คะแนนมาจากอันดับในเขตเดียวกัน`);
     }
     if (state.tmsOverlay !== "none") {
       gWarns.push("เปิดชั้นภาพ TMS 20 ม. สสน. (ปรับความทึบขอบเขตอัตโนมัติเพื่อให้เห็นแปลงเผา 20 ม. ชัดเจน)");
@@ -2612,7 +2760,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     els.kpiTotal.textContent = formatNum(total);
     els.kpiTotalSub.textContent = `${state.sat === "N" ? "Suomi NPP (N)" : "ทุกดาวเทียม"} · ${state.janOct ? "ม.ค.–ต.ค." : "ทุกเดือน"}`;
 
-    els.kpiAgri.textContent = agriPct !== null ? `${agriPct.toFixed(1)}%` : "ไม่มีจุดไฟ";
+    els.kpiAgri.textContent = agriPct !== null ? `${agriPct.toFixed(1)}%` : "ไม่พบจุดความร้อน";
     els.kpiAgriSub.textContent = forestPct !== null ? `เกษตร ${formatNum(agri)} · ป่า ${formatNum(forest)} (${forestPct.toFixed(1)}%)` : "-";
 
     // Scar area in current scope (shows TamRoyPao when trp_rai or TMS is active, else GISTDA + TamRoyPao subnote)
@@ -2634,7 +2782,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
         els.kpiScarSub.textContent = `เกษตร ${formatNum(trpAgriSum, 0)} · ป่า ${formatNum(trpForSum, 0)} ไร่`;
       }
     } else {
-      if (els.kpiScarLabel) els.kpiScarLabel.textContent = "รอยเผาไหม้จริง (พ.ค. 2026)";
+      if (els.kpiScarLabel) els.kpiScarLabel.textContent = "พื้นที่รอยเผา (พ.ค. 2569)";
       if (!scarKnown.length) {
         els.kpiScar.textContent = "ไม่มีข้อมูล";
         els.kpiScarSub.textContent = "GISTDA ไม่ครอบคลุมพื้นที่นี้";
@@ -2726,7 +2874,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
             <span class="tt-badge">${escHtml(valStr)}</span>
           </div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:var(--accent)"></i>${escHtml(mLabel)}</span><span class="tt-v">${escHtml(valStr)}</span></div>
-          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>จุดความร้อนในมุมมอง</span><span class="tt-v">${formatNum(r.total)} จุด</span></div>
+          <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#f97316"></i>จุดความร้อนตามตัวเลือก</span><span class="tt-v">${formatNum(r.total)} จุด</span></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#689cb8"></i>ความหนาแน่น</span><span class="tt-v">${r.density !== null ? r.density.toFixed(1) + " /100 ตร.กม." : "-"}</span></div>
           <div class="tt-bar"><div style="background:#d48942;width:${agPct}%"></div><div style="background:#55947a;width:${foPct}%"></div></div>
           <div class="tt-row"><span class="tt-k"><i class="tt-dot" style="background:#d48942"></i>เกษตร+ส.ป.ก. / ป่าไม้</span><span class="tt-v">${agPct}% / ${foPct}%</span></div>
@@ -3057,6 +3205,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
   }
 
   function refreshAll() {
+    if (state.showHeat || state.showPoints) loadMapGrid();
     syncMapDock();
     updateWarnings();
     computeFilteredStats();
@@ -3634,6 +3783,7 @@ canvas.panel-canvas { width: 100%; height: 100%; display: block; }
     });
   }
 
+/*__ATLAS_BOUNDARIES__*/
 /*__MULTI_PAGE_JS__*/
 /*__EXPLORER_JS__*/
 
@@ -3684,6 +3834,7 @@ def _apply_multi_page(shell: str) -> str:
         .replace("<!--__WEATHER_PAGE__-->", WEATHER_PAGE_HTML)
         .replace("<!--__HAZE_PAGE__-->", HAZE_PAGE_HTML)
         .replace("<!--__BURNSCAR_PAGE__-->", BURNSCAR_PAGE_HTML)
+        .replace("/*__ATLAS_BOUNDARIES__*/", ATLAS_BOUNDARIES_JS)
         .replace("/*__MULTI_PAGE_JS__*/", MULTI_PAGE_JS)
     )
 
@@ -3697,14 +3848,18 @@ def render_interactive_html(payload: dict) -> str:
         _apply_multi_page(HTML_SHELL)
         .replace("/*__EXPLORER_CSS__*/", "")
         .replace("<!--__EXPLORER_BTN__-->", "")
+        .replace("<!--__ATLAS_GUIDE_LINK__-->", "")
         .replace("<!--__EXPLORER_MODAL__-->", "")
         .replace("/*__EXPLORER_JS__*/", "")
         .replace("__PAYLOAD_URL__", "")
+        .replace("__BS_MONTHLY_DATA__", "{}")
         .replace("__PAYLOAD_B64__", safe_b64)
     )
 
 
-def render_online_web_html(hf_repo: str = "dragonfly13110/thailand-hotspot-5y") -> str:
+def render_online_web_html(
+    hf_repo: str = "dragonfly13110/thailand-hotspot-5y", *, burn_months: dict | None = None,
+) -> str:
     """Render the lightweight 5-page online web atlas backed by Hugging Face Datasets + DuckDB-Wasm."""
     safe_repo = html.escape(hf_repo.strip(), quote=True)
     payload_url = f"https://huggingface.co/datasets/{safe_repo}/resolve/main/summary/map_payload.json.gz"
@@ -3712,8 +3867,10 @@ def render_online_web_html(hf_repo: str = "dragonfly13110/thailand-hotspot-5y") 
         _apply_multi_page(HTML_SHELL)
         .replace("/*__EXPLORER_CSS__*/", EXPLORER_CSS)
         .replace("<!--__EXPLORER_BTN__-->", EXPLORER_BUTTON_HTML)
+        .replace("<!--__ATLAS_GUIDE_LINK__-->", ATLAS_GUIDE_LINK)
         .replace("<!--__EXPLORER_MODAL__-->", EXPLORER_MODAL_HTML.replace("__HF_REPO__", safe_repo))
         .replace("/*__EXPLORER_JS__*/", EXPLORER_JS.replace("__HF_REPO__", safe_repo))
         .replace("__PAYLOAD_URL__", payload_url)
+        .replace("__BS_MONTHLY_DATA__", json.dumps(burn_months or {}, separators=(",", ":"), allow_nan=False).replace("<", "\\u003c"))
         .replace("__PAYLOAD_B64__", "")
     )

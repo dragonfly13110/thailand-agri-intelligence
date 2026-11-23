@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="th" data-theme="light">
+<html lang="th" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ไฟเกษตร × ลม × ฝุ่น PM2.5 | Thailand Fire Atlas</title>
+<title>จุดความร้อน ลม และฝุ่นรายวัน | Thailand Fire Atlas</title>
 <!--__FONTS__-->
 <style>
 /*__CSS__*/
@@ -11,8 +11,9 @@
 body{margin:0;background:var(--bg);color:var(--text);font:15px var(--atlas-font);line-height:1.5}
 a{color:var(--secondary)}
 button,select,input{font:inherit;color:inherit}
-button,select,input[type=search]{background:var(--card-elev);border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px}
-button{cursor:pointer}
+button,select,input[type=date],input[type=search]{background:var(--card-elev);border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px}
+button{cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+button:hover{border-color:var(--accent)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .topbar{min-height:54px}
 .topbar a{text-decoration:none;color:var(--text)}
@@ -20,58 +21,158 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .brand{white-space:nowrap}
 .topbar button{margin-left:auto;white-space:nowrap}
 .topbar .nav-tabs{min-width:0;overflow-x:auto}
-main{max-width:1730px;margin:auto;padding:18px clamp(12px,3vw,38px) 40px}
+main{max-width:1760px;margin:auto;padding:16px clamp(12px,2.4vw,34px) 44px}
 h1,h2,h3,p{margin:0}
-h1{font-size:clamp(22px,3vw,32px);line-height:1.2}
-h2{font-size:19px}
+h1{font-size:clamp(21px,2.5vw,30px);line-height:1.22;letter-spacing:-0.01em}
+h2{font-size:18px;line-height:1.3}
+h3{font-size:16px}
 .muted,small{color:var(--muted)}
-.intro{margin:6px 0 14px}
 .panel{background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);padding:16px;margin-bottom:14px}
-.answer{border-left:4px solid var(--accent);padding:12px 15px;background:var(--accent-soft);border-radius:8px;margin-bottom:14px}
-.answer-context{font-size:12px;color:var(--muted)}
-.answer h2{font-size:clamp(16px,2vw,20px);margin:4px 0}
-.answer p:last-child{font-size:13px;margin-top:4px}
+
+/* Hero Studio Controls */
+.studio-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.studio-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(223,106,55,0.35)}
+.time-bar{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+.date-nav{display:inline-flex;align-items:center;gap:5px}
+.date-nav button{padding:6px 10px;font-size:13px;font-weight:600}
+.btn-play{background:var(--accent);color:#fff;border-color:transparent;font-weight:700;padding:7px 14px;display:inline-flex;align-items:center;gap:6px}
+.btn-play:hover{filter:brightness(1.08);border-color:transparent}
+.btn-play.playing{background:#dc2626}
+.scrubber-wrap{flex:1 1 260px;display:flex;align-items:center;gap:10px;min-width:220px}
+.scrubber-wrap input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer;height:6px}
+.day-readout{font-size:13px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:128px;text-align:right}
+.presets-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.preset-label{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px}
+.preset-btn{padding:5px 11px;border-radius:999px;font-size:12.5px;background:var(--card);border:1px solid var(--border-strong);color:var(--text)}
+.preset-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+
+.layer-bar{display:flex;gap:10px 14px;align-items:end;flex-wrap:wrap;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+.layer-bar label.field{display:grid;gap:3px;font-size:11.5px;color:var(--muted)}
+.layer-bar select{min-width:155px;max-width:100%;font-size:13px;padding:6px 9px}
+.toggles-group{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-left:auto}
+.pill-check{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--card-elev);border:1px solid var(--border);font-size:12.5px;cursor:pointer;user-select:none}
+.pill-check input{accent-color:var(--accent);margin:0;cursor:pointer}
+.pill-check:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.wind-motion{padding:5px 8px;font-size:12px;white-space:nowrap}
+
+/* 3-Step Story Banner */
+.story-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.story-card{padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.story-card.step1{border-top:3px solid #fb923c}
+.story-card.step2{border-top:3px solid #38bdf8}
+.story-card.step3{border-top:3px solid #f43f5e}
+.story-step{font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:0.01em}
+.story-main{font-size:clamp(15px,1.5vw,18px);font-weight:700;line-height:1.3}
+.story-sub{font-size:12.5px;color:var(--muted);line-height:1.45}
+.chip-list{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+.fire-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid transparent}
+.chip-agri{background:rgba(251,146,60,0.16);color:#fb923c;border-color:rgba(251,146,60,0.35)}
+.chip-forest{background:rgba(239,68,68,0.16);color:#f87171;border-color:rgba(239,68,68,0.35)}
+.chip-spk{background:rgba(192,132,252,0.16);color:#c084fc;border-color:rgba(192,132,252,0.35)}
+.chip-other{background:rgba(148,163,184,0.16);color:var(--muted);border-color:var(--border)}
+html[data-theme="light"] .chip-agri{color:#c2410c}
+html[data-theme="light"] .chip-forest{color:#b91c1c}
+html[data-theme="light"] .chip-spk{color:#7e22ce}
+.hot-prov-btn{padding:3px 9px;border-radius:999px;font-size:11.5px;background:var(--card-elev);border:1px solid var(--border-strong)}
+.hot-prov-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Main Map + Inspector Stage */
+.map-detail-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;align-items:start}
+.map-plot{position:relative;overflow:hidden;border:1px solid var(--border-strong);border-radius:14px;background:#0a111e;height:550px}
+.map-plot[data-basemap=plain]{background:#eef2f7}
+.map-plot[data-basemap=satellite]{background:#0b2330}
+.map-plot svg{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:pan-y;z-index:1}
+.map-plot svg.dragging{cursor:grabbing}
+#historyPointsCanvas,#smokeCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#historyPointsCanvas{z-index:2}
+#smokeCanvas{z-index:3}
+.history-controls{padding:10px 12px;margin:0 0 12px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.history-actions,.history-options{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.history-note{font-size:12px;color:var(--muted);margin-top:6px}
+.history-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px;margin-top:8px}
+.history-filters[hidden]{display:none}
+.history-group{min-width:0;border:1px solid var(--border);border-radius:8px;padding:7px 9px}
+.history-group legend{font-size:12px;font-weight:700;padding:0 4px}
+.history-group fieldset{border:0;margin:6px 0 0;padding:0;min-width:0}
+.history-actions button,.history-group button{font-size:12px}
+.history-group .pill-check{border-radius:7px;padding:4px 6px}
+.history-swatch{display:inline-block;width:8px;height:8px;border-radius:50%}
+.history-swatch[hidden]{display:none}
+.history-status{min-height:1.2em;margin-top:7px;font-size:12px;color:var(--muted)}
+.province{stroke:rgba(232,241,252,0.79);stroke-width:1.65;vector-effect:non-scaling-stroke;cursor:pointer;fill:#1b2538;fill-opacity:.68;transition:fill-opacity .15s}
+.map-plot[data-basemap=plain] .province{stroke:#475569;fill-opacity:.76}
+.map-plot[data-basemap=satellite] .province{stroke:rgba(248,250,252,0.65);fill-opacity:.42}
+.province:hover{stroke:#fde047;stroke-width:2;fill-opacity:.88}
+.province.selected{stroke:#ff9f1c;stroke-width:2.6;fill-opacity:.92}
+.province.downwind-hit{stroke:#f43f5e;stroke-width:1.4}
+
+.map-tooltip{position:absolute;z-index:5;pointer-events:none;padding:9px 12px;border-radius:10px;background:rgba(10,16,28,0.94);color:#f8fafc;border:1px solid rgba(255,255,255,0.18);font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,0.45);max-width:270px;display:none}
+.map-tooltip b{display:block;font-size:13.5px;margin-bottom:2px}
+.map-hud{position:absolute;left:10px;bottom:10px;z-index:4;max-width:min(600px,calc(100% - 66px));padding:9px 12px;background:rgba(10,16,28,0.88);color:#f1f5f9;border:1px solid rgba(255,255,255,0.16);border-radius:10px;pointer-events:none;font-size:12px;backdrop-filter:blur(4px)}
+.legend{display:flex;gap:5px 11px;flex-wrap:wrap;margin-top:5px;color:#cbd5e1;font-size:11px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:10px;display:inline-block;border-radius:2px;border:1px solid #fff4}
+.legend i.dot{border-radius:50%}
+.map-zoom{position:absolute;right:10px;bottom:10px;z-index:4;display:grid;gap:4px;text-align:center}
+.map-zoom button{width:34px;height:34px;padding:0;font-size:17px;background:rgba(15,23,42,0.88);color:#f8fafc;border:1px solid rgba(255,255,255,0.2)}
+.map-zoom output{color:#f8fafc;background:rgba(15,23,42,0.88);border-radius:5px;font-size:10px;padding:2px 4px;border:1px solid rgba(255,255,255,0.15)}
+
+/* Inspector Panel */
+.inspector{display:flex;flex-direction:column;gap:12px}
+.insp-card{padding:13px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px}
+.insp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.aqi-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.stat-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat-box{padding:8px 10px;background:var(--card-elev);border:1px solid var(--border);border-radius:9px}
+.stat-box small{display:block;font-size:11px}
+.stat-box b{display:block;font-size:16px;margin-top:2px;font-variant-numeric:tabular-nums}
+.chart-svg{display:block;width:100%;height:165px;margin-top:6px}
+.corridor-list{display:grid;gap:6px;max-height:230px;overflow:auto;margin-top:8px}
+.corridor-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:var(--card-elev);border:1px solid var(--border);text-align:left;width:100%;font-size:12.5px}
+.corridor-item:hover{border-color:var(--accent);background:var(--accent-soft)}
+.corridor-route{display:flex;flex-direction:column;gap:2px}
+.corridor-pm{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Dose-Response & Burn-Type Proof Section */
+.proof-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.proof-card{background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);padding:16px;display:flex;flex-direction:column;gap:10px}
+.proof-callout{border-left:4px solid #f97316;background:rgba(249,115,22,0.12);padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5}
+.stair-list{display:grid;gap:7px}
+.stair-row{display:grid;grid-template-columns:minmax(135px,1.1fr) minmax(0,1.65fr) auto;gap:8px 10px;align-items:center;padding:7px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;text-align:left;width:100%;transition:border-color .15s,background .15s}
+.stair-row:hover{border-color:var(--accent);background:var(--accent-soft)}
+.stair-row.active-tier{border-color:#fb923c;background:rgba(251,146,60,0.14);box-shadow:0 0 0 1px rgba(251,146,60,0.35)}
+.stair-label{display:flex;flex-direction:column;gap:1px;font-size:12.5px}
+.stair-label small{font-size:11px;color:var(--muted)}
+.stair-bar-wrap{position:relative;height:18px;background:var(--card-elev);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.stair-bar-fill{height:100%;border-radius:999px;transition:width .25s ease}
+.stair-val{text-align:right;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.stair-val small{display:block;font-size:10.5px}
+.today-tag{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;background:#fb923c;color:#0f172a;margin-left:4px}
+.burn-row{display:grid;grid-template-columns:minmax(130px,1.05fr) minmax(56px,0.85fr) auto auto;gap:6px 8px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border)}
+.burn-jump{padding:4px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(223,106,55,0.45);font-weight:600;white-space:nowrap}
+.burn-jump:hover{background:var(--accent);color:#fff}
+
+/* Research Section */
+.research-banner{border-left:4px solid var(--accent);padding:12px 15px;background:var(--accent-soft);border-radius:10px;margin-bottom:14px}
+.research-banner h2{font-size:clamp(16px,1.8vw,20px);margin-bottom:4px}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .kpi{padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px}
 .kpi small{display:block;font-size:12px}
-.kpi b{display:block;font-size:clamp(20px,2.2vw,26px);margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi b{display:block;font-size:clamp(19px,2vw,24px);margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
-.map-detail-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
-.filters{display:flex;gap:10px 14px;align-items:end;flex-wrap:wrap;padding:10px 12px;margin:10px 0;background:var(--card);border:1px solid var(--border);border-radius:10px}
-.filters label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
-.filters select,.filters input[type=search]{min-width:170px;max-width:100%}
-.map-plot{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:var(--card)}
-.map-plot[data-basemap=satellite]{background:#143543}
-.map-plot svg{display:block;width:100%;height:clamp(420px,56vh,620px);cursor:grab;touch-action:pan-y}
-.map-plot svg.dragging{cursor:grabbing}
-.province{stroke:var(--map-land-stroke,#52606d);stroke-width:.8;vector-effect:non-scaling-stroke;cursor:pointer;fill:var(--null-fill,#cbd5e1);fill-opacity:var(--province-fill,.85)}
-.map-plot[data-basemap=satellite] .province{stroke:#f5f3e5}
-.province:hover,.province.selected{stroke:var(--accent);stroke-width:2.2}
-.map-hud{position:absolute;left:10px;bottom:10px;max-width:min(560px,calc(100% - 62px));padding:8px 11px;background:#101923eb;color:#f1f5f9;border:1px solid #fff3;border-radius:8px;pointer-events:none;font-size:12px}
-.legend{display:flex;gap:4px 10px;flex-wrap:wrap;margin-top:5px;color:#d9e4ee;font-size:11px}
-.legend span{display:inline-flex;align-items:center;gap:4px}
-.legend i{width:10px;height:10px;display:inline-block;border-radius:2px;border:1px solid #fff4}
-.map-zoom{position:absolute;right:10px;bottom:10px;display:grid;gap:4px;text-align:center}
-.map-zoom button{width:34px;height:34px;padding:0;font-size:17px}
-.map-zoom output{color:var(--text);background:var(--card-elev);border-radius:5px;font-size:10px;padding:1px 3px}
-.detail-card{display:flex;flex-direction:column;gap:10px}
-.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;width:fit-content}
-.status-ok{background:#16a34a22;color:#15803d;border:1px solid #16a34a55}
-[data-theme="dark"] .status-ok{color:#4ade80}
-.status-warn{background:#f59e0b22;color:#b45309;border:1px solid #f59e0b55}
-[data-theme="dark"] .status-warn{color:#fbbf24}
-.status-muted{background:#64748b22;color:var(--muted);border:1px solid var(--border-strong)}
-.stat-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.stat-box{padding:9px 11px;background:var(--card);border:1px solid var(--border);border-radius:9px}
-.stat-box small{display:block;font-size:11px}
-.stat-box b{display:block;font-size:17px;margin-top:2px;font-variant-numeric:tabular-nums}
 .fe-list{display:grid;gap:10px;margin-top:12px}
-.fe-row{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,2fr) auto;gap:10px;align-items:center;font-size:13px}
+.fe-row{display:grid;grid-template-columns:minmax(160px,1.15fr) minmax(0,2fr) auto;gap:10px;align-items:center;font-size:13px}
 .fe-track{position:relative;height:22px;background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden}
 .fe-zero{position:absolute;top:0;bottom:0;width:1px;background:var(--border-strong)}
 .fe-bar{position:absolute;top:4px;height:12px;border-radius:4px}
 .fe-ci{position:absolute;top:9px;height:2px;background:var(--text);opacity:.75}
 .fe-val{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:115px}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600;width:fit-content}
+.status-ok{background:#16a34a22;color:#15803d;border:1px solid #16a34a55}
+[data-theme="dark"] .status-ok{color:#4ade80}
+.status-warn{background:#f59e0b22;color:#b45309;border:1px solid #f59e0b55}
+[data-theme="dark"] .status-warn{color:#fbbf24}
+.status-muted{background:#64748b22;color:var(--muted);border:1px solid var(--border-strong)}
 .scroll{overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:10px}
 table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;text-align:right}
 th,td{padding:8px 10px;border-bottom:1px solid var(--border)}
@@ -80,79 +181,169 @@ th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--accent-soft)}
 tbody tr.selected{background:var(--accent-soft);font-weight:600}
+.peak-btn{padding:3px 9px;font-size:11.5px;border-radius:999px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(223,106,55,0.4);font-weight:600}
+.peak-btn:hover{background:var(--accent);color:#fff}
 .table-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
 .methods summary{cursor:pointer;font-weight:700}
 .methods p,.methods ul{margin-top:8px;font-size:13px}
-@media(max-width:980px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col,.map-detail-grid{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:600px){.kpi-grid,.stat-rows,.fe-row{grid-template-columns:minmax(0,1fr)}.fe-val{text-align:left}.topbar{padding-inline:10px}.map-plot svg{height:380px}}
+
+@media(max-width:1100px){.map-detail-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:920px){.story-grid,.proof-grid,.kpi-grid,.two-col{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){
+  .stat-rows,.fe-row{grid-template-columns:minmax(0,1fr)}
+  .stair-row,.burn-row{grid-template-columns:minmax(0,1fr)}
+  .stair-val{text-align:left}
+  .fe-val{text-align:left}
+  .topbar{flex-wrap:wrap;padding:8px 10px;gap:6px 10px;height:auto}
+  .topbar .nav-tabs{order:3;flex:1 1 100%;max-width:100%}
+  .presets-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .preset-btn{white-space:nowrap;flex-shrink:0}
+  .toggles-group{margin-left:0}
+}
 </style>
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="./#overview"><span class="brand-dot"></span>Thailand Fire Atlas</a>
   <nav class="nav-tabs" aria-label="เมนูหลัก">
+    <a class="nav-tab" href="./guide.html">คู่มือใช้งาน</a>
     <!--__NAV__-->
-    <a class="nav-tab" href="./area-insights.html">เจาะรายพื้นที่</a>
-    <a class="nav-tab" href="./fire-pm-map.html">แผนที่ไฟ × ฝุ่น</a>
-    <a class="nav-tab active" aria-current="page" href="./farm-fire-pm25.html">ไฟเกษตร × ลม × ฝุ่น</a>
+    <a class="nav-tab active" aria-current="page" href="./farm-fire-pm25.html">ไฟเกษตร ลม และฝุ่น</a>
   </nav>
-  <button id="themeToggle" type="button">โหมดมืด</button>
+  <button id="themeToggle" type="button">โหมดสว่าง</button>
 </header>
 <!--__THEME__-->
 <main>
-  <section class="panel">
-    <h1>ผลกระทบของ “ไฟเกษตร × ทิศทางลม” ต่อฝุ่น PM2.5 ทั่วประเทศ</h1>
-    <p class="intro muted" id="scope-subtitle"></p>
-    <div class="answer" role="status" aria-live="polite">
-      <p class="answer-context" id="headline-context"></p>
-      <h2 id="headline-title"></h2>
-      <p id="headline-note"></p>
+  <!-- 1. HERO VISUAL SIMULATION STUDIO -->
+  <section class="panel" id="studio-top">
+    <div class="studio-head">
+      <div>
+        <h1>จุดความร้อน ลม และฝุ่นรายวัน</h1>
+        <p class="muted" style="margin-top:4px;font-size:13.5px">เลือกวันและจังหวัดเพื่อดูจุดความร้อน ค่าฝุ่น และแนวควันที่คาดจากทิศลม</p>
+      </div>
+      <span class="studio-badge" id="sim-status-badge">กำลังโหลดข้อมูลรายวัน…</span>
     </div>
-    <div class="kpi-grid" id="kpi-grid"></div>
-  </section>
 
-  <div class="two-col">
-    <section class="panel">
-      <h2>เทียบน้ำหนัก 3 แหล่งควัน (แบบจำลอง Fixed Effects ปี 2567–2568)</h2>
-      <p class="muted" id="fe-subtitle"></p>
-      <div class="fe-list" id="fe-chart"></div>
-      <small style="display:block;margin-top:10px">ค่า beta บอกว่าเมื่อจำนวนจุดไฟต้นลมเพิ่มขึ้นในพื้นที่และเดือนเดียวกัน ฝุ่น PM2.5 เฉลี่ยขยับขึ้นเท่าไร (เส้นขีดคือช่วงความเชื่อมั่น 95%)</small>
-    </section>
+    <div class="time-bar">
+      <div class="date-nav">
+        <button id="prevDayBtn" type="button" aria-label="วันก่อนหน้า">◀ วันก่อน</button>
+        <input id="dateInput" type="date" min="2023-01-01" max="2026-11-17" value="2026-03-20" aria-label="เลือกวันที่">
+        <button id="nextDayBtn" type="button" aria-label="วันถัดไป">วันถัดไป ▶</button>
+      </div>
+      <button id="playBtn" class="btn-play" type="button">▶ เล่นทีละวัน</button>
+      <select id="speedSelect" aria-label="ความเร็วการแสดงผลต่อเนื่อง">
+        <option value="900">1 วัน / วินาที</option>
+        <option value="380">3 วัน / วินาที</option>
+      </select>
+      <div class="scrubber-wrap">
+        <input id="daySlider" type="range" min="0" max="1416" value="1174" aria-label="เลื่อนดูรายวัน">
+        <span class="day-readout" id="dayReadout">20 มี.ค. 2569</span>
+      </div>
+    </div>
 
-    <section class="panel">
-      <h2>หลักฐานสายรายชั่วโมง &amp; ความแม่นยำทิศทางลม (ก.ย.–17 พ.ย. 2569)</h2>
-      <p class="muted" id="t1-subtitle"></p>
-      <div class="stat-rows" id="t1-stats" style="margin-top:12px"></div>
-      <p class="muted" style="margin-top:12px;font-size:13px" id="t1-note"></p>
-    </section>
-  </div>
+    <div class="presets-row">
+      <span class="preset-label">วันที่น่าลองดู</span>
+      <button type="button" class="preset-btn active" data-date="2026-03-20">20 มี.ค. 2569 · จุดความร้อนในเกษตรและป่า</button>
+      <button type="button" class="preset-btn" data-date="2026-02-14">14 ก.พ. 2569 · จุดความร้อนในเกษตรภาคกลางและตะวันออก</button>
+      <button type="button" class="preset-btn" data-date="2025-03-28">28 มี.ค. 2568 · ภาคเหนือและอีสาน</button>
+      <button type="button" class="preset-btn" data-date="2024-02-21">21 ก.พ. 2567 · ดูทิศลมในภาคกลาง</button>
+      <button type="button" class="preset-btn" data-date="2026-07-15">15 ก.ค. 2569 · ตัวอย่างช่วงฤดูฝน</button>
+    </div>
 
-  <section class="panel">
-    <h2>แผนที่ผลต่างฝุ่นและสถานะข้อมูลรายจังหวัด (77 จังหวัด)</h2>
-    <div class="filters">
-      <label>ข้อมูลที่แสดงบนแผนที่
+    <div class="layer-bar">
+      <label class="field">ประเภทจุดความร้อน
+        <select id="fireFilter">
+          <option value="all">ทุกประเภทพื้นที่</option>
+          <option value="agri">พื้นที่เกษตร</option>
+          <option value="forest">พื้นที่ป่า (อนุรักษ์/สงวน)</option>
+          <option value="spk">เขต ส.ป.ก.</option>
+        </select>
+      </label>
+      <label class="field">ใช้สีบนแผนที่แสดง
         <select id="layerSelect">
-          <option value="all_nofire">ไฟเกษตรต้นลม (2567–ครึ่งแรก 2569 เทียบวันปลอดไฟ)</option>
-          <option value="clean2425_nofire">ช่วงปลอดควันข้ามแดนครบ (2567–2568 เทียบวันปลอดไฟ)</option>
-          <option value="t1_hourly">รายชั่วโมงล่าสุด (ก.ย.–17 พ.ย. 2569 เทียบปลอดไฟ)</option>
-          <option value="sufficiency">สถานะความเพียงพอของข้อมูลรายจังหวัด</option>
+          <option value="pm25_day">ค่าฝุ่น PM2.5 รายวัน (µg/m³)</option>
+          <option value="pm25_spike">ฝุ่นสูงหรือต่ำกว่าค่าเฉลี่ยของเดือน</option>
+          <option value="all_nofire">ส่วนต่างค่าฝุ่นในวันที่พบจุดเกษตรต้นลม เทียบวันที่ไม่พบจุด</option>
+          <option value="clean2425_nofire">ส่วนต่างค่าฝุ่น ปี 2567–2568 (แยกช่วงที่อาจมีควันข้ามแดน)</option>
+          <option value="t1_hourly">ผลต่างค่าฝุ่นรายชั่วโมง (ก.ย.–พ.ย. 2569)</option>
+          <option value="sufficiency">จังหวัดที่มีข้อมูลพอให้เปรียบเทียบ</option>
         </select>
       </label>
-      <label>เลือกจังหวัด
-        <select id="provinceSelect"><option value="">— เลือกจังหวัดเพื่อดูรายละเอียด —</option></select>
+      <label class="field">เลือกจังหวัด
+        <select id="provinceSelect"><option value="">— ภาพรวมทั้งประเทศ (77 จังหวัด) —</option></select>
       </label>
-      <label>แผนที่พื้นหลัง
+      <label class="field">แผนที่พื้นหลัง
         <select id="basemapSelect">
-          <option value="plain">พื้นเรียบ</option>
+          <option value="dark" selected>พื้นหลังสีเข้ม</option>
           <option value="satellite">ภาพถ่ายดาวเทียม Esri</option>
+          <option value="plain">พื้นหลังสีอ่อน</option>
         </select>
       </label>
+      <div class="toggles-group">
+        <label class="pill-check"><input id="toggleSmoke" type="checkbox" checked> แนวควันที่คาดจากลม</label>
+        <label class="pill-check"><input id="toggleWind" type="checkbox" checked> ทิศลมใกล้พื้นดิน</label>
+        <button id="windMotionBtn" class="wind-motion" type="button" disabled>พักเส้นลม</button>
+        <label class="pill-check"><input id="toggleCorridors" type="checkbox" checked> เส้นเชื่อมจังหวัดตามทิศลม</label>
+        <label class="pill-check"><input id="toggleStations" type="checkbox"> สถานีตรวจวัด Air4Thai (180)</label>
+      </div>
     </div>
 
+    <!-- 3-STEP ANALYTICAL SUMMARY STRIP -->
+    <div class="story-grid" role="status" aria-live="polite">
+      <div class="story-card step1">
+        <span class="story-step">จุดความร้อนที่พบ</span>
+        <div class="story-main" id="story1-main">—</div>
+        <div class="chip-list" id="story1-chips"></div>
+        <div class="chip-list" id="story1-top-provs"></div>
+      </div>
+      <div class="story-card step2">
+        <span class="story-step">ลมพัดไปทางไหน</span>
+        <div class="story-main" id="story2-main">—</div>
+        <p class="story-sub" id="story2-sub">—</p>
+      </div>
+      <div class="story-card step3">
+        <span class="story-step">ค่าฝุ่นในพื้นที่ท้ายลม</span>
+        <div class="story-main" id="story3-main">—</div>
+        <p class="story-sub" id="story3-sub">—</p>
+      </div>
+    </div>
+
+    <!-- MAIN FULL MAP + INSPECTOR -->
+    <section class="history-controls" aria-label="ชั้นจุดความร้อนย้อนหลัง">
+      <div class="history-actions">
+        <label class="pill-check"><input id="historyThai" type="checkbox" aria-controls="historyThaiOptions historyPointsCanvas"> จุดความร้อนย้อนหลังในไทย</label>
+        <label class="pill-check"><input id="historyNeighbors" type="checkbox" aria-controls="historyNeighborOptions historyPointsCanvas"> จุดความร้อนย้อนหลังประเทศเพื่อนบ้าน</label>
+        <button id="historyFitRegion" type="button" hidden>ดูไทยและประเทศเพื่อนบ้าน</button>
+      </div>
+      <p class="history-note">จุดย้อนหลังอ้างอิงปีที่เลือกด้านล่าง ส่วนลม ควัน และกราฟฝุ่นยังอ้างอิงวันที่เลือกด้านบน</p>
+      <div class="history-filters" id="historyFilters" hidden>
+        <fieldset id="historyThaiOptions" class="history-group" hidden>
+          <legend>ไทย 2022–2026 · จิสด้า</legend>
+          <label class="field">แยกสีจุด
+            <select id="historyThaiColors"><option value="type">ตามชนิดพื้นที่และพืช</option><option value="year">ตามปี</option></select>
+          </label>
+          <fieldset><legend>ปี (ค.ศ.)</legend><div id="historyThaiYears" class="history-options"></div></fieldset>
+          <fieldset><legend>ชนิดพื้นที่หรือพืช</legend><div id="historyThaiTypes" class="history-options"></div></fieldset>
+          <div id="historyThaiStatus" class="history-status" role="status"></div>
+          <button id="historyThaiRetry" type="button" hidden>โหลดจุดในไทยอีกครั้ง</button>
+        </fieldset>
+        <fieldset id="historyNeighborOptions" class="history-group" hidden>
+          <legend>ประเทศเพื่อนบ้าน 2022–2025 · NASA FIRMS</legend>
+          <fieldset><legend>ประเทศ</legend><div id="historyCountries" class="history-options"></div></fieldset>
+          <fieldset><legend>ปี (ค.ศ.)</legend><div id="historyNeighborYears" class="history-options"></div></fieldset>
+          <div id="historyNeighborStatus" class="history-status" role="status"></div>
+          <button id="historyNeighborRetry" type="button" hidden>โหลดจุดเพื่อนบ้านอีกครั้ง</button>
+        </fieldset>
+      </div>
+    </section>
     <div class="map-detail-grid">
-      <div class="map-plot" id="map-plot" data-basemap="plain">
-        <svg id="mapSvg" role="img" aria-label="แผนที่ผลวิเคราะห์ไฟเกษตรและทิศทางลมต่อฝุ่น PM2.5 รายจังหวัด"></svg>
+      <div class="map-plot" id="map-plot" data-basemap="dark">
+        <svg id="mapSvg" role="img" aria-label="แผนที่จุดความร้อน ทิศลม และค่าฝุ่นรายวัน"></svg>
+        <canvas id="historyPointsCanvas" aria-hidden="true" hidden></canvas>
+        <canvas id="smokeCanvas" aria-hidden="true"></canvas>
+        <div class="map-tooltip" id="mapTooltip"></div>
         <div class="map-hud">
+          <small id="boundaryStatus">เส้นเขตจังหวัด</small>
           <p id="map-summary"></p>
           <div class="legend" id="legend"></div>
         </div>
@@ -164,22 +355,84 @@ tbody tr.selected{background:var(--accent-soft);font-weight:600}
         </div>
       </div>
 
-      <div class="detail-card" id="prov-detail"></div>
+      <aside class="inspector">
+        <div class="insp-card" id="prov-day-card"></div>
+        <div class="insp-card">
+          <div class="insp-head">
+            <div>
+              <h3 id="chart-title">แนวโน้มจุดความร้อนและค่าฝุ่น PM2.5 ช่วง ±7 วัน</h3>
+              <small id="chart-subtitle">แท่งส้มคือจำนวนจุด เส้นฟ้าคือค่าฝุ่น เลือกแท่งเพื่อเปลี่ยนวัน</small>
+            </div>
+          </div>
+          <svg id="trendChart" class="chart-svg" viewBox="0 0 420 165" role="img" aria-label="กราฟจุดความร้อนและฝุ่น PM2.5 ช่วง 15 วันรอบวันที่เลือก"></svg>
+        </div>
+        <div class="insp-card">
+          <h3>พื้นที่ที่อาจอยู่ท้ายลม</h3>
+          <small id="corridor-subtitle">พื้นที่ท้ายลมคำนวณจากลมรายวัน ค่าฝุ่นบนแผนที่เป็นค่าประมาณรายจังหวัด</small>
+          <div class="corridor-list" id="corridor-list"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 1.5 EMPIRICAL DOSE-RESPONSE & LAND-USE COMPARISON -->
+  <section class="proof-grid" id="proof-section">
+    <div class="proof-card" id="staircase-card">
+      <div>
+        <h2 id="staircase-title">ค่าฝุ่นตามจำนวนจุดความร้อน</h2>
+        <small id="staircase-subtitle">จำแนกตามระดับจำนวนจุดความร้อนต่อวันในพื้นที่ (ข้อมูลรายวัน พ.ศ. 2566–2569 รวม 1,417 วัน)</small>
+      </div>
+      <div class="proof-callout" id="staircase-summary">กำลังประมวลผล...</div>
+      <div class="stair-list" id="staircase-list"></div>
+    </div>
+
+    <div class="proof-card" id="burn-type-panel">
+      <div>
+        <h2 id="burn-type-title">เทียบค่าฝุ่นตามประเภทพื้นที่และพืชที่พบจุดความร้อน</h2>
+        <small id="burn-type-subtitle">เทียบค่าฝุ่นในจังหวัดและเดือนเดียวกัน โดยใช้วันที่ไม่พบจุดความร้อนเป็นฐาน</small>
+      </div>
+      <div class="proof-callout" id="burn-type-summary">กำลังประมวลผล...</div>
+      <div class="stair-list" id="burn-type-list"></div>
+    </div>
+  </section>
+
+  <!-- 2. RESEARCH SUMMARY SECTION -->
+  <section class="panel">
+    <div class="research-banner">
+      <h2 id="headline-title">เปรียบเทียบค่าฝุ่นจากสถานีตรวจวัด</h2>
+      <p id="headline-note" style="font-size:13px"></p>
+    </div>
+    <p class="muted" id="scope-subtitle" style="margin-bottom:10px;font-size:13px"></p>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="two-col">
+      <div class="insp-card">
+        <h3>ความสัมพันธ์ของจุดความร้อนต้นลมกับค่าฝุ่น (2567–2568)</h3>
+        <p class="muted" id="fe-subtitle" style="font-size:12.5px;margin-top:2px"></p>
+        <div class="fe-list" id="fe-chart"></div>
+        <small style="display:block;margin-top:10px">ตัวเลขบอกว่าค่าฝุ่นต่างกันเท่าไรเมื่อพบจุดต้นลมเพิ่ม โดยเทียบสถานีและเดือนเดียวกัน ขีดแสดงช่วงความไม่แน่นอนของค่าประมาณ</small>
+      </div>
+      <div class="insp-card">
+        <h3>เทียบฝุ่นกับทิศลมรายชั่วโมง (ก.ย.–17 พ.ย. 2569)</h3>
+        <p class="muted" id="t1-subtitle" style="font-size:12.5px;margin-top:2px"></p>
+        <div class="stat-rows" id="t1-stats" style="margin-top:10px"></div>
+        <p class="muted" style="margin-top:10px;font-size:12.5px" id="t1-note"></p>
+      </div>
     </div>
   </section>
 
   <section class="panel">
-    <h2>สรุปผลระดับประเทศและ 6 ภูมิภาค (สายรายวัน 2567–ครึ่งแรก 2569)</h2>
+    <h2>ผลเปรียบเทียบรายวัน แยก 6 ภูมิภาค (2567–กลางปี 2569)</h2>
     <div class="scroll" style="margin-top:10px">
       <table>
         <thead>
           <tr>
             <th>ขอบเขตพื้นที่</th>
             <th>สถานี</th>
-            <th>วันไฟเกษตรต้นลม (สะอาด)</th>
+            <th>วันที่พบจุดเกษตรต้นลมตามเกณฑ์</th>
             <th>เทียบคนละทิศลม (µg/m³)</th>
-            <th>เทียบวันปลอดไฟ (µg/m³)</th>
-            <th>ช่วงปลอดข้ามแดน 2567–2568</th>
+            <th>เทียบวันที่ไม่พบจุด (µg/m³)</th>
+            <th>ผลหลังคัดช่วงควันข้ามแดน (2567–2568)</th>
             <th>สถานะข้อมูล</th>
           </tr>
         </thead>
@@ -204,11 +457,11 @@ tbody tr.selected{background:var(--accent-soft);font-weight:600}
         </select>
         <select id="statusFilter">
           <option value="">ทุกสถานะข้อมูล</option>
-          <option value="sufficient">ผ่านเกณฑ์ประเมิน (41 จังหวัด)</option>
-          <option value="insufficient">ข้อมูลไม่พอ / ถูกปนเปื้อน</option>
+          <option value="sufficient">ข้อมูลพอเปรียบเทียบ</option>
+          <option value="insufficient">ข้อมูลไม่พอแยกแหล่งฝุ่น</option>
         </select>
       </div>
-      <button id="exportCsvBtn" type="button">ดาวน์โหลด CSV (77 จังหวัด)</button>
+      <button id="exportCsvBtn" type="button">ดาวน์โหลดตารางจังหวัด</button>
     </div>
     <div class="scroll">
       <table>
@@ -218,12 +471,13 @@ tbody tr.selected{background:var(--accent-soft);font-weight:600}
             <th>จังหวัด</th>
             <th>ภาค</th>
             <th>สถานี</th>
-            <th>วันไฟเกษตรต้นลม (สะอาด)</th>
-            <th>เทียบวันปลอดไฟ (µg/m³)</th>
-            <th>เทียบคนละทิศลม (µg/m³)</th>
-            <th>ปลอดข้ามแดน 2567–2568</th>
-            <th>รายชั่วโมง 2569 (µg/m³)</th>
-            <th>สถานะรายวัน</th>
+            <th>วันไฟเกษตรต้นลม</th>
+            <th>เทียบวันที่ไม่พบจุด</th>
+            <th>เทียบคนละทิศลม</th>
+            <th>หลังคัดช่วงควันข้ามแดน (2567–2568)</th>
+            <th>รายชั่วโมง 69</th>
+            <th>สถานะข้อมูล</th>
+            <th>แสดงผลรายวัน</th>
           </tr>
         </thead>
         <tbody id="prov-tbody"></tbody>
@@ -232,19 +486,22 @@ tbody tr.selected{background:var(--accent-soft);font-weight:600}
   </section>
 
   <details class="panel methods">
-    <summary>วิธีวิเคราะห์ ข้อจำกัดข้อมูล และแหล่งที่มา</summary>
+    <summary>วิธีคำนวณและที่มาข้อมูล</summary>
     <ul>
-      <li><strong>การแยกทิศลม:</strong> ถือว่าจุดไฟอยู่ “ต้นลม” เมื่ออยู่ในกรวย ±30° จากทิศที่ลมพัดมา (ERA5 รายชั่วโมง 0.25° และเสาวัดลมสถานี) ภายในรัศมี 50 กม. สำหรับไฟเกษตร/ส.ป.ก., 80 กม. สำหรับไฟป่า และ 250 กม. สำหรับควันข้ามแดน; วัน “คนละทิศลม” คือไฟอยู่ห่างทิศลมตั้งแต่ 90° ขึ้นไป</li>
-      <li><strong>ข้อจำกัดสำคัญ:</strong> ข้อมูลจุดไฟข้ามแดนจาก NASA FIRMS ในระบบมีครบถึงปี 2568 ส่วนปี 2569 ต้นทางยังไม่ได้เผยแพร่ชุดรายปีครบถ้วน จึงแยกแสดงช่วงปลอดควันข้ามแดน 2567–2568 ไว้ต่างหาก และจังหวัดที่ข้อมูลไม่พอหรือถูกปนเปื้อนไฟป่า/ควันข้ามแดนหนัก (เช่น เหลือวันสะอาด &lt; 10 วัน) จะคงค่าเป็น “ข้อมูลไม่พอประเมิน” โดยไม่เดาตัวเลขหรือแทนด้วย 0</li>
-      <li><strong>แหล่งที่มาข้อมูล:</strong> สถานีตรวจวัด PM2.5 และทิศทางลม <a href="http://air4thai.pcd.go.th/">Air4Thai (กรมควบคุมมลพิษ)</a> · จุดความร้อน VIIRS <a href="https://fire.gistda.or.th/">GISTDA</a> · ลม ฝน และชั้นผสมอากาศ ERA5 <a href="https://open-meteo.com/">Open-Meteo (CC BY 4.0)</a> · จุดความร้อนข้ามพรมแดน GMS <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a></li>
+      <li><strong>แบบจำลองการกระจายตัวรายวันบนแผนที่:</strong> แสดงตำแหน่งจุดความร้อนจากดาวเทียม VIIRS รายอำเภอ (จำแนกตามการใช้ที่ดิน: พื้นที่เกษตร พื้นที่ป่า และเขต ส.ป.ก.) ร่วมกับข้อมูลความเร็วและทิศทางลมระดับ 10 เมตรจากแบบจำลอง ERA5 (Open-Meteo) และความเข้มข้น PM2.5 รายจังหวัด (CAMS / Open-Meteo CC-BY-4.0) เส้นทางการพัดพาควันจากแหล่งกำเนิดสู่พื้นที่ท้ายลมคำนวณด้วยระยะทางทรงกลม (Haversine) และกรวยทิศลม ±35° ภายในรัศมี 85 กม. (พื้นที่เกษตร/ส.ป.ก.) และ 115 กม. (พื้นที่ป่า)</li>
+      <li><strong>การวิเคราะห์เชิงสถิติจากสถานีตรวจวัดภาคพื้นดิน:</strong> จับคู่จุดความร้อนรายชั่วโมงกับสถานีตรวจวัดของกรมควบคุมมลพิษ (Air4Thai) 180 แห่ง โดยแยกอิทธิพลพร้อมกันทั้งไฟเกษตร ไฟป่า เขต ส.ป.ก. และหมอกควันข้ามแดน (NASA FIRMS พ.ศ. 2567–2568) จังหวัดที่ได้รับผลกระทบจากไฟป่าหรือควันข้ามแดนจนเหลือวันไฟเกษตรบริสุทธิ์ต่ำกว่าเกณฑ์ขั้นต่ำ (&lt; 10 วัน) จะคงสถานะเป็นข้อมูลไม่เพียงพอต่อการประเมิน</li>
+      <li><strong>แหล่งข้อมูลอ้างอิง:</strong> จุดความร้อน VIIRS <a href="https://fire.gistda.or.th/">GISTDA</a> · ข้อมูลอุตุนิยมวิทยาและคุณภาพอากาศ <a href="https://open-meteo.com/">Open-Meteo (CC BY 4.0)</a> · สถานีตรวจวัด PM2.5 <a href="http://air4thai.pcd.go.th/">Air4Thai (กรมควบคุมมลพิษ)</a> · จุดความร้อนข้ามแดน <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a></li>
     </ul>
   </details>
 </main>
 <script type="application/json" id="data">__FARM_FIRE_DATA__</script>
+<script>/*__HISTORICAL_HOTSPOTS__*/</script>
+<script>/*__ATLAS_BOUNDARIES__*/</script>
 <script>
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const $ = id => document.getElementById(id);
-const numFmt = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
+const numFmt = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 1 });
+const num2Fmt = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
 const intFmt = new Intl.NumberFormat('th-TH');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -260,10 +517,12 @@ const STATUS_TH = {
   insufficient_valid_obs: ['ข้อมูลไม่พอ (วันตรวจวัดไม่ถึงเกณฑ์)', 'status-muted'],
   insufficient_no_station: ['ไม่มีสถานีตรวจวัดและจุดจับคู่', 'status-muted']
 };
+const CROP_NAMES = ['', 'นาข้าว', 'อ้อย', 'ข้าวโพด'];
+const FIRE_ROW_WIDTH = 8;
 
 function fmtSigned(v, unit = '') {
   if (v == null || !Number.isFinite(v)) return 'ข้อมูลไม่พอ';
-  return `${v >= 0 ? '+' : '−'}${numFmt.format(Math.abs(v))}${unit}`;
+  return `${v >= 0 ? '+' : '−'}${num2Fmt.format(Math.abs(v))}${unit}`;
 }
 function fmtCI(lo, hi) {
   if (lo == null || hi == null) return '—';
@@ -273,86 +532,24 @@ function statusBadge(code) {
   const [label, cls] = STATUS_TH[code] || [code || '—', 'status-muted'];
   return `<span class="status-pill ${cls}">${esc(label)}</span>`;
 }
+function aqiCategory(pm) {
+  if (pm == null || !Number.isFinite(pm)) return ['ไม่มีข้อมูล', '#64748b', '#94a3b822'];
+  if (pm <= 15) return ['ดีมาก', '#16a34a', '#16a34a26'];
+  if (pm <= 25) return ['ดี', '#65a30d', '#65a30d26'];
+  if (pm <= 37.5) return ['ปานกลาง', '#eab308', '#eab30826'];
+  if (pm <= 75) return ['เริ่มมีผลต่อสุขภาพ', '#f97316', '#f973162b'];
+  return ['มีผลต่อสุขภาพมาก', '#dc2626', '#dc26262e'];
+}
+function compassFromDeg(wdFrom) {
+  if (wdFrom == null || wdFrom < 0) return ['ลมสงบ', '•', 'ไม่มีลมชัด'];
+  const dirs8 = ['เหนือ', 'ตะวันออกเฉียงเหนือ', 'ตะวันออก', 'ตะวันออกเฉียงใต้', 'ใต้', 'ตะวันตกเฉียงใต้', 'ตะวันตก', 'ตะวันตกเฉียงเหนือ'];
+  const arrowsTo = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+  const iFrom = Math.round(((wdFrom % 360) / 45)) % 8;
+  const iTo = (iFrom + 4) % 8;
+  return [dirs8[iFrom], arrowsTo[iTo], `จาก${dirs8[iFrom]} → มุ่งหน้า${dirs8[iTo]}`];
+}
 
-// 1. Headline, KPIs, Fixed Effects, Track 1
-const cov = DATA.station_coverage || {};
-const t1 = DATA.track1_hourly || {};
-const t2 = DATA.track2_daily || {};
-const nat2 = t2.regions?.National?.all_2024_2026h1 || {};
-const nat2425 = t2.regions?.National?.clean_2024_2025_with_tb_exclusion || {};
-const nat1 = t1.regions?.National || {};
-const fe = t2.fixed_effects_2024_2025 || {};
-const suffCount = Object.values(t2.provinces || {}).filter(p => String(p.sufficiency_status || '').startsWith('sufficient')).length;
-
-$('scope-subtitle').textContent =
-  `จับคู่จุดความร้อน VIIRS กับสถานี Air4Thai ${intFmt.format(cov.total_stations || 0)} สถานี (${cov.provinces_with_in_province_station || 0}/77 จังหวัด + จับคู่ลมพัดข้ามเขต) และลมรายชั่วโมง ERA5 · อัปเดต ${String(DATA.generated_at_utc || '').slice(0, 10)}`;
-$('headline-context').textContent =
-  `สายรายวัน ${t2.window || ''} · สายรายชั่วโมง ${t1.window || ''}`;
-$('headline-title').textContent =
-  `วันไฟเกษตรอยู่ต้นลม (ปลอดไฟป่าและควันข้ามแดน) ฝุ่นสูงกว่าวันปลอดไฟ ${fmtSigned(nat2.delta_vs_nofire_ug_m3, ' µg/m³')} และในช่วงปลอดควันข้ามแดนครบปี 2567–2568 สูงขึ้น ${fmtSigned(nat2425.delta_vs_nofire_ug_m3, ' µg/m³')}`;
-$('headline-note').textContent =
-  `เมื่อแยกน้ำหนักพร้อมกันทั้ง 3 แหล่ง ไฟป่าต้นลมดันฝุ่นแรงกว่าไฟเกษตรและควันข้ามแดนชัดเจน และมี ${suffCount}/77 จังหวัดที่ข้อมูลสะอาดพอจะสรุปผลระดับจังหวัดได้ (อีก ${77 - suffCount} จังหวัดถูกปนเปื้อนหนักหรือมีข้อมูลไม่พอ)`;
-
-const kpis = [
-  ['สถานีตรวจวัด PM2.5', `${intFmt.format(cov.total_stations || 0)} สถานี`, `ตั้งอยู่ใน ${cov.provinces_with_in_province_station || 0}/77 จังหวัด · ผ่านเกณฑ์รายจังหวัด ${suffCount}/77`],
-  ['ไฟเกษตรต้นลม (2567–ครึ่งแรก 2569)', fmtSigned(nat2.delta_vs_nofire_ug_m3, ' µg/m³'), `เทียบวันปลอดไฟ · ${intFmt.format(nat2.clean_upwind_agri_days || 0)} วัน-สถานีสะอาด`],
-  ['ช่วงปลอดข้ามแดนครบ (2567–2568)', fmtSigned(nat2425.delta_vs_nofire_ug_m3, ' µg/m³'), `เทียบคนละทิศลม ${fmtSigned(nat2425.delta_vs_non_upwind_ug_m3, ' µg/m³')}`],
-  ['รายชั่วโมง ก.ย.–17 พ.ย. 2569', fmtSigned(nat1.delta_vs_non_upwind_ug_m3, ' µg/m³'), `เทียบคนละทิศลม · ชม.สะอาด ${intFmt.format(nat1.clean_upwind_agri_hours || 0)} ชม.`]
-];
-$('kpi-grid').innerHTML = kpis.map(([label, val, sub]) =>
-  `<div class="kpi"><small>${esc(label)}</small><b>${esc(val)}</b><small>${esc(sub)}</small></div>`
-).join('');
-
-// Fixed Effects chart
-const FE_LABELS = {
-  ln_1p_upwind_forest_80km: ['ไฟป่าต้นลม (≤80 กม.)', '#b91c1c'],
-  ln_1p_upwind_transboundary_250km: ['ควันข้ามแดนต้นลม (≤250 กม.)', '#7c3aed'],
-  ln_1p_upwind_agri_50km: ['ไฟเกษตรต้นลม (≤50 กม.)', '#ea580c'],
-  ln_1p_upwind_spk_50km: ['เขต ส.ป.ก. ต้นลม (≤50 กม.)', '#d97706'],
-  ln_1p_non_upwind_agri_50km: ['ไฟเกษตรคนละทิศลม (≥90° เทียบ)', '#64748b']
-};
-$('fe-subtitle').textContent = `ควบคุมความต่างรายสถานี×เดือน (n = ${intFmt.format(fe.n_obs || 0)} วัน-สถานี)`;
-const feRows = (fe.covariates || []).map((name, idx) => ({
-  name,
-  meta: FE_LABELS[name],
-  b: fe.beta?.[idx],
-  lo: fe.ci_low?.[idx],
-  hi: fe.ci_high?.[idx]
-})).filter(r => r.meta);
-const minFe = Math.min(0, ...feRows.map(r => r.lo ?? r.b ?? 0)) - 0.4;
-const maxFe = Math.max(1, ...feRows.map(r => r.hi ?? r.b ?? 0)) + 0.4;
-const spanFe = Math.max(1e-6, maxFe - minFe);
-const pctFe = v => `${((v - minFe) / spanFe * 100).toFixed(2)}%`;
-$('fe-chart').innerHTML = feRows.map(r => {
-  const [label, col] = r.meta;
-  const zeroPct = pctFe(0);
-  const b0 = Math.min(0, r.b ?? 0), b1 = Math.max(0, r.b ?? 0);
-  const barL = pctFe(b0), barW = `${((b1 - b0) / spanFe * 100).toFixed(2)}%`;
-  const ciL = pctFe(r.lo ?? r.b ?? 0), ciW = `${(((r.hi ?? r.b ?? 0) - (r.lo ?? r.b ?? 0)) / spanFe * 100).toFixed(2)}%`;
-  return `<div class="fe-row">
-    <span>${esc(label)}</span>
-    <div class="fe-track">
-      <div class="fe-zero" style="left:${zeroPct}"></div>
-      <div class="fe-bar" style="left:${barL};width:${barW};background:${col}"></div>
-      <div class="fe-ci" style="left:${ciL};width:${ciW}"></div>
-    </div>
-    <span class="fe-val"><strong>${esc(fmtSigned(r.b))}</strong> <small>${esc(fmtCI(r.lo, r.hi))}</small></span>
-  </div>`;
-}).join('');
-
-// Track 1 card
-const jump = t1.before_after_episode_jump || {};
-const wind = t1.anemometer_era5_agreement || {};
-$('t1-subtitle').textContent = `ช่วง ${t1.window || ''} · ดาวเทียม VIIRS (${(t1.satellites_primary || []).join(', ')})`;
-$('t1-stats').innerHTML = [
-  ['ชั่วโมงไฟเกษตรต้นลมสะอาด', `${intFmt.format(nat1.clean_upwind_agri_hours || 0)} ชม.-สถานี`],
-  ['พัดข้ามเขตจังหวัด', `${intFmt.format(nat1.cross_province_upwind_hours || 0)} ชม.-สถานี`],
-  [`กระโดดก่อน–หลัง (${intFmt.format(jump.n_episodes || 0)} เหตุการณ์)`, `${fmtSigned(jump.mean_jump_ug_m3, ' µg/m³')} ${fmtCI(jump.ci_low, jump.ci_high)}`],
-  ['ลมเสาวัด Air4Thai vs ERA5', `${intFmt.format(wind.n_hours_both_windy || 0)} ชม. · ตรงใน ±45° ${wind.pct_within_45deg ?? '—'}% (ต่างมัธยฐาน ${wind.median_angular_diff_deg ?? '—'}°)`]
-].map(([k, v]) => `<div class="stat-box"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('');
-$('t1-note').textContent = `เมื่อจับคู่แบบรายชั่วโมงในช่วงต้นฤดูปลายฝนต้นหนาว 2569 พบว่าผลส่วนใหญ่เกิดจากการพัดข้ามจังหวัด และทิศลมแบบจำลอง ERA5 สอดคล้องกับเสาวัดจริงที่สถานีในระดับใช้งานวิเคราะห์ได้`;
-
-// 2. Map rendering
+// ===== GEO & PROJECTION =====
 const svgNS = 'http://www.w3.org/2000/svg';
 const svgEl = (name, attrs = {}) => {
   const n = document.createElementNS(svgNS, name);
@@ -362,65 +559,113 @@ const svgEl = (name, attrs = {}) => {
 const project = (lon, lat) => [lon, -Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) * 180 / Math.PI];
 const map = $('mapSvg'), imagery = svgEl('g', { 'pointer-events': 'none' });
 map.append(imagery);
-const groups = new Map(), tiles = new Map();
+const canvas = $('smokeCanvas'), ctx = canvas.getContext('2d');
+const groups = new Map(), provList = [], provIdxByCode = new Map(), tiles = new Map();
 let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
 
-for (const [code, name, region, geom] of DATA.provinces) {
+for (const [code, name, region, geom, lon, lat] of DATA.provinces) {
   $('provinceSelect').add(new Option(name, code));
   const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
-  const d = polys.flatMap(poly => poly.map(ring => 'M' + ring.map(([lon, lat]) => {
-    const [x, y] = project(lon, lat);
+  const d = polys.flatMap(poly => poly.map(ring => 'M' + ring.map(([lo, la]) => {
+    const [x, y] = project(lo, la);
     x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
     return x.toFixed(4) + ',' + y.toFixed(4);
   }).join('L') + 'Z')).join('');
   const shape = svgEl('path', { class: 'province', d, 'fill-rule': 'evenodd' });
-  const title = svgEl('title');
-  shape.append(title);
-  shape.addEventListener('click', () => { $('provinceSelect').value = code; selectedCode = code; render(); });
+  const [px, py] = project(lon, lat);
+  const idx = provList.length;
+  const pObj = { idx, code, name, region, lon, lat, px, py, shape };
+  provList.push(pObj);
+  provIdxByCode.set(code, idx);
+  groups.set(code, pObj);
+
+  shape.addEventListener('click', () => {
+    $('provinceSelect').value = code;
+    selectedCode = code;
+    renderDay(currentDayIdx);
+  });
+  shape.addEventListener('pointermove', ev => showTooltip(ev, pObj));
+  shape.addEventListener('pointerleave', hideTooltip);
   map.append(shape);
-  groups.set(code, { code, name, region, shape, title });
 }
+
 const country = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
-let camera = { x: country.x + country.width / 2, y: country.y + country.height / 2, height: country.height * 1.15 };
-let selectedCode = '', basemap = 'plain', gesture = null;
+const drawBoundaries = createAtlasSvgBoundaries(map, project, $('boundaryStatus'), drawMap);
+const minMapSpan = 0.18;
+let camera = { x: country.x + country.width / 2, y: country.y + country.height / 2, height: country.height * 1.12 };
+let viewBounds = { left: x0, top: y0, width: x1 - x0, height: y1 - y0 };
+let selectedCode = '', basemap = 'dark', gesture = null;
+const historyHotspots = setupHistoricalHotspots({
+  baseUrl: __HOTSPOT_POINT_BASE_URL__, project, getBounds: () => viewBounds, format: intFmt,
+});
+$('historyFitRegion').addEventListener('click', () => {
+  const [west, north] = project(89, 27);
+  const [east, south] = project(114, 4);
+  const aspect = Math.max(1, map.clientWidth) / Math.max(1, map.clientHeight);
+  camera = { x: (west + east) / 2, y: (north + south) / 2,
+    height: Math.min(54, Math.max(south - north, (east - west) / aspect) * 1.08) };
+  drawMap();
+});
+
+function syncCanvasSize() {
+  const rect = $('map-plot').getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const targetW = Math.max(1, Math.round(rect.width * dpr));
+  const targetH = Math.max(1, Math.round(rect.height * dpr));
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
 
 function fitMap(code) {
   const box = code && groups.has(code) ? groups.get(code).shape.getBBox() : country;
   camera = {
     x: box.x + box.width / 2,
     y: box.y + box.height / 2,
-    height: Math.max(code ? 2.4 : 0, box.height * 1.22, box.width * 1.12 * map.clientHeight / Math.max(1, map.clientWidth))
+    height: Math.max(code ? 2.4 : 0, box.height * 1.22, box.width * 1.12 * Math.max(1, map.clientHeight) / Math.max(1, map.clientWidth))
   };
   drawMap();
 }
 
 function drawMap() {
+  basemap = $('basemapSelect').value;
+  const plot = $('map-plot');
+  if (plot.dataset.basemap !== basemap) plot.dataset.basemap = basemap;
+
   const w = Math.max(1, map.clientWidth), h = Math.max(1, map.clientHeight);
   const width = camera.height * w / h, left = camera.x - width / 2, top = camera.y - camera.height / 2;
+  viewBounds = { left, top, width, height: camera.height };
   map.setAttribute('viewBox', `${left} ${top} ${width} ${camera.height}`);
   const zoom = Math.log2(360 / camera.height * h / 256);
+  drawBoundaries(zoom, viewBounds);
   $('zoom-level').textContent = `z${zoom.toFixed(1)}`;
-  $('zoom-in').disabled = camera.height <= 1;
+  $('zoom-in').disabled = camera.height <= minMapSpan;
   $('zoom-out').disabled = camera.height >= 54;
   const keep = new Set();
   if (basemap === 'satellite') {
-    const z = Math.max(2, Math.min(11, Math.round(zoom))), count = 2 ** z, size = 360 / count;
+    const z = Math.max(2, Math.min(15, Math.round(zoom))), count = 2 ** z, size = 360 / count;
     const minX = Math.max(0, Math.floor((left + 180) / size)), maxX = Math.min(count - 1, Math.floor((left + width + 180) / size));
     const minY = Math.max(0, Math.floor((top + 180) / size)), maxY = Math.min(count - 1, Math.floor((top + height + 180) / size));
     for (let r = minY; r <= maxY; r++) for (let c = minX; c <= maxX; c++) {
       const k = `${z}/${r}/${c}`; keep.add(k);
       if (!tiles.has(k)) {
-        const t = svgEl('image', { x: c * size - 180, y: r * size - 180, width: size, height: size,
-          href: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${k}` });
+        const t = svgEl('image', {
+          x: c * size - 180, y: r * size - 180, width: size, height: size,
+          href: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${k}`
+        });
         tiles.set(k, t); imagery.append(t);
       }
     }
   }
   for (const [k, t] of tiles) if (!keep.has(k)) { t.remove(); tiles.delete(k); }
+  syncCanvasSize();
+  historyHotspots.redraw();
 }
 
 function zoomMap(factor, anchor = camera) {
-  const nh = Math.max(1, Math.min(54, camera.height * factor));
+  const nh = Math.max(minMapSpan, Math.min(54, camera.height * factor));
   if (nh === camera.height) return;
   const move = 1 - nh / camera.height;
   camera.x += (anchor.x - camera.x) * move; camera.y += (anchor.y - camera.y) * move; camera.height = nh;
@@ -428,7 +673,7 @@ function zoomMap(factor, anchor = camera) {
 }
 $('zoom-in').addEventListener('click', () => zoomMap(0.67));
 $('zoom-out').addEventListener('click', () => zoomMap(1 / 0.67));
-$('zoom-reset').addEventListener('click', () => { $('provinceSelect').value = ''; selectedCode = ''; fitMap(''); render(); });
+$('zoom-reset').addEventListener('click', () => { $('provinceSelect').value = ''; selectedCode = ''; fitMap(''); renderDay(currentDayIdx); });
 map.addEventListener('wheel', ev => {
   if (ev.ctrlKey || !ev.deltaY) return;
   ev.preventDefault();
@@ -444,59 +689,1136 @@ map.addEventListener('pointermove', ev => {
   const dx = ev.clientX - gesture.x, dy = ev.clientY - gesture.y;
   if (!gesture.moved && Math.hypot(dx, dy) < 5) return;
   if (!gesture.moved) map.setPointerCapture(ev.pointerId);
-  gesture.moved = true; map.classList.add('dragging');
+  gesture.moved = true; map.classList.add('dragging'); hideTooltip();
   const scale = camera.height / Math.max(1, map.clientHeight);
-  camera.x = Math.max(70, Math.min(130, gesture.cx - dx * scale));
-  camera.y = Math.max(-38, Math.min(8, gesture.cy - dy * scale));
+  camera.x = Math.max(85, Math.min(115, gesture.cx - dx * scale));
+  camera.y = Math.max(-28, Math.min(2, gesture.cy - dy * scale));
   drawMap();
 });
 map.addEventListener('click', ev => { if (gesture?.moved) ev.stopPropagation(); }, true);
 for (const tp of ['pointercancel', 'pointerup', 'lostpointercapture']) map.addEventListener(tp, () => map.classList.remove('dragging'));
 new ResizeObserver(() => drawMap()).observe(map);
 
+// ===== DAILY SIMULATION STATE & ANALYSIS =====
+let SIM = null;
+let monthBaseline = []; // [77][12] overall mean PM2.5 per prov x month
+let zeroFireMonthMean = []; // [77][12] zero-fire mean PM2.5 per prov x month
+let peakDayByProv = new Array(77).fill(1174);
+let currentDayIdx = 1174; // 2026-03-20
+let dayState = {
+  clusters: [], provFires: [], corridors: [],
+  incomingByProv: [], outgoingByProv: [],
+  downwindSet: new Set(), cleanSet: new Set(),
+  totAgri: 0, totForest: 0, totSpk: 0, totOther: 0, totFiltered: 0,
+  cropCounts: [0, 0, 0, 0],
+  avgWs: 0, domWd: -1, downwindAvgPm: null, cleanAvgPm: null, exceedCount: 0
+};
+let playTimer = null;
+
+function dayIdxToIso(idx) {
+  if (!SIM) return '2026-03-20';
+  const base = Date.parse(SIM.start_date + 'T00:00:00Z');
+  return new Date(base + idx * 86400000).toISOString().slice(0, 10);
+}
+function isoToDayIdx(iso) {
+  if (!SIM) return 0;
+  const base = Date.parse(SIM.start_date + 'T00:00:00Z');
+  const d = Math.round((Date.parse(iso + 'T00:00:00Z') - base) / 86400000);
+  return Math.max(0, Math.min(SIM.n_days - 1, d));
+}
+function formatThaiDate(iso, shortMonth = true) {
+  const dt = new Date(iso + 'T00:00:00Z');
+  return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: shortMonth ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' }).format(dt);
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371.0;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(Math.min(1, a)));
+}
+function bearingDeg(lat1, lon1, lat2, lon2) {
+  const f1 = lat1 * Math.PI / 180, f2 = lat2 * Math.PI / 180, dl = (lon2 - lon1) * Math.PI / 180;
+  const y = Math.sin(dl) * Math.cos(f2);
+  const x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+function angularDiff(a, b) {
+  return Math.abs(((a - b + 180) % 360 + 360) % 360 - 180);
+}
+
+function prepareSimIndexes(raw) {
+  SIM = raw;
+  SIM.ampObjs = (raw.amphoes || []).map(([code, name, pIdx, lon, lat], i) => {
+    const [px, py] = project(lon, lat);
+    return { idx: i, code, name, pIdx, lon, lat, px, py };
+  });
+  SIM.stationObjs = (raw.stations || []).map(([id, name, pIdx, lon, lat]) => {
+    const [px, py] = project(lon, lat);
+    return { id, name, pIdx, lon, lat, px, py };
+  });
+  // Monthly baseline PM2.5 per province x month
+  const baseMs = Date.parse(SIM.start_date + 'T00:00:00Z');
+  const dayMonths = new Uint8Array(SIM.n_days);
+  for (let d = 0; d < SIM.n_days; d++) dayMonths[d] = new Date(baseMs + d * 86400000).getUTCMonth();
+  SIM.dayMonths = dayMonths;
+
+  // Precompute province x day fire matrices (for instant 4-year staircase & burn-type proof)
+  const nDays = SIM.n_days;
+  SIM.pTot = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  SIM.pAgri = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  SIM.pForest = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  SIM.pSpk = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  SIM.pRice = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  SIM.pCane = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  SIM.pCorn = Array.from({ length: 77 }, () => new Uint16Array(nDays));
+  for (const [dKey, arr] of Object.entries(SIM.fires || {})) {
+    const d = Number(dKey);
+    if (d < 0 || d >= nDays) continue;
+    for (let i = 0; i < arr.length; i += FIRE_ROW_WIDTH) {
+      const a = SIM.ampObjs[arr[i]];
+      if (!a) continue;
+      const p = a.pIdx, ag = arr[i + 1], fo = arr[i + 2], sp = arr[i + 3], ot = arr[i + 4];
+      SIM.pTot[p][d] += ag + fo + sp + ot;
+      SIM.pAgri[p][d] += ag;
+      SIM.pForest[p][d] += fo;
+      SIM.pSpk[p][d] += sp;
+      SIM.pRice[p][d] += arr[i + 5];
+      SIM.pCane[p][d] += arr[i + 6];
+      SIM.pCorn[p][d] += arr[i + 7];
+    }
+  }
+
+  monthBaseline = Array.from({ length: 77 }, () => new Array(12).fill(null));
+  zeroFireMonthMean = Array.from({ length: 77 }, () => new Array(12).fill(null));
+  for (let p = 0; p < 77; p++) {
+    const sums = new Float64Array(12), cnts = new Int32Array(12);
+    const zSums = new Float64Array(12), zCnts = new Int32Array(12);
+    const pmRow = SIM.pm25[p] || [];
+    for (let d = 0; d < nDays; d++) {
+      const v = pmRow[d];
+      if (v != null && v >= 0) {
+        const m = dayMonths[d], val = v / 10;
+        sums[m] += val; cnts[m]++;
+        if (SIM.pTot[p][d] === 0) { zSums[m] += val; zCnts[m]++; }
+      }
+    }
+    for (let m = 0; m < 12; m++) {
+      monthBaseline[p][m] = cnts[m] > 0 ? sums[m] / cnts[m] : null;
+      zeroFireMonthMean[p][m] = zCnts[m] > 0 ? zSums[m] / zCnts[m] : monthBaseline[p][m];
+    }
+  }
+
+  // Peak farm-fire PM2.5 day per province
+  const bestScore = new Float64Array(77).fill(-1);
+  for (let d = 0; d < nDays; d++) {
+    for (let p = 0; p < 77; p++) {
+      const ag = SIM.pAgri[p][d];
+      if (ag <= 0) continue;
+      const pm = (SIM.pm25[p]?.[d] ?? -1) / 10;
+      if (pm < 0) continue;
+      const sc = pm * (1 + Math.min(ag, 40) / 15);
+      if (sc > bestScore[p]) { bestScore[p] = sc; peakDayByProv[p] = d; }
+    }
+  }
+}
+
+function analyzeDay(dayIdx) {
+  const filter = $('fireFilter').value;
+  const provFires = Array.from({ length: 77 }, () => ({ agri: 0, forest: 0, spk: 0, other: 0, total: 0, active: 0 }));
+  const incomingByProv = Array.from({ length: 77 }, () => []);
+  const outgoingByProv = Array.from({ length: 77 }, () => []);
+  const clusters = [];
+  const cropCounts = [0, 0, 0, 0];
+  let totAgri = 0, totForest = 0, totSpk = 0, totOther = 0, totFiltered = 0;
+
+  if (SIM) {
+    const arr = SIM.fires?.[String(dayIdx)] || [];
+    for (let i = 0; i < arr.length; i += FIRE_ROW_WIDTH) {
+      const a = SIM.ampObjs[arr[i]];
+      if (!a) continue;
+      const ag = arr[i + 1], fo = arr[i + 2], sp = arr[i + 3], ot = arr[i + 4];
+      const tot = ag + fo + sp + ot;
+      const active = filter === 'agri' ? ag : filter === 'forest' ? fo : filter === 'spk' ? sp : tot;
+      totAgri += ag; totForest += fo; totSpk += sp; totOther += ot; totFiltered += active;
+      cropCounts[1] += arr[i + 5];
+      cropCounts[2] += arr[i + 6];
+      cropCounts[3] += arr[i + 7];
+      const pf = provFires[a.pIdx];
+      pf.agri += ag; pf.forest += fo; pf.spk += sp; pf.other += ot; pf.total += tot; pf.active += active;
+      if (active > 0) {
+        const domType = filter !== 'all' ? filter : (ag >= fo && ag >= sp ? 'agri' : fo >= sp ? 'forest' : 'spk');
+        const ws = SIM.ws[a.pIdx]?.[dayIdx] ?? -1;
+        const wd = SIM.wd[a.pIdx]?.[dayIdx] ?? -1;
+        clusters.push({
+          amp: a, agri: ag, forest: fo, spk: sp, other: ot, total: tot, active,
+          domType, ws: ws >= 0 ? ws : 0, wd
+        });
+      }
+    }
+  }
+
+  // Estimate possible downwind paths from daily wind direction and a distance limit.
+  const downwindSet = new Set();
+  const corridors = [];
+  for (const c of clusters) {
+    if (c.ws < 3.6 || c.wd < 0) continue;
+    const maxR = c.domType === 'forest' ? 115 : 85;
+    for (const p of provList) {
+      if (Math.abs(p.lat - c.amp.lat) > 1.15 || Math.abs(p.lon - c.amp.lon) > 1.2) continue;
+      const dist = haversineKm(p.lat, p.lon, c.amp.lat, c.amp.lon);
+      if (dist > maxR) continue;
+      const isSameProv = p.idx === c.amp.pIdx;
+      const brg = bearingDeg(p.lat, p.lon, c.amp.lat, c.amp.lon);
+      const hit = dist > 0.001 && angularDiff(brg, c.wd) <= 35;
+      if (hit) {
+        downwindSet.add(p.idx);
+        const pmRaw = SIM.pm25[p.idx]?.[dayIdx] ?? -1;
+        const pmVal = pmRaw >= 0 ? pmRaw / 10 : null;
+        if (!isSameProv) {
+          const item = {
+            srcAmp: c.amp, srcProv: provList[c.amp.pIdx], dstProv: p,
+            fires: c.active, domType: c.domType, distKm: Math.round(dist),
+            ws: c.ws, wd: c.wd, dstPm25: pmVal
+          };
+          corridors.push(item);
+          incomingByProv[p.idx].push(item);
+          outgoingByProv[c.amp.pIdx].push(item);
+        }
+      }
+    }
+  }
+  corridors.sort((a, b) => (b.fires * (1 + Math.max(0, (b.dstPm25 ?? 20) - 15) / 25)) - (a.fires * (1 + Math.max(0, (a.dstPm25 ?? 20) - 15) / 25)));
+
+  // Summarize clean vs downwind PM2.5 + prevailing wind
+  const cleanSet = new Set();
+  let sumDwPm = 0, cntDwPm = 0, sumClPm = 0, cntClPm = 0, exceedCount = 0, pmCoverage = 0;
+  let sumU = 0, sumV = 0, sumWs = 0, cntWs = 0;
+  for (const p of provList) {
+    const pmRaw = SIM ? (SIM.pm25[p.idx]?.[dayIdx] ?? -1) : -1;
+    const pm = pmRaw >= 0 ? pmRaw / 10 : null;
+    if (pm != null) {
+      pmCoverage++;
+      if (pm > 37.5) exceedCount++;
+    }
+    if (downwindSet.has(p.idx)) {
+      if (pm != null) { sumDwPm += pm; cntDwPm++; }
+    } else if (provFires[p.idx].active === 0) {
+      cleanSet.add(p.idx);
+      if (pm != null) { sumClPm += pm; cntClPm++; }
+    }
+    if (SIM) {
+      const ws = SIM.ws[p.idx]?.[dayIdx] ?? -1;
+      const wd = SIM.wd[p.idx]?.[dayIdx] ?? -1;
+      if (ws >= 0 && wd >= 0) {
+        const rad = wd * Math.PI / 180;
+        sumU += ws * Math.sin(rad);
+        sumV += ws * Math.cos(rad);
+        sumWs += ws;
+        cntWs++;
+      }
+    }
+  }
+  const avgWs = cntWs ? Math.round(sumWs / cntWs) : 0;
+  const domWd = cntWs ? (Math.round(Math.atan2(sumU, sumV) * 180 / Math.PI) + 360) % 360 : -1;
+
+  dayState = {
+    clusters, provFires, corridors, incomingByProv, outgoingByProv,
+    downwindSet, cleanSet, totAgri, totForest, totSpk, totOther, totFiltered,
+    cropCounts, avgWs, domWd,
+    downwindAvgPm: cntDwPm ? sumDwPm / cntDwPm : null,
+    cleanAvgPm: cntClPm ? sumClPm / cntClPm : null,
+    exceedCount, pmCoverage
+  };
+}
+
+// ===== COLORING, STORY & INSPECTOR RENDERING =====
+const PM_COLS = ['#16a34a', '#65a30d', '#eab308', '#f97316', '#dc2626', '#9333ea'];
+const PM_BREAKS = [15, 25, 37.5, 55, 75];
+const PM_LABELS = ['0–15 ดีมาก', '15–25 ดี', '25–37.5 ปานกลาง', '37.5–55 เริ่มมีผล', '55–75 มีผลกระทบ', '75+ วิกฤต (µg/m³)'];
 const DELTA_COLS = ['#2563eb', '#93c5fd', '#fde68a', '#f97316', '#b91c1c'];
 const DELTA_BREAKS = [-1, 0, 2, 5];
 const DELTA_LABELS = ['ต่ำกว่า −1', '−1 ถึง 0', '0 ถึง +2', '+2 ถึง +5', '+5 ขึ้นไป (µg/m³)'];
+const SPIKE_COLS = ['#0284c7', '#7dd3fc', '#cbd5e1', '#fb923c', '#dc2626'];
+const SPIKE_BREAKS = [-5, 0, 5, 15];
+const SPIKE_LABELS = ['ต่ำกว่าค่าเฉลี่ย >5', 'ต่ำกว่าค่าเฉลี่ย 0–5', 'ใกล้เคียงค่าเฉลี่ย (0 ถึง +5)', 'สูงกว่าค่าเฉลี่ย +5 ถึง +15', 'สูงกว่าค่าเฉลี่ย +15 ขึ้นไป'];
 const STATUS_COLS = {
-  sufficient: '#16a34a',
-  sufficient_cross_province: '#0d9488',
-  insufficient_confounded: '#f59e0b',
-  insufficient_clean_events: '#94a3b8',
-  insufficient_valid_obs: '#64748b',
-  insufficient_no_station: '#475569'
+  sufficient: '#16a34a', sufficient_cross_province: '#0d9488',
+  insufficient_confounded: '#f59e0b', insufficient_clean_events: '#94a3b8',
+  insufficient_valid_obs: '#64748b', insufficient_no_station: '#475569'
 };
 
-function renderProvinceDetail(code) {
-  const box = $('prov-detail');
-  if (!code || !groups.has(code)) {
-    box.innerHTML = `
-      <h3>ภาพรวมเกณฑ์การคัดกรองรายจังหวัด</h3>
-      <p class="muted" style="font-size:13px">คลิกจังหวัดบนแผนที่หรือในตารางด้านล่างเพื่อดูข้อมูลรายจังหวัดอย่างละเอียด</p>
-      <div class="stat-rows">
-        <div class="stat-box"><small>ผ่านเกณฑ์ระดับจังหวัด (สายรายวัน)</small><b>${suffCount} / 77 จังหวัด</b></div>
-        <div class="stat-box"><small>ข้อมูลไม่พอ / ปนเปื้อนหนัก</small><b>${77 - suffCount} จังหวัด</b></div>
-        <div class="stat-box"><small>จังหวัดไม่มีสถานีในเขต (จับคู่ข้ามเขต)</small><b>${(cov.provinces_without_in_province_station || []).map(x => esc(x.prov_name_th)).join(', ') || '—'}</b></div>
-        <div class="stat-box"><small>วันไฟเกษตรสะอาดระดับประเทศ</small><b>${intFmt.format(nat2.clean_upwind_agri_days || 0)} วัน-สถานี</b></div>
-      </div>`;
-    return;
+const t1 = DATA.track1_hourly || {}, t2 = DATA.track2_daily || {}, cov = DATA.station_coverage || {};
+const nat2 = t2.regions?.National?.all_2024_2026h1 || {}, nat2425 = t2.regions?.National?.clean_2024_2025_with_tb_exclusion || {}, nat1 = t1.regions?.National || {};
+const suffCount = Object.values(t2.provinces || {}).filter(p => String(p.sufficiency_status || '').startsWith('sufficient')).length;
+
+function renderStoryBanner(iso) {
+  const ds = dayState;
+  const thDate = formatThaiDate(iso, false);
+  const filterVal = $('fireFilter').value;
+  const shownLabel = filterVal === 'agri' ? 'จุดความร้อนพื้นที่เกษตร' : filterVal === 'forest' ? 'จุดความร้อนพื้นที่ป่า' : filterVal === 'spk' ? 'จุดความร้อนเขต ส.ป.ก.' : 'จุดความร้อนทั้งหมด';
+
+  $('story1-main').textContent = ds.totFiltered > 0
+    ? `${thDate}: พบ ${intFmt.format(ds.totFiltered)} ${shownLabel}`
+    : `${thDate}: ไม่พบจุดความร้อนในหมวดที่เลือก`;
+
+  const mainCropIdx = [1, 2, 3].reduce((best, c) => ds.cropCounts[c] > ds.cropCounts[best] ? c : best, 0);
+  const cropNote = mainCropIdx > 0 ? ` (พืชหลัก: ${CROP_NAMES[mainCropIdx]} ${intFmt.format(ds.cropCounts[mainCropIdx])})` : '';
+  $('story1-chips').innerHTML = [
+    `<span class="fire-chip chip-agri">พื้นที่เกษตร ${intFmt.format(ds.totAgri)}${esc(cropNote)}</span>`,
+    `<span class="fire-chip chip-forest">พื้นที่ป่า ${intFmt.format(ds.totForest)}</span>`,
+    `<span class="fire-chip chip-spk">เขต ส.ป.ก. ${intFmt.format(ds.totSpk)}</span>`,
+    ds.totOther > 0 ? `<span class="fire-chip chip-other">อื่น ๆ ${intFmt.format(ds.totOther)}</span>` : ''
+  ].join('');
+
+  const topProvs = provList
+    .map(p => ({ p, cnt: ds.provFires[p.idx].active }))
+    .filter(x => x.cnt > 0)
+    .sort((a, b) => b.cnt - a.cnt)
+    .slice(0, 3);
+  $('story1-top-provs').innerHTML = topProvs.length
+    ? '<small style="align-self:center;margin-right:2px">หนาแน่นสูงสุด:</small>' + topProvs.map(x =>
+      `<button type="button" class="hot-prov-btn" data-jump-prov="${esc(x.p.code)}">${esc(x.p.name)} (${intFmt.format(x.cnt)})</button>`
+    ).join('')
+    : '<small>ไม่มีจังหวัดที่พบจุดความร้อน</small>';
+  for (const btn of $('story1-top-provs').querySelectorAll('[data-jump-prov]')) {
+    btn.addEventListener('click', () => {
+      selectedCode = btn.dataset.jumpProv;
+      $('provinceSelect').value = selectedCode;
+      fitMap(selectedCode);
+      renderDay(currentDayIdx);
+    });
   }
-  const g = groups.get(code);
-  const p2 = t2.provinces?.[code] || {};
-  const p1 = t1.provinces?.[code] || {};
-  box.innerHTML = `
-    <div>
-      <h3>${esc(g.name)} (${esc(code)})</h3>
-      <p class="muted" style="font-size:13px">${esc(REGION_TH[g.region] || g.region)} · สถานีในจังหวัด ${intFmt.format(p2.stations_in_province || 0)} แห่ง · สถานีจับคู่ลมพัดข้ามเขต ${intFmt.format(p2.cross_province_outflow_stations || 0)} แห่ง</p>
-    </div>
-    <div>${statusBadge(p2.sufficiency_status)}</div>
-    <div class="stat-rows">
-      <div class="stat-box"><small>รายวัน: เทียบวันปลอดไฟ</small><b>${esc(fmtSigned(p2.delta_vs_nofire_ug_m3, ' µg/m³'))}</b><small>95% CI: ${esc(fmtCI(p2.ci_low_vs_nofire, p2.ci_high_vs_nofire))}</small></div>
-      <div class="stat-box"><small>รายวัน: เทียบคนละทิศลม</small><b>${esc(fmtSigned(p2.delta_vs_non_upwind_ug_m3, ' µg/m³'))}</b><small>95% CI: ${esc(fmtCI(p2.ci_low_vs_non_upwind, p2.ci_high_vs_non_upwind))}</small></div>
-      <div class="stat-box"><small>ช่วงปลอดข้ามแดน 2567–2568</small><b>${esc(fmtSigned(p2.clean_2024_2025_delta_vs_nofire, ' µg/m³'))}</b><small>วันไฟเกษตรสะอาด: ${intFmt.format(p2.clean_2024_2025_days || 0)} วัน-สถานี</small></div>
-      <div class="stat-box"><small>วันไฟเกษตรต้นลม (สะอาด / ทั้งหมด)</small><b>${intFmt.format(p2.clean_upwind_agri_days || 0)} / ${intFmt.format(p2.total_upwind_agri_days || 0)}</b><small>วันตรวจวัดแห้งทั้งหมด ${intFmt.format(p2.valid_days || 0)}</small></div>
-      <div class="stat-box"><small>รายชั่วโมง 2569: เทียบปลอดไฟ</small><b>${esc(fmtSigned(p1.delta_vs_nofire_ug_m3, ' µg/m³'))}</b><small>ชม.สะอาด: ${intFmt.format(p1.clean_upwind_agri_hours || 0)} ชม.</small></div>
-      <div class="stat-box"><small>รายชั่วโมง 2569: พัดข้ามจังหวัด</small><b>${intFmt.format(p1.cross_province_upwind_hours || 0)} ชม.</b><small>${esc((STATUS_TH[p1.sufficiency_status] || [p1.sufficiency_status || '—'])[0])}</small></div>
+
+  // Step 2: Wind
+  const [fromDir, arrow, descDir] = compassFromDeg(ds.domWd);
+  $('story2-main').textContent = ds.domWd >= 0
+    ? `${arrow} ทิศลมหลัก ${descDir} (เฉลี่ย ${ds.avgWs} กม./ชม.)`
+    : 'ภาวะลมสงบ / ไม่มีข้อมูลลม';
+  $('story2-sub').textContent = ds.corridors.length > 0
+    ? `แนวพัดพาที่คาดจากทิศลม ${ds.corridors.length} เส้นทาง (ในรัศมี 85–115 กม.)`
+    : ds.totFiltered > 0
+      ? 'ความเร็วลมต่ำ (< 3.6 กม./ชม.) หรือไม่พบการพัดพาข้ามเขตจังหวัดอย่างมีนัยสำคัญ'
+      : 'ไม่พบแนวการพัดพาควันข้ามเขตจังหวัดในวันนี้';
+
+  // Step 3: PM2.5 comparison
+  if (ds.totFiltered === 0) {
+    const allAvg = ds.cleanAvgPm;
+    $('story3-main').textContent = allAvg != null
+      ? `ค่าเฉลี่ย PM2.5 ระดับประเทศ ${numFmt.format(allAvg)} µg/m³`
+      : 'ไม่มีข้อมูลความเข้มข้น PM2.5';
+    $('story3-sub').textContent = ds.exceedCount > 0
+      ? `แบบจำลองประเมินว่า ${ds.exceedCount} จังหวัดมีฝุ่นเฉลี่ยเกิน 37.5 µg/m³`
+      : 'ไม่มีจังหวัดที่ค่าประมาณฝุ่นรายวันเกิน 37.5 µg/m³ ในชุดข้อมูลวันที่เลือก';
+  } else if (ds.downwindAvgPm != null && ds.cleanAvgPm != null) {
+    const diff = ds.downwindAvgPm - ds.cleanAvgPm;
+    $('story3-main').textContent = `พื้นที่ท้ายลมเฉลี่ย ${numFmt.format(ds.downwindAvgPm)} vs พื้นที่นอกแนวควัน ${numFmt.format(ds.cleanAvgPm)} µg/m³`;
+    $('story3-sub').textContent = `ส่วนต่างในวันเดียวกัน ${diff >= 0 ? '+' : '−'}${numFmt.format(Math.abs(diff))} µg/m³ · เกินเกณฑ์มาตรฐาน (37.5 µg/m³) จำนวน ${ds.exceedCount} จังหวัด`;
+  } else if (ds.downwindAvgPm != null) {
+    $('story3-main').textContent = `ค่าเฉลี่ยพื้นที่ท้ายลม ${numFmt.format(ds.downwindAvgPm)} µg/m³`;
+    $('story3-sub').textContent = `เกินเกณฑ์มาตรฐาน (37.5 µg/m³) จำนวน ${ds.exceedCount} จังหวัด`;
+  } else {
+    $('story3-main').textContent = 'กำลังประมวลผลข้อมูลฝุ่นรายวัน';
+    $('story3-sub').textContent = '—';
+  }
+}
+
+function renderInspector(dayIdx, iso) {
+  const ds = dayState;
+  const box = $('prov-day-card');
+  if (!selectedCode || !groups.has(selectedCode)) {
+    const [aqiLabel, aqiCol, aqiBg] = aqiCategory(ds.downwindAvgPm ?? ds.cleanAvgPm);
+    box.innerHTML = `
+      <div class="insp-head">
+        <div>
+          <h3>สรุปข้อมูลรายวันระดับประเทศ · ${esc(formatThaiDate(iso, true))}</h3>
+          <small>คลิกเลือกจังหวัดบนแผนที่หรือรายการเส้นทางด้านล่างเพื่อดูข้อมูลรายพื้นที่</small>
+        </div>
+        <span class="aqi-pill" style="color:${aqiCol};background:${aqiBg};border:1px solid ${aqiCol}55">${esc(aqiLabel)}</span>
+      </div>
+      <div class="stat-rows">
+        <div class="stat-box"><small>PM2.5 เฉลี่ยพื้นที่ท้ายลม</small><b>${ds.downwindAvgPm != null ? numFmt.format(ds.downwindAvgPm) + ' µg/m³' : '—'}</b></div>
+        <div class="stat-box"><small>PM2.5 เฉลี่ยพื้นที่นอกแนวควัน</small><b>${ds.cleanAvgPm != null ? numFmt.format(ds.cleanAvgPm) + ' µg/m³' : '—'}</b></div>
+        <div class="stat-box"><small>ค่าประมาณรายวันเกิน 37.5 µg/m³</small><b>${ds.pmCoverage ? `${ds.exceedCount} / ${ds.pmCoverage} จังหวัด` : 'ไม่มีข้อมูล'}</b></div>
+        <div class="stat-box"><small>จุดความร้อนเกษตร / ป่า</small><b>${intFmt.format(ds.totAgri)} / ${intFmt.format(ds.totForest)} จุด</b></div>
+      </div>`;
+  } else {
+    const g = groups.get(selectedCode);
+    const pmRaw = SIM ? (SIM.pm25[g.idx]?.[dayIdx] ?? -1) : -1;
+    const pm = pmRaw >= 0 ? pmRaw / 10 : null;
+    const base = monthBaseline[g.idx]?.[SIM?.dayMonths?.[dayIdx] ?? 0];
+    const spike = (pm != null && base != null) ? pm - base : null;
+    const pf = ds.provFires[g.idx];
+    const ws = SIM ? (SIM.ws[g.idx]?.[dayIdx] ?? -1) : -1;
+    const wd = SIM ? (SIM.wd[g.idx]?.[dayIdx] ?? -1) : -1;
+    const [, arrow, descDir] = compassFromDeg(wd);
+    const [aqiLabel, aqiCol, aqiBg] = aqiCategory(pm);
+
+    // Group incoming smoke by source province
+    const incMap = new Map();
+    for (const c of ds.incomingByProv[g.idx]) {
+      const prev = incMap.get(c.srcProv.code) || { name: c.srcProv.name, fires: 0 };
+      prev.fires += c.fires;
+      incMap.set(c.srcProv.code, prev);
+    }
+    const incList = [...incMap.values()].sort((a, b) => b.fires - a.fires).slice(0, 4);
+
+    box.innerHTML = `
+      <div class="insp-head">
+        <div>
+          <h3>${esc(g.name)} · ${esc(formatThaiDate(iso, true))}</h3>
+          <small>${esc(REGION_TH[g.region] || g.region)} · ทิศลม ${ws >= 0 ? arrow + ' ' + descDir + ' (' + ws + ' กม./ชม.)' : 'ไม่มีข้อมูลลม'}</small>
+        </div>
+        <span class="aqi-pill" style="color:${aqiCol};background:${aqiBg};border:1px solid ${aqiCol}55">${esc(aqiLabel)}</span>
+      </div>
+      <div class="stat-rows">
+        <div class="stat-box"><small>ค่าเฉลี่ย PM2.5 รายวัน</small><b>${pm != null ? numFmt.format(pm) + ' µg/m³' : '—'}</b></div>
+        <div class="stat-box"><small>ส่วนต่างจากค่าเฉลี่ยเดือนนี้</small><b>${spike != null ? fmtSigned(spike, ' µg/m³') : '—'}</b></div>
+        <div class="stat-box"><small>จุดความร้อนภายในจังหวัด</small><b>${intFmt.format(pf.total)} จุด</b><small>เกษตร ${pf.agri} · ป่า ${pf.forest} · สปก. ${pf.spk}</small></div>
+        <div class="stat-box"><small>จุดความร้อนต้นลมที่พัดเข้า</small><b>${incList.length ? incList.map(x => `${esc(x.name)} (${x.fires})`).join(', ') : 'ไม่พบแนวควันพัดเข้า'}</b></div>
+      </div>`;
+  }
+
+  // 15-day ±7 chart
+  renderChart15Days(dayIdx);
+
+  // Top smoke corridors
+  const cl = $('corridor-list');
+  const relevant = selectedCode && groups.has(selectedCode)
+    ? [...ds.incomingByProv[groups.get(selectedCode).idx], ...ds.outgoingByProv[groups.get(selectedCode).idx]]
+        .sort((a, b) => b.fires - a.fires).slice(0, 10)
+    : ds.corridors.slice(0, 10);
+
+  if (!relevant.length) {
+    cl.innerHTML = `<p class="muted" style="font-size:12.5px;padding:6px 0">วันนี้ไม่มีคู่จังหวัดที่เข้าเกณฑ์ทิศลมและระยะทางของแบบจำลอง</p>`;
+  } else {
+    cl.innerHTML = relevant.map((c, idx) => {
+      const pmTxt = c.dstPm25 != null ? `${numFmt.format(c.dstPm25)} µg/m³` : '—';
+      const [_, col] = aqiCategory(c.dstPm25);
+      return `<button type="button" class="corridor-item" data-cidx="${idx}">
+        <span class="corridor-route">
+          <span><strong>อ.${esc(c.srcAmp.name)}</strong> (${esc(c.srcProv.name)} · ${c.fires} จุด)</span>
+          <small>ความเร็วลม ${c.ws} กม./ชม. (${c.distKm} กม.) ➔ <strong>${esc(c.dstProv.name)}</strong></small>
+        </span>
+        <span class="corridor-pm" style="color:${col}">${pmTxt}</span>
+      </button>`;
+    }).join('');
+    for (const btn of cl.querySelectorAll('[data-cidx]')) {
+      btn.addEventListener('click', () => {
+        const c = relevant[Number(btn.dataset.cidx)];
+        selectedCode = c.dstProv.code;
+        $('provinceSelect').value = selectedCode;
+        const [xA, yA] = [c.srcAmp.px, c.srcAmp.py];
+        const [xB, yB] = [c.dstProv.px, c.dstProv.py];
+        camera = { x: (xA + xB) / 2, y: (yA + yB) / 2, height: Math.max(2.2, Math.hypot(xB - xA, yB - yA) * 2.4) };
+        drawMap();
+        renderDay(currentDayIdx);
+      });
+    }
+  }
+}
+
+function renderChart15Days(dayIdx) {
+  const svg = $('trendChart');
+  if (!SIM) { svg.innerHTML = ''; return; }
+  const start = Math.max(0, dayIdx - 7), end = Math.min(SIM.n_days - 1, dayIdx + 7);
+  const days = [];
+  const filter = $('fireFilter').value;
+  const selP = selectedCode && groups.has(selectedCode) ? groups.get(selectedCode).idx : null;
+
+  $('chart-title').textContent = selP != null
+    ? `แนวโน้มจุดความร้อนและค่าฝุ่น PM2.5 ช่วง ±7 วัน (${provList[selP].name})`
+    : 'แนวโน้มจุดความร้อนและค่าฝุ่น PM2.5 ช่วง ±7 วัน (ภาพรวมประเทศ)';
+
+  for (let d = start; d <= end; d++) {
+    const arr = SIM.fires?.[String(d)] || [];
+    let ag = 0, fo = 0, sp = 0, ot = 0;
+    for (let i = 0; i < arr.length; i += FIRE_ROW_WIDTH) {
+      const a = SIM.ampObjs[arr[i]];
+      if (!a) continue;
+      if (selP != null && a.pIdx !== selP) continue;
+      ag += arr[i + 1]; fo += arr[i + 2]; sp += arr[i + 3]; ot += arr[i + 4];
+    }
+    const fVal = filter === 'agri' ? ag : filter === 'forest' ? fo : filter === 'spk' ? sp : (ag + fo + sp + ot);
+    let pmVal = null;
+    if (selP != null) {
+      const r = SIM.pm25[selP]?.[d] ?? -1;
+      pmVal = r >= 0 ? r / 10 : null;
+    } else {
+      let s = 0, c = 0;
+      for (let p = 0; p < 77; p++) { const r = SIM.pm25[p]?.[d] ?? -1; if (r >= 0) { s += r / 10; c++; } }
+      pmVal = c ? s / c : null;
+    }
+    days.push({ d, iso: dayIdxToIso(d), fire: fVal, pm: pmVal });
+  }
+
+  const W = 420, H = 165, padL = 32, padR = 32, padT = 16, padB = 26;
+  const cw = W - padL - padR, ch = H - padT - padB;
+  const maxFire = Math.max(5, ...days.map(x => x.fire));
+  const maxPm = Math.max(50, ...days.map(x => x.pm ?? 0));
+  const stepX = cw / Math.max(1, days.length);
+  const yPm = v => padT + ch - (v / maxPm) * ch;
+  const y37 = yPm(37.5);
+
+  let htmlOut = `<line x1="${padL}" y1="${padT + ch}" x2="${W - padR}" y2="${padT + ch}" stroke="var(--border-strong)"/>`;
+  if (y37 >= padT && y37 <= padT + ch) {
+    htmlOut += `<line x1="${padL}" y1="${y37.toFixed(1)}" x2="${W - padR}" y2="${y37.toFixed(1)}" stroke="#f43f5e" stroke-dasharray="3 3" stroke-opacity="0.7"/>`;
+    htmlOut += `<text x="${W - padR + 3}" y="${(y37 + 3).toFixed(1)}" fill="#f87171" font-size="9">37.5</text>`;
+  }
+  htmlOut += `<text x="${padL - 4}" y="${padT + 6}" text-anchor="end" fill="#fb923c" font-size="9">${intFmt.format(maxFire)}</text>`;
+  htmlOut += `<text x="${W - padR + 3}" y="${padT + 6}" fill="#38bdf8" font-size="9">${Math.round(maxPm)}</text>`;
+
+  const pts = [];
+  const selChartIdx = days.findIndex(item => item.d === dayIdx);
+  days.forEach((item, idx) => {
+    const cx = padL + (idx + 0.5) * stepX;
+    const barW = Math.max(6, stepX * 0.56);
+    const barH = (item.fire / maxFire) * (ch * 0.78);
+    const isSel = item.d === dayIdx;
+    if (isSel) {
+      htmlOut += `<rect x="${(cx - stepX * 0.45).toFixed(1)}" y="${padT}" width="${(stepX * 0.9).toFixed(1)}" height="${ch}" fill="rgba(223,106,55,0.16)" rx="3"/>`;
+    }
+    htmlOut += `<rect data-jump-day="${item.d}" x="${(cx - barW / 2).toFixed(1)}" y="${(padT + ch - barH).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(1.5, barH).toFixed(1)}" fill="${isSel ? '#fb923c' : 'rgba(251,146,60,0.58)'}" rx="2" style="cursor:pointer"><title>${item.iso}: ${item.fire} จุด, ฝุ่น ${item.pm != null ? numFmt.format(item.pm) : '—'} µg/m³</title></rect>`;
+    if (item.pm != null) pts.push(`${cx.toFixed(1)},${yPm(item.pm).toFixed(1)}`);
+    const farFromSel = selChartIdx < 0 || Math.abs(idx - selChartIdx) >= 2;
+    if (isSel || (farFromSel && (idx === 0 || idx === days.length - 1 || idx % 3 === 0))) {
+      htmlOut += `<text x="${cx.toFixed(1)}" y="${H - 7}" text-anchor="middle" fill="${isSel ? 'var(--accent)' : 'var(--muted)'}" font-size="9.5" font-weight="${isSel ? '700' : '400'}">${item.iso.slice(8)}/${item.iso.slice(5, 7)}</text>`;
+    }
+  });
+  if (pts.length > 1) {
+    htmlOut += `<polyline points="${pts.join(' ')}" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linejoin="round"/>`;
+  }
+  days.forEach((item, idx) => {
+    if (item.pm == null) return;
+    const cx = padL + (idx + 0.5) * stepX, cy = yPm(item.pm);
+    htmlOut += `<circle data-jump-day="${item.d}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${item.d === dayIdx ? 4.2 : 2.5}" fill="${item.pm >= 37.5 ? '#f43f5e' : '#38bdf8'}" stroke="#0f172a" stroke-width="1" style="cursor:pointer"/>`;
+  });
+  svg.innerHTML = htmlOut;
+  for (const el of svg.querySelectorAll('[data-jump-day]')) {
+    el.addEventListener('click', () => jumpToDay(Number(el.dataset.jumpDay)));
+  }
+}
+
+function colorProvinces(dayIdx) {
+  const layer = $('layerSelect').value;
+  let shownCount = 0;
+  for (const g of provList) {
+    const p2 = t2.provinces?.[g.code] || {}, p1 = t1.provinces?.[g.code] || {};
+    let fill = 'var(--null-fill)', valText = 'ข้อมูลไม่พอ';
+    if (layer === 'pm25_day') {
+      const r = SIM ? (SIM.pm25[g.idx]?.[dayIdx] ?? -1) : -1;
+      if (r >= 0) {
+        const pm = r / 10;
+        const bin = PM_BREAKS.filter(b => pm >= b).length;
+        fill = PM_COLS[bin];
+        valText = `${numFmt.format(pm)} µg/m³`;
+        shownCount++;
+      }
+    } else if (layer === 'pm25_spike') {
+      const r = SIM ? (SIM.pm25[g.idx]?.[dayIdx] ?? -1) : -1;
+      const base = monthBaseline[g.idx]?.[SIM?.dayMonths?.[dayIdx] ?? 0];
+      if (r >= 0 && base != null) {
+        const sp = r / 10 - base;
+        const bin = SPIKE_BREAKS.filter(b => sp >= b).length;
+        fill = SPIKE_COLS[bin];
+        valText = fmtSigned(sp, ' µg/m³');
+        shownCount++;
+      }
+    } else if (layer === 'sufficiency') {
+      fill = STATUS_COLS[p2.sufficiency_status] || '#64748b';
+      valText = (STATUS_TH[p2.sufficiency_status] || [p2.sufficiency_status])[0];
+      shownCount++;
+    } else {
+      const val = layer === 'all_nofire' ? p2.delta_vs_nofire_ug_m3
+        : layer === 'clean2425_nofire' ? p2.clean_2024_2025_delta_vs_nofire
+        : p1.delta_vs_nofire_ug_m3;
+      if (val != null && Number.isFinite(val)) {
+        const bin = DELTA_BREAKS.filter(b => val >= b).length;
+        fill = DELTA_COLS[bin];
+        valText = fmtSigned(val, ' µg/m³');
+        shownCount++;
+      }
+    }
+    g.shape.style.fill = fill;
+    g.shape.classList.toggle('selected', selectedCode === g.code);
+    g.shape.classList.toggle('downwind-hit', dayState.downwindSet.has(g.idx) && selectedCode !== g.code);
+  }
+
+  const fireLegend = ' · <span><i class="dot" style="background:#fb923c"></i>พื้นที่เกษตร</span><span><i class="dot" style="background:#ef4444"></i>พื้นที่ป่า</span><span><i class="dot" style="background:#c084fc"></i>เขต ส.ป.ก.</span><span><i style="background:rgba(226,232,240,0.65)"></i>กลุ่มควันและทิศลม</span>';
+  if (layer === 'pm25_day') {
+    $('map-summary').textContent = `ค่าฝุ่น จุดความร้อน และแนวควันที่คาดจากลม วันที่ ${formatThaiDate(dayIdxToIso(dayIdx), true)} (${shownCount}/77 จังหวัด)`;
+    $('legend').innerHTML = PM_LABELS.map((l, i) => `<span><i style="background:${PM_COLS[i]}"></i>${l}</span>`).join('') + fireLegend;
+  } else if (layer === 'pm25_spike') {
+    $('map-summary').textContent = `ค่าฝุ่นเทียบค่าเฉลี่ยของเดือน วันที่ ${formatThaiDate(dayIdxToIso(dayIdx), true)}`;
+    $('legend').innerHTML = SPIKE_LABELS.map((l, i) => `<span><i style="background:${SPIKE_COLS[i]}"></i>${l}</span>`).join('') + fireLegend;
+  } else if (layer === 'sufficiency') {
+    $('map-summary').textContent = 'ข้อมูลพอเทียบหรือไม่ (รายวัน 2567–กลางปี 2569)';
+    $('legend').innerHTML = [
+      ['sufficient', 'ผ่านเกณฑ์ (มีสถานี)'], ['sufficient_cross_province', 'ผ่านเกณฑ์ (จับคู่ข้ามเขต)'],
+      ['insufficient_confounded', 'ปนเปื้อนไฟป่า/ข้ามแดน'], ['insufficient_clean_events', 'วันสะอาดน้อย'],
+      ['insufficient_valid_obs', 'วันตรวจวัดน้อย'], ['insufficient_no_station', 'ไม่มีสถานี/จุดจับคู่']
+    ].map(([k, l]) => `<span><i style="background:${STATUS_COLS[k]}"></i>${l}</span>`).join('');
+  } else {
+    $('map-summary').textContent = `${$('layerSelect').selectedOptions[0].textContent} · แสดงค่าได้ ${shownCount}/77 จังหวัด`;
+    $('legend').innerHTML = DELTA_LABELS.map((l, i) => `<span><i style="background:${DELTA_COLS[i]}"></i>${l}</span>`).join('') +
+      '<span><i style="background:var(--null-fill,#cbd5e1)"></i>ข้อมูลไม่พอประเมิน</span>';
+  }
+}
+
+function showTooltip(ev, g) {
+  const tip = $('mapTooltip');
+  const pmRaw = SIM ? (SIM.pm25[g.idx]?.[currentDayIdx] ?? -1) : -1;
+  const pm = pmRaw >= 0 ? pmRaw / 10 : null;
+  const pf = dayState.provFires[g.idx];
+  const ws = SIM ? (SIM.ws[g.idx]?.[currentDayIdx] ?? -1) : -1;
+  const wd = SIM ? (SIM.wd[g.idx]?.[currentDayIdx] ?? -1) : -1;
+  const [, arrow, descDir] = compassFromDeg(wd);
+  const inc = dayState.incomingByProv[g.idx]?.length || 0;
+  tip.innerHTML = `<b>${esc(g.name)}</b>
+    PM2.5: <strong>${pm != null ? numFmt.format(pm) + ' µg/m³' : '—'}</strong><br>
+    จุดความร้อนในเขต: ${pf.total} (เกษตร ${pf.agri} · ป่า ${pf.forest})<br>
+    ทิศลม: ${ws >= 0 ? arrow + ' ' + descDir + ' ' + ws + ' กม./ชม.' : '—'}<br>
+    ${inc > 0 ? `<span style="color:#fb923c">มีแนวพัดพาควันเข้า ${inc} กลุ่มจุด</span>` : 'ไม่พบแนวพัดพาควันข้ามเขตเข้าพื้นที่'}`;
+  const rect = $('map-plot').getBoundingClientRect();
+  const lx = Math.min(rect.width - 230, Math.max(10, ev.clientX - rect.left + 14));
+  const ly = Math.min(rect.height - 105, Math.max(10, ev.clientY - rect.top - 14));
+  tip.style.left = lx + 'px';
+  tip.style.top = ly + 'px';
+  tip.style.display = 'block';
+}
+function hideTooltip() { $('mapTooltip').style.display = 'none'; }
+
+function renderDay(dayIdx) {
+  currentDayIdx = dayIdx;
+  const iso = dayIdxToIso(dayIdx);
+  $('dateInput').value = iso;
+  $('daySlider').value = String(dayIdx);
+  $('dayReadout').textContent = formatThaiDate(iso, true);
+  for (const btn of document.querySelectorAll('.preset-btn')) {
+    btn.classList.toggle('active', btn.dataset.date === iso);
+  }
+  analyzeDay(dayIdx);
+  colorProvinces(dayIdx);
+  renderStoryBanner(iso);
+  renderInspector(dayIdx, iso);
+  renderStaircaseAndBurnTypes(dayIdx);
+  renderTables();
+  reseedPlumes();
+}
+
+function renderStaircaseAndBurnTypes(dayIdx) {
+  if (!SIM?.pTot) return;
+  const selObj = selectedCode && groups.has(selectedCode) ? groups.get(selectedCode) : null;
+  const provRange = selObj ? [selObj.idx] : Array.from({ length: 77 }, (_, i) => i);
+  const scopeLabel = selObj ? selObj.name : 'ทั่วประเทศ (77 จังหวัด)';
+  const filter = $('fireFilter').value;
+  const mat = filter === 'agri' ? SIM.pAgri : filter === 'forest' ? SIM.pForest : filter === 'spk' ? SIM.pSpk : SIM.pTot;
+  const fireTypeName = filter === 'agri' ? 'จุดความร้อนพื้นที่เกษตร' : filter === 'forest' ? 'จุดความร้อนพื้นที่ป่า' : filter === 'spk' ? 'จุดความร้อนเขต ส.ป.ก.' : 'จุดความร้อน';
+  const cuts = (filter === 'agri' || filter === 'spk') ? [3, 10, 25] : [5, 20, 50];
+  const tierDefs = [
+    { label: '0 จุด (ปลอดจุดความร้อน)', col: '#16a34a' },
+    { label: `1–${cuts[0]} จุด (ระดับต่ำ)`, col: '#65a30d' },
+    { label: `${cuts[0] + 1}–${cuts[1]} จุด (ระดับปานกลาง)`, col: '#eab308' },
+    { label: `${cuts[1] + 1}–${cuts[2]} จุด (ระดับสูง)`, col: '#f97316' },
+    { label: `${cuts[2] + 1}+ จุด (ระดับสูงมาก)`, col: '#dc2626' }
+  ];
+  const tiers = tierDefs.map(t => ({ ...t, n: 0, sumPm: 0, sumDelta: 0, exceed: 0, sampleDay: -1, sampleScore: -1 }));
+
+  const todayCount = selObj ? mat[selObj.idx][dayIdx] : Math.round(provRange.reduce((s, p) => s + mat[p][dayIdx], 0));
+  const tierForCount = cnt => cnt === 0 ? 0 : cnt <= cuts[0] ? 1 : cnt <= cuts[1] ? 2 : cnt <= cuts[2] ? 3 : 4;
+  const todayTier = selObj ? tierForCount(todayCount) : -1;
+
+  for (const p of provRange) {
+    const pmRow = SIM.pm25[p], fRow = mat[p], zMeans = zeroFireMonthMean[p];
+    for (let d = 0; d < SIM.n_days; d++) {
+      const r = pmRow[d];
+      if (r == null || r < 0) continue;
+      const pm = r / 10, cnt = fRow[d];
+      const ti = tierForCount(cnt);
+      const t = tiers[ti];
+      t.n++;
+      t.sumPm += pm;
+      const zBase = zMeans[SIM.dayMonths[d]];
+      if (zBase != null) t.sumDelta += (pm - zBase);
+      if (pm >= 37.5) t.exceed++;
+      const score = ti === 0 ? (100 - pm) : (cnt * 2 + pm);
+      if (score > t.sampleScore) { t.sampleScore = score; t.sampleDay = d; }
+    }
+  }
+
+  $('staircase-title').textContent = `ค่าฝุ่นตามจำนวน${fireTypeName} (${scopeLabel})`;
+  $('staircase-subtitle').textContent = `จำแนกตามระดับจำนวนจุดความร้อนต่อวันในพื้นที่ (ข้อมูลรายวัน พ.ศ. 2566–2569 รวม ${intFmt.format(SIM.n_days)} วัน)`;
+  const t0 = tiers[0], tHigh = tiers[4].n > 0 ? tiers[4] : tiers[3].n > 0 ? tiers[3] : tiers[2];
+  if (t0.n > 0 && tHigh.n > 0) {
+    const avg0 = t0.sumPm / t0.n, avgH = tHigh.sumPm / tHigh.n;
+    const ex0 = (t0.exceed / t0.n) * 100, exH = (tHigh.exceed / tHigh.n) * 100;
+    const dM = tHigh.sumDelta / tHigh.n;
+    $('staircase-summary').innerHTML =
+      `<strong>ผลการวิเคราะห์ตามระดับความหนาแน่น (${esc(scopeLabel)}):</strong> เมื่อจำนวน${fireTypeName}อยู่ในระดับสูงสุด (${esc(tHigh.label)}) ค่าเฉลี่ย PM2.5 อยู่ที่ <strong>${numFmt.format(avgH)} µg/m³</strong> สูงกว่าวันปลอดจุดความร้อน (<strong>${numFmt.format(avg0)} µg/m³</strong>) อยู่ <strong>+${numFmt.format(avgH - avg0)} µg/m³</strong> (หรือ <strong>${fmtSigned(dM, ' µg/m³')}</strong> เมื่อควบคุมตัวแปรเดือนเดียวกัน) และสัดส่วนวันที่เกินเกณฑ์มาตรฐานเพิ่มขึ้นจาก <strong>${numFmt.format(ex0)}%</strong> เป็น <strong>${numFmt.format(exH)}%</strong>`;
+  } else {
+    $('staircase-summary').textContent = `ข้อมูลในพื้นที่${scopeLabel}มีจำนวนวันบางระดับไม่เพียงพอต่อการเปรียบเทียบ กรุณาเลือกภาพรวมประเทศหรือทุกประเภทพื้นที่`;
+  }
+
+  const maxTierPm = Math.max(40, ...tiers.map(t => t.n > 0 ? t.sumPm / t.n : 0));
+  $('staircase-list').innerHTML = tiers.map((t, idx) => {
+    const avg = t.n > 0 ? t.sumPm / t.n : null;
+    const dMonth = t.n > 0 ? t.sumDelta / t.n : null;
+    const exPct = t.n > 0 ? (t.exceed / t.n) * 100 : 0;
+    const wPct = avg != null ? Math.min(100, (avg / maxTierPm) * 100).toFixed(1) : '0';
+    const isToday = idx === todayTier;
+    return `<button type="button" class="stair-row ${isToday ? 'active-tier' : ''}" data-tier-day="${t.sampleDay}">
+      <span class="stair-label">
+        <span><strong>${esc(t.label)}</strong>${isToday ? '<span class="today-tag">วันที่เลือก</span>' : ''}</span>
+        <small>${intFmt.format(t.n)} วัน${selObj ? '' : '-จังหวัด'} · เกินเกณฑ์ 37.5 อยู่ ${numFmt.format(exPct)}%</small>
+      </span>
+      <div class="stair-bar-wrap"><div class="stair-bar-fill" style="width:${wPct}%;background:${t.col}"></div></div>
+      <span class="stair-val">
+        <strong>${avg != null ? numFmt.format(avg) + ' µg/m³' : 'ไม่มีข้อมูล'}</strong>
+        <small style="color:var(--muted)">${idx === 0 ? 'ค่าฐานอ้างอิง' : (dMonth != null ? 'ในเดือนเดียวกัน ' + fmtSigned(dMonth) : '—')}</small>
+      </span>
+    </button>`;
+  }).join('');
+  for (const btn of $('staircase-list').querySelectorAll('[data-tier-day]')) {
+    const d = Number(btn.dataset.tierDay);
+    if (d >= 0) btn.addEventListener('click', () => { jumpToDay(d); $('studio-top').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  }
+
+  // Right card: All burning types comparison (No fire vs Rice, Cane, Corn, SPK, Forest)
+  const cats = [
+    { key: 'none', name: 'วันปลอดจุดความร้อน (0 จุด)', col: '#16a34a', mat: null },
+    { key: 'rice', name: 'พื้นที่เกษตร: นาข้าว', col: '#eab308', mat: SIM.pRice },
+    { key: 'cane', name: 'พื้นที่เกษตร: ไร่อ้อย', col: '#f59e0b', mat: SIM.pCane },
+    { key: 'corn', name: 'พื้นที่เกษตร: ข้าวโพดและไร่หมุนเวียน', col: '#ea580c', mat: SIM.pCorn },
+    { key: 'spk', name: 'พื้นที่เขต ส.ป.ก.', col: '#a855f7', mat: SIM.pSpk },
+    { key: 'forest', name: 'พื้นที่ป่าอนุรักษ์และป่าสงวนฯ', col: '#dc2626', mat: SIM.pForest }
+  ].map(c => ({ ...c, n: 0, sumPm: 0, sumDelta: 0, exceed: 0, peakDay: -1, peakProv: '', peakScore: -1 }));
+
+  for (const p of provRange) {
+    const pmRow = SIM.pm25[p], zMeans = zeroFireMonthMean[p], pCode = provList[p].code;
+    for (let d = 0; d < SIM.n_days; d++) {
+      const r = pmRow[d];
+      if (r == null || r < 0) continue;
+      const pm = r / 10, zBase = zMeans[SIM.dayMonths[d]];
+      const tot = SIM.pTot[p][d];
+      if (tot === 0) {
+        const c = cats[0];
+        c.n++; c.sumPm += pm; if (pm >= 37.5) c.exceed++;
+      } else {
+        for (let ci = 1; ci < cats.length; ci++) {
+          const c = cats[ci], cnt = c.mat[p][d];
+          if (cnt >= 1) {
+            c.n++; c.sumPm += pm;
+            if (zBase != null) c.sumDelta += (pm - zBase);
+            if (pm >= 37.5) c.exceed++;
+            const sc = cnt * 3 + pm;
+            if (sc > c.peakScore) { c.peakScore = sc; c.peakDay = d; c.peakProv = pCode; }
+          }
+        }
+      }
+    }
+  }
+
+  $('burn-type-title').textContent = `เทียบค่าฝุ่นตามประเภทพื้นที่และพืชที่พบจุดความร้อน (${scopeLabel})`;
+  $('burn-type-subtitle').textContent = 'เทียบค่าฝุ่นในจังหวัดและเดือนเดียวกัน โดยใช้วันที่ไม่พบจุดความร้อนเป็นฐาน';
+  const base0 = cats[0].n > 0 ? cats[0].sumPm / cats[0].n : null;
+  const activeTypes = cats.slice(1).filter(c => c.n > 0);
+  const higherCount = base0 != null ? activeTypes.filter(c => (c.sumPm / c.n) > base0).length : 0;
+  $('burn-type-summary').innerHTML = base0 != null && activeTypes.length > 0
+    ? `<strong>ผลการเปรียบเทียบตามประเภทการใช้ที่ดิน (${higherCount}/${activeTypes.length} ประเภทสูงกว่าวันปลอดจุดความร้อน):</strong> ในพื้นที่<strong>${esc(scopeLabel)}</strong> วันปลอดจุดความร้อนมีค่าเฉลี่ย PM2.5 อยู่ที่ <strong>${numFmt.format(base0)} µg/m³</strong> ขณะที่วันที่มีจุดความร้อนพบค่าเฉลี่ย PM2.5 เพิ่มขึ้นในทุกประเภทพื้นที่ อยู่ระหว่าง <strong>${numFmt.format(Math.min(...activeTypes.map(c => c.sumPm / c.n)))}–${numFmt.format(Math.max(...activeTypes.map(c => c.sumPm / c.n)))} µg/m³</strong>`
+    : `ไม่มีข้อมูลเปรียบเทียบเพียงพอในขอบเขตพื้นที่ที่เลือก`;
+
+  const maxCatPm = Math.max(35, ...cats.map(c => c.n > 0 ? c.sumPm / c.n : 0));
+  $('burn-type-list').innerHTML = cats.map((c, idx) => {
+    const avg = c.n > 0 ? c.sumPm / c.n : null;
+    const diff0 = (avg != null && base0 != null && idx > 0) ? (avg - base0) : null;
+    const dMonth = c.n > 0 && idx > 0 ? c.sumDelta / c.n : null;
+    const exPct = c.n > 0 ? (c.exceed / c.n) * 100 : 0;
+    const wPct = avg != null ? Math.min(100, (avg / maxCatPm) * 100).toFixed(1) : '0';
+    return `<div class="burn-row">
+      <span class="stair-label">
+        <strong>${esc(c.name)}</strong>
+        <small>${c.n > 0 ? `${intFmt.format(c.n)} วัน · เกินเกณฑ์ ${numFmt.format(exPct)}%` : 'ไม่พบจุดความร้อนประเภทนี้'}</small>
+      </span>
+      <div class="stair-bar-wrap"><div class="stair-bar-fill" style="width:${wPct}%;background:${c.col}"></div></div>
+      <span class="stair-val">
+        <strong>${avg != null ? numFmt.format(avg) + ' µg/m³' : '—'}</strong>
+        <small style="color:${diff0 != null && diff0 > 0 ? '#fb923c' : 'var(--muted)'}">${idx === 0 ? 'ค่าฐานอ้างอิง' : (diff0 != null ? fmtSigned(diff0) + ' (ในเดือน ' + fmtSigned(dMonth) + ')' : '—')}</small>
+      </span>
+      ${idx === 0 ? '<small style="text-align:center;color:var(--muted)">ฐานเทียบ</small>' : (c.peakDay >= 0
+        ? `<button type="button" class="burn-jump" data-burn-day="${c.peakDay}" data-burn-prov="${esc(c.peakProv)}">ดูวันสูงสุด</button>`
+        : '<small style="color:var(--muted)">—</small>')}
     </div>`;
+  }).join('');
+
+  for (const btn of $('burn-type-list').querySelectorAll('[data-burn-day]')) {
+    btn.addEventListener('click', () => {
+      const d = Number(btn.dataset.burnDay), pc = btn.dataset.burnProv;
+      if (pc && groups.has(pc)) {
+        selectedCode = pc;
+        $('provinceSelect').value = pc;
+        fitMap(pc);
+      }
+      jumpToDay(d);
+      $('studio-top').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+}
+
+function jumpToDay(idx) {
+  if (!SIM) return;
+  const clamped = Math.max(0, Math.min(SIM.n_days - 1, idx));
+  renderDay(clamped);
+}
+
+// ===== 60 FPS SMOKE, WIND & FIRE CANVAS ENGINE =====
+const PUFF_COUNT = 840;
+const smokePuffs = Array.from({ length: PUFF_COUNT }, () => ({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1, r0: 4, r1: 28, col: 'rgba(241,245,249,' }));
+const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let clusterPool = [];
+const windToggle = $('toggleWind'), windMotionBtn = $('windMotionBtn');
+let windPlaying = true;
+let windDay = -1, windSources = [], windPoints = [];
+
+function updateWindButton() {
+  windMotionBtn.disabled = !SIM || !windToggle.checked;
+  windMotionBtn.textContent = windPlaying ? 'พักเส้นลม' : 'เล่นเส้นลม';
+}
+
+windToggle.addEventListener('change', updateWindButton);
+windMotionBtn.addEventListener('click', () => {
+  windPlaying = !windPlaying;
+  updateWindButton();
+});
+
+function toScreen(px, py, cssW, cssH) {
+  return [
+    (px - viewBounds.left) / viewBounds.width * cssW,
+    (py - viewBounds.top) / viewBounds.height * cssH
+  ];
+}
+
+function prepareWindSources() {
+  windDay = currentDayIdx;
+  windSources = provList.flatMap(p => {
+    const ws = SIM.ws[p.idx]?.[currentDayIdx] ?? -1;
+    const wd = SIM.wd[p.idx]?.[currentDayIdx] ?? -1;
+    if (ws < 0 || wd < 0) return [];
+    const toRad = ((wd + 180) % 360) * Math.PI / 180;
+    return [{ x: p.px, y: p.py, u: ws * Math.sin(toRad), v: -ws * Math.cos(toRad) }];
+  });
+}
+
+function sampleWindAt(px, py) {
+  let wSum = 0, uSum = 0, vSum = 0;
+  for (const { x, y, u, v } of windSources) {
+    const d2 = (px - x) ** 2 + (py - y) ** 2 + 0.08;
+    const w = 1 / (d2 * d2);
+    uSum += w * u;
+    vSum += w * v;
+    wSum += w;
+  }
+  return wSum > 0 ? [uSum / wSum, vSum / wSum] : [0, 0];
+}
+
+function drawWind(cssW, cssH, dt, isLightPlain) {
+  if (windDay !== currentDayIdx) prepareWindSources();
+  if (!windSources.length) return;
+
+  const scale = cssH / viewBounds.height;
+  const padding = 30 / scale;
+  const left = Math.max(97, viewBounds.left - padding);
+  const right = Math.min(106, viewBounds.left + viewBounds.width + padding);
+  const top = Math.max(-21.2, viewBounds.top - padding);
+  const bottom = Math.min(-5.3, viewBounds.top + viewBounds.height + padding);
+  if (left >= right || top >= bottom) return;
+  const count = Math.min(380, Math.ceil((right - left) * (bottom - top) * scale ** 2 / 640));
+  windPoints.length = count;
+  const tint = isLightPlain ? '2,105,161' : '151,222,255';
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < count; i++) {
+    let point = windPoints[i];
+    if (!point || point.life >= 1 || point.x < left || point.x > right || point.y < top || point.y > bottom) {
+      const life = !point || point.life < 1 ? Math.random() : 0;
+      point = { x: left + Math.random() * (right - left), y: top + Math.random() * (bottom - top), life };
+      windPoints[i] = point;
+    }
+    const [u, v] = sampleWindAt(point.x, point.y);
+    const speed = Math.hypot(u, v);
+    if (speed < 0.5) {
+      if (windPlaying) point.life = 1;
+      continue;
+    }
+    const dx = u / speed, dy = v / speed;
+    if (windPlaying) {
+      const step = Math.min(90, 24 + speed * 3.8) * (dt / 60) / scale;
+      point.x += dx * step;
+      point.y += dy * step;
+      point.life = Math.min(1, point.life + dt / 120);
+    }
+    const [headX, headY] = toScreen(point.x, point.y, cssW, cssH);
+    const length = Math.min(28, 13 + speed * 0.75);
+    const tailX = headX - dx * length, tailY = headY - dy * length;
+    const alpha = 0.9 * Math.sin(point.life * Math.PI);
+    const trail = ctx.createLinearGradient(tailX, tailY, headX, headY);
+    trail.addColorStop(0, `rgba(${tint},0)`);
+    trail.addColorStop(1, `rgba(${tint},${alpha})`);
+    ctx.strokeStyle = trail;
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(headX, headY);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function spawnPuff(puff, c) {
+  const wd = c.wd >= 0 ? c.wd : 180;
+  const spread = (Math.random() - 0.5) * 44;
+  const toRad = ((wd + 180 + spread) % 360) * Math.PI / 180;
+  const spd = Math.max(4, c.ws || 6);
+  const scale = 0.00088 * (0.65 + spd / 15);
+  puff.active = true;
+  puff.x = c.amp.px + (Math.random() - 0.5) * 0.03;
+  puff.y = c.amp.py + (Math.random() - 0.5) * 0.03;
+  puff.vx = Math.sin(toRad) * scale;
+  puff.vy = -Math.cos(toRad) * scale;
+  puff.life = 0;
+  puff.maxLife = 90 + Math.random() * 75;
+  puff.r0 = 4 + Math.min(7, Math.sqrt(c.active) * 1.1);
+  puff.r1 = 22 + Math.min(40, Math.sqrt(c.active) * 4.4);
+  puff.col = c.domType === 'agri' ? 'rgba(254,226,189,' : c.domType === 'forest' ? 'rgba(241,245,249,' : c.domType === 'spk' ? 'rgba(237,225,255,' : 'rgba(226,232,240,';
+}
+
+function reseedPlumes() {
+  clusterPool = [];
+  for (const c of dayState.clusters) {
+    const wt = Math.max(1, Math.min(8, Math.round(Math.sqrt(c.active))));
+    for (let k = 0; k < wt; k++) clusterPool.push(c);
+  }
+  for (let i = 0; i < PUFF_COUNT; i++) {
+    if (!clusterPool.length) { smokePuffs[i].active = false; continue; }
+    const c = clusterPool[i % clusterPool.length];
+    spawnPuff(smokePuffs[i], c);
+    const pre = Math.floor(Math.random() * smokePuffs[i].maxLife);
+    smokePuffs[i].x += smokePuffs[i].vx * pre;
+    smokePuffs[i].y += smokePuffs[i].vy * pre;
+    smokePuffs[i].life = pre;
+  }
+}
+
+let lastTick = 0;
+function tickCanvas(ts) {
+  requestAnimationFrame(tickCanvas);
+  const dt = lastTick ? Math.min(2.2, (ts - lastTick) / 16.67) : 1;
+  lastTick = ts;
+
+  const rect = $('map-plot').getBoundingClientRect();
+  const cssW = rect.width, cssH = rect.height;
+  if (cssW < 10 || cssH < 10) return;
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const showSmoke = $('toggleSmoke').checked;
+  const showWind = windToggle.checked;
+  const showCorridors = $('toggleCorridors').checked;
+  const showStations = $('toggleStations').checked;
+  const isLightPlain = basemap === 'plain';
+  const zoomScale = Math.max(0.65, Math.min(2.4, 15 / viewBounds.height));
+
+  // 1. Downwind cones & impact arrows
+  if (showCorridors && dayState.clusters.length) {
+    for (const c of dayState.clusters) {
+      if (c.active < 4 || c.ws < 3.6 || c.wd < 0) continue;
+      const [sx, sy] = toScreen(c.amp.px, c.amp.py, cssW, cssH);
+      if (sx < -60 || sx > cssW + 60 || sy < -60 || sy > cssH + 60) continue;
+      const toRad = ((c.wd + 180) % 360) * Math.PI / 180;
+      const lenDeg = (c.domType === 'forest' ? 0.92 : 0.72);
+      const ex = c.amp.px + Math.sin(toRad) * lenDeg;
+      const ey = c.amp.py - Math.cos(toRad) * lenDeg;
+      const [exS, eyS] = toScreen(ex, ey, cssW, cssH);
+      const pxLen = Math.hypot(exS - sx, eyS - sy);
+      const ang = Math.atan2(eyS - sy, exS - sx);
+      const grad = ctx.createRadialGradient(sx, sy, 2, sx, sy, pxLen);
+      const tint = c.domType === 'agri' ? '251,146,60' : c.domType === 'forest' ? '239,68,68' : '192,132,252';
+      grad.addColorStop(0, `rgba(${tint},0.26)`);
+      grad.addColorStop(1, `rgba(${tint},0.0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.arc(sx, sy, pxLen, ang - 0.45, ang + 0.45);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Highlight top or selected province corridors with dashed vectors + arrowheads
+    const selIdx = selectedCode && groups.has(selectedCode) ? groups.get(selectedCode).idx : -1;
+    const drawList = selIdx >= 0
+      ? [...dayState.incomingByProv[selIdx].slice(0, 14), ...dayState.outgoingByProv[selIdx].slice(0, 10)]
+      : dayState.corridors.slice(0, 14);
+    for (const cor of drawList) {
+      const [x1s, y1s] = toScreen(cor.srcAmp.px, cor.srcAmp.py, cssW, cssH);
+      const [x2s, y2s] = toScreen(cor.dstProv.px, cor.dstProv.py, cssW, cssH);
+      const isOutgoing = selIdx >= 0 && cor.srcProv.idx === selIdx;
+      ctx.save();
+      ctx.strokeStyle = isOutgoing ? 'rgba(56,189,248,0.92)' : 'rgba(253,186,116,0.92)';
+      ctx.lineWidth = Math.max(1.6, Math.min(3.4, Math.sqrt(cor.fires) * 0.62));
+      ctx.setLineDash([7, 5]);
+      if (!reducedMotion) ctx.lineDashOffset = -(ts * 0.04);
+      ctx.beginPath();
+      ctx.moveTo(x1s, y1s);
+      const mx = (x1s + x2s) / 2 - (y2s - y1s) * 0.14;
+      const my = (y1s + y2s) / 2 + (x2s - x1s) * 0.14;
+      ctx.quadraticCurveTo(mx, my, x2s, y2s);
+      ctx.stroke();
+
+      // Pointed arrowhead at destination tangent
+      const headAng = Math.atan2(y2s - my, x2s - mx);
+      const headLen = 8.5;
+      ctx.setLineDash([]);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath();
+      ctx.moveTo(x2s, y2s);
+      ctx.lineTo(x2s - headLen * Math.cos(headAng - 0.42), y2s - headLen * Math.sin(headAng - 0.42));
+      ctx.lineTo(x2s - headLen * Math.cos(headAng + 0.42), y2s - headLen * Math.sin(headAng + 0.42));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // 2. Animated Smoke Plumes
+  if (showSmoke && clusterPool.length) {
+    for (let i = 0; i < PUFF_COUNT; i++) {
+      const p = smokePuffs[i];
+      if (!p.active) continue;
+      if (!reducedMotion) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt + Math.sin(p.life * 0.08 + i) * 0.00022 * dt;
+        p.life += dt;
+        if (p.life >= p.maxLife) {
+          spawnPuff(p, clusterPool[(i + Math.floor(ts * 0.01)) % clusterPool.length]);
+          continue;
+        }
+      }
+      const [sx, sy] = toScreen(p.x, p.y, cssW, cssH);
+      if (sx < -55 || sx > cssW + 55 || sy < -55 || sy > cssH + 55) continue;
+      const t = p.life / p.maxLife;
+      const r = (p.r0 + (p.r1 - p.r0) * t) * zoomScale;
+      const alpha = Math.sin(t * Math.PI) * (isLightPlain ? 0.34 : 0.28);
+      const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+      g.addColorStop(0, p.col + alpha.toFixed(3) + ')');
+      g.addColorStop(0.55, p.col + (alpha * 0.45).toFixed(3) + ')');
+      g.addColorStop(1, p.col + '0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 3. Wind streamlines.
+  if (showWind && SIM) drawWind(cssW, cssH, dt, isLightPlain);
+
+  // 4. Glowing fire hotspot clusters.
+  const pulse = reducedMotion ? 1 : (0.88 + 0.20 * Math.sin(ts * 0.005));
+  for (const c of dayState.clusters) {
+    const [sx, sy] = toScreen(c.amp.px, c.amp.py, cssW, cssH);
+    if (sx < -25 || sx > cssW + 25 || sy < -25 || sy > cssH + 25) continue;
+    const baseR = (2.1 + Math.min(6.2, Math.sqrt(c.active) * 1.05)) * Math.sqrt(zoomScale);
+    const col = c.domType === 'agri' ? '#fb923c' : c.domType === 'forest' ? '#ef4444' : c.domType === 'spk' ? '#c084fc' : '#facc15';
+    const glowRadius = baseR * (c.active >= 15 ? 2.1 * pulse : 1.65);
+    const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowRadius);
+    glow.addColorStop(0, '#fef08a');
+    glow.addColorStop(0.4, col);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(sx, sy, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.max(1.6, baseR * 0.5), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 5. Optional 180 Air4Thai Stations
+  if (showStations && SIM?.stationObjs?.length) {
+    for (const st of SIM.stationObjs) {
+      const [sx, sy] = toScreen(st.px, st.py, cssW, cssH);
+      if (sx < -10 || sx > cssW + 10 || sy < -10 || sy > cssH + 10) continue;
+      ctx.fillStyle = '#38bdf8';
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+}
+
+// ===== BOTTOM RESEARCH SECTION RENDERING =====
+function renderResearchSection() {
+  const fe = t2.fixed_effects_2024_2025 || {};
+  const jump = t1.before_after_episode_jump || {};
+  const wind = t1.anemometer_era5_agreement || {};
+
+  $('scope-subtitle').textContent =
+    `ฐานข้อมูลสถานี Air4Thai ${intFmt.format(cov.total_stations || 0)} สถานี (${cov.provinces_with_in_province_station || 0}/77 จังหวัด และจับคู่ลมพัดข้ามเขต) · ปรับปรุงล่าสุด ${String(DATA.generated_at_utc || '').slice(0, 10)}`;
+  $('headline-note').textContent =
+    `วันที่พบจุดความร้อนในพื้นที่เกษตรต้นลม มีค่าฝุ่นต่างจากวันที่ไม่พบจุด ${fmtSigned(nat2.delta_vs_nofire_ug_m3, ' µg/m³')} เทียบภายในสถานีและเดือนเดียวกัน มี ${suffCount} จาก 77 จังหวัดที่มีข้อมูลพอเปรียบเทียบ`;
+
+  const kpis = [
+    ['สถานีตรวจวัด Air4Thai', `${intFmt.format(cov.total_stations || 0)} สถานี`, `ตั้งอยู่ใน ${cov.provinces_with_in_province_station || 0}/77 จังหวัด · ผ่านเกณฑ์ ${suffCount}/77`],
+    ['ไฟเกษตรต้นลม (2567–ครึ่งแรก 2569)', fmtSigned(nat2.delta_vs_nofire_ug_m3, ' µg/m³'), `เทียบวันที่ไม่พบจุด · ${intFmt.format(nat2.clean_upwind_agri_days || 0)} วัน-สถานีสะอาด`],
+    ['ช่วงปลอดข้ามแดน (2567–2568)', fmtSigned(nat2425.delta_vs_nofire_ug_m3, ' µg/m³'), `เทียบคนละทิศลม ${fmtSigned(nat2425.delta_vs_non_upwind_ug_m3, ' µg/m³')}`],
+    ['รายชั่วโมง ก.ย.–17 พ.ย. 2569', fmtSigned(nat1.delta_vs_non_upwind_ug_m3, ' µg/m³'), `เทียบคนละทิศลม · ชม.สะอาด ${intFmt.format(nat1.clean_upwind_agri_hours || 0)} ชม.`]
+  ];
+  $('kpi-grid').innerHTML = kpis.map(([label, val, sub]) =>
+    `<div class="kpi"><small>${esc(label)}</small><b>${esc(val)}</b><small>${esc(sub)}</small></div>`
+  ).join('');
+
+  const FE_LABELS = {
+    ln_1p_upwind_forest_80km: ['ไฟป่าต้นลม (≤80 กม.)', '#b91c1c'],
+    ln_1p_upwind_transboundary_250km: ['ควันข้ามแดนต้นลม (≤250 กม.)', '#7c3aed'],
+    ln_1p_upwind_agri_50km: ['ไฟเกษตรต้นลม (≤50 กม.)', '#ea580c'],
+    ln_1p_upwind_spk_50km: ['เขต ส.ป.ก. ต้นลม (≤50 กม.)', '#d97706'],
+    ln_1p_non_upwind_agri_50km: ['ไฟเกษตรคนละทิศลม (≥90° เทียบ)', '#64748b']
+  };
+  $('fe-subtitle').textContent = `เทียบภายในสถานีและเดือนเดียวกัน ใช้ข้อมูล ${intFmt.format(fe.n_obs || 0)} คู่สถานีกับวัน`;
+  const feRows = (fe.covariates || []).map((name, idx) => ({
+    name, meta: FE_LABELS[name], b: fe.beta?.[idx], lo: fe.ci_low?.[idx], hi: fe.ci_high?.[idx]
+  })).filter(r => r.meta);
+  const minFe = Math.min(0, ...feRows.map(r => r.lo ?? r.b ?? 0)) - 0.4;
+  const maxFe = Math.max(1, ...feRows.map(r => r.hi ?? r.b ?? 0)) + 0.4;
+  const spanFe = Math.max(1e-6, maxFe - minFe);
+  const pctFe = v => `${((v - minFe) / spanFe * 100).toFixed(2)}%`;
+  $('fe-chart').innerHTML = feRows.map(r => {
+    const [label, col] = r.meta;
+    const b0 = Math.min(0, r.b ?? 0), b1 = Math.max(0, r.b ?? 0);
+    return `<div class="fe-row">
+      <span>${esc(label)}</span>
+      <div class="fe-track">
+        <div class="fe-zero" style="left:${pctFe(0)}"></div>
+        <div class="fe-bar" style="left:${pctFe(b0)};width:${((b1 - b0) / spanFe * 100).toFixed(2)}%;background:${col}"></div>
+        <div class="fe-ci" style="left:${pctFe(r.lo ?? r.b ?? 0)};width:${(((r.hi ?? r.b ?? 0) - (r.lo ?? r.b ?? 0)) / spanFe * 100).toFixed(2)}%"></div>
+      </div>
+      <span class="fe-val"><strong>${esc(fmtSigned(r.b))}</strong> <small>${esc(fmtCI(r.lo, r.hi))}</small></span>
+    </div>`;
+  }).join('');
+
+  $('t1-subtitle').textContent = `ช่วง ${t1.window || ''} · ดาวเทียม VIIRS (${(t1.satellites_primary || []).join(', ')})`;
+  $('t1-stats').innerHTML = [
+    ['ชั่วโมงไฟเกษตรต้นลมสะอาด', `${intFmt.format(nat1.clean_upwind_agri_hours || 0)} ชม.-สถานี`],
+    ['พัดข้ามเขตจังหวัด', `${intFmt.format(nat1.cross_province_upwind_hours || 0)} ชม.-สถานี`],
+    [`กระโดดก่อน–หลัง (${intFmt.format(jump.n_episodes || 0)} เหตุการณ์)`, `${fmtSigned(jump.mean_jump_ug_m3, ' µg/m³')} ${fmtCI(jump.ci_low, jump.ci_high)}`],
+    ['ลมเสาวัด Air4Thai vs ERA5', `${intFmt.format(wind.n_hours_both_windy || 0)} ชม. · ตรงใน ±45° ${wind.pct_within_45deg ?? '—'}%`]
+  ].map(([k, v]) => `<div class="stat-box"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('');
+  $('t1-note').textContent = 'ตารางนี้แสดงผลเทียบรายชั่วโมง พร้อมข้อมูลว่าทิศลมที่คำนวณได้ใกล้กับทิศลมที่สถานีวัดเพียงใด';
 }
 
 function renderTables() {
@@ -518,7 +1840,7 @@ function renderTables() {
   const q = $('searchBox').value.trim().toLowerCase();
   const rf = $('regionFilter').value;
   const sf = $('statusFilter').value;
-  const rows = [...groups.values()].filter(g => {
+  const rows = provList.filter(g => {
     const p2 = t2.provinces?.[g.code] || {};
     const isSuff = String(p2.sufficiency_status || '').startsWith('sufficient');
     if (q && !g.name.toLowerCase().includes(q) && !g.code.includes(q)) return false;
@@ -530,6 +1852,7 @@ function renderTables() {
 
   $('prov-tbody').innerHTML = rows.map(g => {
     const p2 = t2.provinces?.[g.code] || {}, p1 = t1.provinces?.[g.code] || {};
+    const peakIso = dayIdxToIso(peakDayByProv[g.idx] ?? currentDayIdx);
     return `<tr data-code="${esc(g.code)}" class="${selectedCode === g.code ? 'selected' : ''}">
       <td>${esc(g.code)}</td>
       <td>${esc(g.name)}</td>
@@ -541,83 +1864,79 @@ function renderTables() {
       <td>${esc(fmtSigned(p2.clean_2024_2025_delta_vs_nofire))}</td>
       <td>${esc(fmtSigned(p1.delta_vs_nofire_ug_m3))}</td>
       <td>${statusBadge(p2.sufficiency_status)}</td>
+      <td><button type="button" class="peak-btn" data-peak-code="${esc(g.code)}" title="เปิดข้อมูลวันที่ ${peakIso}">ดูวันสูงสุด (${esc(formatThaiDate(peakIso, true))})</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="10" style="text-align:center">ไม่พบจังหวัดตามเงื่อนไขที่เลือก</td></tr>';
+  }).join('') || '<tr><td colspan="11" style="text-align:center">ไม่พบจังหวัดตามเงื่อนไขที่เลือก</td></tr>';
 
+  for (const btn of $('prov-tbody').querySelectorAll('[data-peak-code]')) {
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      selectedCode = btn.dataset.peakCode;
+      $('provinceSelect').value = selectedCode;
+      const g = groups.get(selectedCode);
+      const pk = peakDayByProv[g.idx] ?? currentDayIdx;
+      fitMap(selectedCode);
+      jumpToDay(pk);
+      $('studio-top').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
   for (const tr of $('prov-tbody').querySelectorAll('tr[data-code]')) {
     tr.addEventListener('click', () => {
       selectedCode = tr.dataset.code;
       $('provinceSelect').value = selectedCode;
       fitMap(selectedCode);
-      render();
+      renderDay(currentDayIdx);
+      $('studio-top').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 }
 
-function render() {
-  const layer = $('layerSelect').value;
-  let shownCount = 0;
-  for (const [code, g] of groups) {
-    const p2 = t2.provinces?.[code] || {}, p1 = t1.provinces?.[code] || {};
-    let fill = 'var(--null-fill)', valText = 'ข้อมูลไม่พอ';
-    if (layer === 'sufficiency') {
-      fill = STATUS_COLS[p2.sufficiency_status] || '#64748b';
-      valText = (STATUS_TH[p2.sufficiency_status] || [p2.sufficiency_status])[0];
-      shownCount++;
-    } else {
-      const val = layer === 'all_nofire' ? p2.delta_vs_nofire_ug_m3
-        : layer === 'clean2425_nofire' ? p2.clean_2024_2025_delta_vs_nofire
-        : p1.delta_vs_nofire_ug_m3;
-      if (val != null && Number.isFinite(val)) {
-        const bin = DELTA_BREAKS.filter(b => val >= b).length;
-        fill = DELTA_COLS[bin];
-        valText = fmtSigned(val, ' µg/m³');
-        shownCount++;
-      }
-    }
-    g.shape.style.fill = fill;
-    g.shape.classList.toggle('selected', selectedCode === code);
-    g.title.textContent = `${g.name} · ${valText}`;
+// ===== EVENT WIRING =====
+function togglePlay() {
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+    $('playBtn').textContent = '▶ เล่นทีละวัน';
+    $('playBtn').classList.remove('playing');
+    return;
   }
-  if (layer === 'sufficiency') {
-    $('map-summary').textContent = 'สถานะความเพียงพอของข้อมูล (สายรายวัน 2567–ครึ่งแรก 2569)';
-    $('legend').innerHTML = [
-      ['sufficient', 'ผ่านเกณฑ์ (มีสถานี)'],
-      ['sufficient_cross_province', 'ผ่านเกณฑ์ (จับคู่ข้ามเขต)'],
-      ['insufficient_confounded', 'ปนเปื้อนไฟป่า/ข้ามแดน'],
-      ['insufficient_clean_events', 'วันสะอาดน้อย'],
-      ['insufficient_valid_obs', 'วันตรวจวัดน้อย'],
-      ['insufficient_no_station', 'ไม่มีสถานี/จุดจับคู่']
-    ].map(([k, l]) => `<span><i style="background:${STATUS_COLS[k]}"></i>${l}</span>`).join('');
-  } else {
-    $('map-summary').textContent = `${$('layerSelect').selectedOptions[0].textContent} · แสดงค่าได้ ${shownCount}/77 จังหวัด`;
-    $('legend').innerHTML = DELTA_LABELS.map((l, i) => `<span><i style="background:${DELTA_COLS[i]}"></i>${l}</span>`).join('') +
-      '<span><i style="background:var(--null-fill,#cbd5e1)"></i>ข้อมูลไม่พอประเมิน</span>';
-  }
-  renderProvinceDetail(selectedCode);
-  renderTables();
+  if (!SIM) return;
+  $('playBtn').textContent = '⏸ หยุดชั่วคราว';
+  $('playBtn').classList.add('playing');
+  const speed = Number($('speedSelect').value) || 900;
+  playTimer = setInterval(() => {
+    const next = currentDayIdx + 1 >= SIM.n_days ? 0 : currentDayIdx + 1;
+    renderDay(next);
+  }, speed);
 }
-
-$('layerSelect').addEventListener('change', render);
+$('playBtn').addEventListener('click', togglePlay);
+$('speedSelect').addEventListener('change', () => { if (playTimer) { togglePlay(); togglePlay(); } });
+$('prevDayBtn').addEventListener('click', () => jumpToDay(currentDayIdx - 1));
+$('nextDayBtn').addEventListener('click', () => jumpToDay(currentDayIdx + 1));
+$('dateInput').addEventListener('change', () => jumpToDay(isoToDayIdx($('dateInput').value)));
+$('daySlider').addEventListener('input', () => jumpToDay(Number($('daySlider').value)));
+for (const btn of document.querySelectorAll('.preset-btn')) {
+  btn.addEventListener('click', () => jumpToDay(isoToDayIdx(btn.dataset.date)));
+}
+$('fireFilter').addEventListener('change', () => renderDay(currentDayIdx));
+$('layerSelect').addEventListener('change', () => colorProvinces(currentDayIdx));
 $('provinceSelect').addEventListener('change', () => {
   selectedCode = $('provinceSelect').value;
   fitMap(selectedCode);
-  render();
+  renderDay(currentDayIdx);
 });
-$('basemapSelect').addEventListener('change', () => {
-  basemap = $('basemapSelect').value;
-  $('map-plot').dataset.basemap = basemap;
-  drawMap();
-});
+$('basemapSelect').addEventListener('change', drawMap);
 for (const id of ['searchBox', 'regionFilter', 'statusFilter']) $(id).addEventListener('input', renderTables);
-$('themeToggle').addEventListener('click', () => setAtlasTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true));
+$('themeToggle').addEventListener('click', () => {
+  setAtlasTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true);
+});
 $('exportCsvBtn').addEventListener('click', () => {
   const headers = ['prov_code','prov_name_th','region','stations_in_province','clean_upwind_agri_days','delta_vs_nofire_ug_m3','delta_vs_non_upwind_ug_m3','clean_2425_delta_vs_nofire','t1_hourly_delta_vs_nofire','sufficiency_status'];
   const lines = [headers.join(',')];
-  for (const [code, g] of groups) {
-    const p2 = t2.provinces?.[code] || {}, p1 = t1.provinces?.[code] || {};
+  for (const g of provList) {
+    const p2 = t2.provinces?.[g.code] || {}, p1 = t1.provinces?.[g.code] || {};
     lines.push([
-      code, g.name, g.region, p2.stations_in_province ?? '', p2.clean_upwind_agri_days ?? '',
+      g.code, g.name, g.region, p2.stations_in_province ?? '', p2.clean_upwind_agri_days ?? '',
       p2.delta_vs_nofire_ug_m3 ?? '', p2.delta_vs_non_upwind_ug_m3 ?? '',
       p2.clean_2024_2025_delta_vs_nofire ?? '', p1.delta_vs_nofire_ug_m3 ?? '', p2.sufficiency_status ?? ''
     ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
@@ -627,8 +1946,40 @@ $('exportCsvBtn').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
+async function decodeDailySim() {
+  if (DATA.daily_sim) return DATA.daily_sim;
+  if (!DATA.daily_sim_gz || typeof DecompressionStream === 'undefined') return null;
+  const bin = atob(DATA.daily_sim_gz);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  const text = await new Response(stream).text();
+  return JSON.parse(text);
+}
+
+// ===== BOOT =====
+renderResearchSection();
 fitMap('');
-render();
+decodeDailySim().then(sim => {
+  if (sim) {
+    prepareSimIndexes(sim);
+    updateWindButton();
+    $('dateInput').min = sim.start_date;
+    $('dateInput').max = sim.end_date;
+    $('daySlider').max = String(sim.n_days - 1);
+    const defaultDay = isoToDayIdx('2026-03-20');
+    $('sim-status-badge').textContent = `ฐานข้อมูลรายวัน ${intFmt.format(sim.n_days)} วัน (${formatThaiDate(sim.start_date)} – ${formatThaiDate(sim.end_date)})`;
+    renderDay(defaultDay);
+  } else {
+    $('sim-status-badge').textContent = 'โหมดพื้นฐาน (ไม่พบข้อมูลรายวัน)';
+    renderDay(0);
+  }
+  requestAnimationFrame(tickCanvas);
+}).catch(err => {
+  console.error('Sim decode error:', err);
+  $('sim-status-badge').textContent = 'โหลดข้อมูลรายวันไม่สำเร็จ';
+  renderDay(0);
+});
 </script>
 </body>
 </html>

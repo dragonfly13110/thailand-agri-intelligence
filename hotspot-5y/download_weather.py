@@ -57,7 +57,7 @@ def compute_fire_weather_index(
     tmax_mean: float | None,
     rh_min_mean: float | None,
     wind_max_mean: float | None,
-    dry_day_frac: float,
+    dry_day_frac: float | None,
     et0_daily_mean: float | None,
 ) -> float | None:
     """Transparent 0-100 monthly Fire-Weather Risk proxy combining heat, dryness, wind, and dry-day persistence.
@@ -69,13 +69,14 @@ def compute_fire_weather_index(
       - 10% Evaporative demand (ET0 daily mean across 2.5..6.5 mm/day)
       - 10% Wind speed (wind_max_mean across 6..24 km/h)
     """
-    if tmax_mean is None or rh_min_mean is None:
+    if (tmax_mean is None or rh_min_mean is None or wind_max_mean is None
+            or dry_day_frac is None or et0_daily_mean is None):
         return None
     t_score = _clamp01((tmax_mean - 26.0) / 14.0)
     rh_score = _clamp01((70.0 - rh_min_mean) / 50.0)
     dry_score = _clamp01(dry_day_frac)
-    et0_score = _clamp01(((et0_daily_mean or 3.5) - 2.5) / 4.0)
-    wind_score = _clamp01(((wind_max_mean or 10.0) - 6.0) / 18.0)
+    et0_score = _clamp01((et0_daily_mean - 2.5) / 4.0)
+    wind_score = _clamp01((wind_max_mean - 6.0) / 18.0)
     fwi = 100.0 * (0.30 * t_score + 0.30 * rh_score + 0.20 * dry_score + 0.10 * et0_score + 0.10 * wind_score)
     return round(fwi, 1)
 
@@ -189,7 +190,7 @@ def aggregate_province_monthly(prov: dict, daily: dict) -> list[dict]:
             tmax_mean,
             rh_min_avg,
             wind_mean,
-            dry_days / max(1, len(rains)) if rains else 0.0,
+            dry_days / len(rains) if rains else None,
             et0_mean,
         )
 

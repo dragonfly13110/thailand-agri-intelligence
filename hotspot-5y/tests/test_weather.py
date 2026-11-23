@@ -29,6 +29,8 @@ class FireWeatherTests(unittest.TestCase):
         self.assertGreater(hot_dry, 75.0)
         self.assertLess(cool_wet, 25.0)
         self.assertIsNone(compute_fire_weather_index(None, 40.0, 10.0, 0.5, 4.0))
+        self.assertIsNone(compute_fire_weather_index(30.0, 40.0, 10.0, None, 4.0))
+        self.assertIsNone(compute_fire_weather_index(30.0, 40.0, None, 0.5, 4.0))
 
     def test_aggregate_monthly_and_ingest_duckdb(self) -> None:
         prov = {"prov_code": "50", "name_en": "Chiang Mai", "region": "north", "lat": 18.79, "lon": 98.99}

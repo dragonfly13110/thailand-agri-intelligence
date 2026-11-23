@@ -16,8 +16,9 @@ SUBPROJECT_DIR = Path(__file__).resolve().parents[1]
 if str(SUBPROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(SUBPROJECT_DIR))
 
+from build_admin_boundaries import write_admin_boundaries  # noqa: E402
 from build_interactive_map import build_interactive_map  # noqa: E402
-from map_data import build_map_payload, encode_payload_b64, pack_flags, unpack_flags  # noqa: E402
+from map_data import build_map_payload, encode_payload_b64, load_tamroypao_monthly, pack_flags, unpack_flags  # noqa: E402
 from map_template import render_interactive_html, render_online_web_html  # noqa: E402
 
 
@@ -211,6 +212,120 @@ def _create_synthetic_sources(root: Path, *, include_tadih: bool = True) -> tupl
 
 
 class InteractiveMapDataTests(unittest.TestCase):
+    def test_detailed_adjacent_polygons_draw_a_shared_edge_once(self) -> None:
+        import shutil
+        import subprocess
+
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js is needed to run the boundary drawing helper")
+        helper = (SUBPROJECT_DIR / "atlas_boundaries.js").read_text(encoding="utf-8")
+        result = subprocess.run([node, "-"], input=helper + """
+const assert = require("node:assert/strict");
+const feature = (code, amp, left) => ({
+  properties: { TAM_CODE: code, AMP_CODE: amp, PROV_CODE: "18", Centroid_x: "100.20", Centroid_y: "15.09" },
+  geometry: { type: "Polygon", coordinates: [
+    [[left, 0], [left + 1, 0], [left + 1, 1], [left, 1], [left, 0]],
+  ] },
+});
+const { areas, segments } = atlasDetailedEdges([feature("180501", "1805", 0), feature("180601", "1806", 1)]);
+assert.deepEqual(areas[0].centroid, [100.20, 15.09]);
+assert.deepEqual(segments.map(edges => edges.length), [0, 1, 6]);
+assert.deepEqual(segments[1][0], [[1, 0], [1, 1]]);
+""", text=True, encoding="utf-8", capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_monthly_burn_areas_preserve_zero_and_missing_coverage(self) -> None:
+        with duckdb.connect() as con:
+            self.assertEqual(load_tamroypao_monthly(con), {})
+            con.execute("""
+                CREATE TABLE tamroypao_burn_agri (
+                    month VARCHAR, province_code VARCHAR, paddy DOUBLE, sugarcane DOUBLE, mixed DOUBLE, corn DOUBLE
+                );
+                INSERT INTO tamroypao_burn_agri VALUES
+                    ('202604', '1', 1.25, 2, 3, 4), ('202604', 'TH16', 0, 0, 0, 0),
+                    ('202604', '50', 10, NULL, 0, 0),
+                    ('202604', 'TH09', 1, 0, 0, 0), ('202604', '9', 2, 0, 0, 0),
+                    ('202613', '16', 1, 0, 0, 0);
+                CREATE TABLE tamroypao_burn_forest (month VARCHAR, province_code VARCHAR, forest DOUBLE);
+                INSERT INTO tamroypao_burn_forest VALUES ('202610', '16', 5);
+            """)
+            monthly = load_tamroypao_monthly(con)
+        self.assertEqual(monthly, {"202604": {"agri": {"01": 10.25, "16": 0.0}}, "202610": {"forest": {"16": 5.0}}})
+        html = render_online_web_html(burn_months=monthly)
+        self.assertIn('id="bsMonthRange" type="range"', html)
+        self.assertIn('"202604":{"agri":{"01":10.25,"16":0.0}}', html)
+
+    def test_live_haze_counts_only_available_24_hour_values(self) -> None:
+        import shutil
+        import subprocess
+        from ui_pages import MULTI_PAGE_JS
+
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js is required to exercise the browser calculation")
+        render = "function renderLiveHazeGrid(" + MULTI_PAGE_JS.split(
+            "function renderLiveHazeGrid(", 1
+        )[1].split("async function inspectLiveHazeProv(", 1)[0]
+        checks = r"""
+          const assert = require("node:assert/strict");
+          const elements = new Map();
+          const document = { getElementById(id) {
+            if (!elements.has(id)) elements.set(id, { querySelectorAll: () => [] });
+            return elements.get(id);
+          }};
+          const pm25Tier = () => ["", ""];
+          const escHtml = x => x;
+          const formatNum = x => x;
+          const selectedLiveHazeProv = null;
+          renderLiveHazeGrid([
+            {code: "01", name_th: "Highest hourly", pm25: 46.4, pm25_24h: 27.2},
+            {code: "02", name_th: "Highest daily", pm25: 29.0, pm25_24h: 38.0},
+            {code: "03", name_th: "No daily", pm25: 43.7, pm25_24h: null},
+          ], false);
+          assert.match(elements.get("hzKpiExceed").textContent, /^1 \/ 2 /);
+          assert.match(elements.get("hzKpiTopSub").textContent, /Highest hourly/);
+        """
+        subprocess.run([node, "-"], input=render + checks, encoding="utf-8", check=True)
+
+    def test_public_summary_excludes_local_flood_and_preserves_split_grid(self) -> None:
+        from unittest.mock import patch
+        from publish_hf import write_public_map_summary
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path, era5_path, tadih_path = _create_synthetic_sources(root, include_tadih=True)
+            payload = build_map_payload(db_path, era5_path, tadih_path)
+            self.assertGreater(payload["meta"]["flood_covered_tambons"], 0)
+            grid = payload["grid"]
+            with patch("publish_hf.hii_flood_publication", return_value=None):
+                summary, grid_file = write_public_map_summary(payload, root / "summary")
+            public = json.loads(gzip.decompress((root / summary["path"]).read_bytes()))
+            self.assertEqual(public["meta"]["flood_covered_tambons"], 0)
+            for group in ("provinces", "amphoes", "tambons"):
+                self.assertTrue(all(value is None for row in public[group]
+                                    for key, value in row.items() if key.startswith("flood_")))
+            self.assertNotIn("grid", public)
+            self.assertEqual(public["grid_file"], Path(grid_file["path"]).name)
+            self.assertEqual(json.loads(gzip.decompress((root / grid_file["path"]).read_bytes())), grid)
+
+    def test_public_summary_keeps_flood_with_registered_approval(self) -> None:
+        from publish_hf import write_public_map_summary
+        from tadih.tier1_ingestion import hii_flood_publication
+
+        approval = hii_flood_publication()
+        self.assertEqual(approval["resource_id"], "50e6987b-c01f-4fd5-99e2-2bccf9f18268")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path, era5_path, tadih_path = _create_synthetic_sources(root, include_tadih=True)
+            payload = build_map_payload(db_path, era5_path, tadih_path)
+            coverage = payload["meta"]["flood_covered_tambons"]
+            summary, _ = write_public_map_summary(payload, root / "summary")
+            public = json.loads(gzip.decompress((root / summary["path"]).read_bytes()))
+            self.assertGreater(coverage, 0)
+            self.assertEqual(public["meta"]["flood_covered_tambons"], coverage)
+            self.assertTrue(any(row["flood_max_17yr"] is not None for row in public["tambons"]))
+
     def test_pack_flags_roundtrip(self) -> None:
         for sat, yr, sea, lu, crop, st in [
             (0, 0, 0, 0, 0, 0),
@@ -325,6 +440,17 @@ class InteractiveMapDataTests(unittest.TestCase):
             self.assertEqual(summary["provinces"], 2)
             self.assertEqual(summary["amphoes"], 2)
             self.assertEqual(summary["tambons"], 2)
+
+            boundary_path = root / "admin-boundaries.json.gz"
+            with duckdb.connect(str(db_path), read_only=True) as con:
+                write_admin_boundaries(con, boundary_path)
+            outlines = json.loads(gzip.decompress(boundary_path.read_bytes()))
+            self.assertEqual([row[0] for row in outlines["amphoe"]], ["เมืองเชียงใหม่", "เมืองภูเก็ต"])
+            name, point, box, rings, province, code = outlines["tambon"][0]
+            self.assertEqual((name, point, box), ("ศรีภูมิ", [99.0, 18.8], [98.8, 18.6, 99.2, 19.0]))
+            self.assertEqual(province, "50")
+            self.assertEqual(code, "500101")
+            self.assertGreaterEqual(len(rings[0]), 4)
 
             # Verify inline JS parses cleanly and includes XSS/CSV/state-reset guards
             html_text = out_path.read_text(encoding="utf-8")

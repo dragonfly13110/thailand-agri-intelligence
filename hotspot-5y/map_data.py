@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+from math import isfinite
 from pathlib import Path
 import zlib
 import duckdb
@@ -365,6 +366,32 @@ def _load_burn_stats(con: duckdb.DuckDBPyConnection, existing_tables: set[str]) 
             }
 
     return scar_maps, freq_maps
+
+
+def load_tamroypao_monthly(con: duckdb.DuckDBPyConnection) -> dict:
+    """Read published province-month areas without filling missing rows with zero."""
+    tables = {name for (name,) in con.execute("SHOW TABLES").fetchall()}
+    months = {}
+    for kind, table, area in (
+        ("agri", "tamroypao_burn_agri", "paddy + sugarcane + mixed + corn"),
+        ("forest", "tamroypao_burn_forest", "forest"),
+    ):
+        if table not in tables:
+            continue
+        rows = con.execute(f"""
+            SELECT month, lpad(regexp_replace(province_code, '^TH', ''), 2, '0') AS code,
+                   round({area}, 2) AS rai
+            FROM {table}
+            WHERE regexp_full_match(month, '[0-9]{{4}}(0[1-9]|1[0-2])')
+              AND regexp_full_match(province_code, '(TH)?[0-9]{{1,2}}')
+            QUALIFY count(*) OVER (PARTITION BY month, code) = 1
+            ORDER BY month, code
+        """).fetchall()
+        for month, code, rai in rows:
+            dataset = months.setdefault(month, {}).setdefault(kind, {})
+            if rai is not None and isfinite(rai) and rai >= 0:
+                dataset[code] = rai
+    return months
 
 
 def _load_tamroypao_stats(
@@ -1025,7 +1052,7 @@ def _load_tmd_wrf_forecast(con: duckdb.DuckDBPyConnection, existing_tables: set[
             "tmax": float(tmax) if tmax is not None else None,
             "tmin": float(tmin) if tmin is not None else None,
             "rh": float(rh) if rh is not None else None,
-            "rain": float(rain) if rain is not None else 0.0,
+            "rain": float(rain) if rain is not None else None,
             "cond": str(cond_th or ""),
             "fwi": float(fwi) if fwi is not None else None,
         })
@@ -1469,6 +1496,7 @@ def build_map_payload(
                 "seasons": ["ม.ค.–ก.พ.", "มี.ค.–เม.ย.", "พ.ค.–ต.ค.", "พ.ย.–ธ.ค."],
             },
             "weather_months": timeline_months,
+            "tamroypao_monthly": load_tamroypao_monthly(con),
             "transboundary": transboundary_data,
             "trans_grid": trans_grid_data,
             "live_hotspots_7d": live_hotspots_7d,

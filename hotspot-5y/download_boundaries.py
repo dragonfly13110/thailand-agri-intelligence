@@ -49,7 +49,7 @@ def fetch_province_layer_features(
     max_allowable_offset: float = 0.003,
     retries: int = 4,
 ) -> list[dict]:
-    """Fetch one province slice of an ArcGIS FeatureServer layer as GeoJSON features."""
+    """Fetch simplified province slices for the overview cache. Close-up maps query the source geometry."""
     where = urllib.parse.quote(f"PROV_CODE='{prov_code}'")
     url = (
         f"{DDPM_LAYER_URL.format(layer_id=layer_id)}"

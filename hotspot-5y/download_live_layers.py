@@ -369,10 +369,12 @@ def fetch_and_ingest_tmd_wrf_77prov(con: duckdb.DuckDBPyConnection) -> int:
             tmin = min(t_vals) if t_vals else None
             rh_min = min(rh_vals) if rh_vals else None
             rh_mean = (sum(rh_vals) / len(rh_vals)) if rh_vals else None
-            rain = sum(p1_vals) if p1_vals else (max(p24_vals) if p24_vals else 0.0)
+            rain = sum(p1_vals) if p1_vals else (max(p24_vals) if p24_vals else None)
 
             # Determine Thai weather condition label from WRF rain & temperature
-            if rain >= 35.0:
+            if rain is None:
+                cond_code, cond_th = None, "ไม่มีข้อมูลฝน (WRF 3 กม.)"
+            elif rain >= 35.0:
                 cond_code, cond_th = 7, "ฝนตกหนัก (WRF 3 กม.)"
             elif rain >= 10.0:
                 cond_code, cond_th = 6, "ฝนปานกลาง (WRF 3 กม.)"
@@ -386,11 +388,12 @@ def fetch_and_ingest_tmd_wrf_77prov(con: duckdb.DuckDBPyConnection) -> int:
                 cond_code, cond_th = 2, "มีเมฆบางส่วน (WRF 3 กม.)"
 
             # Compute FWI (0-100) using daytime minimum RH (or mean RH) + Tmax + Rain
-            rh_eff = rh_min if rh_min is not None else (rh_mean if rh_mean is not None else 60.0)
-            t_s = max(0.0, min(1.0, ((tmax if tmax is not None else 30.0) - 26.0) / 14.0))
-            rh_s = max(0.0, min(1.0, (75.0 - rh_eff) / 50.0))
-            dry_s = 1.0 if rain < 1.0 else (0.4 if rain < 5.0 else 0.0)
-            fwi = round(100.0 * (0.40 * t_s + 0.40 * rh_s + 0.20 * dry_s), 1)
+            fwi = None
+            if tmax is not None and rh_min is not None and rain is not None:
+                t_s = max(0.0, min(1.0, (tmax - 26.0) / 14.0))
+                rh_s = max(0.0, min(1.0, (75.0 - rh_min) / 50.0))
+                dry_s = 1.0 if rain < 1.0 else (0.4 if rain < 5.0 else 0.0)
+                fwi = round(100.0 * (0.40 * t_s + 0.40 * rh_s + 0.20 * dry_s), 1)
 
             rows.append({
                 "prov_code": pcode,
@@ -399,7 +402,7 @@ def fetch_and_ingest_tmd_wrf_77prov(con: duckdb.DuckDBPyConnection) -> int:
                 "tc_max": round(tmax, 2) if tmax is not None else None,
                 "tc_min": round(tmin, 2) if tmin is not None else None,
                 "rh_pct": round(rh_mean, 1) if rh_mean is not None else None,
-                "rain_mm": round(rain, 1),
+                "rain_mm": round(rain, 1) if rain is not None else None,
                 "ws10m_ms": None,
                 "ws10m_kmh": None,
                 "wd10m_deg": None,

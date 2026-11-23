@@ -70,7 +70,7 @@ EXPLORER_CSS = r"""
 EXPLORER_BUTTON_HTML = (
     '<button id="openExplorerBtn" class="nav-tab" data-page="explorer" '
     'title="ค้นหาข้อมูลดิบ 1.28 ล้านจุด สภาพอากาศ และรอยเผาไหม้ตรงจาก Hugging Face ด้วย DuckDB-Wasm">'
-    'ค้นข้อมูล DuckDB</button>'
+    'ค้นและดาวน์โหลดข้อมูล</button>'
 )
 
 EXPLORER_MODAL_HTML = r"""
@@ -79,13 +79,12 @@ EXPLORER_MODAL_HTML = r"""
     <div class="hero-banner">
       <div class="hero-row">
         <div>
-          <div class="hero-kicker">SERVERLESS PARQUET DATA STUDIO · DUCKDB-WASM + HUGGING FACE DATASETS</div>
           <h1 class="hero-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span>ศูนย์ค้นข้อมูลดิบ &amp; SQL Lab (DuckDB-Wasm)</span>
+            <span>ค้นและดาวน์โหลดข้อมูล</span>
             <span id="expEngineBadge" class="badge">พร้อมโหลดเมื่อกดค้นหา</span>
           </h1>
           <p class="hero-desc">
-            เจาะอ่านไฟล์ Apache Parquet (ZSTD) บน Hugging Face แบบ <strong>HTTP Range Request</strong> โดยตรงในเบราว์เซอร์ (ค่าเช่าเซิร์ฟเวอร์ 0 บาท · เล็กกว่า ZIP · ไม่ต้องแตกไฟล์) รองรับทั้งจุดความร้อน 1.28 ล้านจุด, ฝุ่น PM2.5, หมอกควัน 6 ประเทศอาเซียน, พืช DOAE, ความชื้นดิน NASA, อ่างเก็บน้ำ RID และราคาสินค้าเกษตร สศก.
+            เลือกชุดข้อมูล พื้นที่ และช่วงเวลา แล้วกดค้นหา หรือใช้ปุ่มค้นหาด่วนเพื่อเริ่มจากตัวอย่าง
           </p>
         </div>
         <div class="hero-actions">
@@ -98,30 +97,30 @@ EXPLORER_MODAL_HTML = r"""
     <div class="explorer-card">
 
       <div class="preset-strip">
-        <span style="font-size:11.5px;font-weight:700;color:var(--muted);">สูตรค้นด่วน 1 คลิก:</span>
-        <button class="preset-btn" data-preset="top_villages">20 หมู่บ้านไฟชุกปี 2026</button>
+        <span style="font-size:11.5px;font-weight:700;color:var(--muted);">ค้นหาด่วน</span>
+        <button class="preset-btn" data-preset="top_villages">หมู่บ้านใกล้จุดความร้อนมากในปี 2569</button>
         <button class="preset-btn" data-preset="top_pm25_days">วันที่ฝุ่น PM2.5 พุ่งสูงสุด</button>
-        <button class="preset-btn" data-preset="gms_compare">เทียบไฟ 6 ประเทศอาเซียน (22–25)</button>
-        <button class="preset-btn" data-preset="burn_vs_planted">% เผาเทียบพื้นที่ปลูก (DOAE × สสน.)</button>
-        <button class="preset-btn" data-preset="dry_soil_fire">จังหวัดที่ดินแห้งจัด &amp; ฝุ่นสูง</button>
+        <button class="preset-btn" data-preset="gms_compare">เทียบจุดความร้อนใน 6 ประเทศ (2565–2568)</button>
+        <button class="preset-btn" data-preset="burn_vs_planted">พื้นที่รอยเผาเทียบพื้นที่ปลูก</button>
+        <button class="preset-btn" data-preset="dry_soil_fire">จังหวัดที่ดินแห้งและฝุ่นสูง</button>
         <button class="preset-btn" data-preset="top_rice">ตำบลเผานาข้าวสูงสุด (ฤดู 2569)</button>
         <button class="preset-btn" data-preset="top_corn">ตำบลเผาข้าวโพดสูงสุด (ฤดู 2569)</button>
         <button class="preset-btn" data-preset="hot_months">เดือนที่อากาศเอื้อไฟแรงสุด (FWI)</button>
-        <button class="preset-btn" data-preset="static_spots">จุดซ้ำถาวร ≥25 วัน (โรงงาน/เตาเผา)</button>
+        <button class="preset-btn" data-preset="static_spots">แหล่งความร้อนที่พบซ้ำตั้งแต่ 25 วัน</button>
       </div>
 
       <div class="explorer-filters">
         <div>
-          <label class="field-label" for="expTable">ชุดข้อมูล (Parquet)</label>
+          <label class="field-label" for="expTable">ชุดข้อมูล</label>
           <select id="expTable">
             <option value="hotspots" selected>จุดความร้อนรายวัน VIIRS (1.28 ล้านจุด)</option>
-            <option value="live_hotspots_7d">จุดไฟล่าสุด 1–7 วัน GISTDA Near-Real-Time (2,559 จุด)</option>
+            <option value="live_hotspots_7d">จุดความร้อนจากชุดบันทึก GISTDA 7 วัน</option>
             <option value="tmd_wrf">พยากรณ์อากาศ 3 กม. กรมอุตุฯ TMD WRF (77 จว.)</option>
             <option value="air_quality_daily">ฝุ่น PM2.5 &amp; อากาศรายวัน 77 จว. (CAMS 120,813 แถว)</option>
             <option value="lghap_pm25">ค่าประมาณ PM2.5 รายตำบล (LGHAP v2)</option>
             <option value="geos_cf_pm25">PM2.5 จากกริดอ้างตำแหน่งตำบล (NASA GEOS-CF)</option>
             <option value="air_quality_monthly">ฝุ่น PM2.5 &amp; วันเกินเกณฑ์รายเดือน 77 จว.</option>
-            <option value="transboundary">หมอกควันข้ามแดน 6 ประเทศ (NASA FIRMS 3.17 ล้านจุด)</option>
+            <option value="transboundary">จุดความร้อนในไทยและประเทศเพื่อนบ้าน (NASA FIRMS)</option>
             <option value="nasa_soil">ความชื้นดิน &amp; แสงอาทิตย์รายวัน (NASA POWER 137,060 แถว)</option>
             <option value="doae_crops">พื้นที่เพาะปลูกพืชรายตำบล (DOAE 235,082 แถว)</option>
             <option value="rid_reservoirs">ปริมาณน้ำ 461 อ่างเก็บน้ำรายเดือน (RID)</option>
@@ -176,29 +175,29 @@ EXPLORER_MODAL_HTML = r"""
         <span id="expPm25Dates"></span> · <a id="expPm25Credit"></a>
       </p>
       <div class="explorer-bar">
-        <div id="expStatus">เลือกเงื่อนไขด้านบนหรือกดสูตรค้นด่วน 1 คลิก เพื่อเริ่มเจาะอ่านไฟล์ Parquet จาก Hugging Face</div>
+        <div id="expStatus">เลือกข้อมูลด้านบนแล้วกดค้นหา</div>
         <label class="check-row" style="font-size:12px;">
           <input id="expExcludeStatic" type="checkbox" checked />
-          <span>ตัดจุดซ้ำถาวร ≥25 วัน</span>
+          <span>ซ่อนแหล่งความร้อนที่พบซ้ำตั้งแต่ 25 วัน</span>
         </label>
       </div>
 
       <details id="expSqlDetails" class="explorer-sql-box">
-        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);">โหมด SQL Lab (ดูหรือแก้ไขคำสั่ง DuckDB เพื่อสอนและวิเคราะห์เอง)</summary>
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);">คำสั่งค้นหาขั้นสูง (SQL)</summary>
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
           <textarea id="expSqlInput" spellcheck="false"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:11.5px;color:var(--muted);">รองรับคำสั่ง SELECT ตรงบนไฟล์ Parquet บน Hugging Face (ทำงานในเบราว์เซอร์ Read-only)</span>
-            <button id="expRunSqlBtn" class="btn primary">▶ รัน SQL นี้</button>
+            <span style="font-size:11.5px;color:var(--muted);">ใช้คำสั่ง SELECT เพื่ออ่านข้อมูลได้</span>
+            <button id="expRunSqlBtn" class="btn primary">ค้นด้วยคำสั่งนี้</button>
           </div>
         </div>
       </details>
 
-      <div class="explorer-table-wrap" role="region" tabindex="0" aria-label="ตารางผลลัพธ์จาก DuckDB-Wasm">
+      <div class="explorer-table-wrap" role="region" tabindex="0" aria-label="ตารางผลการค้นหา">
         <table class="explorer-table">
           <thead id="expThead"></thead>
           <tbody id="expTbody">
-            <tr><td style="padding:36px;text-align:center;color:var(--muted);">กดปุ่ม <strong>🔎 ค้นหา</strong> หรือเลือก <strong>สูตรค้นด่วน 1 คลิก</strong> ด้านบนเพื่อดึงข้อมูลสดจาก Hugging Face</td></tr>
+            <tr><td style="padding:36px;text-align:center;color:var(--muted);">กด <strong>ค้นหา</strong> หรือเลือกหัวข้อค้นหาด่วน</td></tr>
           </tbody>
         </table>
       </div>
