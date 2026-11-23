@@ -1,10 +1,16 @@
 # ทะเบียนตรวจสิทธิ์ราย resource
 
-อัปเดต 29 ต.ค. 2569 หลังเจ้าของโปรเจกต์อนุญาตให้ใช้ [นโยบายอนุมัติตามสัญญาอนุญาตเปิด](../config/publication_policy.json): ทะเบียนมี **91 รายการ**: `approved_public` **62 รายการ** และ `pending` **29 รายการ**. ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"` — `dld_livestock_cattle_province`, `oae_agricultural_exports` และ `cpd_agricultural_coop_counts` บันทึกขอบเขตสิทธิ์จาก `AGENTS.md` ข้อ 3 สำหรับ exact resources; RID/TMD และ NABC daily อีก 7 รายการอยู่ภายใต้คำสั่งเจ้าของโปรเจกต์ชุดเดียวกันตาม `AGENTS.md` ข้อ 3. แถวที่อนุมัติด้วยนโยบายใหม่ใช้ `publication_authorization.basis=open_license_policy` พร้อม attribution, สมมติฐานราย resource และวันที่ตัดสิน. `oae_nabc_daily_market_prices` เป็นคนละ endpoint กับรายการ OAE export นี้.
+อัปเดต 23 พ.ย. 2569 ทะเบียนมี **92 รายการ** แบ่งเป็น `approved_public` **63 รายการ** และ `pending` **29 รายการ** ตรวจนับซ้ำได้ด้วย `python -c "import json,collections; d=json.load(open('config/resource_licenses.json',encoding='utf-8')); print(len(d['resources']), collections.Counter(r['license_status'] for r in d['resources']))"`
 
-รายการที่ `approved_public` 62 รายการมาจาก 3 ทาง: ตรวจสัญญาอนุญาตครบแล้ว (เช่น CHIRPS, Open-Meteo ERA5, GISTDA flood), คำสั่งเจ้าของโปรเจกต์ตาม `AGENTS.md` ข้อ 3 (RID/TMD, NABC daily, DLD โคเนื้อ, OAE export, CPD co-op counts) และนโยบายสัญญาอนุญาตเปิด 49 รายการ. สองรายการล่าสุดมีข้อจำกัดพิเศษ: `oae_nabc_monthly_jasmine_paddy_price` เป็น Non-Commercial จึง `commercial_use_confirmed=false`; `ldd_pgs_program_progress` เป็น Non-Commercial No-Derivs จึง `commercial_use_confirmed=false` และ `derivation_allowed=false` แสดงได้เฉพาะค่าเดิม. NWP ยังเป็น forecast grid จึงไม่เก็บเป็น observation. `open_meteo_thailand_forecast` ยังคง `pending`.
+`hii_monthly_flood_recurrence_tambon` รหัส `50e6987b-c01f-4fd5-99e2-2bccf9f18268` เป็นข้อมูลพื้นที่เสี่ยงน้ำท่วมรายเดือนระดับตำบลของ สสน. เจ้าของโครงการยืนยันสิทธิ์เผยแพร่ตารางและใช้ข้อมูลประกอบการแสดงผลใน Thailand Fire Atlas สำหรับไฟล์นี้ สถิติเป็นจำนวนครั้งย้อนหลังในช่วง 17 ปี สถานะสัญญาอนุญาตต้นทางและสิทธิ์เชิงพาณิชย์ยังไม่ยืนยัน
 
-ประวัติรอบก่อนหน้า: 28 ต.ค. 2569 มี 91 รายการ (approved 13, pending 78); 25 ต.ค. 2569 มี 82 รายการ โดยเปิดเฉพาะ CHIRPS รายการเดียว
+รายการ `approved_public` มาจากการตรวจสัญญาอนุญาต (เช่น CHIRPS, Open-Meteo ERA5 และ GISTDA flood) การยืนยันของเจ้าของโครงการ และ [นโยบายสัญญาอนุญาตเปิด](../config/publication_policy.json) 49 รายการ แถวจากนโยบายนี้ใช้ `publication_authorization.basis=open_license_policy` พร้อมเครดิตและหลักฐานรายรายการ
+
+RID/TMD, NABC daily, `dld_livestock_cattle_province`, `oae_agricultural_exports`, `cpd_agricultural_coop_counts` และชุด สสน. ข้างต้นมีหลักฐานยืนยันขอบเขตของแต่ละชุดตาม `AGENTS.md` ข้อ 3 โดยบางชุดไม่ยืนยันสัญญาอนุญาตต้นทาง
+
+`oae_nabc_monthly_jasmine_paddy_price` จำกัดการใช้เชิงพาณิชย์ ส่วน `ldd_pgs_program_progress` จำกัดทั้งการใช้เชิงพาณิชย์และการดัดแปลง จึงแสดงได้เฉพาะค่าเดิม `oae_nabc_daily_market_prices` และ OAE export ใช้คนละช่องทางข้อมูล NWP เป็นข้อมูลพยากรณ์ ส่วน `open_meteo_thailand_forecast` ยังอยู่ในสถานะ `pending`
+
+ประวัติทะเบียน ณ 29 ต.ค. 2569 มี 91 รายการ (approved 62, pending 29) ณ 28 ต.ค. 2569 มี 91 รายการ (approved 13, pending 78) และ ณ 25 ต.ค. 2569 มี 82 รายการ โดยเปิดเฉพาะ CHIRPS
 
 ## นโยบายอนุมัติตามสัญญาอนุญาตเปิด (publication policy 2026-10-29)
 

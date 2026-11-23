@@ -25,7 +25,11 @@ jobs:
           cache-dependency-path: requirements.lock
       - run: python -m pip install -r requirements.lock
       - run: python -m pip install --no-deps -e .
-      - run: python -X utf8 -m unittest discover -s hotspot-5y/tests -v
+      - name: Test Thailand Fire Atlas
+        run: |
+          python -m pip install numpy==2.5.4
+          python -c "import duckdb; duckdb.connect().execute('INSTALL spatial')"
+          python -X utf8 -m unittest discover -s hotspot-5y/tests -v
       - run: python -m unittest discover -s tests -v
       - name: Build and verify an offline baseline snapshot
         run: |

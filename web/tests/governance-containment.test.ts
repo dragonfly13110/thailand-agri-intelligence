@@ -404,9 +404,9 @@ test('licence register counts match the checked registry', () => {
     counts[resource.license_status] = (counts[resource.license_status] ?? 0) + 1;
   }
 
-  assert.equal(registry.resources.length, 91, 'registry: total');
+  assert.equal(registry.resources.length, 92, 'registry: total');
   assert.equal(counts.pending, 29, 'registry: pending');
-  assert.equal(counts.approved_public, 62, 'registry: approved_public');
+  assert.equal(counts.approved_public, 63, 'registry: approved_public');
   assert.equal(registry.reviewed_at, '2026-10-29', 'registry: reviewed_at');
 
   // The register doc must restate the registry counts, so the pins are derived
