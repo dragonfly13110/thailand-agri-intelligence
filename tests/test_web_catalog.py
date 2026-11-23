@@ -52,7 +52,9 @@ class WebCatalogTests(unittest.TestCase):
                 self.assertFalse((Path(folder) / 'out/catalog.json').exists())
         with tempfile.TemporaryDirectory() as folder:
             licenses = json.loads((ROOT / 'config/resource_licenses.json').read_text(encoding='utf-8'))
-            licenses['resources'][0]['license_status'] = 'restricted'
+            reviewed_key = next(row['resource_key'] for row in source['records'] if row['id'] == 'short-crop-production')
+            reviewed_license = next(row for row in licenses['resources'] if row['resource_key'] == reviewed_key)
+            reviewed_license['license_status'] = 'restricted'
             path = Path(folder) / 'licenses.json'
             path.write_text(json.dumps(licenses), encoding='utf-8')
             with self.assertRaises(ValueError):
