@@ -78,7 +78,7 @@ html[data-theme="light"] .chip-spk{color:#7e22ce}
 
 /* Main Map + Inspector Stage */
 .map-detail-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;align-items:start}
-.map-plot{position:relative;overflow:hidden;border:1px solid var(--border-strong);border-radius:14px;background:#0a111e;height:550px}
+.map-plot{position:relative;overflow:hidden;border:1px solid var(--border-strong);border-radius:14px;background:#0a111e;align-self:stretch;min-height:clamp(680px,76vh,860px)}
 .map-plot[data-basemap=plain]{background:#eef2f7}
 .map-plot[data-basemap=satellite]{background:#0b2330}
 .map-plot svg{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:pan-y;z-index:1}
@@ -187,7 +187,7 @@ tbody tr.selected{background:var(--accent-soft);font-weight:600}
 .methods summary{cursor:pointer;font-weight:700}
 .methods p,.methods ul{margin-top:8px;font-size:13px}
 
-@media(max-width:1100px){.map-detail-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1100px){.map-detail-grid{grid-template-columns:minmax(0,1fr)}.map-plot{min-height:550px}}
 @media(max-width:920px){.story-grid,.proof-grid,.kpi-grid,.two-col{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){
   .stat-rows,.fe-row{grid-template-columns:minmax(0,1fr)}
