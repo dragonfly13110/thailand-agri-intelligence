@@ -7,6 +7,7 @@
 | ใช้ทำอะไร | เอกสาร |
 |---|---|
 | ค้นแหล่งและ endpoint | [accessible-data-map.md](accessible-data-map.md), [source-registry.md](source-registry.md), [current-data-inventory.md](current-data-inventory.md), [ingestion.md](ingestion.md) |
+| ดึงพิกัดและภาพแผนที่ Agri-Map กับ SSMap | [คู่มือและตัวอย่างดึงข้อมูล](agrimap-ssmap-download-guide.md) · [บัญชี Agri-Map](agrimap-online-inventory.md) · [บัญชี SSMap](ssmap-layer-inventory.md) |
 | ตรวจสิทธิ์และ lineage | [source-license-register.md](source-license-register.md), [data-lineage-review.md](data-lineage-review.md), [coverage-inventory.md](coverage-inventory.md) |
 | สำรวจแหล่งเพิ่ม | [source-expansion-ldd.md](source-expansion-ldd.md), [source-expansion-dld.md](source-expansion-dld.md), [source-expansion-dof.md](source-expansion-dof.md), [doae-acquisition-audit.md](doae-acquisition-audit.md), [doae-catalog-expansion.md](doae-catalog-expansion.md) |
 
